@@ -264,5 +264,6 @@ function optimizarEspacioHojas() {
     }
   });
 
+  notificarTelegramSalud("🧹 Limpieza completada: " + totalEliminadas + " filas liberadas across " + sheets.length + " hojas.", "EXITO");
   ui.alert("🚀 Limpieza Completada", logs.join("\n") + "\n\nTotal: " + totalEliminadas + " filas liberadas.", ui.ButtonSet.OK);
 }

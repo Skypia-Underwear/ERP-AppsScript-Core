@@ -276,6 +276,11 @@ function debugLog(msg, forceSheet = false) {
 
   // Solo escribimos en la hoja si es un error o se fuerza (para evitar latencia en Webhooks)
   const esError = msg.includes("❌") || msg.includes("Error");
+
+  if (esError) {
+    notificarTelegramSalud(msg, "ERROR");
+  }
+
   if (!esError && !forceSheet) return;
 
   try {
@@ -371,6 +376,44 @@ function enviarTelegramRespuestaSimple(chatId, text) {
     debugLog(`✅ [Telegram] Respuesta simple enviada a ${chatId}: "${text}"`);
   } catch (e) {
     debugLog(`❌ [Telegram] Error al enviar respuesta simple a ${chatId}: ${e.message}`);
+  }
+}
+
+/**
+ * 🏥 SISTEMA DE REPORTES DE SALUD (GLOBAL)
+ * Envía notificaciones al Bot de Telegram identificando el sistema de origen.
+ * @param {string} mensaje El contenido del reporte.
+ * @param {string} tipo El tipo de reporte: 'ERROR', 'EXITO', 'INFO'.
+ */
+function notificarTelegramSalud(mensaje, tipo = 'INFO') {
+  const config = GLOBAL_CONFIG.TELEGRAM;
+  const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "SISTEMA_DESCONOCIDO";
+
+  if (!config.BOT_TOKEN || !config.CHAT_ID) return;
+
+  let icono = "📊";
+  if (tipo === "ERROR") icono = "🚨 ERROR";
+  if (tipo === "EXITO") icono = "✅ ÉXITO";
+
+  const fecha = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+  const textoFinal = `[${icono}]\n💻 SISTEMA: ${appName}\n📅 FECHA: ${fecha}\n\n📝 MENSAJE:\n${mensaje}`;
+
+  const url = `https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`;
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify({
+      chat_id: config.CHAT_ID,
+      text: textoFinal,
+      parse_mode: "HTML"
+    }),
+    muteHttpExceptions: true
+  };
+
+  try {
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    console.error("Fallo crítico enviando reporte a Telegram: " + e.message);
   }
 }
 
