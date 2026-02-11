@@ -81,9 +81,41 @@ function enviarMenuPrincipal(chatId) {
  */
 function responderResumenVentas(chatId) {
     try {
-        // Obtenemos datos financieros simplificados (reusando lógica de Dashboard si es posible)
-        // Para velocidad, haremos una lectura directa a BD_VENTAS si Dashboard es muy pesado
-        const resumen = "💰 <b>Resumen de Ventas (Hoy)</b>\n\nPróximamente: Integración con Dashboard.js...";
+        const res = cargarDashboardVentas();
+        if (!res.success) {
+            enviarTelegramRespuestaSimple(chatId, "⚠️ Error al cargar ventas: " + res.message);
+            return;
+        }
+
+        const data = res.data;
+        const hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+        const ventasHoy = data.filter(v => v.fecha && v.fecha.startsWith(hoy));
+
+        if (ventasHoy.length === 0) {
+            enviarMensajeTelegramCompleto(chatId, "💰 <b>Resumen de Ventas (Hoy)</b>\n\nNo se registraron ventas todavía hoy.");
+            return;
+        }
+
+        let total = 0;
+        const porMetodo = {};
+
+        ventasHoy.forEach(v => {
+            total += v.total || 0;
+            const mp = v.metodoPago || "No especificado";
+            porMetodo[mp] = (porMetodo[mp] || 0) + (v.total || 0);
+        });
+
+        let resumen = `💰 <b>Resumen de Ventas (Hoy)</b>\n`;
+        resumen += `━━━━━━━━━━━━━━━━━━\n`;
+        resumen += `💵 <b>Total:</b> $${total.toLocaleString("es-AR")}\n`;
+        resumen += `🛍️ <b>Ventas:</b> ${ventasHoy.length}\n\n`;
+
+        resumen += `<b>Desglose por Pago:</b>\n`;
+        for (const mp in porMetodo) {
+            resumen += `• ${mp}: $${porMetodo[mp].toLocaleString("es-AR")}\n`;
+        }
+
         enviarMensajeTelegramCompleto(chatId, resumen);
     } catch (e) {
         enviarTelegramRespuestaSimple(chatId, "❌ Error al calcular ventas: " + e.message);
@@ -99,8 +131,52 @@ function responderConsultaStock(chatId, modelo) {
         return;
     }
 
-    const respuesta = `🔍 <b>Buscando Stock: "${modelo}"</b>\n\nPróximamente: Integración con Inventario.js...`;
-    enviarMensajeTelegramCompleto(chatId, respuesta);
+    try {
+        const ss = getActiveSS();
+        const productos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.PRODUCTS));
+        const query = modelo.toLowerCase();
+
+        // Buscamos productos que coincidan con el modelo o ID
+        const matchProds = productos.filter(p =>
+            (p.MODELO && p.MODELO.toLowerCase().includes(query)) ||
+            (p.CODIGO_ID && p.CODIGO_ID.toLowerCase().includes(query))
+        ).slice(0, 5); // Limitamos a 5 coincidencias
+
+        if (matchProds.length === 0) {
+            enviarTelegramRespuestaSimple(chatId, `❌ No encontré productos que coincidan con "${modelo}".`);
+            return;
+        }
+
+        const inventario = convertirRangoAObjetos(ss.getSheetByName(SHEETS.INVENTORY));
+        let mensaje = `📦 <b>Stock para: "${modelo}"</b>\n\n`;
+
+        matchProds.forEach(p => {
+            const stockItems = inventario.filter(inv => inv.PRODUCTO_ID === p.CODIGO_ID);
+            const totalStock = stockItems.reduce((acc, item) => acc + (parseFloat(item.STOCK_ACTUAL) || 0), 0);
+
+            mensaje += `🔹 <b>${p.MODELO}</b> (${p.CODIGO_ID})\n`;
+            mensaje += `   💰 Precio: $${p.RECARGO_MENOR || "0"}\n`;
+            mensaje += `   ✅ <b>Stock Total: ${totalStock}</b>\n`;
+
+            if (stockItems.length > 0) {
+                // Agrupar por talle/color para no saturar el mensaje si hay mucho
+                const detalles = stockItems
+                    .filter(i => (parseFloat(i.STOCK_ACTUAL) || 0) > 0)
+                    .map(i => `${i.COLOR}/${i.TALLE}: <b>${i.STOCK_ACTUAL}</b>`)
+                    .slice(0, 8); // Mostrar solo las primeras 8 variantes con stock
+
+                if (detalles.length > 0) {
+                    mensaje += `   📋 Detalle: ${detalles.join(", ")}${stockItems.length > 8 ? "..." : ""}\n`;
+                }
+            }
+            mensaje += `\n`;
+        });
+
+        enviarMensajeTelegramCompleto(chatId, mensaje);
+
+    } catch (e) {
+        enviarTelegramRespuestaSimple(chatId, "❌ Error al consultar stock: " + e.message);
+    }
 }
 
 /**
