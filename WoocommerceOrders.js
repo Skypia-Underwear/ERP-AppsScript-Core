@@ -157,8 +157,8 @@ function importarOrdenesDesdeWC() {
 
     const resumen = `🏁 Fin. Nuevas: ${nuevas}, Act: ${actualizadas}.`;
     log(resumen);
-    return { success: true, message: resumen, logs: logArray };
-
+    notificarTelegramSalud(`✅ Importación finalizada: ${ordenes.length} órdenes procesadas.`, "EXITO");
+    return { success: true, count: ordenes.length };
   } catch (e) {
     log(`❌ ERROR CRÍTICO: ${e.message}`);
     return { success: false, message: e.message, logs: logArray };
