@@ -7,6 +7,7 @@ function onOpen() {
     .createMenu('⚙️ INSTALACIÓN')
     .addItem('🚀 Inicializar Sistema', 'inicializarEntorno')
     .addItem('🔍 Auditar Hojas y Columnas', 'auditarEntornoTablas')
+    .addItem('🧹 Optimizar Espacio (Limpiar)', 'optimizarEspacioHojas')
     .addItem('⚡ Instalar Automatización (IA)', 'instalarTriggersIA')
     .addToUi();
 }
