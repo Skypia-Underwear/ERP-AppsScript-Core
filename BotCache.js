@@ -1,16 +1,16 @@
 /**
- * BOT CACHE ENGINE
+ * BOT CACHE ENGINE (V2.1 - Reports Only)
  * Optimiza el acceso a datos pesados para el Chatbot.
  */
 
 const BOT_CACHE_KEYS = {
-    PRODUCT_LIST: 'BOT_PROD_LIST_MIN', // [{id, modelo, precio}]
-    SALES_TODAY: 'BOT_SALES_TODAY'
+    PRODUCT_LIST: 'BOT_PROD_LIST_MIN'
 };
 
 /**
- * Obtiene lista mínima de productos para búsqueda rápida.
- * Si no está en caché, la genera.
+ * Obtiene lista mínima de productos.
+ * (Repropósito: Útil si en el futuro se agregan otros reportes por producto)
+ * Si no se usa, puede eliminarse para ahorrar memoria.
  */
 function getBotProductListCached() {
     const cache = CacheService.getScriptCache();
@@ -24,7 +24,6 @@ function getBotProductListCached() {
         }
     }
 
-    // Regenerar si falta
     const ss = getActiveSS();
     const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
     if (!sheet) return [];
@@ -43,15 +42,14 @@ function getBotProductListCached() {
         precio: parseFloat(row[priceIdx] || 0)
     })).filter(p => p.id !== "");
 
-    // Guardar en caché 2 horas (7200 seg)
-    // Nota: El límite de CacheService es 100KB. Si la lista es enorme, esto fallará.
-    // Como salvaguarda, si falla el guardado, simplemente devolvemos la lista.
     try {
         const json = JSON.stringify(list);
         if (json.length < 100000) {
             cache.put(BOT_CACHE_KEYS.PRODUCT_LIST, json, 7200);
         }
-    } catch (e) { }
+    } catch (e) {
+        notificarTelegramSalud("⚠️ Caché de lista de productos excedida. Usando lectura directa.", "WARN");
+    }
 
     return list;
 }
@@ -72,46 +70,46 @@ function getFastDailyResumen() {
         success: true
     };
 
-    const sheetsToScan = [SHEETS.BLOGGER_SALES, SHEETS.VENTAS_PEDIDOS];
+    // Hojas a escanear (Prioridad: las más activas)
+    const sheetsToScan = [SHEETS.VENTAS_PEDIDOS, SHEETS.BLOGGER_SALES];
 
     sheetsToScan.forEach(sName => {
-        const sheet = ss.getSheetByName(sName);
-        if (!sheet) return;
+        try {
+            const sheet = ss.getSheetByName(sName);
+            if (!sheet) return;
 
-        const data = sheet.getDataRange().getValues();
-        const mapping = HeaderManager.getMapping(sName === SHEETS.BLOGGER_SALES ? "BLOGGER_SALES" : "VENTAS_PEDIDOS");
-        if (!mapping) return;
+            const data = sheet.getDataRange().getValues();
+            const mapping = HeaderManager.getMapping(sName === SHEETS.BLOGGER_SALES ? "BLOGGER_SALES" : "VENTAS_PEDIDOS");
+            if (!mapping) return;
 
-        const dateIdx = mapping["FECHA"];
-        const totalIdx = sName === SHEETS.BLOGGER_SALES ? mapping["TOTAL_VENTA"] : mapping["TOTAL_VENTA"];
-        const methodIdx = mapping["METODO_PAGO"];
+            const dateIdx = mapping["FECHA"];
+            const totalIdx = mapping["TOTAL_VENTA"];
+            const methodIdx = mapping["METODO_PAGO"];
 
-        // Escaneamos desde la última fila hacia arriba
-        for (let i = data.length - 1; i >= 1; i--) {
-            const row = data[i];
-            const rowDate = row[dateIdx];
-            if (!rowDate) continue;
+            // Escaneamos desde la última fila hacia arriba (LO MÁS RECIENTE PRIMERO)
+            for (let i = data.length - 1; i >= 1; i--) {
+                const row = data[i];
+                const rowDate = row[dateIdx];
+                if (!rowDate) continue;
 
-            const rowDateStr = (rowDate instanceof Date)
-                ? Utilities.formatDate(rowDate, Session.getScriptTimeZone(), "yyyy-MM-dd")
-                : String(rowDate).split(" ")[0]; // Fallback para strings
+                const rowDateStr = (rowDate instanceof Date)
+                    ? Utilities.formatDate(rowDate, Session.getScriptTimeZone(), "yyyy-MM-dd")
+                    : String(rowDate).split(" ")[0];
 
-            // Si llegamos a una fecha distinta a hoy, dejamos de buscar en esta hoja 
-            // (Asumiendo que están relativamente ordenadas por fecha)
-            if (rowDateStr !== hoyStr) {
-                // Si la fecha es anterior a hoy, cortamos (optimización crítica)
-                if (rowDate instanceof Date && rowDate < new Date(hoy.setHours(0, 0, 0, 0))) {
+                if (rowDateStr === hoyStr) {
+                    const monto = parseFloat(String(row[totalIdx] || 0).replace(/\$|\./g, '').replace(',', '.') || 0);
+                    const metodo = row[methodIdx] || "N/A";
+
+                    resumen.total += monto;
+                    resumen.cantidad++;
+                    resumen.porMetodo[metodo] = (resumen.porMetodo[metodo] || 0) + monto;
+                } else if (rowDate instanceof Date && rowDate < new Date(new Date().setHours(0, 0, 0, 0))) {
+                    // Si ya pasamos a ayer, cortamos el bucle (OPTIMIZACIÓN)
                     break;
                 }
-                continue;
             }
-
-            const monto = parseFloat(String(row[totalIdx]).replace(/\$|\./g, '').replace(',', '.') || 0);
-            const metodo = row[methodIdx] || "N/A";
-
-            resumen.total += monto;
-            resumen.cantidad++;
-            resumen.porMetodo[metodo] = (resumen.porMetodo[metodo] || 0) + monto;
+        } catch (err) {
+            console.error(`Error escaneando hoja ${sName} para bot: ${err.message}`);
         }
     });
 

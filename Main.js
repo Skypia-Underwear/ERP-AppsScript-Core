@@ -383,20 +383,33 @@ function enviarTelegramRespuestaSimple(chatId, text) {
  * 🏥 SISTEMA DE REPORTES DE SALUD (GLOBAL)
  * Envía notificaciones al Bot de Telegram identificando el sistema de origen.
  * @param {string} mensaje El contenido del reporte.
- * @param {string} tipo El tipo de reporte: 'ERROR', 'EXITO', 'INFO'.
+ * @param {string} tipo El tipo de reporte: 'ERROR', 'EXITO', 'INFO', 'WARN'.
  */
 function notificarTelegramSalud(mensaje, tipo = 'INFO') {
   const config = GLOBAL_CONFIG.TELEGRAM;
-  const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "SISTEMA_DESCONOCIDO";
+  const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "ERP_CORE";
+  const mode = config.MODE || "PROD";
 
   if (!config.BOT_TOKEN || !config.CHAT_ID) return;
 
-  let icono = "📊";
-  if (tipo === "ERROR") icono = "🚨 ERROR";
-  if (tipo === "EXITO") icono = "✅ ÉXITO";
+  const iconos = {
+    'ERROR': '🚨 [ERROR CRÍTICO]',
+    'EXITO': '✅ [ÉXITO]',
+    'INFO': 'ℹ️ [INFO]',
+    'WARN': '⚠️ [ADVERTENCIA]',
+    'HEALTH': '🩺 [SISTEMA OK]'
+  };
 
-  const fecha = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
-  const textoFinal = `[${icono}]\n💻 SISTEMA: ${appName}\n📅 FECHA: ${fecha}\n\n📝 MENSAJE:\n${mensaje}`;
+  const icono = iconos[tipo] || iconos['INFO'];
+  const fecha = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm:ss");
+
+  const textoFinal = `${icono}\n` +
+    `━━━━━━━━━━━━━━━━━━\n` +
+    `💻 <b>Sistema:</b> ${appName}\n` +
+    `🌐 <b>Entorno:</b> ${mode}\n` +
+    `📅 <b>Fecha:</b> ${fecha}\n` +
+    `━━━━━━━━━━━━━━━━━━\n\n` +
+    `📝 <b>Mensaje:</b>\n${mensaje}`;
 
   const url = `https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`;
   const options = {
