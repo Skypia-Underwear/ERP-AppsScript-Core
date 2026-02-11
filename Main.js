@@ -159,6 +159,10 @@ const HeaderManager = {
         if (h.includes("CORREO") || h.includes("MAIL") || h.includes("CORREO_ELECTRONICO")) mapping["EMAIL"] = index;
         if (h.includes("ROL") || h.includes("ROL_TIENDA")) mapping["ROL"] = index;
         if (h.includes("TIENDA_ADMINISTRADA") || h.includes("MANAGED_STORE")) mapping["MANAGED_STORE"] = index;
+        // Alias para WooCommerce / Pedidos
+        if (h.includes("ID ORDEN") || h.includes("ORDER_ID") || h.includes("NRO ORDEN")) mapping["ID ORDEN"] = index;
+        if (h.includes("ID CLIENTE") || h.includes("CUSTOMER_ID")) mapping["ID CLIENTE"] = index;
+        if (h.includes("TELÉFONO") || h.includes("TELEFONO") || h.includes("PHONE") || h.includes("CELULAR")) mapping["TELÉFONO"] = index;
       }
     });
 
