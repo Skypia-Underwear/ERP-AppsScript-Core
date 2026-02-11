@@ -275,7 +275,10 @@ function optimizarEspacioHojas() {
  */
 function instalarWebhookTelegram() {
   const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN || GITHUB_GLOBAL_CONFIG_TELEGRAM_TOKEN();
-  const webAppUrl = ScriptApp.getService().getUrl();
+
+  // Usar el ID de la Macros que el usuario tiene en su hoja (prioridad) o el actual
+  const scriptId = GLOBAL_CONFIG.SCRIPTS.GLOBAL;
+  let webAppUrl = scriptId ? `https://script.google.com/macros/s/${scriptId}/exec` : ScriptApp.getService().getUrl();
 
   if (!token || !webAppUrl) {
     const errorMsg = "❌ Error: Verifique TOKEN de Bot y que la WebApp esté publicada.";
