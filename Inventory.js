@@ -1049,8 +1049,6 @@ function enviarNotificacionGeneralBartender(fechaObj) {
       }
     } else if (provider === "EMAIL") {
       enviarEmailBartender(mensaje);
-    } else if (provider === "WHATSAPP") {
-      enviarWhatsAppLegacyBartender(mensaje);
     } else {
       Logger.log("ℹ️ No se configuró proveedor de notificación activo o es 'NONE'.");
     }
@@ -1118,26 +1116,6 @@ function enviarEmailBartender(mensaje) {
   Logger.log(`✅ Email enviado a: ${email}`);
 }
 
-/**
- * Canal de WhatsApp (Legacy/Unreliable)
- */
-function enviarWhatsAppLegacyBartender(mensaje) {
-  const config = GLOBAL_CONFIG.WHATSAPP;
-  if (!config.PHONE || !config.API_KEY) {
-    Logger.log("⚠️ WhatsApp NO configurado.");
-    return;
-  }
-
-  let url = "";
-  if ((config.PROVIDER || "").toUpperCase() === "CALLMEBOT") {
-    url = `https://api.callmebot.com/whatsapp.php?phone=${config.PHONE}&text=${encodeURIComponent(mensaje)}&apikey=${config.API_KEY}`;
-  } else {
-    url = `https://api.textmebot.com/send.php?recipient=${config.PHONE}&text=${encodeURIComponent(mensaje)}&apikey=${config.API_KEY}`;
-  }
-
-  UrlFetchApp.fetch(url);
-  Logger.log("✅ Intento de WhatsApp enviado.");
-}
 
 /**
  * Función para probar la configuración desde el Dashboard
