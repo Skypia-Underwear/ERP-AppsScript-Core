@@ -78,42 +78,25 @@ function enviarMenuPrincipal(chatId) {
 
 /**
  * Envía resumen de ventas rápido.
+ * OPTIMIZADO: Usa getFastDailyResumen (Escaneo reverso rápido).
  */
 function responderResumenVentas(chatId) {
     try {
-        const res = cargarDashboardVentas();
-        if (!res.success) {
-            enviarTelegramRespuestaSimple(chatId, "⚠️ Error al cargar ventas: " + res.message);
-            return;
-        }
+        const res = getFastDailyResumen();
 
-        const data = res.data;
-        const hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
-
-        const ventasHoy = data.filter(v => v.fecha && v.fecha.startsWith(hoy));
-
-        if (ventasHoy.length === 0) {
+        if (res.cantidad === 0) {
             enviarMensajeTelegramCompleto(chatId, "💰 <b>Resumen de Ventas (Hoy)</b>\n\nNo se registraron ventas todavía hoy.");
             return;
         }
 
-        let total = 0;
-        const porMetodo = {};
-
-        ventasHoy.forEach(v => {
-            total += v.total || 0;
-            const mp = v.metodoPago || "No especificado";
-            porMetodo[mp] = (porMetodo[mp] || 0) + (v.total || 0);
-        });
-
         let resumen = `💰 <b>Resumen de Ventas (Hoy)</b>\n`;
         resumen += `━━━━━━━━━━━━━━━━━━\n`;
-        resumen += `💵 <b>Total:</b> $${total.toLocaleString("es-AR")}\n`;
-        resumen += `🛍️ <b>Ventas:</b> ${ventasHoy.length}\n\n`;
+        resumen += `💵 <b>Total:</b> $${res.total.toLocaleString("es-AR")}\n`;
+        resumen += `🛍️ <b>Ventas:</b> ${res.cantidad}\n\n`;
 
         resumen += `<b>Desglose por Pago:</b>\n`;
-        for (const mp in porMetodo) {
-            resumen += `• ${mp}: $${porMetodo[mp].toLocaleString("es-AR")}\n`;
+        for (const mp in res.porMetodo) {
+            resumen += `• ${mp}: $${res.porMetodo[mp].toLocaleString("es-AR")}\n`;
         }
 
         enviarMensajeTelegramCompleto(chatId, resumen);
@@ -124,6 +107,7 @@ function responderResumenVentas(chatId) {
 
 /**
  * Envía consulta de stock.
+ * OPTIMIZADO: Usa CacheService (Product List + Stock Map).
  */
 function responderConsultaStock(chatId, modelo) {
     if (!modelo) {
@@ -132,42 +116,55 @@ function responderConsultaStock(chatId, modelo) {
     }
 
     try {
-        const ss = getActiveSS();
-        const productos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.PRODUCTS));
+        // 1. Obtener lista de productos optimizada (ID + MODELO)
+        const productos = getBotProductListCached();
         const query = modelo.toLowerCase();
 
-        // Buscamos productos que coincidan con el modelo o ID
+        // 2. Filtrar coincidencias
         const matchProds = productos.filter(p =>
-            (p.MODELO && p.MODELO.toLowerCase().includes(query)) ||
-            (p.CODIGO_ID && p.CODIGO_ID.toLowerCase().includes(query))
-        ).slice(0, 5); // Limitamos a 5 coincidencias
+            p.modelo.toLowerCase().includes(query) ||
+            p.id.toLowerCase().includes(query)
+        ).slice(0, 5);
 
         if (matchProds.length === 0) {
             enviarTelegramRespuestaSimple(chatId, `❌ No encontré productos que coincidan con "${modelo}".`);
             return;
         }
 
-        const inventario = convertirRangoAObjetos(ss.getSheetByName(SHEETS.INVENTORY));
+        // 3. Obtener Stock Map del Caché de Inventario (Sincronizado con TPV)
+        let stockMapRes = getAllStockFromCache();
+        if (!stockMapRes.success) {
+            enviarTelegramRespuestaSimple(chatId, "⚠️ El sistema de stock está ocupado o en mantenimiento.");
+            return;
+        }
+        const stockMap = stockMapRes.stockMap;
+
         let mensaje = `📦 <b>Stock para: "${modelo}"</b>\n\n`;
 
         matchProds.forEach(p => {
-            const stockItems = inventario.filter(inv => inv.PRODUCTO_ID === p.CODIGO_ID);
-            const totalStock = stockItems.reduce((acc, item) => acc + (parseFloat(item.STOCK_ACTUAL) || 0), 0);
+            // Filtrar las entradas del mapa que correspondan a este producto
+            // Las llaves son: PRODUCTO_ID-COLOR-TALLE-TIENDA_ID
+            let totalStock = 0;
+            const detalles = [];
 
-            mensaje += `🔹 <b>${p.MODELO}</b> (${p.CODIGO_ID})\n`;
-            mensaje += `   💰 Precio: $${p.RECARGO_MENOR || "0"}\n`;
+            for (const key in stockMap) {
+                if (key.startsWith(p.id + "-")) {
+                    const st = parseInt(stockMap[key]) || 0;
+                    if (st > 0) {
+                        totalStock += st;
+                        const parts = key.split("-");
+                        // parts[1]=color, parts[2]=talle
+                        detalles.push(`${parts[1]}/${parts[2]}: <b>${st}</b>`);
+                    }
+                }
+            }
+
+            mensaje += `🔹 <b>${p.modelo}</b> (${p.id})\n`;
+            mensaje += `   💰 Precio: $${p.precio.toLocaleString("es-AR")}\n`;
             mensaje += `   ✅ <b>Stock Total: ${totalStock}</b>\n`;
 
-            if (stockItems.length > 0) {
-                // Agrupar por talle/color para no saturar el mensaje si hay mucho
-                const detalles = stockItems
-                    .filter(i => (parseFloat(i.STOCK_ACTUAL) || 0) > 0)
-                    .map(i => `${i.COLOR}/${i.TALLE}: <b>${i.STOCK_ACTUAL}</b>`)
-                    .slice(0, 8); // Mostrar solo las primeras 8 variantes con stock
-
-                if (detalles.length > 0) {
-                    mensaje += `   📋 Detalle: ${detalles.join(", ")}${stockItems.length > 8 ? "..." : ""}\n`;
-                }
+            if (detalles.length > 0) {
+                mensaje += `   📋 Detalle: ${detalles.slice(0, 10).join(", ")}${detalles.length > 10 ? "..." : ""}\n`;
             }
             mensaje += `\n`;
         });
