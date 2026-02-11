@@ -1,6 +1,6 @@
 /**
- * TELEGRAM BOT CONTROLLER (V2.0 - No-AI / Multi-Tenant)
- * Maneja la interactividad determinística y rápida.
+ * TELEGRAM BOT CONTROLLER (V2.1 - Interactive & Productive)
+ * Maneja la interactividad determinística y rápida con soporte para comandos nativos.
  */
 
 /**
@@ -18,6 +18,7 @@ function handleTelegramRequest(contents) {
         const text = message ? (message.text || "").trim() : "";
         const data = callbackQuery ? callbackQuery.data : "";
         const userId = message ? message.from.id : callbackQuery.from.id;
+        const messageId = callbackQuery ? callbackQuery.message.message_id : null;
 
         // --- PROTECCIÓN DE BUCLES (Cache de Update ID) ---
         const updateId = update.update_id;
@@ -29,18 +30,18 @@ function handleTelegramRequest(contents) {
 
         // --- SEGURIDAD: Validar si el usuario es el dueño o desarrollador ---
         const config = GLOBAL_CONFIG.TELEGRAM;
-        console.log(`👤 Mensaje de ChatID: ${chatId} (Configurado: ${config.CHAT_ID})`);
-
-        // Notificación de Salud para saber que entró al bot (Diagnóstico)
-        notificarTelegramSalud(`📥 Bot Recibió: "${text || data}" de ChatID: ${chatId}`, "INFO");
 
         // --- ROUTER DE COMANDOS ---
-        if (text.startsWith("/ventas") || data === "cmd_ventas") {
-            responderResumenVentas(chatId);
+        if (text.startsWith("/ventas") || data === "cmd_ventas" || data === "upd_ventas") {
+            const isUpdate = (data === "upd_ventas");
+            responderResumenVentas(chatId, isUpdate, messageId);
         } else if (text === "/menu" || text === "/start" || data === "cmd_menu") {
             enviarMenuPrincipal(chatId);
+        } else if (text === "/salud" || data === "cmd_salud") {
+            probarConexionDirectaTelegram();
         } else if (callbackQuery) {
-            enviarTelegramRespuestaSimple(chatId, "⚠️ Comando de botón no reconocido.");
+            // Responder al callback para quitar el relojito de carga en Telegram
+            answerCallbackQuery(callbackQuery.id);
         }
 
     } catch (e) {
@@ -58,6 +59,7 @@ function enviarMenuPrincipal(chatId) {
     const keyboard = {
         inline_keyboard: [
             [{ text: "📊 Resumen de Ventas", callback_data: "cmd_ventas" }],
+            [{ text: "🩺 Probar Salud", callback_data: "cmd_salud" }],
             [{ text: "🏠 Menú ERP", callback_data: "cmd_menu" }]
         ]
     };
@@ -66,33 +68,123 @@ function enviarMenuPrincipal(chatId) {
 }
 
 /**
- * Envía resumen de ventas rápido.
- * OPTIMIZADO: Usa getFastDailyResumen (Escaneo reverso rápido).
+ * Responde con el resumen de ventas.
+ * Soporta actualización dinámica del mensaje original.
  */
-function responderResumenVentas(chatId) {
+function responderResumenVentas(chatId, isUpdate = false, messageId = null) {
     try {
         const res = getFastDailyResumen();
 
-        if (res.cantidad === 0) {
-            enviarMensajeTelegramCompleto(chatId, "💰 <b>Resumen de Ventas (Hoy)</b>\n\nNo se registraron ventas todavía hoy.");
-            return;
-        }
-
         let resumen = `💰 <b>Resumen de Ventas (Hoy)</b>\n`;
         resumen += `━━━━━━━━━━━━━━━━━━\n`;
-        resumen += `💵 <b>Total:</b> $${res.total.toLocaleString("es-AR")}\n`;
-        resumen += `🛍️ <b>Ventas:</b> ${res.cantidad}\n\n`;
 
-        resumen += `<b>Desglose por Pago:</b>\n`;
-        for (const mp in res.porMetodo) {
-            resumen += `• ${mp}: $${res.porMetodo[mp].toLocaleString("es-AR")}\n`;
+        if (res.cantidad === 0) {
+            resumen += `No se registraron ventas todavía hoy.\n`;
+        } else {
+            resumen += `💵 <b>Total:</b> $${res.total.toLocaleString("es-AR")}\n`;
+            resumen += `🛍️ <b>Ventas:</b> ${res.cantidad}\n\n`;
+            resumen += `<b>Desglose por Pago:</b>\n`;
+            for (const mp in res.porMetodo) {
+                resumen += `• ${mp}: $${res.porMetodo[mp].toLocaleString("es-AR")}\n`;
+            }
         }
 
-        enviarMensajeTelegramCompleto(chatId, resumen);
+        const fechaHora = Utilities.formatDate(new Date(), "GMT-3", "HH:mm:ss");
+        resumen += `\n🕒 <i>Última actualización: ${fechaHora}</i>`;
+
+        const keyboard = {
+            inline_keyboard: [
+                [{ text: "🔄 Actualizar Datos", callback_data: "upd_ventas" }],
+                [{ text: "⬅️ Volver", callback_data: "cmd_menu" }]
+            ]
+        };
+
+        if (isUpdate && messageId) {
+            editMessageText(chatId, messageId, resumen, keyboard);
+        } else {
+            enviarMensajeTelegramCompleto(chatId, resumen, keyboard);
+        }
     } catch (e) {
         enviarTelegramRespuestaSimple(chatId, "❌ Error al calcular ventas: " + e.message);
         notificarTelegramSalud(`❌ Error calculando resumen ventas (Bot): ${e.message}`, "ERROR");
     }
+}
+
+/**
+ * Configura los comandos nativos en el menú del bot (/ventas, /menu, /salud).
+ */
+function configurarComandosNativosTelegram() {
+    const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+    if (!token) return { success: false, message: "No hay token configurado." };
+
+    const url = `https://api.telegram.org/bot${token}/setMyCommands`;
+    const payload = {
+        commands: [
+            { command: "ventas", description: "Ver resumen de ventas de hoy" },
+            { command: "menu", description: "Abrir menú principal interactivo" },
+            { command: "salud", description: "Diagnóstico de salud del sistema" }
+        ]
+    };
+
+    const options = {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+    };
+
+    try {
+        const res = UrlFetchApp.fetch(url, options);
+        const data = JSON.parse(res.getContentText());
+        return { success: data.ok, data: data };
+    } catch (e) {
+        return { success: false, message: e.message };
+    }
+}
+
+/**
+ * Responde a un callback_query para quitar el estado de carga en el cliente.
+ */
+function answerCallbackQuery(callbackQueryId) {
+    const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+    if (!token) return;
+
+    const url = `https://api.telegram.org/bot${token}/answerCallbackQuery`;
+    const payload = { callback_query_id: callbackQueryId };
+
+    UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+    });
+}
+
+/**
+ * Edita el texto de un mensaje existente.
+ */
+function editMessageText(chatId, messageId, text, keyboard = null) {
+    const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+    if (!token) return;
+
+    const url = `https://api.telegram.org/bot${token}/editMessageText`;
+    const payload = {
+        chat_id: chatId,
+        message_id: messageId,
+        text: text,
+        parse_mode: "HTML"
+    };
+
+    if (keyboard) {
+        payload.reply_markup = JSON.stringify(keyboard);
+    }
+
+    UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+    });
 }
 
 /**
@@ -113,19 +205,16 @@ function enviarMensajeTelegramCompleto(chatId, text, keyboard = null) {
         payload.reply_markup = JSON.stringify(keyboard);
     }
 
-    const options = {
+    UrlFetchApp.fetch(url, {
         method: "post",
         contentType: "application/json",
         payload: JSON.stringify(payload),
         muteHttpExceptions: true
-    };
-
-    UrlFetchApp.fetch(url, options);
+    });
 }
 
 /**
  * PRUEBA DE CONEXIÓN DIRECTA (Manual)
- * Ejecuta esta función desde el editor para verificar TOKEN y CHAT_ID.
  */
 function probarConexionDirectaTelegram() {
     const config = GLOBAL_CONFIG.TELEGRAM;
@@ -138,15 +227,6 @@ function probarConexionDirectaTelegram() {
     try {
         enviarMensajeTelegramCompleto(config.CHAT_ID, msg);
         Logger.log("✅ Mensaje de prueba enviado. Revisa tu Telegram.");
-
-        // También verificamos el Webhook
-        const webAppUrl = ScriptApp.getService().getUrl();
-        const urlWebhook = `https://api.telegram.org/bot${config.BOT_TOKEN}/getWebhookInfo`;
-        const res = UrlFetchApp.fetch(urlWebhook, { muteHttpExceptions: true });
-        Logger.log("🔍 Estado del Webhook en Telegram: " + res.getContentText());
-
-        const ui = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.getUi() : null;
-        if (ui) ui.alert("✅ Prueba ejecutada. Mira los 'Registros de ejecución' en la parte inferior del editor para ver el diagnóstico detallado.");
     } catch (e) {
         Logger.log("❌ Error en prueba: " + e.message);
         notificarTelegramSalud(`❌ Error en prueba de conexión: ${e.message}`, "ERROR");
