@@ -29,8 +29,10 @@ function handleTelegramRequest(contents) {
 
         // --- SEGURIDAD: Validar si el usuario es el dueño o desarrollador ---
         const config = GLOBAL_CONFIG.TELEGRAM;
+        console.log(`👤 Mensaje de ChatID: ${chatId} (Configurado: ${config.CHAT_ID})`);
+
         if (String(chatId) !== String(config.CHAT_ID)) {
-            // Ignorar mensajes de otros para evitar spam, pero notificar al dueño si se desea
+            console.warn(`⛔ Acceso denegado para ChatID: ${chatId}. No coincide con el configurado.`);
             return ContentService.createTextOutput("ok");
         }
 

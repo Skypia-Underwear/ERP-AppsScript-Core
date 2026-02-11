@@ -313,10 +313,11 @@ function doPost(e) {
 
     // --- MANEJO DE TELEGRAM (WEBHOOK) ---
     if (contents.message || contents.callback_query) {
+      console.log("📨 Telegram Request recibida. Modo: " + GLOBAL_CONFIG.TELEGRAM.MODE);
       if (GLOBAL_CONFIG.TELEGRAM.MODE === "CLIENT") {
         return handleTelegramRequest(contents);
       } else {
-        // En modo DEV el bot ignora mensajes directos para evitar bucles si no se desea interactividad
+        console.warn("⚠️ Telegram ignorado: El sistema está en modo " + GLOBAL_CONFIG.TELEGRAM.MODE);
         return ContentService.createTextOutput("ok");
       }
     }
