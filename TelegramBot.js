@@ -32,7 +32,10 @@ function handleTelegramRequest(contents) {
         const config = GLOBAL_CONFIG.TELEGRAM;
 
         // --- ROUTER DE COMANDOS ---
-        if (text.startsWith("/ventas") || data === "cmd_ventas" || data === "upd_ventas") {
+        if (text === "/setup") {
+            const res = configurarComandosNativosTelegram();
+            enviarTelegramRespuestaSimple(chatId, res.success ? "✅ Menú de comandos configurado. Reinicia el chat o espera unos segundos para verlo." : "❌ Error: " + res.message);
+        } else if (text.startsWith("/ventas") || data === "cmd_ventas" || data === "upd_ventas") {
             const isUpdate = (data === "upd_ventas");
             responderResumenVentas(chatId, isUpdate, messageId);
         } else if (text === "/menu" || text === "/start" || data === "cmd_menu") {
