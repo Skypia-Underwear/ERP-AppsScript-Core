@@ -114,8 +114,8 @@ const SHEET_SCHEMA = {
   METODOS_PAGO: ["MOVIMIENTO_ID", "PORCENTAJE"],
   DATOS_TRANSFERENCIA: ["CUENTA_ID", "ALIAS", "NOMBRE_CUENTA"],
   USUARIOS_SISTEMAS: ["USER_ID", "NOMBRE"],
-  WC_ORDERS: ["ID ORDEN", "ESTADO", "ID CLIENTE", "TELÉFONO"],
-  APP_SCRIPT_CONFIG: ["CLAVE", "VALOR"], // Especificamente para BD_APP_SCRIPT (KV)
+  WC_ORDERS: ["ID_ORDEN", "ESTADO", "CLIENTE", "TELEFONO", "DIRECCION_FACTURACION", "RESUMEN_PRODUCTOS", "TOTAL_VENTA", "FECHA", "ULTIMA_ACTUALIZACION"],
+  APP_SCRIPT_CONFIG: ["TIPO_CLAVE", "VALOR"], // Especificamente para BD_APP_SCRIPT (KV)
   GENERAL_CONFIG: ["GENERAL_ID", "RESPONSABLE"] // Para BD_CONFIGURACION_GENERAL (Wide)
 };
 
@@ -160,9 +160,11 @@ const HeaderManager = {
         if (h.includes("ROL") || h.includes("ROL_TIENDA")) mapping["ROL"] = index;
         if (h.includes("TIENDA_ADMINISTRADA") || h.includes("MANAGED_STORE")) mapping["MANAGED_STORE"] = index;
         // Alias para WooCommerce / Pedidos
-        if (h.includes("ID ORDEN") || h.includes("ORDER_ID") || h.includes("NRO ORDEN")) mapping["ID ORDEN"] = index;
-        if (h.includes("ID CLIENTE") || h.includes("CUSTOMER_ID")) mapping["ID CLIENTE"] = index;
-        if (h.includes("TELÉFONO") || h.includes("TELEFONO") || h.includes("PHONE") || h.includes("CELULAR")) mapping["TELÉFONO"] = index;
+        if (h.includes("ID ORDEN") || h.includes("ORDER_ID") || h.includes("NRO ORDEN") || h.includes("ID_ORDEN")) mapping["ID_ORDEN"] = index;
+        if (h.includes("ID CLIENTE") || h.includes("CUSTOMER_ID") || h.includes("CLIENTE")) mapping["CLIENTE"] = index;
+        if (h.includes("TELÉFONO") || h.includes("TELEFONO") || h.includes("PHONE") || h.includes("CELULAR")) mapping["TELEFONO"] = index;
+        if (h.includes("TOTAL_VENTA") || h.includes("TOTAL")) mapping["TOTAL_VENTA"] = index;
+        if (h.includes("ULTIMA_ACTUALIZACION") || h.includes("ULT. ACTUALIZACION")) mapping["ULTIMA_ACTUALIZACION"] = index;
       }
     });
 
