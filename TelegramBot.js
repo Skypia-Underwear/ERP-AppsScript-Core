@@ -31,10 +31,15 @@ function handleTelegramRequest(contents) {
         const config = GLOBAL_CONFIG.TELEGRAM;
         console.log(`👤 Mensaje de ChatID: ${chatId} (Configurado: ${config.CHAT_ID})`);
 
+        /* DESACTIVADO TEMPORALMENTE PARA DIAGNÓSTICO
         if (String(chatId) !== String(config.CHAT_ID)) {
             console.warn(`⛔ Acceso denegado para ChatID: ${chatId}. No coincide con el configurado.`);
             return ContentService.createTextOutput("ok");
         }
+        */
+
+        // Notificación de Salud para saber que entró al bot (Diagnóstico)
+        notificarTelegramSalud(`📥 Bot Recibió: "${text || data}" de ChatID: ${chatId}`, "INFO");
 
         // --- ROUTER DE COMANDOS ---
         if (text.startsWith("/ventas") || data === "cmd_ventas") {
@@ -46,7 +51,6 @@ function handleTelegramRequest(contents) {
         } else if (text === "/menu" || text === "/start" || data === "cmd_menu") {
             enviarMenuPrincipal(chatId);
         } else if (callbackQuery) {
-            // Manejar otros botones...
             enviarTelegramRespuestaSimple(chatId, "⚠️ Comando de botón no reconocido.");
         }
 
