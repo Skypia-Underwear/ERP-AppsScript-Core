@@ -305,6 +305,22 @@ function logErrorFromFrontend(msg) {
  * Maneja solicitudes POST de AppSheet, WooCommerce y otros servicios.
  * Telegram queda relegado solo para notificaciones salientes.
  */
+/**
+ * Manejador de solicitudes GET (Para pruebas y diagnóstico)
+ */
+function doGet(e) {
+  const config = GLOBAL_CONFIG.TELEGRAM;
+  const status = {
+    sistema: "HostingShop Bot V2.0",
+    modo: config.MODE,
+    chat_id_configurado: config.CHAT_ID ? "✅ CONFIGURADO" : "❌ FALTANTE",
+    webhook_url: ScriptApp.getService().getUrl()
+  };
+
+  return ContentService.createTextOutput(JSON.stringify(status, null, 2))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) return ContentService.createTextOutput("no data");
