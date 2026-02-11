@@ -205,18 +205,19 @@ function auditarEntornoTablas() {
 
     const columnasRequeridas = SHEET_SCHEMA[alias];
     if (columnasRequeridas && columnasRequeridas.length > 0) {
-      const lastCol = hoja.getLastColumn();
-      if (lastCol === 0) {
-        logs.push(`⚠️ ALERTA: La hoja '${nombreHoja}' está vacía.`);
+      // Usamos el HeaderManager para validar alias y columnas críticas
+      const mapping = HeaderManager.getMapping(alias);
+
+      if (!mapping) {
+        logs.push(`⚠️ ALERTA: No se pudo generar mapeo para '${nombreHoja}'.`);
         hayAdvertencias = true;
         continue;
       }
 
-      const encabezadosSujeto = hoja.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toUpperCase());
-      const faltantes = columnasRequeridas.filter(col => !encabezadosSujeto.includes(col.toUpperCase()));
+      const faltantes = columnasRequeridas.filter(col => mapping[col.toUpperCase()] === undefined);
 
       if (faltantes.length > 0) {
-        logs.push(`⚠️ ADVERTENCIA: En '${nombreHoja}' faltan columnas: ${faltantes.join(", ")}`);
+        logs.push(`⚠️ ADVERTENCIA: En '${nombreHoja}' faltan columnas críticas: ${faltantes.join(", ")}`);
         hayAdvertencias = true;
       } else {
         logs.push(`✅ Hoja '${nombreHoja}' validada.`);
