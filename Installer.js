@@ -9,6 +9,8 @@ function onOpen() {
     .addItem('🔍 Auditar Hojas y Columnas', 'auditarEntornoTablas')
     .addItem('🧹 Optimizar Espacio (Limpiar)', 'optimizarEspacioHojas')
     .addItem('⚡ Instalar Automatización (IA)', 'instalarTriggersIA')
+    .addSeparator()
+    .addItem('🤖 Configurar Webhook Telegram', 'instalarWebhookTelegram')
     .addToUi();
 }
 
@@ -270,24 +272,33 @@ function optimizarEspacioHojas() {
 
 /**
  * Registra el Webhook en los servidores de Telegram.
- * Debe ejecutarse después de publicar la WebApp.
  */
 function instalarWebhookTelegram() {
-  const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+  const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN || GITHUB_GLOBAL_CONFIG_TELEGRAM_TOKEN();
   const webAppUrl = ScriptApp.getService().getUrl();
 
   if (!token || !webAppUrl) {
-    SpreadsheetApp.getUi().alert("❌ Error: TOKEN de Bot o URL de WebApp no encontrados.");
+    const errorMsg = "❌ Error: Verifique TOKEN de Bot y que la WebApp esté publicada.";
+    Logger.log(errorMsg);
+    try { SpreadsheetApp.getUi().alert(errorMsg); } catch (e) { }
     return;
   }
 
   const url = `https://api.telegram.org/bot${token}/setWebhook?url=${webAppUrl}`;
-  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  const resObj = JSON.parse(response.getContentText());
+  try {
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const resObj = JSON.parse(response.getContentText());
 
-  if (resObj.ok) {
-    SpreadsheetApp.getUi().alert("✅ Webhook registrado con éxito!\n\nEl Bot ahora responderá comandos interactivos.");
-  } else {
-    SpreadsheetApp.getUi().alert("❌ Error al registrar Webhook:\n" + resObj.description);
+    if (resObj.ok) {
+      const msg = "✅ Webhook registrado con éxito!\nEl Bot ahora responderá comandos interactivos.";
+      Logger.log(msg);
+      try { SpreadsheetApp.getUi().alert(msg); } catch (e) { }
+    } else {
+      const msg = "❌ Error de Telegram:\n" + resObj.description;
+      Logger.log(msg);
+      try { SpreadsheetApp.getUi().alert(msg); } catch (e) { }
+    }
+  } catch (e) {
+    Logger.log("❌ Error crítico: " + e.message);
   }
 }
