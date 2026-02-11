@@ -235,3 +235,34 @@ function auditarEntornoTablas() {
 
   ui.alert(titulo, logs.join("\n"), ui.ButtonSet.OK);
 }
+
+/**
+ * 🧹 OPTIMIZACIÓN DE ESPACIO
+ * Elimina las filas vacías al final de todas las hojas para mejorar rendimiento.
+ */
+function optimizarEspacioHojas() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var ui = SpreadsheetApp.getUi();
+  var logs = ["🧹 Resumen de Optimización:"];
+  var totalEliminadas = 0;
+
+  sheets.forEach(function (sheet) {
+    var nombre = sheet.getName();
+    var maxRows = sheet.getMaxRows();
+    var lastRow = sheet.getLastRow();
+
+    // Dejamos al menos 2 filas de margen por cortesía
+    var filasAEliminar = maxRows - lastRow - 2;
+
+    if (filasAEliminar > 0 && lastRow > 0) {
+      sheet.deleteRows(lastRow + 2, filasAEliminar);
+      logs.push("✅ '" + nombre + "': " + filasAEliminar + " filas eliminadas.");
+      totalEliminadas += filasAEliminar;
+    } else {
+      logs.push("ℹ️ '" + nombre + "': Ya optimizada.");
+    }
+  });
+
+  ui.alert("🚀 Limpieza Completada", logs.join("\n") + "\n\nTotal: " + totalEliminadas + " filas liberadas.", ui.ButtonSet.OK);
+}
