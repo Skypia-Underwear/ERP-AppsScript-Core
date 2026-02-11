@@ -157,10 +157,9 @@ function inicializarEntorno() {
       { clave: "GM_IMAGE_API_KEY", val: "", desc: "PEGA AQUÍ: API Key de Google Gemini (IA)" },
       { clave: "APPSHEET_APP_ID", val: "", desc: "PEGA AQUÍ: ID de la App en AppSheet" },
       { clave: "APPSHEET_ACCESS_KEY", val: "", desc: "PEGA AQUÍ: Access Key de la App en AppSheet" },
-      { clave: "WHATSAPP_PROVIDER", val: "TEXTMEBOT", desc: "Proveedor: CALLMEBOT o TEXTMEBOT" },
       { clave: "TELEGRAM_BOT_TOKEN", val: "", desc: "Token del Bot de Telegram (@BotFather)" },
       { clave: "TELEGRAM_CHAT_ID", val: "", desc: "ID del Chat o Grupo de Telegram" },
-      { clave: "NOTIFICATION_PROVIDER", val: "TELEGRAM", desc: "Canal: TELEGRAM, EMAIL, WHATSAPP o NONE" },
+      { clave: "NOTIFICATION_PROVIDER", val: "TELEGRAM", desc: "Canal: TELEGRAM, EMAIL o NONE" },
       { clave: "NOTIFICATION_EMAIL", val: "", desc: "Email para notificaciones (si aplica)" },
       // --- CONFIGURACIÓN DE PUBLICACIÓN ---
       { clave: "PUBLICATION_TARGET", val: "DONWEB", desc: "Destino: DONWEB o GITHUB" },
