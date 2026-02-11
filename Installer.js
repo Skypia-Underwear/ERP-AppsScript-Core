@@ -159,6 +159,7 @@ function inicializarEntorno() {
       { clave: "APPSHEET_ACCESS_KEY", val: "", desc: "PEGA AQUÍ: Access Key de la App en AppSheet" },
       { clave: "TELEGRAM_BOT_TOKEN", val: "", desc: "Token del Bot de Telegram (@BotFather)" },
       { clave: "TELEGRAM_CHAT_ID", val: "", desc: "ID del Chat o Grupo de Telegram" },
+      { clave: "TELEGRAM_MODE", val: "DEV", desc: "Modo: DEV (solo salud) o CLIENT (asistente)" },
       { clave: "NOTIFICATION_PROVIDER", val: "TELEGRAM", desc: "Canal: TELEGRAM, EMAIL o NONE" },
       { clave: "NOTIFICATION_EMAIL", val: "", desc: "Email para notificaciones (si aplica)" },
       // --- CONFIGURACIÓN DE PUBLICACIÓN ---
@@ -265,4 +266,28 @@ function optimizarEspacioHojas() {
 
   notificarTelegramSalud("🧹 Limpieza completada: " + totalEliminadas + " filas liberadas across " + sheets.length + " hojas.", "EXITO");
   ui.alert("🚀 Limpieza Completada", logs.join("\n") + "\n\nTotal: " + totalEliminadas + " filas liberadas.", ui.ButtonSet.OK);
+}
+
+/**
+ * Registra el Webhook en los servidores de Telegram.
+ * Debe ejecutarse después de publicar la WebApp.
+ */
+function instalarWebhookTelegram() {
+  const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+  const webAppUrl = ScriptApp.getService().getUrl();
+
+  if (!token || !webAppUrl) {
+    SpreadsheetApp.getUi().alert("❌ Error: TOKEN de Bot o URL de WebApp no encontrados.");
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${token}/setWebhook?url=${webAppUrl}`;
+  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const resObj = JSON.parse(response.getContentText());
+
+  if (resObj.ok) {
+    SpreadsheetApp.getUi().alert("✅ Webhook registrado con éxito!\n\nEl Bot ahora responderá comandos interactivos.");
+  } else {
+    SpreadsheetApp.getUi().alert("❌ Error al registrar Webhook:\n" + resObj.description);
+  }
 }

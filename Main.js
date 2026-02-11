@@ -74,11 +74,12 @@ const GLOBAL_CONFIG = {
   },
   TELEGRAM: {
     BOT_TOKEN: SCRIPT_CONFIG["TELEGRAM_BOT_TOKEN"] || "",
-    CHAT_ID: SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || ""
+    CHAT_ID: SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || "",
+    MODE: (SCRIPT_CONFIG["TELEGRAM_MODE"] || "DEV").toUpperCase()
   },
   NOTIFICACIONES: {
     PROVIDER: SCRIPT_CONFIG["NOTIFICATION_PROVIDER"] || "TELEGRAM",
-    EMAIL_DESTINO: SCRIPT_CONFIG["NOTIFICATION_EMAIL"] || ""
+    EMAIL: SCRIPT_CONFIG["NOTIFICATION_EMAIL"] || ""
   },
   // --- NUEVAS CLAVES DE PUBLICACIÓN ---
   PUBLICATION_TARGET: SCRIPT_CONFIG["PUBLICATION_TARGET"] || "DONWEB",
@@ -310,9 +311,14 @@ function doPost(e) {
 
     const contents = JSON.parse(e.postData.contents);
 
-    // Ignorar mensajes directos de Telegram para evitar latencia y bucles
-    if (contents.message || contents.edited_message) {
-      return ContentService.createTextOutput("ok");
+    // --- MANEJO DE TELEGRAM (WEBHOOK) ---
+    if (contents.message || contents.callback_query) {
+      if (GLOBAL_CONFIG.TELEGRAM.MODE === "CLIENT") {
+        return handleTelegramRequest(contents);
+      } else {
+        // En modo DEV el bot ignora mensajes directos para evitar bucles si no se desea interactividad
+        return ContentService.createTextOutput("ok");
+      }
     }
 
     const accion = contents.accion || "";
