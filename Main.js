@@ -1,4 +1,61 @@
-// 1. Obtención diferida (lazy) de configuración
+// 1. PUNTOS DE ENTRADA (Mover al inicio para asegurar registro)
+/**
+ * Manejador de solicitudes GET (Prueba en navegador)
+ */
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "OK",
+    bot: "HostingShop V2.0",
+    time: new Date().toLocaleString()
+  }, null, 2)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Manejador de solicitudes POST (Telegram, AppSheet, etc.)
+ */
+function doPost(e) {
+  // LOG DE EMERGENCIA: Escribir directamente en la hoja si se detecta actividad
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().getSheetByName("BD_APP_SCRIPT").appendRow([new Date(), "POST_HIT", JSON.stringify(e)]);
+  } catch (f) { }
+
+  try {
+    if (!e || !e.postData || !e.postData.contents) return ContentService.createTextOutput("no data");
+    const contents = JSON.parse(e.postData.contents);
+
+    // --- MANEJO DE TELEGRAM ---
+    if (contents.message || contents.callback_query) {
+      if (GLOBAL_CONFIG.TELEGRAM.MODE === "CLIENT") {
+        return handleTelegramRequest(contents);
+      } else {
+        return ContentService.createTextOutput("ok");
+      }
+    }
+
+    // --- ACCIONES ERP ---
+    const accion = contents.accion || "";
+    if (accion === "generarDescripcionIA") {
+      const resultado = gestionarAccionEnriquecimiento(contents.codigo);
+      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const esAccionDeInventario = accion.toLowerCase().includes("inventario") ||
+      accion.toLowerCase().includes("resetear") ||
+      accion.toLowerCase().includes("bartender");
+
+    if (esAccionDeInventario) {
+      return handleInventoryRequest(contents);
+    } else if (accion || contents.codigo) {
+      return handleImageRequest(contents);
+    }
+
+  } catch (error) {
+    console.error("❌ Error en doPost: " + error.message);
+  }
+  return ContentService.createTextOutput("ok");
+}
+
+// 2. Obtención diferida (lazy) de configuración
 let _cacheSS = null;
 let _cacheConfig = null;
 
@@ -294,81 +351,6 @@ function debugLog(msg, forceSheet = false) {
   }
 }
 
-/**
- * Expone debugLog al frontend para capturar errores de consola.
- */
-function logErrorFromFrontend(msg) {
-  debugLog("🌐 [Frontend Error] " + msg, true);
-}
-/**
- * PUNTO DE ENTRADA HÍBRIDO (V7.0 - NOTIFICACIONES)
- * Maneja solicitudes POST de AppSheet, WooCommerce y otros servicios.
- * Telegram queda relegado solo para notificaciones salientes.
- */
-/**
- * Manejador de solicitudes GET (Para pruebas y diagnóstico)
- */
-function doGet(e) {
-  const config = GLOBAL_CONFIG.TELEGRAM;
-  const status = {
-    sistema: "HostingShop Bot V2.0",
-    modo: config.MODE,
-    chat_id_configurado: config.CHAT_ID ? "✅ CONFIGURADO" : "❌ FALTANTE",
-    webhook_url: ScriptApp.getService().getUrl()
-  };
-
-  return ContentService.createTextOutput(JSON.stringify(status, null, 2))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    if (!e || !e.postData || !e.postData.contents) return ContentService.createTextOutput("no data");
-
-    const contents = JSON.parse(e.postData.contents);
-
-    // --- MANEJO DE TELEGRAM (WEBHOOK) ---
-    if (contents.message || contents.callback_query) {
-      console.log("📨 Telegram Request recibida. Modo: " + GLOBAL_CONFIG.TELEGRAM.MODE);
-      if (GLOBAL_CONFIG.TELEGRAM.MODE === "CLIENT") {
-        return handleTelegramRequest(contents);
-      } else {
-        console.warn("⚠️ Telegram ignorado: El sistema está en modo " + GLOBAL_CONFIG.TELEGRAM.MODE);
-        return ContentService.createTextOutput("ok");
-      }
-    }
-
-    const accion = contents.accion || "";
-
-    // --- MEJORA: Manejo de Webhooks de AppSheet sin parámetro 'accion' ---
-    // Si viene 'codigo' pero no 'accion', asumimos carpeta de imagen (Legacy AppSheet)
-    if (!accion && contents.codigo) {
-      return handleImageRequest(contents);
-    }
-
-    // Endpoint para Enriquecimiento IA (AppSheet)
-    if (accion === "generarDescripcionIA") {
-      const resultado = gestionarAccionEnriquecimiento(contents.codigo);
-      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // Otras acciones del ERP
-    const esAccionDeInventario = accion.toLowerCase().includes("inventario") ||
-      accion.toLowerCase().includes("resetear") ||
-      accion.toLowerCase().includes("bartender");
-
-    if (esAccionDeInventario) {
-      return handleInventoryRequest(contents);
-    } else if (accion) {
-      return handleImageRequest(contents);
-    }
-
-  } catch (error) {
-    console.error("❌ [Main] Error en doPost: " + error.message);
-  }
-
-  return ContentService.createTextOutput("ok");
-}
 
 /**
  * Función auxiliar para enviar un mensaje simple de Telegram.

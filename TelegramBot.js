@@ -130,3 +130,32 @@ function enviarMensajeTelegramCompleto(chatId, text, keyboard = null) {
 
     UrlFetchApp.fetch(url, options);
 }
+
+/**
+ * PRUEBA DE CONEXIÓN DIRECTA (Manual)
+ * Ejecuta esta función desde el editor para verificar TOKEN y CHAT_ID.
+ */
+function probarConexionDirectaTelegram() {
+    const config = GLOBAL_CONFIG.TELEGRAM;
+    const msg = `🧪 <b>Prueba de Conexión HostingShop</b>\n\n` +
+        `• <b>Modo:</b> ${config.MODE}\n` +
+        `• <b>ChatID:</b> ${config.CHAT_ID}\n` +
+        `• <b>Token:</b> ${config.BOT_TOKEN.substring(0, 10)}... (Reducido)\n\n` +
+        `Si recibes este mensaje, la CONFIGURACIÓN DE SALIDA está perfecta.`;
+
+    try {
+        enviarMensajeTelegramCompleto(config.CHAT_ID, msg);
+        Logger.log("✅ Mensaje de prueba enviado. Revisa tu Telegram.");
+
+        // También verificamos el Webhook
+        const webAppUrl = ScriptApp.getService().getUrl();
+        const urlWebhook = `https://api.telegram.org/bot${config.BOT_TOKEN}/getWebhookInfo`;
+        const res = UrlFetchApp.fetch(urlWebhook, { muteHttpExceptions: true });
+        Logger.log("🔍 Estado del Webhook en Telegram: " + res.getContentText());
+
+        const ui = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.getUi() : null;
+        if (ui) ui.alert("✅ Prueba ejecutada. Mira los 'Registros de ejecución' en la parte inferior del editor para ver el diagnóstico detallado.");
+    } catch (e) {
+        Logger.log("❌ Error en prueba: " + e.message);
+    }
+}
