@@ -6,6 +6,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('⚙️ INSTALACIÓN')
     .addItem('🚀 Inicializar Sistema', 'inicializarEntorno')
+    .addItem('🔍 Auditar Hojas y Columnas', 'auditarEntornoTablas')
     .addItem('⚡ Instalar Automatización (IA)', 'instalarTriggersIA')
     .addToUi();
 }
@@ -178,4 +179,57 @@ function inicializarEntorno() {
   } catch (e) {
     ui.alert('❌ Error: ' + e.message);
   }
+}
+
+/**
+ * 🔍 AUDITORÍA DINÁMICA DE TABLAS
+ * Valida la existencia de hojas y columnas críticas basadas en Main.js -> SHEET_SCHEMA
+ */
+function auditarEntornoTablas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const logs = ["🔍 Iniciando auditoría HostingShop Ready..."];
+  let hayErrores = false;
+  let hayAdvertencias = false;
+
+  // Usamos SHEETS y SHEET_SCHEMA definidos globalmente en Main.js
+  for (const alias in SHEETS) {
+    const nombreHoja = SHEETS[alias];
+    const hoja = ss.getSheetByName(nombreHoja);
+
+    if (!hoja) {
+      logs.push(`❌ ERROR: No se encuentra la hoja '${nombreHoja}' (Alias: ${alias}).`);
+      hayErrores = true;
+      continue;
+    }
+
+    const columnasRequeridas = SHEET_SCHEMA[alias];
+    if (columnasRequeridas && columnasRequeridas.length > 0) {
+      const lastCol = hoja.getLastColumn();
+      if (lastCol === 0) {
+        logs.push(`⚠️ ALERTA: La hoja '${nombreHoja}' está vacía.`);
+        hayAdvertencias = true;
+        continue;
+      }
+
+      const encabezadosSujeto = hoja.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toUpperCase());
+      const faltantes = columnasRequeridas.filter(col => !encabezadosSujeto.includes(col.toUpperCase()));
+
+      if (faltantes.length > 0) {
+        logs.push(`⚠️ ADVERTENCIA: En '${nombreHoja}' faltan columnas: ${faltantes.join(", ")}`);
+        hayAdvertencias = true;
+      } else {
+        logs.push(`✅ Hoja '${nombreHoja}' validada.`);
+      }
+    } else {
+      logs.push(`ℹ️ Hoja '${nombreHoja}' (Sin esquema definido).`);
+    }
+  }
+
+  // Título dinámico
+  let titulo = "✅ Entorno Operativo";
+  if (hayErrores) titulo = "❌ Entorno con Errores Críticos";
+  else if (hayAdvertencias) titulo = "⚠️ Entorno con Advertencias";
+
+  ui.alert(titulo, logs.join("\n"), ui.ButtonSet.OK);
 }
