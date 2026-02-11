@@ -392,9 +392,13 @@ function publicarCatalogo() {
     debugLog(`📡 Destino de publicación: ${target}`);
 
     if (target === "GITHUB") {
-        return subirCatalogoAGitHub();
+        const res = subirCatalogoAGitHub();
+        if (res.success) notificarTelegramSalud("📡 Catálogo sincronizado con éxito en GitHub.", "EXITO");
+        return res;
     } else {
-        return subirCatalogoADonweb();
+        const res = subirCatalogoADonweb();
+        if (res.success) notificarTelegramSalud("📡 Catálogo sincronizado con éxito en Donweb.", "EXITO");
+        return res;
     }
 }
 
@@ -703,6 +707,7 @@ function processSale(saleData) {
 
     } catch (e) {
         debugLog("❌ Error procesando venta TPV: " + e.message);
+        notificarTelegramSalud(`❌ Error procesando venta TPV (${saleData.saleId}): ${e.message}`, "ERROR");
         return { success: false, message: e.message };
     } finally {
         lock.releaseLock();

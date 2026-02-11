@@ -193,13 +193,15 @@ function generarInventarioInicial(logArray = null) {
 
   SpreadsheetApp.flush();
   log("✅ Proceso de AUDITORÍA y AUTOCORRECCIÓN finalizado. El sistema está limpio y sincronizado.");
+  notificarTelegramSalud("🏦 Auditoría de Inventario Global finalizada con éxito.", "EXITO");
 
   // --- ACTUALIZAR TPV (NUEVO) ---
   try {
-    sincronizarCatalogoADrive();
-    log("🗂️ Catálogo TPV sincronizado a Drive automáticamente.");
+    publicarCatalogo();
+    log("🗂️ Catálogo TPV sincronizado a Drive/Externo automáticamente.");
   } catch (e) {
     log("⚠️ No se pudo sincronizar el catálogo TPV: " + e.message);
+    notificarTelegramSalud("⚠️ Falló la sincronización automática del catálogo tras auditoría: " + e.message, "WARN");
   }
 }
 
