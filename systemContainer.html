@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión CastFer</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Librerías Críticas (Cargadas una vez en el shell) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0f172a;
+      /* Slate 900 */
+      color: #cbd5e1;
+      /* Slate 300 */
+    }
+
+    /* Estilos Sidebar */
+    .sidebar-link {
+      transition: all 0.2s ease-in-out;
+      border-left: 3px solid transparent;
+      color: #94a3b8;
+      /* Slate 400 */
+    }
+
+    .sidebar-link:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+    }
+
+    .sidebar-link.active {
+      background-color: rgba(99, 102, 241, 0.1);
+      /* Indigo 500/10 */
+      border-left-color: #6366f1;
+      /* Indigo 500 */
+      color: #818cf8;
+      /* Indigo 400 */
+    }
+
+    /* Scrollbar personalizado Dark */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    #main-sidebar {
+      width: 14rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-x: hidden;
+    }
+
+    #main-sidebar.collapsed {
+      width: 4rem;
+    }
+
+    @media (max-width: 768px) {
+      #main-sidebar {
+        position: fixed;
+        height: 100vh;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        box-shadow: 20px 0 50px -12px rgb(0 0 0 / 0.5);
+      }
+
+      #main-sidebar.open {
+        transform: translateX(0);
+        width: 14rem !important;
+      }
+    }
+
+    /* Ocultar textos cuando está colapsado */
+    #main-sidebar.collapsed .sidebar-text,
+    #main-sidebar.collapsed .logo-text,
+    #main-sidebar.collapsed .user-info-text {
+      opacity: 0;
+      width: 0;
+      margin: 0;
+      display: none;
+    }
+
+    #main-sidebar.collapsed .nav-section-title {
+      visibility: hidden;
+      opacity: 0;
+      white-space: nowrap;
+    }
+
+    #main-sidebar.collapsed .sidebar-link {
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+      gap: 0;
+    }
+
+    #main-sidebar.collapsed .h-16 {
+      padding-left: 0;
+      padding-right: 0;
+      justify-content: center;
+    }
+
+    #main-sidebar.collapsed #sidebar-toggle-btn {
+      transform: rotate(0deg);
+    }
+
+    /* Ajustes adicionales de padding/margin */
+    .nav-section-title {
+      transition: all 0.2s;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner {
+      border: 3px solid #1e293b;
+      border-top: 3px solid #6366f1;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+  </style>
+</head>
+
+<body class="h-screen flex overflow-hidden">
+
+  <aside id="main-sidebar"
+    class="w-56 bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl z-50 flex-shrink-0 transition-all duration-300">
+
+    <div
+      class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900 transition-all duration-300">
+      <div class="flex items-center gap-3 text-indigo-500 overflow-hidden">
+        <i class="ph-fill ph-stack text-2xl flex-shrink-0"></i>
+        <span class="font-bold text-lg tracking-tight text-white logo-text transition-all duration-300">Gestión
+          ERP</span>
+      </div>
+      <button onclick="toggleSidebar()" id="sidebar-toggle-btn"
+        class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-300">
+        <i class="ph-bold ph-list text-xl"></i>
+      </button>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+
+      <button onclick="navigate('welcome')"
+        class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-r-lg active" id="btn-welcome">
+        <i class="ph-duotone ph-house text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Inicio</span>
+      </button>
+
+      <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 nav-section-title">Ventas &
+        Datos</p>
+
+      <button onclick="navigate('auditoria')"
+        class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white"
+        id="btn-auditoria">
+        <i class="ph-duotone ph-chart-line-up text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Dashboard Auditoría</span>
+      </button>
+
+      <button onclick="loadView('pos_manager', '', '', '')"
+        class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white"
+        id="btn-pos_manager">
+        <i class="ph-duotone ph-calculator text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Punto de Venta (TPV)</span>
+      </button>
+
+      <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 nav-section-title">Inventario
+      </p>
+
+      <button onclick="navigate('inventory_dashboard')"
+        class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white"
+        id="btn-inventory_dashboard">
+        <i class="ph-duotone ph-check-circle text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Control de Inventario</span>
+      </button>
+
+      <button onclick="loadView('imagenes_manager', '', '', '')"
+        class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white"
+        id="btn-imagenes_manager">
+        <i class="ph-duotone ph-image text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Gestor de Imágenes</span>
+      </button>
+
+      <? if (isWooConfigured) { ?>
+      <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 nav-section-title">WooCommerce
+      </p>
+
+      <button onclick="runAction('recibir_orden_wc', 'Importar Pedidos WC')"
+        class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white"
+        id="btn-wc-import">
+        <i class="ph-duotone ph-download-simple text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Importar Pedidos</span>
+      </button>
+
+      <button onclick="runAction('sincronizarGlobal', 'Sync Imágenes Global')"
+        class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-wc-img">
+        <i class="ph-duotone ph-images text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Sync Imágenes</span>
+      </button>
+      <? } ?>
+
+    </nav>
+
+    <div class="p-4 border-t border-slate-800 bg-slate-900">
+      <div class="flex items-center gap-3">
+        <div id="user-avatar"
+          class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-indigo-400">
+          U
+        </div>
+        <div class="flex-1 min-w-0 user-info-text overflow-hidden transition-all duration-300">
+          <p id="user-name" class="text-sm font-medium text-white truncate">Usuario</p>
+          <button onclick="logout()"
+            class="text-[10px] text-slate-500 hover:text-red-400 transition uppercase font-bold tracking-wider">Cerrar
+            Sesión</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 flex flex-col min-w-0 bg-slate-900 relative transition-all duration-300">
+
+    <!-- Botón de Estado (Relocalizado al centro/derecha para evitar solapamientos) -->
+    <div id="shell-status-container"
+      class="absolute top-4 right-4 sm:top-6 sm:right-8 z-30 flex items-center gap-4 transition-all duration-300">
+
+      <!-- Botón Hamburguesa Móvil (Visible solo en < 768px) -->
+      <button onclick="toggleSidebar()"
+        class="md:hidden p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 shadow-lg active:scale-95 transition-all">
+        <i class="ph-bold ph-list text-xl"></i>
+      </button>
+
+      <div id="shell-status"
+        class="hidden px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-2 animate-fade-in shadow-sm shadow-indigo-500/5 backdrop-blur-md">
+        <div class="spinner"></div>
+        <span id="shell-status-text">Procesando...</span>
+      </div>
+    </div>
+
+    <div id="main-content"
+      class="flex-1 overflow-hidden relative bg-slate-950 m-2 rounded-xl border border-slate-800/50 shadow-inner">
+
+      <div id="loader"
+        class="absolute inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-opacity duration-300">
+        <div class="flex flex-col items-center">
+          <div class="w-12 h-12 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
+          <p class="text-sm text-slate-400 font-semibold animate-pulse">Cargando módulo...</p>
+        </div>
+      </div>
+      <div id="app-container" class="w-full h-full flex flex-col overflow-hidden relative"></div>
+    </div>
+
+  </main>
+
+  <script>
+    // Recuperación ultra-segura de parámetros iniciales
+    let INITIAL_PARAMS = {};
+    try {
+      // Usamos un div oculto para transportar datos de forma segura evitando SyntaxError por comillas o saltos de línea
+      const raw = '<?!= initialParams ?>';
+      if (raw && raw !== 'undefined') {
+        try {
+          INITIAL_PARAMS = JSON.parse(raw);
+        } catch (e) {
+          console.warn("⚠️ [Shell] JSON.parse falló, intentando limpieza básica...");
+          const cleaned = raw.trim().replace(/^['"]|['"]$/g, '');
+          if (cleaned.startsWith('{')) INITIAL_PARAMS = JSON.parse(cleaned);
+        }
+      }
+      console.log("📌 [Shell] Params iniciales:", INITIAL_PARAMS);
+    } catch (e) {
+      console.warn("⚠️ [Shell] Error crítico recuperando INITIAL_PARAMS:", e.message);
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('main-sidebar');
+      if (window.innerWidth < 768) {
+        sidebar.classList.toggle('open');
+      } else {
+        sidebar.classList.toggle('collapsed');
+      }
+    }
+
+    function navigate(viewName) {
+      loadView(viewName, '', '', '');
+    }
+
+    function runAction(actionName, title) {
+      const map = {
+        'generarInventarioInicial': 'btn-inv-global',
+        'recibir_orden_wc': 'btn-wc-import',
+        'sincronizarGlobal': 'btn-wc-img'
+      };
+      loadView('runner', actionName, '', '', map[actionName] || '', title);
+    }
+
+    function loadView(view, accion, codigo, fecha, activeBtnId, customTitle) {
+      // 1. UI Active State
+      document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+      const btnId = activeBtnId || 'btn-' + view;
+      const btn = document.getElementById(btnId);
+      if (btn) btn.classList.add('active');
+
+      // 2. Titles (Deshabilitado ya que el header fue eliminado)
+      // const titles = { ... };
+      // document.getElementById('page-title').innerText = ...;
+
+      // 3. Load Content
+      showLoader();
+
+      google.script.run
+        .withSuccessHandler(htmlContent => {
+          const container = document.getElementById('app-container');
+
+          // VALIDACIÓN: Si el servidor devuelve un error en texto plano...
+          if (typeof htmlContent === 'string' && htmlContent.trim().startsWith("Error")) {
+            console.error("❌ [Shell] Error detectado en el contenido recibido:", htmlContent);
+            container.innerHTML = `
+              <div class="p-10 text-center flex flex-col items-center justify-center h-full">
+                <div class="inline-flex p-4 bg-amber-500/10 rounded-full text-amber-500 mb-4 border border-amber-500/20"><i class="ph-bold ph-warning-circle text-3xl"></i></div>
+                <h3 class="text-lg font-bold text-white">Error del Servidor</h3>
+                <p class="text-slate-400 mt-2 max-w-sm">${htmlContent}</p>
+              </div>`;
+            hideLoader();
+            return;
+          }
+
+          container.innerHTML = htmlContent;
+          executeScripts(container);
+          hideLoader();
+
+          if (window.innerWidth < 768) {
+            document.getElementById('main-sidebar').classList.remove('open');
+          }
+        })
+        .withFailureHandler(err => {
+          hideLoader();
+          document.getElementById('app-container').innerHTML = `
+            <div class="p-10 text-center flex flex-col items-center justify-center h-full">
+              <div class="inline-flex p-4 bg-red-500/10 rounded-full text-red-500 mb-4 border border-red-500/20"><i class="ph-bold ph-warning text-3xl"></i></div>
+              <h3 class="text-lg font-bold text-white">Error de Carga</h3>
+              <p class="text-slate-400 mt-2 max-w-sm">${err.message}</p>
+            </div>`;
+        })
+        .getPageContent(view, accion, codigo, fecha);
+    }
+
+    /**
+     * Captura de errores globales para enviar a DEBUG_LOGS
+     */
+    window.onerror = function (msg, url, lineNo, columnNo, error) {
+      const errorDetail = `Error: ${msg} en ${url}:${lineNo}:${columnNo}`;
+      console.error(errorDetail);
+      google.script.run.logErrorFromFrontend(errorDetail);
+      return false;
+    };
+
+    window.onunhandledrejection = function (event) {
+      const errorMsg = `Promesa rechazada: ${event.reason}`;
+      console.error(errorMsg);
+      google.script.run.logErrorFromFrontend(errorMsg);
+    };
+
+    function executeScripts(container) {
+      console.log("🚀 [Shell] Iniciando ejecución de scripts...");
+      const scripts = Array.from(container.querySelectorAll("script"));
+
+      scripts.forEach((oldScript, index) => {
+        const id = `script-${index}`;
+        try {
+          const newScript = document.createElement("script");
+
+          // Clonar atributos uno por uno
+          Array.from(oldScript.attributes).forEach(attr => {
+            try { newScript.setAttribute(attr.name, attr.value); } catch (e) { }
+          });
+
+          const content = oldScript.textContent || "";
+
+          // FILTRO ANTI-ERRORES: Si el contenido parece un error de servidor, no lo evaluamos
+          const isServerErrorMessage = content.trim().startsWith("Error:") ||
+            content.trim().startsWith("Uncaught Error") ||
+            content.includes("Failed to execute 'replaceChild'");
+
+          if (!oldScript.src && isServerErrorMessage) {
+            console.error(`⚠️ [Shell] Bloqueado script ${id} por ser un mensaje de error del servidor.`);
+            return;
+          }
+
+          if (oldScript.src) {
+            const isGlobal = document.querySelector(`head script[src="${oldScript.src}"]`) ||
+              (oldScript.src.includes("jquery") && window.jQuery);
+            if (isGlobal) {
+              console.log(`⏩ [Shell] Script global detectado, evitando duplicidad: ${oldScript.src}`);
+              return;
+            }
+            newScript.src = oldScript.src;
+          } else {
+            // Envolver script inline en try-catch local para que un fallo no rompa el inyector
+            newScript.textContent = `
+              try {
+                ${content}
+              } catch(e) {
+                console.error("❌ [Module Script Error] En script #${index}:", e);
+                google.script.run.logErrorFromFrontend("Injected Script #${index} Error: " + e.message);
+              }
+            `;
+          }
+
+          const parent = oldScript.parentNode;
+          if (parent) {
+            // Usamos insertBefore para mantener el orden original del DOM
+            parent.insertBefore(newScript, oldScript);
+            parent.removeChild(oldScript);
+          }
+        } catch (e) {
+          console.error(`❌ [Shell] Error fatal inyectando script ${index}:`, e.message);
+        }
+      });
+      console.log("✅ [Shell] Proceso de scripts finalizado");
+    }
+
+    function showLoader() { document.getElementById('loader').classList.remove('hidden'); }
+    function hideLoader() { document.getElementById('loader').classList.add('hidden'); }
+
+    /**
+     * Permite a los módulos hijos mostrar un indicador de carga en el header principal
+     */
+    function setGlobalStatus(isLoading, text = "Procesando...") {
+      const badge = document.getElementById('shell-status');
+      const textEl = document.getElementById('shell-status-text');
+      if (isLoading) {
+        textEl.innerText = text;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function logout() {
+      console.log("🚪 [Shell] Cerrando sesión...");
+      sessionStorage.clear();
+      // Redirección completa al origen para limpiar el estado de GAS
+      const url = "<?= ScriptApp.getService().getUrl() ?>";
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.replace(url);
+        } else {
+          window.location.replace(url);
+        }
+      } catch (e) {
+        window.location.href = url;
+      }
+    }
+
+    function handleInitialRoute() {
+      console.log("📍 [Shell] Iniciando ruteo...");
+      const userStr = sessionStorage.getItem('loggedInUser');
+      const user = userStr ? JSON.parse(userStr) : null;
+      console.log("👤 [Shell] Usuario detectado:", user);
+
+      if (!user) {
+        document.getElementById('main-sidebar').classList.add('hidden');
+        document.getElementById('shell-status-container').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('m-2', 'rounded-xl');
+        document.getElementById('main-content').classList.add('m-0', 'rounded-none');
+        loadView('login', '', '', '', '', 'Iniciar Sesión');
+        return;
+      }
+
+      // Asegurar visibilidad de elementos si hay usuario
+      document.getElementById('main-sidebar').classList.remove('hidden');
+      document.getElementById('shell-status-container').classList.remove('hidden');
+      document.getElementById('main-content').classList.add('m-2', 'rounded-xl');
+      document.getElementById('main-content').classList.remove('m-0', 'rounded-none');
+
+      // Actualizar UI con datos del usuario
+      document.getElementById('user-name').innerText = user.name;
+      document.getElementById('user-avatar').innerText = (user.name || "U").substring(0, 2).toUpperCase();
+
+      if (INITIAL_PARAMS.accion) {
+        const accion = INITIAL_PARAMS.accion;
+        const codigo = INITIAL_PARAMS.codigo || '';
+        loadView('runner', accion, codigo, '', '', `Solicitud Externa: ${accion}`);
+        return;
+      }
+      if (INITIAL_PARAMS.view && INITIAL_PARAMS.view !== 'system_shell') {
+        loadView(INITIAL_PARAMS.view, '', '', '');
+        return;
+      }
+      navigate('welcome');
+    }
+
+    window.onload = () => {
+      handleInitialRoute();
+    };
+  </script>
+</body>
+
+</html>

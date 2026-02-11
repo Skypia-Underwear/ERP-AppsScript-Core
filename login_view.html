@@ -1,0 +1,99 @@
+<div class="min-h-full flex items-center justify-center bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
+        <div>
+            <div
+                class="mx-auto h-12 w-12 bg-indigo-500 rounded-xl flex items-center justify-center text-white text-2xl">
+                <i class="ph-fill ph-lock-key"></i>
+            </div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-white">
+                Bienvenido al ERP
+            </h2>
+            <p class="mt-2 text-center text-sm text-slate-400">
+                Inicia sesión para acceder al sistema
+            </p>
+        </div>
+        <form class="mt-8 space-y-6" id="login-form">
+            <div class="rounded-md shadow-sm -space-y-px">
+                <div class="mb-4">
+                    <label for="email-address" class="block text-sm font-medium text-slate-400 mb-1">Correo
+                        Electrónico</label>
+                    <input id="email-address" name="email" type="email" autocomplete="email" required
+                        class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-slate-700 bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                        placeholder="usuario@ejemplo.com">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-400 mb-1">Contraseña (ID
+                        Usuario)</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required
+                        class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-slate-700 bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                        placeholder="••••••••">
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" id="login-btn"
+                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg shadow-indigo-600/20">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="ph ph-sign-in text-indigo-400 group-hover:text-indigo-300"></i>
+                    </span>
+                    INGRESAR AL SISTEMA
+                </button>
+            </div>
+            <div id="login-message" class="text-center text-sm mt-4 hidden"></div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const form = document.getElementById('login-form');
+        const btn = document.getElementById('login-btn');
+        const msg = document.getElementById('login-message');
+
+        form.onsubmit = function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email-address').value;
+            const password = document.getElementById('password').value;
+
+            btn.disabled = true;
+            btn.innerText = 'VERIFICANDO...';
+            msg.classList.add('hidden');
+
+            google.script.run
+                .withSuccessHandler(response => {
+                    if (response.success) {
+                        msg.innerText = '¡Éxito! Redirigiendo...';
+                        msg.className = 'text-center text-sm mt-4 text-emerald-400';
+                        msg.classList.remove('hidden');
+
+                        // Guardar en sessionStorage
+                        sessionStorage.setItem('loggedInUser', JSON.stringify(response.user));
+                        sessionStorage.setItem('userPassword', password);
+
+                        // En lugar de reload simple, usamos handleInitialRoute del shell si existe
+                        // o forzamos un reload limpio de la URL base
+                        if (typeof window.handleInitialRoute === 'function') {
+                            window.handleInitialRoute();
+                        } else {
+                            window.location.href = window.location.origin + window.location.pathname;
+                        }
+                    } else {
+                        msg.innerText = response.message || 'Error de autenticación';
+                        msg.className = 'text-center text-sm mt-4 text-red-400';
+                        msg.classList.remove('hidden');
+                        btn.disabled = false;
+                        btn.innerText = 'REINTENTAR';
+                    }
+                })
+                .withFailureHandler(err => {
+                    msg.innerText = 'Error de conexión: ' + err.message;
+                    msg.className = 'text-center text-sm mt-4 text-red-400';
+                    msg.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerText = 'INGRESAR AL SISTEMA';
+                })
+                .userLogin({ email, password });
+        };
+    })();
+</script>
