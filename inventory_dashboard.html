@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0f172a;
+      /* Slate 900 */
+      color: #f1f5f9;
+      /* Slate 100 */
+    }
+
+    #console-output {
+      background-color: #1e293b;
+      /* Slate 800 */
+      color: #e2e8f0;
+      font-family: 'Consolas', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    /* Scrollbar Dark */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .log-line {
+      border-bottom: 1px solid #334155;
+      padding: 4px 0;
+    }
+
+    .log-success {
+      color: #4ade80;
+    }
+
+    .log-error {
+      color: #f87171;
+      font-weight: bold;
+    }
+
+    .log-info {
+      color: #60a5fa;
+    }
+  </style>
+</head>
+
+<body class="text-slate-200 h-full flex flex-col overflow-hidden bg-slate-950">
+
+  <div class="w-full h-full flex flex-col space-y-6 max-w-[1400px] mx-auto overflow-hidden p-6 md:p-8">
+
+    <!-- MAIN GRID: Columnas -->
+    <div class="flex-grow grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-hidden">
+
+      <!-- COLUMNA IZQUIERDA: Tarjetas de Acción -->
+      <div class="lg:col-span-2 flex flex-col gap-4 overflow-y-auto pr-2 custom-scroll">
+
+        <!-- 1. AUDITORÍA GLOBAL -->
+        <div
+          class="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors flex flex-col group flex-shrink-0">
+          <div class="flex items-center gap-3 mb-3 text-blue-400">
+            <div class="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition"><i
+                class="ph-fill ph-globe text-xl"></i></div>
+            <h3 class="font-bold text-base text-white">Auditoría Global</h3>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">
+            Escanea todo el catálogo. Elimina duplicados y crea combinaciones faltantes.
+          </p>
+          <button onclick="runGlobalAudit()" id="btn-global"
+            class="w-full py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20">
+            <i class="ph-bold ph-play"></i> Iniciar Proceso
+          </button>
+        </div>
+
+        <!-- 2. POR PRODUCTO -->
+        <div
+          class="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-emerald-500/50 transition-colors border-t-4 border-t-emerald-500 flex flex-col group flex-shrink-0">
+          <div class="flex items-center gap-3 mb-3 text-emerald-400">
+            <div class="p-2 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition"><i
+                class="ph-fill ph-crosshair text-xl"></i></div>
+            <h3 class="font-bold text-base text-white">Por Producto</h3>
+          </div>
+          <p class="text-xs text-slate-400 mb-3">
+            Regenera variaciones y stock para un solo SKU.
+          </p>
+          <div class="flex gap-2">
+            <input type="text" id="sku-input" placeholder="SKU (ej: BOXE2481)"
+              class="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-mono uppercase text-white placeholder-slate-500"
+              onkeypress="handleEnter(event)">
+            <button onclick="runProductAudit()" id="btn-single"
+              class="px-3 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 transition shadow-lg shadow-emerald-500/20">
+              <i class="ph-bold ph-check"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. BARTENDER -->
+        <div
+          class="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-colors border-t-4 border-t-purple-500 flex flex-col group flex-shrink-0">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3 text-purple-400">
+              <div class="p-2 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20 transition"><i
+                  class="ph-fill ph-barcode text-xl"></i></div>
+              <h3 class="font-bold text-base text-white">Bartender CSV</h3>
+            </div>
+            <!-- Indicador de Estado -->
+            <div id="bartender-status-badge"
+              class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-400 flex items-center gap-1.5 border border-slate-600">
+              <div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div> PENDIENTE
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 mb-3">
+            Genera archivo de etiquetas para la fecha seleccionada.
+          </p>
+          <div class="flex gap-2 mb-4">
+            <input type="date" id="bartender-date" onchange="checkDateStatus()"
+              class="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-xs text-slate-300">
+            <button onclick="runBartender()" id="btn-bartender" title="Generar CSV y Notificar"
+              class="px-3 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition shadow-lg shadow-purple-500/20">
+              <i class="ph-bold ph-export"></i>
+            </button>
+            <button onclick="runTestNotification()" id="btn-test-notif" title="Probar Notificación Actual"
+              class="px-3 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition border border-slate-600">
+              <i class="ph-bold ph-bell-ringing"></i>
+            </button>
+          </div>
+
+          <!-- Mini Log de Historial -->
+          <div class="bg-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
+            <div
+              class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700/50 text-[10px] font-bold text-slate-500 uppercase flex justify-between">
+              <span>Últimos Procesos</span>
+              <i class="ph-bold ph-clock-counter-clockwise"></i>
+            </div>
+            <div id="bartender-mini-history"
+              class="p-2 space-y-1.5 max-h-[120px] overflow-y-auto custom-scroll text-[11px]">
+              <p class="text-slate-600 italic text-center py-2">Cargando historial...</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA DERECHA: Terminal de Logs -->
+      <div
+        class="lg:col-span-3 bg-slate-800 rounded-xl shadow-sm border border-slate-700 flex flex-col overflow-hidden">
+        <div
+          class="px-6 py-3 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center flex-shrink-0">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="ph-bold ph-terminal-window"></i> Terminal de Logs
+          </span>
+          <button onclick="clearConsole()"
+            class="text-slate-500 hover:text-white text-xs font-medium hover:underline transition">Limpiar</button>
+        </div>
+        <div id="console-output" class="p-6 custom-scroll bg-slate-900/10">
+          <p class="text-slate-600 italic opacity-50 text-sm italic">Esperando instrucciones...</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Inicializar fecha de hoy para Bartender
+    document.getElementById('bartender-date').valueAsDate = new Date();
+
+    let processedDatesList = [];
+
+    function loadBartenderHistory() {
+      console.log("Iniciando carga de historial Bartender...");
+      google.script.run
+        .withSuccessHandler(data => {
+          console.log("Historial recibido:", data);
+          processedDatesList = data;
+          updateMiniHistoryUI(data);
+          checkDateStatus();
+        })
+        .withFailureHandler(err => {
+          console.error("Error cargando historial Bartender:", err);
+          document.getElementById('bartender-mini-history').innerHTML =
+            `<p class="text-red-400 text-center py-2">Error de conexión: ${err.message}</p>`;
+        })
+        .getBartenderFullHistory();
+    }
+
+    // Ejecución inicial con un pequeño retardo para asegurar que el DOM esté listo
+    setTimeout(loadBartenderHistory, 500);
+
+    function checkDateStatus() {
+      const selectedDate = document.getElementById('bartender-date').value; // YYYY-MM-DD
+      const badge = document.getElementById('bartender-status-badge');
+
+      if (!selectedDate) return;
+
+      const isProcessed = processedDatesList.some(item => item.fecha_iso === selectedDate);
+
+      if (isProcessed) {
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 flex items-center gap-1.5 border border-emerald-500/30 animate-pulse';
+        badge.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div> GENERADO';
+      } else {
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-400 flex items-center gap-1.5 border border-slate-600';
+        badge.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div> PENDIENTE';
+      }
+    }
+
+    function updateMiniHistoryUI(data) {
+      const container = document.getElementById('bartender-mini-history');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-slate-600 italic text-center py-2">Sin registros recientes.</p>';
+        return;
+      }
+
+      container.innerHTML = data.slice(0, 5).map(item => `
+        <div class="flex items-center justify-between group/item hover:bg-slate-700/30 p-1 rounded transition-colors">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ph-check-circle text-emerald-500"></i>
+            <span class="text-slate-300 font-medium">${item.fecha_format}</span>
+          </div>
+          <span class="text-[9px] text-slate-500 group-hover/item:text-slate-400">${item.hora}</span>
+        </div>
+      `).join('');
+    }
+
+    function handleEnter(e) {
+      if (e.key === 'Enter') runProductAudit();
+    }
+
+    function toggleLoading(isLoading) {
+      const buttons = document.querySelectorAll('button');
+      const inputs = document.querySelectorAll('input');
+
+      // Usar el status del shell (definido en systemContainer.html)
+      if (typeof setGlobalStatus === 'function') {
+        setGlobalStatus(isLoading);
+      }
+
+      if (isLoading) {
+        buttons.forEach(b => { b.disabled = true; b.classList.add('opacity-50', 'cursor-not-allowed'); });
+        inputs.forEach(i => i.disabled = true);
+      } else {
+        buttons.forEach(b => { b.disabled = false; b.classList.remove('opacity-50', 'cursor-not-allowed'); });
+        inputs.forEach(i => i.disabled = false);
+      }
+    }
+
+    function log(message, type = 'info') {
+      const consoleDiv = document.getElementById('console-output');
+      if (consoleDiv.innerHTML.includes('Esperando instrucciones...')) consoleDiv.innerHTML = '';
+
+      const line = document.createElement('div');
+      line.className = 'log-line';
+
+      if (type === 'error' || message.includes('❌') || message.includes('Error')) line.className += ' log-error';
+      else if (type === 'success' || message.includes('✅')) line.className += ' log-success';
+      else line.className += ' log-info';
+
+      line.textContent = `> ${message}`;
+      consoleDiv.appendChild(line);
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('console-output').innerHTML = '<p class="text-slate-600 italic opacity-50">Esperando instrucciones...</p>';
+    }
+
+    // --- ACCIONES ---
+
+    function runGlobalAudit() {
+      toggleLoading(true);
+      clearConsole();
+      log('Iniciando Auditoría Global...', 'info');
+      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
+        .procesarAccionInventario('generarInventarioInicial', '', '');
+    }
+
+    function runProductAudit() {
+      const sku = document.getElementById('sku-input').value.trim().toUpperCase();
+      if (!sku) return alert("Ingresa un SKU");
+      toggleLoading(true);
+      clearConsole();
+      log(`Auditando SKU: ${sku}...`, 'info');
+      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
+        .procesarAccionInventario('generarInventarioProducto', sku, '');
+    }
+
+    function runBartender() {
+      const fecha = document.getElementById('bartender-date').value;
+      if (!fecha) return alert("Selecciona una fecha");
+      toggleLoading(true);
+      clearConsole();
+      log(`Generando CSV Bartender para: ${fecha}...`, 'info');
+
+      // IMPORTANTE: Llamamos al wrapperBartender que creamos en Main.gs
+      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
+        .procesarAccionInventario('generarCsvBartender', '', fecha);
+    }
+
+    function runTestNotification() {
+      toggleLoading(true);
+      log('🧪 Iniciando prueba de canal de notificación...', 'info');
+      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
+        .procesarAccionInventario('probarNotificaciones', '', '');
+    }
+
+
+    function processResponse(response) {
+      toggleLoading(false);
+      log('----------------------------------------');
+      if (response.logs && response.logs.length) response.logs.forEach(l => log(l));
+
+      if (response.success) {
+        log(response.message, 'success');
+
+        // Si hay datos (Bartender), mostrar modal de vista previa
+        if (response.data && response.data.length > 0) {
+          showBartenderPreview(response.data);
+        }
+
+        // Si hay URL de archivo (Bartender), mostrar link
+        if (response.fileUrl) {
+          const link = document.createElement('a');
+          link.href = response.fileUrl;
+          link.target = '_blank';
+          link.className = 'text-blue-400 underline hover:text-blue-300 ml-4 block mt-2';
+          link.innerHTML = '<i class="ph-bold ph-file-csv"></i> Abrir Archivo Generado';
+          document.getElementById('console-output').appendChild(link);
+        }
+      } else {
+        log(response.message, 'error');
+      }
+    }
+
+    // --- MANEJO DEL MODAL BARTENDER ---
+    let currentCsvData = [];
+
+    function showBartenderPreview(data) {
+      currentCsvData = data;
+      const modal = document.getElementById('modal-bartender');
+      const container = document.getElementById('bartender-table-container');
+
+      // Limpiar y renderizar tabla
+      container.innerHTML = '';
+      const table = document.createElement('table');
+      table.className = 'w-full text-xs text-left border-collapse';
+
+      const headers = data[0];
+      const rows = data.slice(1);
+
+      // Header
+      const thead = document.createElement('thead');
+      thead.className = 'bg-slate-900 sticky top-0';
+      const hRow = document.createElement('tr');
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.className = 'px-3 py-2 border border-slate-700 text-slate-400 uppercase font-bold';
+        th.textContent = h;
+        hRow.appendChild(th);
+      });
+      thead.appendChild(hRow);
+      table.appendChild(thead);
+
+      // Body
+      const tbody = document.createElement('tbody');
+      rows.forEach((row, rIdx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-700/50 transition-colors';
+        row.forEach((cell, cIdx) => {
+          const td = document.createElement('td');
+          td.className = 'px-3 py-2 border border-slate-700 text-slate-300';
+
+          const input = document.createElement('input');
+          input.value = cell;
+          input.className = 'w-full bg-transparent border-none outline-none focus:ring-1 focus:ring-purple-500 rounded px-1 -ml-1';
+          input.onchange = (e) => {
+            currentCsvData[rIdx + 1][cIdx] = e.target.value;
+          };
+
+          td.appendChild(input);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modal-bartender');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function saveEditedCsv() {
+      if (confirm('¿Deseas guardar los cambios realizados en esta vista previa?')) {
+        toggleLoading(true);
+        closeModal();
+        log('Guardando cambios en el CSV...', 'info');
+        google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
+          .procesarAccionInventario('guardarCsvBartender', JSON.stringify(currentCsvData), '');
+      }
+    }
+
+    function processError(error) {
+      toggleLoading(false);
+      log('Error Crítico: ' + error.message, 'error');
+    }
+  </script>
+  <!-- MODAL BARTENDER -->
+  <div id="modal-bartender"
+    class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div
+      class="bg-slate-800 w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i class="ph-bold ph-table text-purple-400"></i> Vista Previa Bartender CSV
+          </h2>
+          <p class="text-slate-400 text-xs">Puedes editar directamente las celdas antes de guardar el archivo final.</p>
+        </div>
+        <button onclick="closeModal()"
+          class="p-2 hover:bg-slate-700 rounded-full transition text-slate-400 hover:text-white">
+          <i class="ph-bold ph-x text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Table Container) -->
+      <div id="bartender-table-container" class="flex-grow overflow-auto p-4 custom-scroll bg-slate-900/30">
+        <!-- La tabla se generará aquí -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-slate-700 bg-slate-900/50 flex justify-end items-center gap-3">
+        <button onclick="closeModal()"
+          class="px-6 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-600 transition">
+          Descartar
+        </button>
+        <button onclick="saveEditedCsv()"
+          class="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition shadow-lg shadow-purple-500/20 flex items-center gap-2">
+          <i class="ph-bold ph-floppy-disk"></i> Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

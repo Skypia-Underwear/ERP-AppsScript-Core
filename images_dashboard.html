@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        /* --- LAYOUT & UTILS DARK --- */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0f172a;
+            /* Slate 900 */
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #f1f5f9;
+        }
+
+        /* Toggle Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #f59e0b;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #f59e0b;
+        }
+
+        .toggle-checkbox {
+            right: 1rem;
+        }
+
+        #img-manager-root {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0f172a;
+        }
+
+        /* --- SIDEBAR INTERNO DARK --- */
+        aside {
+            width: 260px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #334155;
+            background: #1e293b;
+            /* Slate 800 */
+            z-index: 40;
+            height: 100%;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #internalSidebar.collapsed {
+            margin-left: -260px;
+        }
+
+        /* --- MAIN CONTENT DARK --- */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            background: #0f172a;
+        }
+
+        /* Header Interno Dark */
+        header {
+            height: 56px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+            flex-shrink: 0;
+            z-index: 30;
+        }
+
+        /* Area de Contenido */
+        #contentAreaWrapper {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        /* --- SCROLL SECTIONS DARK --- */
+        .gallery-section {
+            margin-bottom: 1.5rem;
+            padding: 0 1.5rem;
+        }
+
+        .horizontal-scroll-container {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding-bottom: 0.75rem;
+            padding-top: 0.25rem;
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar Dark */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #334155;
+            border-radius: 20px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #475569;
+        }
+
+        /* --- TARJETAS DARK --- */
+        .img-card {
+            width: 140px;
+            flex-shrink: 0;
+            background: #1e293b;
+            /* Slate 800 */
+            border: 1px solid #334155;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .img-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            border-color: #64748b;
+        }
+
+        .img-card.selected {
+            border: 2px solid #6366f1;
+            /* Indigo 500 */
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+
+        .img-thumb {
+            height: 100px;
+            width: 100%;
+            object-fit: cover;
+            background: #0f172a;
+        }
+
+        .img-body {
+            padding: 8px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Checkbox Dark */
+        .card-checkbox {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            z-index: 20;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            background: rgba(30, 41, 59, 0.95);
+            /* Slate 800 */
+            border: 1px solid #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 0;
+        }
+
+        .img-card:hover .card-checkbox,
+        .img-card.selected .card-checkbox {
+            opacity: 1;
+        }
+
+        .img-card.selected .card-checkbox {
+            background: #6366f1;
+            border-color: #6366f1;
+            color: white;
+        }
+
+        /* --- CONSOLE PANEL DARK --- */
+        #console-panel-wrapper {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0f172a;
+            color: #94a3b8;
+            border-top: 1px solid #334155;
+            z-index: 50;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            height: 250px;
+            transform: translateY(calc(100% - 32px));
+        }
+
+        #console-panel-wrapper.expanded {
+            transform: translateY(0);
+        }
+
+        #console-header {
+            height: 32px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1e293b;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid #334155;
+        }
+
+        #console-header:hover {
+            background: #334155;
+        }
+
+        #console-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            background: #0f172a;
+        }
+
+        /* Sidebar Items Dark */
+        .sidebar-item {
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background-color: #334155;
+        }
+
+        .sidebar-item.active {
+            background-color: rgba(99, 102, 241, 0.1);
+            border-left-color: #6366f1;
+            color: #818cf8;
+        }
+
+        /* Toolbar Dark */
+        #bulk-toolbar {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            animation: fadeIn 0.2s ease-out;
+            background: #1e293b;
+            border: 1px solid #334155;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Logs Styles */
+        .log-line {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-success {
+            color: #4ade80;
+        }
+
+        .log-error {
+            color: #f87171;
+            font-weight: bold;
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .log-warning {
+            color: #facc15;
+        }
+
+        @media (max-width: 768px) {
+            aside {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                margin-left: -260px;
+                box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5);
+                z-index: 100 !important;
+            }
+
+            aside.open {
+                margin-left: 0;
+            }
+
+            main {
+                /* Evitar doble margen/padding si está en shell */
+                padding: 0;
+            }
+
+            #img-manager-root {
+                border-radius: 0;
+            }
+        }
+
+        /* Ajuste para cuando se carga dentro del shell */
+        #img-manager-root {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .category-chip {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: #1e293b;
+            border: 1px border-slate-700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.6;
+        }
+
+        .category-chip:hover {
+            opacity: 1;
+            background: #334155;
+            transform: translateY(-2px);
+        }
+
+        .category-chip.active {
+            opacity: 1;
+            background: rgba(99, 102, 241, 0.15);
+            border-color: #6366f1;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+        }
+
+        .category-chip svg {
+            width: 24px;
+            height: 24px;
+            fill: #94a3b8;
+            transition: fill 0.3s;
+        }
+
+        .category-chip.active svg {
+            fill: #818cf8;
+        }
+
+        .category-chip span {
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 4px;
+            color: #64748b;
+        }
+
+        .category-chip.active span {
+            color: #818cf8;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Modal Image Maximize */
+        #mediaContainer img,
+        #mediaContainer video {
+            max-height: 80vh;
+            width: auto;
+            max-width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            #imageModal>div {
+                height: 100vh !important;
+                border-radius: 0 !important;
+            }
+
+            #mediaContainer img,
+            #mediaContainer video {
+                max-height: 70vh;
+            }
+
+            .modal-panel-collapsed {
+                display: none !important;
+            }
+        }
+
+        .modal-side-panel {
+            transition: all 0.3s ease;
+        }
+
+        /* Categorías Scrollbar PC */
+        #categoryFilterContainer::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        #categoryFilterContainer::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        #categoryFilterContainer::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        #categoryFilterContainer::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* DISEÑO GRID SIDEBAR (Optimizado) */
+        #productList {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            padding: 8px !important;
+        }
+
+        #productList .sidebar-item {
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 6px !important;
+            text-align: center;
+            align-items: center;
+            background: #1e293b;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            overflow: hidden;
+            height: auto;
+            min-height: 120px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #productList .sidebar-item:hover {
+            border-color: #475569;
+            background: #232f42;
+        }
+
+        #productList .sidebar-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 1px #6366f1;
+        }
+
+        #productList .sidebar-item .item-img-container {
+            width: 100% !important;
+            height: 64px !important;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        #productList .sidebar-item .item-info {
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #productList .sidebar-item h4 {
+            font-size: 10px !important;
+            line-height: 1.1;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal !important;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        #productList .sidebar-item .sku {
+            font-size: 9px !important;
+            color: #64748b;
+            font-family: monospace;
+        }
+
+        /* BOTONES RESPONSIVOS (Iconos solo en móvil) */
+        @media (max-width: 768px) {
+            .btn-responsive-text {
+                display: none !important;
+            }
+
+            .btn-responsive {
+                padding: 6px 8px !important;
+                width: auto !important;
+                min-width: 32px;
+                justify-content: center;
+            }
+        }
+
+        /* CATEGORY NAV ARROWS */
+        .category-nav-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(30, 41, 59, 0.5);
+        }
+
+        .category-arrow {
+            position: absolute;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.8);
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .category-arrow:hover {
+            background: #1e293b;
+            color: #fff;
+            border-color: #6366f1;
+        }
+
+        .category-arrow-left {
+            left: -4px;
+        }
+
+        .category-arrow-right {
+            right: -4px;
+        }
+
+        #categoryFilterContainer {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="img-manager-root">
+        <!-- Selector oculto para Galería (Multiple) -->
+        <input type="file" id="fileInput" multiple class="hidden" accept="image/*,video/*"
+            onchange="procesarArchivos(this.files)">
+
+        <!-- Selector oculto para Cámara (Single) -->
+        <input type="file" id="cameraInput" class="hidden" accept="image/*" capture="environment"
+            onchange="procesarArchivos(this.files)">
+
+        <!-- SIDEBAR INTERNO -->
+        <aside id="internalSidebar">
+            <div class="p-3 border-b border-slate-700 flex justify-between items-center shrink-0 h-[56px]">
+                <h1 class="font-bold text-slate-200 flex items-center gap-2 text-sm">
+                    <span class="material-icons text-indigo-500 text-lg">folder_open</span> Explorador
+                </h1>
+                <button onclick="toggleInternalSidebar()" class="md:hidden text-slate-400">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+
+            <!-- Buscador -->
+            <div class="p-2 shrink-0 bg-slate-900/50 border-b border-slate-700">
+                <div class="relative flex items-center gap-1">
+                    <div class="relative flex-1">
+                        <span class="material-icons absolute left-2 top-2 text-slate-500 text-sm">search</span>
+                        <input type="text" id="searchInput" oninput="debounceSearch(this.value)"
+                            placeholder="SKU / Nombre..."
+                            class="w-full pl-7 pr-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                    <button onclick="debounceSearch('')"
+                        class="p-1.5 text-slate-400 hover:text-indigo-400 bg-slate-800 rounded border border-slate-600 hover:border-indigo-500 transition"
+                        title="Recargar">
+                        <span class="material-icons text-sm">refresh</span>
+                    </button>
+                </div>
+
+                <!-- Chips de Categoría (Optimizado con navegación) -->
+                <div class="category-nav-wrapper">
+                    <button class="category-arrow category-arrow-left" onclick="scrollCategories(-150)">
+                        <span class="material-icons text-sm">chevron_left</span>
+                    </button>
+                    <div id="categoryFilterContainer"
+                        class="flex gap-2 p-1 overflow-x-auto custom-scrollbar no-scrollbar flex-1">
+                        <!-- Se llena dinámicamente con SVGs -->
+                    </div>
+                    <button class="category-arrow category-arrow-right" onclick="scrollCategories(150)">
+                        <span class="material-icons text-sm">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Productos -->
+            <div id="productList" class="flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
+                <!-- Se llena dinámicamente -->
+            </div>
+
+            <!-- Botones de Sync -->
+            <div class="p-2 border-t border-slate-700 bg-slate-900/50 shrink-0 mt-auto">
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <button onclick="sincronizarProductoActual()" id="btnSyncProd" disabled
+                        class="w-full py-2 bg-blue-900/40 border border-blue-500/30 text-blue-400 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all duration-300 disabled:opacity-50 hover:bg-blue-800 hover:text-white hover:border-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                        <span class="material-icons text-sm">sync</span>Sync Drive
+                    </button>
+                    <button onclick="sincronizarConWC()" id="btnSyncWC" disabled
+                        class="w-full py-2 bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all duration-300 disabled:opacity-50 hover:bg-emerald-800 hover:text-white hover:border-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                        <span class="material-icons text-sm">cloud_upload</span>WP Sync
+                    </button>
+                </div>
+                <button onclick="sincronizarGlobalManual()"
+                    class="w-full py-2 bg-indigo-600 text-white rounded text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-1 shadow-sm shadow-indigo-500/20">
+                    <span class="material-icons text-sm">cloud_sync</span>Sync Global
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main>
+            <header
+                class="flex items-center justify-between px-2 sm:px-4 h-[56px] border-b border-slate-700 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleInternalSidebar()"
+                        class="p-1.5 text-slate-400 hover:bg-slate-700 rounded-md transition">
+                        <span class="material-icons text-xl">menu_open</span>
+                    </button>
+                    <div>
+                        <h2 id="currentProductTitle"
+                            class="font-bold text-slate-200 text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px] md:max-w-xs">
+                            Selecciona
+                            Producto</h2>
+                        <span id="currentProductSku"
+                            class="text-[10px] font-mono text-slate-500 hidden md:inline-block">---</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 flex-1 justify-end">
+
+                    <!-- BARRA DE ACCIONES MASIVAS (Contextual) -->
+                    <div id="bulk-toolbar"
+                        class="bg-indigo-900/80 text-white pl-3 pr-1 py-1 rounded-full shadow-lg border border-indigo-500/30">
+                        <span class="font-bold text-[10px] bg-indigo-700 px-1.5 rounded-full mr-2"
+                            id="selectedCount">0</span>
+
+                        <!-- Contenedor dinámico de botones -->
+                        <div class="flex items-center gap-1" id="toolbar-actions"></div>
+
+                        <div class="h-3 w-px bg-indigo-500/50 mx-1"></div>
+                        <button onclick="limpiarSeleccion()"
+                            class="p-1 hover:bg-indigo-800 rounded-full text-indigo-300 hover:text-white transition">
+                            <span class="material-icons text-sm">close</span>
+                        </button>
+                    </div>
+
+                    <!-- PAID MODE TOGGLE (GLOBAL) -->
+                    <div
+                        class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 shadow-sm">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <span class="material-icons text-amber-500 text-sm">payments</span>
+                            <span class="text-[9px] uppercase font-bold text-slate-400 hidden lg:inline">Modo
+                                Pago</span>
+                            <div
+                                class="relative inline-block w-8 h-4 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="paid-mode-switch" onchange="handlePaidToggle(this.checked)"
+                                    class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-slate-600 appearance-none cursor-pointer checked:right-0 checked:bg-amber-500 transition-all duration-200" />
+                                <label for="paid-mode-switch"
+                                    class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-700 cursor-pointer"></label>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- AUDITORÍA DE GASTOS (Billetera) -->
+                    <button onclick="mostrarAuditoriaGastosIA()"
+                        class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 p-2 rounded-lg border border-slate-700 shadow-sm transition hover:border-emerald-500 group"
+                        title="Ver Auditoría de Gastos">
+                        <span
+                            class="material-icons text-emerald-500 group-hover:scale-110 transition">account_balance_wallet</span>
+                        <span class="text-[9px] uppercase font-bold text-slate-400 hidden xl:inline">Auditar
+                            Gastos</span>
+                    </button>
+
+                    <!-- BOTÓN SUBIR (Oculto por defecto) -->
+                    <button id="btnHeaderUpload" onclick="abrirSelectorArchivos()"
+                        class="hidden flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 transition shadow-sm animate-fade-in">
+                        <span class="material-icons text-sm">cloud_upload</span>
+                        <span class="hidden md:inline">Subir Archivos</span>
+                    </button>
+                </div>
+            </header>
+
+            <div id="contentAreaWrapper">
+
+                <!-- ESTADO VACÍO -->
+                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-slate-500 mt-10">
+                    <div class="bg-slate-800 p-6 rounded-full mb-4 border border-slate-700">
+                        <span class="material-icons text-5xl opacity-20 text-slate-400">collections</span>
+                    </div>
+                    <p class="text-sm font-medium text-slate-400">Selecciona un producto del menú lateral</p>
+                    <p class="text-xs opacity-60 mt-1">para gestionar su galería</p>
+                </div>
+
+                <!-- ÁREA DE GALERÍA -->
+                <div id="contentArea" class="hidden py-6">
+
+                    <div id="gallery-container" class="space-y-4">
+
+                        <!-- 1. VISIBLES -->
+                        <div class="gallery-section">
+                            <div class="flex items-center justify-between mb-2 px-1">
+                                <h3
+                                    class="text-xs font-bold text-emerald-400 uppercase flex items-center gap-1 tracking-wider">
+                                    <span class="material-icons text-sm">visibility</span> Activas en Catálogo
+                                </h3>
+                                <div>
+                                    <button id="btnToggleReorder" onclick="toggleReorderMode()"
+                                        class="btn-responsive mr-4 text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide border border-indigo-500/30 px-2 py-0.5 rounded transition flex items-center gap-1 inline-flex">
+                                        <span class="material-icons text-[10px]">sort</span>
+                                        <span class="btn-responsive-text">Modo Reordenar</span>
+                                    </button>
+                                    <button id="btnSaveOrder" onclick="guardarNuevoOrden()"
+                                        class="hidden mr-4 text-[10px] text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-wide border border-emerald-500/30 px-2 py-0.5 rounded transition">
+                                        Guardar Orden
+                                    </button>
+                                    <button onclick="seleccionarTodos(true)"
+                                        class="btn-responsive text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-wide border border-blue-500/30 px-2 py-0.5 rounded transition flex items-center gap-1 inline-flex">
+                                        <span class="material-icons text-[10px]">done_all</span>
+                                        <span class="btn-responsive-text">Seleccionar Todo</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="horizontal-scroll-container bg-slate-800 border border-emerald-500/20 rounded-xl p-3 shadow-sm min-h-[140px]"
+                                id="imageGridActive">
+                                <!-- JS Injects items here -->
+                            </div>
+                        </div>
+
+                        <!-- 2. OCULTAS -->
+                        <div class="gallery-section">
+                            <div class="flex items-center justify-between mb-2 px-1">
+                                <h3
+                                    class="text-xs font-bold text-slate-500 uppercase flex items-center gap-1 tracking-wider">
+                                    <span class="material-icons text-sm">visibility_off</span> Ocultas / Papelera
+                                </h3>
+                                <button onclick="seleccionarTodos(false)"
+                                    class="btn-responsive text-[10px] text-slate-400 hover:text-slate-300 font-bold uppercase tracking-wide border border-slate-500/30 px-2 py-0.5 rounded transition flex items-center gap-1 inline-flex">
+                                    <span class="material-icons text-[10px]">done_all</span>
+                                    <span class="btn-responsive-text">Seleccionar Todo</span>
+                                </button>
+                            </div>
+
+                            <div class="horizontal-scroll-container bg-slate-900 border border-slate-700 rounded-xl p-3 min-h-[140px]"
+                                id="imageGridHidden">
+                                <!-- JS Injects items here -->
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Drop Overlay -->
+                    <div id="dropBlocker"
+                        class="hidden absolute inset-0 bg-blue-900/80 backdrop-blur-[2px] z-30 flex items-center justify-center border-2 border-blue-400 border-dashed m-4 rounded-xl pointer-events-none">
+                        <div
+                            class="bg-slate-800 px-6 py-4 rounded-xl shadow-xl flex flex-col items-center animate-bounce border border-slate-700">
+                            <span class="material-icons text-4xl text-blue-400">cloud_upload</span>
+                            <span class="font-bold text-slate-200 mt-2 text-sm">Suelta para subir</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONSOLA -->
+            <div id="console-panel-wrapper">
+                <div id="console-header" onclick="toggleConsole()">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logs del
+                            Sistema</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button
+                            onclick="event.stopPropagation(); document.getElementById('console-content').innerHTML=''"
+                            class="text-[10px] text-slate-500 hover:text-red-400 uppercase font-bold transition">
+                            Limpiar
+                        </button>
+                        <span class="material-icons text-slate-500 transition-transform duration-300 text-sm"
+                            id="console-chevron">expand_less</span>
+                    </div>
+                </div>
+                <div id="console-content">
+                    <p class="text-slate-600 italic opacity-50">> Sistema listo. Esperando acciones...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="sidebarBackdrop" onclick="toggleInternalSidebar()"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- MODAL DETALLE -->
+    <div id="imageModal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity" onclick="closeModal()"></div>
+        <div
+            class="absolute inset-2 md:inset-10 bg-slate-800 rounded-lg flex flex-col md:flex-row overflow-hidden shadow-2xl ring-1 ring-white/10">
+
+            <!-- Imagen Grande -->
+            <div
+                class="flex-1 bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px]">
+                <div id="mediaContainer" class="flex-1 min-h-0 w-full flex items-center justify-center p-2">
+                    <img id="modalImage"
+                        class="max-w-full max-h-full object-contain shadow-2xl rounded-lg border border-slate-700/50 bg-slate-900/50">
+                </div>
+
+                <!-- Navegación Modal -->
+                <button id="btnPrevImage" onclick="prevImage()"
+                    class="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-slate-800/60 rounded-full shadow-xl hover:bg-slate-700 text-white/50 hover:text-white transition-all hover:scale-110 z-10 border border-white/5">
+                    <span class="material-icons text-2xl">chevron_left</span>
+                </button>
+                <button id="btnNextImage" onclick="nextImage()"
+                    class="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-slate-800/60 rounded-full shadow-xl hover:bg-slate-700 text-white/50 hover:text-white transition-all hover:scale-110 z-10 border border-white/5">
+                    <span class="material-icons text-2xl">chevron_right</span>
+                </button>
+
+                <!-- Botón de Pantalla Completa (Toggle Panel - Desktop/General) -->
+                <button onclick="toggleModalPanel()"
+                    class="absolute bottom-4 right-4 p-3 bg-indigo-600/80 rounded-full shadow-xl hover:bg-indigo-500 text-white transition-all hover:scale-110 z-10 border border-white/10"
+                    title="Alternar Panel de Acciones">
+                    <span class="material-icons text-xl" id="modalPanelIconDesktop">visibility_off</span>
+                </button>
+
+                <button onclick="closeModal()"
+                    class="absolute top-2 right-2 p-1.5 bg-slate-800/80 rounded-full shadow hover:bg-slate-700 text-slate-400 hover:text-white transition">
+                    <span class="material-icons text-lg">close</span>
+                </button>
+            </div>
+
+            <!-- Panel Lateral Modal -->
+            <div id="modalSidePanel"
+                class="modal-side-panel w-full md:w-72 bg-slate-800 border-l border-slate-700 p-5 flex flex-col overflow-y-auto flex-shrink-0">
+
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-700">
+                    <div>
+                        <h3 class="font-bold text-white text-sm">Acciones de Imagen</h3>
+                        <p id="modalFileName" class="text-[9px] text-slate-500 font-mono truncate max-w-[140px]">...</p>
+                    </div>
+                    <!-- Botón de contraer (SOLO MÓVIL) -->
+                    <button onclick="toggleModalPanel()"
+                        class="md:hidden p-1.5 bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        title="Contraer panel">
+                        <span class="material-icons text-xl" id="modalPanelIconMobile">visibility_off</span>
+                    </button>
+                </div>
+
+                <div class="space-y-4 flex-1">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btnToggleVisibilidad" onclick="cambiarEstadoModalToggle()"
+                            class="py-2.5 px-3 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 border">
+                            <span class="material-icons text-sm">visibility</span>
+                            <span id="labelVisibilidad">Visible</span>
+                        </button>
+                        <button id="btnMakeCoverModal" onclick="hacerPortadaModal()"
+                            class="py-2.5 px-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-500/20 transition">
+                            <span class="material-icons text-sm">star</span>Portada
+                        </button>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700 mt-4">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Inteligencia
+                            Artificial</label>
+                        <button id="btnStartAiModal" onclick="generarPromptModal()"
+                            class="w-full py-2 bg-indigo-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500 shadow-sm transition">
+                            <span class="material-icons text-sm">auto_awesome</span>Generar Prompt
+                        </button>
+                        <div id="aiResultBox" class="hidden mt-2">
+                            <textarea id="aiPromptText" readonly
+                                class="w-full h-20 bg-slate-900 border border-slate-600 rounded p-2 text-[10px] font-mono resize-none focus:outline-none focus:border-indigo-500 text-slate-300"></textarea>
+                            <button onclick="copiarPrompt()"
+                                class="text-[10px] text-blue-400 hover:text-blue-300 font-bold mt-1 w-full text-right uppercase">Copiar
+                                Prompt</button>
+                        </div>
+
+                        <!-- PANEL DE REFINAMIENTO (Corrección) -->
+                        <div id="refinePanel" class="hidden mt-4 pt-4 border-t border-slate-700/50">
+                            <label
+                                class="text-[10px] font-bold text-amber-500 uppercase mb-2 block flex items-center gap-1">
+                                <span class="material-icons text-xs">edit_note</span> ¿Qué corregimos?
+                            </label>
+                            <textarea id="refineFeedback"
+                                placeholder="Ej: Quita los lentes, cambia el fondo a estudio..."
+                                class="w-full h-16 bg-slate-900 border border-slate-700 rounded p-2 text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-amber-500/50 outline-none resize-none"></textarea>
+                            <button id="btnRefineAi" onclick="ejecutarRefinamiento()"
+                                class="w-full py-2 mt-2 bg-amber-600/20 text-amber-400 border border-amber-600/30 rounded font-bold text-[10px] uppercase hover:bg-amber-600/40 transition flex items-center justify-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed">
+                                <span class="material-icons text-xs">mms</span> Rehacer Imagen con Corrección
+                            </button>
+                        </div>
+
+                        <!-- PANEL DE ÁNGULOS (NUEVO - FASE 5) -->
+                        <div id="anglePanel"
+                            class="hidden mt-4 pt-4 border-t border-indigo-500/30 bg-indigo-500/5 p-2 rounded">
+                            <label
+                                class="text-[10px] font-bold text-indigo-400 uppercase mb-2 block flex items-center gap-1">
+                                <span class="material-icons text-xs">cameraswitch</span> Derivar Otros Ángulos
+                            </label>
+                            <select id="angleSelect"
+                                class="w-full text-[10px] bg-slate-900 text-slate-200 border border-slate-700 rounded p-1.5 mb-2 outline-none focus:border-indigo-500">
+                                <option value="" disabled selected>-- Seleccionar Ángulo --</option>
+                                <option value="Vista Trasera (Back View)">Vista Trasera (Back View)</option>
+                                <option value="Vista Lateral (Side View)">Vista Lateral (Side View)</option>
+                                <option value="Detalle de Textura / Macro (Close-up)">Detalle / Macro (Close-up)
+                                </option>
+                                <option value="Plano Medio (Half Body)">Plano Medio (Half Body)</option>
+                            </select>
+                            <button id="btnGenerateAngle" onclick="ejecutarGeneracionAngulo()"
+                                class="w-full py-2 bg-indigo-600 text-white rounded font-bold text-[10px] uppercase hover:bg-indigo-500 transition flex items-center justify-center gap-1 disabled:opacity-30">
+                                <span class="material-icons text-xs">auto_awesome_motion</span> Generar Ángulo Nuevo
+                            </button>
+                            <p class="text-[8px] text-slate-500 mt-2 italic leading-tight">
+                                <span class="text-amber-500 font-bold">Nota:</span> Solo use ángulos que existan en las
+                                fotos de referencia originales para evitar errores.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btnDeleteModal" onclick="borrarImagenModal()"
+                    class="w-full py-2 text-red-400 hover:bg-red-500/10 rounded text-xs font-bold mt-4 border border-transparent hover:border-red-500/20 transition flex items-center justify-center gap-2 hidden">
+                    <span class="material-icons text-sm">delete</span> Eliminar Definitivamente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CATALOG_URL = "<?!= CATALOG_URL ?>";
+        // --- VARIABLES GLOBALES ---
+        var CURRENT_IMAGES = []; // --- NUEVO: Almacena las imágenes cargadas ---
+        var currentImageIndex = -1; // --- NUEVO: Índice actual en el modal ---
+        var currentImageId = null;
+        var currentImgObj = null;
+        var searchTimeout = null;
+        var selectedImages = new Set();
+        var currentSelectionState = null; // true (visible) o false (oculto)
+        var currentProduct = null;
+        var isReorderMode = false;
+        var hasUnsavedChanges = false;
+        var gridSnapshot = null; // Para revertir orden
+        var currentCategoryFilter = ""; // --- NUEVO: Filtro por categoría ---
+        var CATEGORY_LIST = []; // --- NUEVO: Lista de categorías ---
+        var CATEGORY_SVGS = {}; // --- NUEVO: SVGs del catálogo ---
+
+        // Catálogo para búsqueda rápida
+        var PRODUCT_CATALOG = [];
+        var CATALOG_LOADING = false;
+        var autoOpenId = null; // --- NUEVO: Corregir ReferenceError ---
+        var isConsoleExpanded = false; // --- NUEVO: Corregir ReferenceError ---
+
+
+
+        // --- LOGGER ---
+        function log(msg, type = 'info') {
+            const box = document.getElementById('console-content');
+            if (!box) return;
+            if (box.innerHTML.includes('Esperando')) box.innerHTML = '';
+
+            const line = document.createElement('div');
+            line.className = 'log-line ' + (type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : (type === 'warning' ? 'log-warning' : 'log-info'));
+            line.innerText = `> ${msg}`;
+            box.appendChild(line);
+            box.scrollTop = box.scrollHeight;
+
+            if (type === 'error' && !isConsoleExpanded) toggleConsole();
+        }
+
+        function toggleConsole() {
+            const panel = document.getElementById('console-panel-wrapper');
+            const icon = document.getElementById('console-chevron');
+            isConsoleExpanded = !isConsoleExpanded;
+            panel.classList.toggle('expanded', isConsoleExpanded);
+            icon.innerText = isConsoleExpanded ? 'expand_more' : 'expand_less';
+        }
+
+        function toggleInternalSidebar() {
+            const sidebar = document.getElementById('internalSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            const icon = document.querySelector('header button span.material-icons');
+
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('open');
+                backdrop.classList.toggle('hidden');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                if (icon) {
+                    icon.innerText = sidebar.classList.contains('collapsed') ? 'menu' : 'menu_open';
+                }
+            }
+        }
+
+        // --- INIT REFACTORIZADO PARA SYSTEM CONTAINER ---
+        function initImagesDashboard() {
+            log("Módulo Imágenes (Dark Native) v10.0 Listo.", 'info');
+            cargarCatalogoLocal(); // Cargar JSON en segundo plano
+            debounceSearch('');
+            setupUpload();
+        }
+
+
+
+
+        async function cargarCatalogoLocal() {
+            if (CATALOG_LOADING) return;
+            CATALOG_LOADING = true;
+            log("Cargando catálogo dinámico...", "info");
+
+            try {
+                const resp = await fetch(CATALOG_URL, { cache: 'no-store' });
+                if (!resp.ok) throw new Error("HTTP " + resp.status);
+                const data = await resp.json();
+
+                if (data && data.products) {
+                    PRODUCT_CATALOG = data.products.map(p => ({
+                        sku: p.id,
+                        nombre: p.model || "Sin Nombre",
+                        carpeta_id: p.carpeta_id || "",
+                        thumbnail: p.image || "",
+                        parentCategory: p.parentCategory || "",
+                        category: p.categoryName || "",
+                        woo_id: p.woo_id || ""
+                    }));
+
+                    // --- NUEVO: Extraer Categorías y SVGs ---
+                    CATEGORY_LIST = data.categories || [];
+                    CATEGORY_SVGS = data.categorySvgs || {};
+                    renderizarCategorias();
+
+                    log(`Catálogo cargado: ${PRODUCT_CATALOG.length} productos.`, "success");
+                    const val = document.getElementById('searchInput').value;
+                    if (val) debounceSearch(val);
+                }
+                CATALOG_LOADING = false;
+            } catch (e) {
+                log("Error cargando catálogo: " + e.message, "error");
+                CATALOG_LOADING = false;
+            }
+        }
+
+        initImagesDashboard();
+
+        // --- UPLOAD CORREGIDO (ITERATIVO 1x1) ---
+        function setupUpload() {
+            const zone = document.getElementById('contentAreaWrapper');
+            const blocker = document.getElementById('dropBlocker');
+
+            zone.ondragover = (e) => {
+                if (isReorderMode) return; // Desactivar zona de subida en modo orden
+                e.preventDefault();
+                if (currentProduct) blocker.classList.remove('hidden');
+            };
+            zone.ondragleave = (e) => { if (e.relatedTarget && !zone.contains(e.relatedTarget)) blocker.classList.add('hidden'); };
+            zone.ondrop = (e) => {
+                if (isReorderMode) return;
+                e.preventDefault();
+                blocker.classList.add('hidden');
+                if (!currentProduct) return alert("Selecciona un producto primero.");
+                procesarArchivos(e.dataTransfer.files);
+            };
+        }
+
+        function procesarArchivos(files) {
+            if (!files || !files.length) return;
+            if (!currentProduct) { alert("Selecciona un producto primero."); return; }
+
+            const total = files.length;
+            const isBatch = total > 1;
+            log(`🚀 Iniciando subida de ${total} archivos para ${currentProduct.sku}...`, 'info');
+            if (isBatch) log("ℹ️ Modo Lote: La sincronización se ejecutará al final.", 'info');
+
+            if (!isConsoleExpanded) toggleConsole();
+
+            let processedCount = 0;
+            let errorCount = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const base64 = e.target.result.split(',')[1];
+                    // Enviamos 'true' (noSync) para que no sincronice 1 por 1, excepto si es solo 1 archivo
+                    // AUNQUE, para consistencia, subimos todo sin sync y hacemos sync explícito al final.
+                    const noSync = true;
+
+                    google.script.run.withSuccessHandler(res => {
+                        processedCount++;
+                        if (res.success) {
+                            log(`✅ ${file.name}: Subida OK.`, 'success');
+                        } else {
+                            errorCount++;
+                            log(`⚠️ ${file.name}: ${res.message}`, 'warning');
+                        }
+
+                        chequearFinProceso();
+
+                    }).withFailureHandler(err => {
+                        processedCount++;
+                        errorCount++;
+                        log(`❌ Error crítico ${file.name}: ${err.message}`, 'error');
+                        chequearFinProceso();
+                    })
+                        .procesarSubidaDesdeDashboard(currentProduct.sku, base64, file.name, file.type, currentProduct.carpeta_id, noSync);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            function chequearFinProceso() {
+                if (processedCount === total) {
+                    if (errorCount < total) {
+                        log("🔄 Cargas finalizadas. Ejecutando Sincronización Maestra...", 'info');
+
+                        sincronizarProductoActual();
+                    } else {
+                        log("❌ Todos los archivos fallaron. No se ejecutará sync.", 'error');
+                    }
+                }
+            }
+        }
+
+        function abrirSelectorArchivos() {
+            if (!currentProduct) return alert("Selecciona un producto primero.");
+
+            // En móvil, preguntamos si cámara o galería
+            if (window.innerWidth <= 768) {
+                Swal.fire({
+                    title: 'Subir Imagen',
+                    text: '¿Desde dónde quieres cargar?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '📷 Cámara',
+                    cancelButtonText: '🖼️ Galería',
+                    confirmButtonColor: '#4f46e5',
+                    cancelButtonColor: '#334155',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById('cameraInput').click();
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        document.getElementById('fileInput').click();
+                    }
+                });
+            } else {
+                document.getElementById('fileInput').click();
+            }
+        }
+
+        // --- SIDEBAR & PRODUCTOS ---
+        function debounceSearch(val) {
+            if (searchTimeout) clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = val.toLowerCase();
+                const cat = currentCategoryFilter.toLowerCase();
+
+                // Si tenemos catálogo local, buscar localmente
+                if (PRODUCT_CATALOG.length > 0) {
+                    const hits = PRODUCT_CATALOG.filter(p => {
+                        const matchesText = p.sku.toLowerCase().includes(query) || p.nombre.toLowerCase().includes(query);
+                        const matchesCat = !cat || p.category.toLowerCase() === cat || p.parentCategory.toLowerCase() === cat;
+                        return matchesText && matchesCat;
+                    }).slice(0, 50);
+                    mostrarResultados(hits);
+                } else {
+                    // Fallback a servidor (aquí el servidor no soporta filtro de categoría aún, pero es fallback)
+                    google.script.run.withSuccessHandler(mostrarResultados).buscarProductosParaSidebar(val);
+                }
+            }, 300);
+        }
+
+        // --- FUNCIONES DE CATEGORÍA (NUEVO) ---
+        function renderizarCategorias() {
+            const container = document.getElementById('categoryFilterContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            // Botón "Todos"
+            const allBtn = document.createElement('div');
+            allBtn.className = `category-chip ${currentCategoryFilter === "" ? 'active' : ''}`;
+            allBtn.onclick = () => filtrarPorCategoria("");
+            allBtn.innerHTML = `<span class="material-icons text-lg">apps</span><span>Todos</span>`;
+            container.appendChild(allBtn);
+
+            CATEGORY_LIST.forEach(cat => {
+                const svg = CATEGORY_SVGS[cat.id] || CATEGORY_SVGS[cat.id.toUpperCase()] || `<svg viewBox="0 0 24 24" class="opacity-20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+                const chip = document.createElement('div');
+                chip.className = `category-chip ${currentCategoryFilter === cat.id ? 'active' : ''}`;
+                chip.onclick = () => { filtrarPorCategoria(cat.id); chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); };
+                chip.innerHTML = `${svg}<span>${cat.name}</span>`;
+                container.appendChild(chip);
+            });
+        }
+
+        function scrollCategories(px) {
+            const container = document.getElementById('categoryFilterContainer');
+            if (container) container.scrollBy({ left: px, behavior: 'smooth' });
+        }
+
+        function filtrarPorCategoria(catId) {
+            currentCategoryFilter = catId;
+            renderizarCategorias();
+            debounceSearch(document.getElementById('searchInput').value);
+        }
+
+        // --- NUEVO: Forzar Recarga Real ---
+        function forzarRecargaCatalogo() {
+            log("Fuerzo regeneración de catálogo en servidor...", "warning");
+            const btn = document.querySelector('button[title="Recargar"]');
+            if (btn) {
+                btn.disabled = true;
+                const icon = btn.querySelector('span');
+                if (icon) icon.classList.add('animate-spin');
+            }
+
+            google.script.run.withSuccessHandler(() => {
+                log("Servidor regeneró JSON. Recargando local...", "success");
+                CATALOG_LOADING = false;
+                cargarCatalogoLocal();
+                if (btn) {
+                    btn.disabled = false;
+                    const icon = btn.querySelector('span');
+                    if (icon) icon.classList.remove('animate-spin');
+                }
+            }).withFailureHandler(err => {
+                log("Error forzando sync: " + err.message, "error");
+                if (btn) {
+                    btn.disabled = false;
+                    const icon = btn.querySelector('span');
+                    if (icon) icon.classList.remove('animate-spin');
+                }
+            }).generarProductCatalogJson();
+        }
+
+        function mostrarResultados(productos) {
+            const lista = document.getElementById('productList'); lista.innerHTML = '';
+            if (!productos || !productos.length) { lista.innerHTML = '<div class="col-span-2 text-center py-4 text-[10px] text-slate-500">Sin datos</div>'; return; }
+            productos.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'sidebar-item cursor-pointer';
+                if (currentProduct && currentProduct.sku === p.sku) item.classList.add('active');
+                item.onclick = () => seleccionarProducto(p, item);
+
+                let imgHTML = '';
+                if (p.thumbnail) { imgHTML = `<img src="${p.thumbnail}" class="w-full h-full object-cover">`; }
+                else { imgHTML = `<div class="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600"><span class="material-icons text-[14px]">image</span></div>`; }
+
+                item.innerHTML = `
+                    <div class="item-img-container overflow-hidden border border-slate-700/50 shadow-sm">${imgHTML}</div>
+                    <div class="item-info">
+                        <h4 class="font-bold text-slate-300">${p.nombre}</h4>
+                        <div class="sku font-mono text-slate-500">${p.sku}</div>
+                    </div>`;
+                lista.appendChild(item);
+            });
+            if (productos.length === 1 && !currentProduct) seleccionarProducto(productos[0], lista.firstChild);
+        }
+
+        async function seleccionarProducto(p, el) {
+            console.log("🔍 Seleccionando producto:", p); // Debug
+            if (hasUnsavedChanges) {
+                const result = await Swal.fire({
+                    title: 'Cambios sin guardar',
+                    text: 'Has cambiado el orden de las imágenes. ¿Quieres guardar los cambios antes de cambiar de producto?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Guardar y Cambiar',
+                    cancelButtonText: 'Descartar y Cambiar',
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#f87171',
+                    background: '#0f172a',
+                    color: '#f1f5f9'
+                });
+
+                if (result.isConfirmed) {
+                    await new Promise(resolve => guardarNuevoOrden(() => resolve()));
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    hasUnsavedChanges = false;
+                } else {
+                    return; // No hacer nada
+                }
+            }
+
+            document.querySelectorAll('.sidebar-item').forEach(e => e.classList.remove('active', 'bg-indigo-500/10', 'border-indigo-500'));
+            if (el) el.classList.add('active', 'bg-indigo-500/10', 'border-indigo-500');
+
+            currentProduct = { sku: p.sku, carpeta_id: p.carpeta_id, woo_id: p.woo_id };
+            document.querySelectorAll('.product-card').forEach(c => {
+                c.classList.remove('active', 'border-indigo-500', 'ring-2', 'ring-indigo-500/20');
+                if (c.getAttribute('onclick').includes(`'${p.sku}'`)) { // Changed 'sku' to 'p.sku'
+                    c.classList.add('active', 'border-indigo-500', 'ring-2', 'ring-indigo-500/20');
+                }
+            });
+
+            // --- ACTUALIZAR BOTÓN WP SYNC BASADO EN WOO_ID ---
+            const btnSyncWC = document.getElementById('btnSyncWC');
+            const hasWooId = (p.woo_id && p.woo_id !== "") || (p.WOO_ID && p.WOO_ID !== "");
+
+            if (hasWooId) {
+                btnSyncWC.disabled = false;
+                btnSyncWC.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnSyncWC.title = "Sincronizar imágenes con WooCommerce";
+            } else {
+                btnSyncWC.disabled = true;
+                btnSyncWC.classList.add('opacity-50', 'cursor-not-allowed');
+                btnSyncWC.title = "Primero debes sincronizar el producto con WooCommerce desde el ERP";
+            }
+            document.getElementById('currentProductTitle').innerText = p.nombre;
+            document.getElementById('currentProductSku').innerText = p.sku;
+            document.getElementById('btnHeaderUpload').classList.remove('hidden');
+            const btnSync = document.getElementById('btnSyncProd');
+            btnSync.disabled = false; btnSync.style.opacity = '1';
+
+            // Resetear modo orden al cambiar de producto
+            isReorderMode = false;
+            hasUnsavedChanges = false;
+            actualizarUIModoOrden();
+
+            if (window.innerWidth <= 768) toggleInternalSidebar();
+            if (!p.carpeta_id) log("⚠️ SKU sin CARPETA_ID.", "warning");
+            cargarGaleria(p.sku, p.carpeta_id);
+        }
+
+        function actualizarUIModoOrden() {
+            const btn = document.getElementById('btnToggleReorder');
+            const btnSave = document.getElementById('btnSaveOrder');
+
+            if (isReorderMode) {
+                btn.innerHTML = '<span class="material-icons text-[10px]">close</span><span class="btn-responsive-text"> Salir de Reordenar</span>';
+                btn.classList.add('bg-rose-500/20', 'text-rose-400', 'border-rose-500/30');
+            } else {
+                btn.innerHTML = '<span class="material-icons text-[10px]">sort</span><span class="btn-responsive-text"> Modo Reordenar</span>';
+                btn.classList.remove('bg-rose-500/20', 'text-rose-400', 'border-rose-500/30');
+                if (sortableInstance) {
+                    sortableInstance.destroy();
+                    sortableInstance = null;
+                }
+            }
+            if (!hasUnsavedChanges) btnSave.classList.add('hidden');
+        }
+
+        function cargarGaleria(sku, carpetaId) {
+            limpiarSeleccion();
+            const gridActive = document.getElementById('imageGridActive');
+            const gridHidden = document.getElementById('imageGridHidden');
+            const empty = document.getElementById('emptyState');
+            const content = document.getElementById('contentArea');
+
+            empty.classList.add('hidden'); content.classList.remove('hidden');
+            gridActive.innerHTML = '<div class="p-4 text-center text-xs text-slate-500 w-full">Cargando...</div>';
+            gridHidden.innerHTML = '<div class="p-4 text-center text-xs text-slate-500 w-full">...</div>';
+
+            log(`Solicitando imágenes para [SKU: ${sku}]...`, 'info');
+
+            google.script.run.withSuccessHandler(renderizarGaleria).withFailureHandler(err => { log(err.message, 'error'); gridActive.innerHTML = '<div class="text-red-400 text-xs p-4">Error de red</div>'; }).obtenerImagenesDeProducto(sku, carpetaId);
+        }
+
+        function renderizarGaleria(response) {
+            let imgs = [];
+            try { if (typeof response === 'string') { imgs = JSON.parse(response); } else { imgs = response; } } catch (e) { log("Error procesando respuesta", "error"); return; }
+
+            CURRENT_IMAGES = imgs; // --- NUEVO: Cachear para navegación ---
+            const ga = document.getElementById('imageGridActive'); const gh = document.getElementById('imageGridHidden');
+            ga.innerHTML = ''; gh.innerHTML = '';
+
+            const noImg = (text) => `<div class="flex-shrink-0 w-full flex flex-col items-center justify-center py-8 text-slate-600 italic text-xs"><span class="material-icons text-lg mb-1 opacity-50">image_not_supported</span>${text}</div>`;
+
+            if (!imgs || !imgs.length) { ga.innerHTML = noImg("Sin imágenes visibles"); gh.innerHTML = noImg("Papelera vacía"); return; }
+
+            let cA = 0, cH = 0;
+            imgs.forEach((img, idx) => {
+                try {
+                    const card = crearCard(img, idx);
+                    if (img.ESTADO) { ga.appendChild(card); cA++; } else { gh.appendChild(card); cH++; }
+                } catch (e) { console.error("Error carta:", e); }
+            });
+
+            if (cA === 0) ga.innerHTML = noImg("Sin imágenes visibles");
+            if (cH === 0) gh.innerHTML = noImg("Papelera vacía");
+
+            // --- NUEVO: Inicializar Sortable SOLO si está en modo reordenar ---
+            if (cA > 1 && isReorderMode) {
+                initSortable();
+            }
+
+            log(`Galería actualizada. (V:${cA}, O:${cH})`, 'success');
+
+            // --- AUTO OPEN AFTER GEN ---
+            if (autoOpenId) {
+                const targetImg = imgs.find(i => String(i.IMAGEN_ID) === String(autoOpenId));
+                if (targetImg) {
+                    abrirModal(targetImg);
+                }
+                autoOpenId = null;
+            }
+        }
+
+        function crearCard(img, index) {
+            const div = document.createElement('div'); div.className = 'img-card group';
+            div.setAttribute('data-id', img.IMAGEN_ID); // Para SortableJS
+            let thumbUrl = img.THUMBNAIL_URL || img.URL;
+            let imgHTML = '';
+            const isVideo = img.TIPO_ARCHIVO === 'video' || (img.IMAGEN_RUTA && (img.IMAGEN_RUTA.endsWith('.mp4') || img.IMAGEN_RUTA.endsWith('.mov')));
+
+            if (isVideo) {
+                // Si es video y el thumbnail es igual a la URL o no existe (no hay thumb generado todavía), mostrar icono
+                if (!thumbUrl || thumbUrl === img.URL) {
+                    imgHTML = `<div class="w-full h-full flex items-center justify-center bg-slate-900 text-slate-600 relative border-b border-slate-700">
+                                <span class="material-icons text-4xl text-indigo-500 opacity-80">play_circle_filled</span>
+                               </div>`;
+                } else {
+                    // Si hay thumb real
+                    imgHTML = `<div class="relative w-full h-full">
+                                <img src="${thumbUrl}" class="img-thumb" style="opacity:0.7">
+                                <div class="absolute inset-0 flex items-center justify-center"><span class="material-icons text-3xl text-white drop-shadow-md">play_circle_filled</span></div>
+                               </div>`;
+                }
+            } else {
+                if (thumbUrl) {
+                    if (!thumbUrl.includes('placeholder')) thumbUrl += (thumbUrl.includes('?') ? '&' : '?') + `v=${new Date().getTime()}`;
+                    imgHTML = `<img src="${thumbUrl}" class="img-thumb" onerror="this.outerHTML='<div class=\\'w-full h-full flex items-center justify-center bg-slate-800 text-slate-600\\'><span class=\\'material-icons text-3xl\\'>broken_image</span></div>'">`;
+                } else {
+                    imgHTML = `<div class="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600"><span class="material-icons text-3xl">image</span></div>`;
+                }
+            }
+
+            const nombre = (img.IMAGEN_RUTA || "sin-nombre").split('/').pop();
+            const isSelected = selectedImages.has(img.IMAGEN_ID);
+            const jsonSafe = JSON.stringify(img).replace(/"/g, '&quot;');
+
+            div.id = `card-${img.IMAGEN_ID}`;
+            div.innerHTML = `
+                <div class="card-checkbox" onclick="event.stopPropagation(); toggleSelection('${img.IMAGEN_ID}', this.parentElement, ${img.ESTADO})">
+                    <span class="material-icons check-icon text-sm text-white font-bold">${isSelected ? 'check' : ''}</span>
+                </div>
+                <div onclick="abrirModal(${jsonSafe})">
+                    <div class="relative">
+                        ${imgHTML}
+                        ${img.PORTADA ? '<span class="absolute top-1 left-1 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5"><span class="material-icons text-[10px]">star</span></span>' : ''}
+                        ${img.SYNC_WC ? '<span class="absolute top-9 left-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Sincronizado con WP"><span class="material-icons text-[10px]">cloud_done</span></span>' : ''}
+                        <span class="absolute bottom-1 right-1 bg-slate-900/80 text-white text-[8px] font-mono px-1 rounded z-10 border border-white/10 opacity-60 group-hover:opacity-100">${index + 1}</span>
+                        ${img.PROMPT ? '<span class="absolute top-1 right-8 bg-indigo-600 text-white text-[9px] font-bold px-1 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Tiene Prompt"><span class="material-icons text-[10px]">auto_awesome</span></span>' : ''}
+                    </div>
+                    <div class="img-body">
+                        <p class="text-[9px] font-bold text-slate-400 truncate mb-1" title="${nombre}">${nombre}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${img.ESTADO ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700 text-slate-500'}">
+                                ${img.ESTADO ? 'ACTIVA' : 'OCULTA'}
+                            </span>
+                             ${isVideo ? '<span class="text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-1 rounded border border-indigo-500/20">VIDEO</span>' : ''}
+                        </div>
+                    </div>
+                </div>`;
+            if (isSelected) { div.classList.add('selected'); div.querySelector('.check-icon').innerText = 'check'; }
+            return div;
+        }
+
+        // --- SELECCION ---
+        function toggleSelection(id, card, estado) {
+            if (currentSelectionState !== null && currentSelectionState !== estado && !selectedImages.has(id)) { if (!confirm("¿Limpiar selección anterior?")) return; limpiarSeleccion(); }
+            currentSelectionState = estado;
+            if (selectedImages.has(id)) { selectedImages.delete(id); card.classList.remove('selected'); card.querySelector('.check-icon').innerText = ''; if (selectedImages.size === 0) currentSelectionState = null; }
+            else { selectedImages.add(id); card.classList.add('selected'); card.querySelector('.check-icon').innerText = 'check'; }
+            actualizarToolbar();
+        }
+
+        function actualizarToolbar() {
+            const toolbar = document.getElementById('bulk-toolbar');
+            const actionsDiv = document.getElementById('toolbar-actions');
+            document.getElementById('selectedCount').innerText = selectedImages.size;
+
+            if (selectedImages.size > 0) {
+                toolbar.style.display = 'flex';
+                let html = '';
+                if (currentSelectionState === true) {
+                    html = `<button onclick="accionMasiva('ocultar')" class="hover:bg-slate-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition"><span class="material-icons text-sm text-slate-300">visibility_off</span> Ocultar</button>`;
+                } else {
+                    html = `<button onclick="accionMasiva('mostrar')" class="hover:bg-emerald-600 bg-emerald-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition mr-1"><span class="material-icons text-sm">visibility</span> Restaurar</button>
+                            <button onclick="accionMasiva('eliminar')" class="hover:bg-red-600 bg-red-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition"><span class="material-icons text-sm">delete</span> Borrar</button>`;
+                }
+                if (currentSelectionState === true) {
+                    const btnLabel = currentPaidPin ? 'RENDER AI' : 'AI PROMPT';
+                    html += `<div class="h-3 w-px bg-indigo-500/50 mx-2"></div>
+                              <button onclick="generarPromptMasivo()" class="hover:bg-indigo-600 bg-indigo-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm"><span class="material-icons text-sm">auto_awesome</span> ${btnLabel}</button>`;
+                }
+                actionsDiv.innerHTML = html;
+            } else { toolbar.style.display = 'none'; currentSelectionState = null; }
+        }
+
+        function limpiarSeleccion() { selectedImages.clear(); currentSelectionState = null; document.querySelectorAll('.img-card').forEach(c => { c.classList.remove('selected'); c.querySelector('.check-icon').innerText = ''; }); actualizarToolbar(); }
+        function seleccionarTodos(estado) { limpiarSeleccion(); const container = document.getElementById(estado ? 'imageGridActive' : 'imageGridHidden'); if (!container) return; const cards = container.querySelectorAll('.img-card'); if (cards.length === 0) return; currentSelectionState = estado; cards.forEach(card => { const id = card.querySelector('.card-checkbox').getAttribute('onclick').split("'")[1]; selectedImages.add(id); card.classList.add('selected'); card.querySelector('.check-icon').innerText = 'check'; }); actualizarToolbar(); }
+
+        function accionMasiva(accion) {
+            const ids = Array.from(selectedImages); if (!ids.length) return;
+            const msg = accion === 'eliminar' ? "¿Borrar definitivamente?" : `¿${accion.toUpperCase()} ${ids.length} imágenes?`;
+            if (!confirm(msg)) return;
+            log(`Procesando ${ids.length}...`, 'info');
+            if (accion === 'eliminar') google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).eliminarImagenesDefinitivo(ids);
+            else google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).cambiarEstadoMasivo(ids, accion === 'mostrar');
+        }
+
+        function recargar() { limpiarSeleccion(); if (currentProduct) cargarGaleria(currentProduct.sku, currentProduct.carpeta_id); }
+
+        // --- ACTIONS ---
+        function sincronizarProductoActual() { if (!currentProduct) return; log(`Sync Drive ${currentProduct.sku}...`, 'info'); google.script.run.withSuccessHandler(res => { log(res.message, res.success ? 'success' : 'error'); if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info')); if (res.success) recargar(); }).procesarSincronizacion(currentProduct.sku); }
+        function sincronizarConWC() {
+            if (!currentProduct) return;
+            if (!currentProduct.woo_id) {
+                Swal.fire('Atención', 'Este producto aún no tiene un ID de WooCommerce asignado. Por favor, sincroniza el producto primero.', 'warning');
+                return;
+            }
+            log(`Sync WordPress ${currentProduct.sku}...`, 'info');
+            const btn = document.getElementById('btnSyncWC');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons text-sm animate-spin">sync</span>Syncing...';
+            google.script.run.withSuccessHandler(res => {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons text-sm">cloud_upload</span>WP Sync';
+                log(res.message, res.success ? 'success' : 'error');
+                if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info'));
+                if (res.success) recargar();
+            }).withFailureHandler(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons text-sm">cloud_upload</span>WP Sync';
+                log(err.message, 'error');
+            }).subirImagenesProductoWP(currentProduct.sku);
+        }
+        function sincronizarGlobalManual() { if (!confirm("⚠️ Sync Global demora varios minutos. ¿Continuar?")) return; log("Iniciando Sync Global...", 'info'); if (!isConsoleExpanded) toggleConsole(); google.script.run.withSuccessHandler(res => { log(res.message, res.success ? 'success' : 'error'); if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info')); }).ejecutarSincronizacionGlobal(); }
+
+        // --- MODAL ---
+        function abrirModal(img) {
+            currentImageId = img.IMAGEN_ID;
+            currentImgObj = img;
+
+            // --- NUEVO: Calcular índice para navegación ---
+            currentImageIndex = CURRENT_IMAGES.findIndex(i => i.IMAGEN_ID === img.IMAGEN_ID);
+            actualizarNavegacionModal();
+
+            const container = document.getElementById('mediaContainer');
+            container.innerHTML = '';
+
+            const isVideo = img.TIPO_ARCHIVO === 'video' || (img.IMAGEN_RUTA && (img.IMAGEN_RUTA.endsWith('.mp4') || img.IMAGEN_RUTA.endsWith('.mov')));
+
+            let mediaEl;
+            if (isVideo) {
+                mediaEl = document.createElement('video');
+                mediaEl.controls = true;
+                mediaEl.autoplay = true;
+                mediaEl.className = 'max-w-full max-h-full object-contain';
+            } else {
+                mediaEl = document.createElement('img');
+                mediaEl.className = 'max-w-full max-h-full object-contain cursor-zoom-in';
+                mediaEl.onclick = () => window.open(img.URL, '_blank');
+                mediaEl.onerror = () => { mediaEl.src = 'https://via.placeholder.com/400x400?text=Error'; };
+            }
+
+            mediaEl.id = 'modalImage';
+            container.appendChild(mediaEl);
+            mediaEl.src = img.URL;
+
+            document.getElementById('modalFileName').innerText = (img.IMAGEN_RUTA || "").split('/').pop();
+            document.getElementById('aiResultBox').classList.add('hidden');
+
+            const btnVis = document.getElementById('btnToggleVisibilidad');
+            const lblVis = document.getElementById('labelVisibilidad');
+            if (img.ESTADO) {
+                btnVis.className = "py-2.5 px-3 rounded-lg font-bold text-[10px] sm:text-xs transition flex items-center justify-center gap-2 border border-red-500/30 text-red-500 hover:bg-red-500/10";
+                lblVis.innerText = "Ocultar";
+                btnVis.querySelector('span').innerText = "visibility_off";
+            } else {
+                btnVis.className = "py-2.5 px-3 rounded-lg font-bold text-[10px] sm:text-xs transition flex items-center justify-center gap-2 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10";
+                lblVis.innerText = "Publicar";
+                btnVis.querySelector('span').innerText = "visibility";
+            }
+
+            const btnDel = document.getElementById('btnDeleteModal'); const btnAi = document.getElementById('btnStartAiModal'); const btnCover = document.getElementById('btnMakeCoverModal');
+            if (!img.ESTADO) { btnDel.classList.remove('hidden'); if (btnAi) btnAi.parentElement.classList.add('hidden'); if (btnCover) btnCover.classList.add('hidden'); }
+            else {
+                btnDel.classList.add('hidden');
+                if (btnAi) btnAi.parentElement.classList.remove('hidden');
+                if (btnCover) btnCover.classList.remove('hidden');
+            }
+
+            // AUTO-DISPLAY PROMPT IF EXISTS
+            if (img.PROMPT) {
+                const aiResultBox = document.getElementById('aiResultBox');
+                const aiPromptText = document.getElementById('aiPromptText');
+                aiResultBox.classList.remove('hidden');
+
+                // Si parece JSON (empieza con {), intentamos formatearlo
+                if (img.PROMPT.trim().startsWith('{')) {
+                    aiPromptText.value = formatVideoScript(img.PROMPT);
+                } else {
+                    aiPromptText.value = img.PROMPT;
+                }
+            }
+
+            document.getElementById('imageModal').classList.remove('hidden');
+            updateAiButtonLabels();
+
+            // MOSTRAR PANEL DE REFINAR Y ÁNGULOS SI ES GENERADA POR IA O TIENE PROMPT
+            const refinePanel = document.getElementById('refinePanel');
+            const anglePanel = document.getElementById('anglePanel');
+
+            if (img.PROMPT && (img.FUENTE === 'Sistema Web' || img.FUENTE === 'IA_Gemini')) {
+                refinePanel.classList.remove('hidden');
+                anglePanel.classList.remove('hidden'); // Fase 5
+                document.getElementById('refineFeedback').value = ""; // Limpiar
+            } else {
+                refinePanel.classList.add('hidden');
+                anglePanel.classList.add('hidden');
+            }
+        }
+        function closeModal() { document.getElementById('imageModal').classList.add('hidden'); }
+
+        function toggleModalPanel() {
+            const panel = document.getElementById('modalSidePanel');
+            const iconD = document.getElementById('modalPanelIconDesktop');
+            const iconM = document.getElementById('modalPanelIconMobile');
+            const isCollapsed = panel.classList.toggle('modal-panel-collapsed');
+
+            if (window.innerWidth > 768) {
+                panel.style.width = isCollapsed ? '0' : '288px'; // 288px = w-72
+                panel.style.padding = isCollapsed ? '0' : '1.25rem';
+                panel.style.borderLeft = isCollapsed ? 'none' : '1px solid #334155';
+                panel.style.opacity = isCollapsed ? '0' : '1';
+                panel.style.pointerEvents = isCollapsed ? 'none' : 'auto';
+            }
+
+            const iconText = isCollapsed ? 'visibility' : 'visibility_off';
+            if (iconD) iconD.innerText = iconText;
+            if (iconM) iconM.innerText = iconText;
+        }
+
+
+        // --- NUEVO: Funciones de Navegación ---
+        function actualizarNavegacionModal() {
+            const btnPrev = document.getElementById('btnPrevImage');
+            const btnNext = document.getElementById('btnNextImage');
+
+            if (CURRENT_IMAGES.length <= 1) {
+                btnPrev.classList.add('hidden');
+                btnNext.classList.add('hidden');
+                return;
+            }
+
+            btnPrev.classList.remove('hidden');
+            btnNext.classList.remove('hidden');
+
+            // Opcional: Ocultar flechas en los extremos
+            if (currentImageIndex <= 0) btnPrev.classList.add('opacity-10', 'pointer-events-none');
+            else btnPrev.classList.remove('opacity-10', 'pointer-events-none');
+
+            if (currentImageIndex >= CURRENT_IMAGES.length - 1) btnNext.classList.add('opacity-10', 'pointer-events-none');
+            else btnNext.classList.remove('opacity-10', 'pointer-events-none');
+        }
+
+        function nextImage() {
+            if (currentImageIndex < CURRENT_IMAGES.length - 1) {
+                abrirModal(CURRENT_IMAGES[currentImageIndex + 1]);
+            }
+        }
+
+        function prevImage() {
+            if (currentImageIndex > 0) {
+                abrirModal(CURRENT_IMAGES[currentImageIndex - 1]);
+            }
+        }
+
+        function optimisticMoveCard(id, nuevoEstado) {
+            const card = document.getElementById(`card-${id}`); if (!card) return;
+            const targetGrid = nuevoEstado ? document.getElementById('imageGridActive') : document.getElementById('imageGridHidden');
+            if (currentImgObj && currentImgObj.IMAGEN_ID === id) currentImgObj.ESTADO = nuevoEstado;
+            card.style.transform = 'scale(0.9)'; card.style.opacity = '0';
+            setTimeout(() => { targetGrid.appendChild(card); const badge = card.querySelector('.status-badge'); if (badge) { badge.className = `status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${nuevoEstado ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700 text-slate-500'}`; badge.innerText = nuevoEstado ? 'ACTIVA' : 'OCULTA'; } card.style.transform = 'scale(1)'; card.style.opacity = '1'; }, 200);
+        }
+
+        function cambiarEstadoModalToggle() {
+            if (!currentImgObj) return;
+            const nuevoEstado = !currentImgObj.ESTADO; // Usar .ESTADO que es lo que manejamos en optimisticMoveCard
+            cambiarEstadoModal(nuevoEstado);
+        }
+
+        function cambiarEstadoModal(nuevoEstado) { const id = currentImageId; closeModal(); optimisticMoveCard(id, nuevoEstado); google.script.run.withSuccessHandler(() => log("Estado guardado.", "success")).withFailureHandler(err => { Swal.fire('Error', 'No se pudo guardar.', 'error').then(() => recargar()); }).cambiarEstadoImagen(id, nuevoEstado); }
+        function hacerPortadaModal() { closeModal(); log("Estableciendo portada...", "info"); google.script.run.withSuccessHandler(() => recargar()).establecerPortada(currentImageId, currentProduct.sku); }
+        function borrarImagenModal() { const id = currentImageId; Swal.fire({ title: '¿Eliminar Definitivamente?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Borrar' }).then((result) => { if (result.isConfirmed) { closeModal(); const card = document.getElementById(`card-${id}`); if (card) card.remove(); google.script.run.withSuccessHandler(res => log(res.message, 'success')).withFailureHandler(err => { Swal.fire('Error', 'Fallo al eliminar.', 'error').then(() => recargar()); }).eliminarImagenesDefinitivo([id]); } }); }
+
+        // --- AI PROMPTING ---
+        // --- AI PROMPTING ---
+        function generarPromptModal() {
+            Swal.fire({
+                title: 'Generar Contenido IA',
+                html: `
+                    <div class="space-y-3 text-left">
+                        <div>
+                            <label class="text-[10px] uppercase font-bold text-slate-400">Formato</label>
+                            <select id="swal-input-format" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1" onchange="toggleVideoOptions(this.value)">
+                                <option value="image">📸 Prompt Imagen</option>
+                                <option value="video">🎥 Guion Video</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="text-[10px] uppercase font-bold text-slate-400">Estilo</label>
+                            <select id="swal-input-style" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1" onchange="checkCategorySpecs(this.value)">
+                                <option value="ecommerce">🛍️ Ecommerce</option>
+                                <option value="lifestyle">🌆 Lifestyle</option>
+                                <option value="ghost">👻 Ghost Mannequin</option>
+                            </select>
+                        </div>
+
+                        <!-- NGLE SELECTION (Only for multi-selection) -->
+                        <div id="angle-selection-modal" class="hidden animate-fade-in bg-indigo-500/5 p-2 rounded border border-indigo-500/20">
+                            <label class="text-[10px] uppercase font-bold text-indigo-400 flex items-center gap-1">
+                                <span class="material-icons text-[12px]">straighten</span> Posición / Ángulo a Generar
+                            </label>
+                            <select id="swal-input-angle" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
+                                <option value="">Auto (Deducir / Split si > 1)</option>
+                                <option value="Frontal View / Frente">Vista Frontal (Frontal)</option>
+                                <option value="Back View / Espalda">Vista Trasera (Back)</option>
+                                <option value="Side View / Perfil">Vista Lateral (Perfil)</option>
+                                <option value="Close-up / Detalle">Vista de Detalle (Macro)</option>
+                                <option value="Split View / Front and Back">Vista Combinada (Frente y Espalda)</option>
+                            </select>
+                            <p class="text-[9px] text-slate-500 mt-1 italic">Si selecciones un ángulo específico, se generará una sola vista ignorando las otras poses.</p>
+                        </div>
+
+                        <div id="env-selection" class="hidden animate-fade-in">
+                            <label class="text-[10px] uppercase font-bold text-indigo-400">Entorno / Ambiente</label>
+                            <select id="swal-input-env" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
+                                <option value="">Auto (Por Categoría)</option>
+                                <option value="Shopping / Centro Comercial">🏬 Shopping</option>
+                                <option value="Urban / Calle Ciudad">🏙️ Urban / Calle</option>
+                                <option value="Park / Naturaleza">🌳 Parque / Exterior</option>
+                                <option value="Gym / Gimnasio">🏋️ Gym / Fitness</option>
+                                <option value="Studio / Estudio Pro">📸 Estudio Profesional</option>
+                                <option value="Cafe / Restaurante">☕ Cafe / Social</option>
+                            </select>
+                        </div>
+
+                        <!-- GHOST FOCUS (Only for Ghost style) -->
+                        <div id="ghost-focus-selection" class="hidden animate-fade-in bg-indigo-500/5 p-2 rounded border border-indigo-500/20">
+                            <label class="text-[10px] uppercase font-bold text-indigo-400 flex items-center gap-1">
+                                <span class="material-icons text-[12px]">center_focus_strong</span> Enfoque Prioritario (Interior)
+                            </label>
+                            <select id="swal-input-focus" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
+                                <option value="">General (Todas las aberturas)</option>
+                                <option value="waist">Cintura (Interior superior)</option>
+                                <option value="legs">Piernas (Interior inferior)</option>
+                            </select>
+                            <p class="text-[9px] text-slate-500 mt-1 italic">Dará prioridad visual a la abertura seleccionada para mostrar el efecto hueco.</p>
+                        </div>
+
+
+                        <!-- VIDEO OPTIONS (Hidden by default) -->
+                        <div id="video-options" class="hidden space-y-3 pt-2 border-t border-slate-700 animate-fade-in">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-indigo-400">Estructura Video</label>
+                                <select id="swal-input-structure" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
+                                    <option value="single_shot">⚡ 8 Segundos (Single Shot)</option>
+                                    <option value="multi_shot">🎬 30 Segundos (Escenas)</option>
+                                    <option id="opt-living-garment" value="living_garment" class="hidden text-amber-400 font-bold">✨ 3D Living Garment (Animado)</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="swal-input-audio" class="rounded bg-slate-800 border-slate-600 text-indigo-500">
+                                    <span class="text-xs text-slate-300">🎵 Audio</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="swal-input-vo" class="rounded bg-slate-800 border-slate-600 text-indigo-500">
+                                    <span class="text-xs text-slate-300">🎙️ Voz (Slogan)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- EXTRA SPECS (Skin Tone & Footwear) -->
+                        <div id="extra-specs" class="space-y-3 pt-3 border-t border-slate-700">
+                           <div id="skin-tone-section">
+                                <label class="text-[10px] uppercase font-bold text-slate-400">Tono de Piel (Modelos)</label>
+                                <select id="swal-input-skin" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
+                                    <option value="">IA Decide (Natural)</option>
+                                    <option value="Clara / Blanca">Blanca / Clara</option>
+                                    <option value="Trigueña / Latina">Trigueña / Latina</option>
+                                    <option value="Morena / Bronceada">Morena / Bronceada</option>
+                                    <option value="Oscura / Ébano">Oscura / Ébano</option>
+                                </select>
+                           </div>
+
+                           <div id="accessories-section" class="pt-3 animate-fade-in">
+                                <label class="text-[10px] uppercase font-bold text-slate-400">Accesorios (Opcional)</label>
+                                <select id="swal-input-acc-type" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
+                                    <option value="">Ninguno</option>
+                                    <option value="Lentes de Sol / Gafas">Lentes de Sol / Gafas</option>
+                                    <option value="Reloj de Lujo">Reloj de Lujo</option>
+                                    <option value="Bolso / Cartera">Bolso / Cartera</option>
+                                    <option value="Gorra / Sombrero">Gorra / Sombrero</option>
+                                    <option value="Cinturon / Correa">Cinturón / Correa</option>
+                                </select>
+                           </div>
+
+                           <div id="footwear-section" class="animate-fade-in bg-slate-900/30 p-2 rounded border border-slate-700/50 mt-3">
+                                <label class="text-[10px] uppercase font-bold text-indigo-400">Calzado (Modelos)</label>
+                                <div class="grid grid-cols-2 gap-2 mt-1">
+                                    <select id="swal-input-foot-type" class="text-xs bg-slate-800 text-white border-slate-600 rounded p-1.5 shadow-inner">
+                                        <option value="">Auto (IA)</option>
+                                        <option value="Zapatillas Deportivas">Deportivas</option>
+                                        <option value="Zapatos Formales">Formales</option>
+                                        <option value="Zapatillas Urbanas">Urbanas</option>
+                                        <option value="Sandalias / Ojotas">Sandalias</option>
+                                        <option value="Botas / Borceguies">Botas</option>
+                                        <option value="Ninguno (Descalzo)">Descalzo</option>
+                                    </select>
+                                    <input type="text" id="swal-input-foot-color" placeholder="Color (ej: Blanco)" class="text-xs bg-slate-800 text-white border-slate-600 rounded p-1.5 focus:border-indigo-500 outline-none placeholder:text-slate-600">
+                                </div>
+                                <p class="text-[9px] text-slate-500 mt-1 italic">Recomendado para prendas inferiores</p>
+                           </div>
+                        </div>
+                    </div>
+                `,
+                background: '#1e293b',
+                color: '#fff',
+                confirmButtonColor: '#6366f1',
+                showCancelButton: true,
+                didOpen: () => {
+                    // Initialize state
+                    toggleVideoOptions(document.getElementById('swal-input-format').value);
+                    checkCategorySpecs(document.getElementById('swal-input-style').value);
+
+                    // SHOW ANGLE SELECTOR ONLY IF MULTI-SELECTION (selectedImages size > 1)
+                    if (selectedImages && selectedImages.size > 1) {
+                        document.getElementById('angle-selection-modal').classList.remove('hidden');
+                    }
+                },
+                preConfirm: () => ({
+                    formato: document.getElementById('swal-input-format').value,
+                    estilo: document.getElementById('swal-input-style').value,
+                    opciones: {
+                        structure: document.getElementById('swal-input-structure').value,
+                        audio: document.getElementById('swal-input-audio').checked,
+                        vo: document.getElementById('swal-input-vo').checked,
+                        angle: document.getElementById('swal-input-angle').value,
+                        focus: document.getElementById('swal-input-focus').value
+                    },
+                    extraSpecs: {
+                        pin: currentPaidPin,
+                        skinTone: document.getElementById('swal-input-skin').value,
+                        accessory: document.getElementById('swal-input-acc-type').value,
+                        environment: document.getElementById('swal-input-env').value,
+                        footwear: (document.getElementById('swal-input-foot-type').value === "") ? null : {
+                            type: document.getElementById('swal-input-foot-type').value,
+                            color: document.getElementById('swal-input-foot-color').value || "Color neutro"
+                        }
+                    }
+                })
+            }).then((result) => {
+                if (result.isConfirmed) ejecutarGeneracionPrompt(result.value.formato, result.value.estilo, result.value.opciones, result.value.extraSpecs);
+            });
+        }
+
+        let currentPaidPin = null;
+        function handlePaidToggle(checked) {
+            if (checked && !currentPaidPin) {
+                Swal.fire({
+                    title: 'Validar PIN de Pago',
+                    input: 'password',
+                    inputPlaceholder: 'Ingresa el PIN',
+                    background: '#1e293b',
+                    color: '#fff',
+                    showCancelButton: true,
+                    confirmButtonText: 'Validar'
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        google.script.run.withSuccessHandler(valid => {
+                            if (valid && valid.success) {
+                                currentPaidPin = res.value;
+                                log("PIN Validado. Modo pago activo.", "success");
+                                updateAiButtonLabels();
+                            } else {
+                                document.getElementById('paid-mode-switch').checked = false;
+                                Swal.fire('Error', valid ? valid.message : 'PIN Incorrecto', 'error');
+                            }
+                        }).validarPinPaid(res.value);
+                    } else {
+                        document.getElementById('paid-mode-switch').checked = false;
+                    }
+                });
+            } else if (!checked) {
+                currentPaidPin = null;
+                updateAiButtonLabels();
+            }
+        }
+
+        function updateAiButtonLabels() {
+            const label = currentPaidPin ? "Generar Imagen" : "Generar Prompt";
+            // Modal button
+            const btnModal = document.getElementById('btnStartAiModal');
+            if (btnModal) {
+                btnModal.innerHTML = `<span class="material-icons text-sm">auto_awesome</span>${label}`;
+                if (currentPaidPin) {
+                    btnModal.classList.replace('bg-indigo-600', 'bg-amber-600');
+                    btnModal.classList.replace('hover:bg-indigo-500', 'hover:bg-amber-500');
+                } else {
+                    btnModal.classList.replace('bg-amber-600', 'bg-indigo-600');
+                    btnModal.classList.replace('hover:bg-amber-500', 'hover:bg-indigo-500');
+                }
+            }
+            // Toolbar button
+            actualizarToolbar();
+
+            // Angle button availability
+            const btnAngle = document.getElementById('btnGenerateAngle');
+            if (btnAngle) btnAngle.disabled = !currentPaidPin;
+        }
+
+        function toggleVideoOptions(val) {
+            const el = document.getElementById('video-options');
+            if (val === 'video') el.classList.remove('hidden'); else el.classList.add('hidden');
+        }
+
+        // --- LÓGICA INTELIGENTE DE CALZADO ---
+        function checkCategorySpecs(estilo) {
+            const footSection = document.getElementById('footwear-section');
+            const skinSection = document.getElementById('skin-tone-section');
+            const accSection = document.getElementById('accessories-section');
+            const envSection = document.getElementById('env-selection');
+
+            // 1. Ocultar secciones de modelo y entorno si es Ghost
+            if (estilo === 'ghost') {
+                skinSection.classList.add('hidden');
+                footSection.classList.add('hidden');
+                accSection.classList.add('hidden');
+                envSection.classList.add('hidden');
+                document.getElementById('ghost-focus-selection').classList.remove('hidden');
+                // Mostrar Living Garment si es Ghost
+                document.getElementById('opt-living-garment').classList.remove('hidden');
+            } else {
+                skinSection.classList.remove('hidden');
+                footSection.classList.remove('hidden');
+                accSection.classList.remove('hidden');
+                document.getElementById('ghost-focus-selection').classList.add('hidden');
+                // Ocultar Living Garment si no es Ghost
+                document.getElementById('opt-living-garment').classList.add('hidden');
+                if (document.getElementById('swal-input-structure').value === 'living_garment') {
+                    document.getElementById('swal-input-structure').value = 'single_shot';
+                }
+
+                // Mostrar entorno solo para Lifestyle
+                if (estilo === 'lifestyle') {
+                    envSection.classList.remove('hidden');
+                } else {
+                    envSection.classList.add('hidden');
+                }
+
+                // Realce visual si es prenda inferior (pero siempre visible)
+                if (currentProduct) {
+                    const cat = (currentProduct.parentCategory || currentProduct.category || "").toLowerCase();
+                    const categoriasInferiores = ['pantalon', 'pantalón', 'short', 'bermuda', 'boxer', 'calzoncillo', 'ropa interior', 'jeans', 'calza', 'jogging', 'pantal', 'bottom'];
+                    const isBottom = categoriasInferiores.some(c => cat.includes(c));
+
+                    if (isBottom) {
+                        footSection.classList.add('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
+                    } else {
+                        footSection.classList.remove('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
+                    }
+                }
+            }
+        }
+
+        function ejecutarGeneracionPrompt(formato, estilo, opciones = {}, extraSpecs = {}) {
+            const pinToUse = extraSpecs.pin;
+            delete extraSpecs.pin; // No enviar en el objeto extraSpecs limpio
+            // MOSTRAR CARGADOR
+            Swal.fire({
+                title: 'IA Generando...',
+                html: 'Estamos analizando tus imágenes para crear el mejor prompt. Por favor espera.',
+                background: '#1e293b',
+                color: '#f1f5f9',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            document.getElementById('aiResultBox').classList.remove('hidden');
+            const txt = document.getElementById('aiPromptText'); txt.value = "Generando... espera...";
+
+            const onSuccess = (res) => {
+                Swal.close();
+                try {
+                    const d = JSON.parse(res);
+                    if (d.success) {
+                        // SI HUBIERA COSTO, LOGUEARLO
+                        if (d.cost !== undefined) {
+                            log(`Generación Exitosa. Costo: $${d.cost.toFixed(4)}`, 'success');
+                        }
+
+                        const isJson = d.text && (d.text.trim().startsWith('{') || d.text.trim().startsWith('```json'));
+                        const finalContent = (formato === 'video' || isJson) ? formatVideoScript(d.text) : d.text;
+                        txt.value = finalContent;
+                        log(`Generado OK (${d.modelUsed || d.model}).`, 'success');
+
+                        // MOSTRAR ALERTA CON RESULTADO
+                        let htmlContent = `<div class="text-left mb-2 text-xs text-slate-400 font-bold uppercase text-indigo-400">Análisis y Directiva IA (Auditable):</div>`;
+                        htmlContent += `<textarea id="swalPromptText" class="w-full h-60 p-3 text-[11px] bg-slate-950 text-emerald-400 border border-slate-800 rounded font-mono focus:ring-1 focus:ring-indigo-500 outline-none scroll-thin" readonly>${finalContent}</textarea>`;
+
+                        const btnText = d.imageSuccess ? 'Cerrar' : 'Copiar y Cerrar';
+                        const btnIcon = d.imageSuccess ? 'close' : 'content_copy';
+
+                        // Botones extra para VEO si es video
+                        const showVeoButton = formato === 'video' && isJson;
+
+                        Swal.fire({
+                            title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">auto_awesome</span> <span>¡Análisis de la IA!</span></div>',
+                            html: htmlContent,
+                            showCancelButton: showVeoButton,
+                            cancelButtonText: `<div class="flex items-center gap-2"><span class="material-icons text-sm">movie</span> <span>Renderizar MP4 con VEO</span></div>`,
+                            cancelButtonColor: '#4f46e5',
+                            confirmButtonText: `<div class="flex items-center gap-2"><span>${btnText}</span> <span class="material-icons text-sm">${btnIcon}</span></div>`,
+                            confirmButtonColor: '#1e293b',
+                            width: '650px',
+                            background: '#1e293b',
+                            color: '#f1f5f9',
+                            preConfirm: () => {
+                                if (!d.imageSuccess) {
+                                    const swalTxt = document.getElementById('swalPromptText');
+                                    swalTxt.select();
+                                    document.execCommand('copy');
+                                    log("Copiado al portapapeles.", "success");
+                                }
+                            }
+                        }).then((result) => {
+                            if (result.dismiss === Swal.DismissReason.cancel && showVeoButton) {
+                                // Extraer el prompt de VEO del JSON de forma robusta
+                                try {
+                                    let rawText = d.text;
+                                    // Limpiar markdown
+                                    let cleanJson = rawText.trim();
+                                    const firstBrace = cleanJson.indexOf('{');
+                                    const lastBrace = cleanJson.lastIndexOf('}');
+                                    if (firstBrace !== -1 && lastBrace !== -1) {
+                                        cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+                                    }
+
+                                    const jsonScript = JSON.parse(cleanJson);
+                                    const promptVeo = jsonScript.PROMPT_FOR_VIDEO_AI || (jsonScript.TOMAS && jsonScript.TOMAS[0].visual_prompt);
+                                    if (promptVeo) {
+                                        // Prioridad: Selección actual -> Contexto preservado del servidor -> Nueva imagen
+                                        let idsContext = Array.from(selectedImages);
+                                        if (idsContext.length === 0 && d.imageIds) idsContext = d.imageIds;
+
+                                        if (d.imagenId && !idsContext.includes(d.imagenId)) idsContext.push(d.imagenId);
+                                        if (currentImageId && !idsContext.includes(currentImageId)) idsContext.push(currentImageId);
+
+                                        iniciarRenderVEO(idsContext, promptVeo);
+                                    } else {
+                                        log("No se encontró un prompt técnico de video en el guion.", "error");
+                                    }
+                                } catch (e) {
+                                    log("Error al procesar guion para VEO: " + e.message, "error");
+                                    console.error("JSON Error:", d.text);
+                                }
+                            }
+                        });
+
+                        // Prioridad: Abrir la imagen recién generada
+                        if (d.imagenId) {
+                            autoOpenId = d.imagenId;
+                            if (currentImageId) closeModal(); // Cerramos el modal de la referencia
+                            recargar();
+                        } else {
+                            // Si no hay imagen nueva (solo prompt), recargar para ver iconos si fue masivo
+                            if (selectedImages.size > 1) recargar();
+                            else if (selectedImages.size === 1) autoOpenId = Array.from(selectedImages)[0];
+                            else if (currentImageId) autoOpenId = currentImageId;
+                        }
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error de IA', text: d.error, background: '#1e293b', color: '#f1f5f9' });
+                        txt.value = "Error: " + d.error;
+                    }
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'Error de Respuesta', text: 'La IA devolvió un formato inesperado.', background: '#1e293b', color: '#f1f5f9' });
+                    txt.value = res;
+                }
+            };
+
+            if (formato === 'video') {
+                log("🎬 Generando Prompt de Video...", "info");
+                const ids = selectedImages.size > 0 ? Array.from(selectedImages) : [currentImageId];
+                // Inyectamos extraSpecs en opciones para el video (VEO usa una estructura distinta)
+                opciones.extraSpecs = { ...extraSpecs, focus: opciones.focus };
+                google.script.run.withSuccessHandler(onSuccess).generarVideoPrompt(ids, estilo, opciones);
+            } else {
+                log("📸 Generando Prompt de Imagen...", "info");
+                // INYECTAMOS ÁNGULO Y FOCUS EN EXTRASPECS PARA LOS ENGINES DE IMAGEN
+                const finalExtraSpecs = { ...extraSpecs, angle: opciones.angle, focus: opciones.focus };
+
+                if (selectedImages.size > 1) {
+                    google.script.run.withSuccessHandler(onSuccess).generarSuperPromptMasivo(Array.from(selectedImages), estilo, 'image', finalExtraSpecs, pinToUse);
+                } else {
+                    google.script.run.withSuccessHandler(onSuccess).generarSuperPrompt(currentImageId, estilo, 'image', finalExtraSpecs, pinToUse);
+                }
+            }
+        }
+        function copiarPrompt() { document.getElementById('aiPromptText').select(); document.execCommand('copy'); log("Prompt copiado al portapapeles.", "info"); }
+        function generarPromptMasivo() { generarPromptModal(); }
+
+        // --- REFINAMIENTO (NUEVO) ---
+        function ejecutarRefinamiento() {
+            const feedback = document.getElementById('refineFeedback').value.trim();
+            if (!feedback) {
+                log("Escribe algún feedback para corregir.", "warning");
+                return;
+            }
+
+            if (!currentPaidPin) {
+                log("PIN de pago requerido para refinamiento IA.", "error");
+                return;
+            }
+
+            Swal.fire({
+                title: 'Refinando Imagen...',
+                html: 'Aplicando correcciones con IA. Por favor espera.',
+                background: '#1e293b',
+                color: '#fff',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            google.script.run.withSuccessHandler(res => {
+                Swal.close();
+                const d = JSON.parse(res);
+                if (d.success) {
+                    log(`Imagen refinada con éxito. Costo: $${d.cost.toFixed(4)}`, "success");
+                    autoOpenId = d.imagenId;
+                    closeModal();
+                    recargar();
+
+                    // Mostrar resultado final sin imagen (evitar broken image/lentitud)
+                    Swal.fire({
+                        title: '<div class="flex items-center gap-2"><span class="material-icons text-emerald-400">check_circle</span> <span>Refinamiento Listo</span></div>',
+                        html: `<p class="text-xs text-slate-400">La corrección ha sido procesada y registrada en la galería como una nueva versión.</p>`,
+                        confirmButtonText: 'Entendido',
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                } else {
+                    Swal.fire('Error de Refinamiento', d.error, 'error');
+                }
+            }).withFailureHandler(err => {
+                Swal.close();
+                Swal.fire('Error Crítico', err.message, 'error');
+            }).ejecutarRefinamientoDesdeDashboard(currentImageId, feedback, currentPaidPin);
+        }
+
+        function ejecutarGeneracionAngulo() {
+            const angulo = document.getElementById('angleSelect').value;
+            if (!angulo) {
+                log("Por favor, selecciona un ángulo de la lista.", "warning");
+                return;
+            }
+            if (!currentPaidPin) {
+                log("PIN de pago requerido para generar ángulos.", "error");
+                return;
+            }
+
+            Swal.fire({
+                title: 'Generando Ángulo...',
+                html: `Procesando <b>${angulo}</b> manteniendo consistencia. Por favor espera.`,
+                background: '#1e293b',
+                color: '#fff',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            google.script.run.withSuccessHandler(res => {
+                Swal.close();
+                const d = JSON.parse(res);
+                if (d.success) {
+                    log(`Ángulo [${angulo}] generado. Costo: $${d.cost.toFixed(4)}`, "success");
+                    autoOpenId = d.imagenId;
+                    closeModal();
+                    recargar();
+
+                    Swal.fire({
+                        title: 'IA: Ángulo Listo',
+                        html: `<p class="text-xs text-slate-400">La nueva vista <b>${angulo}</b> ha sido agregada a la galería.</p>`,
+                        confirmButtonText: 'Genial',
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                } else {
+                    Swal.fire('Error de Generación', d.error, 'error');
+                }
+            }).withFailureHandler(err => {
+                Swal.close();
+                Swal.fire('Error Crítico', err.message, 'error');
+            }).generarVarianteAnguloDesdeDashboard(currentImageId, angulo, currentPaidPin);
+        }
+
+        // --- LÓGICA DE AUTOMATIZACIÓN VEO (PHASE 6) ---
+        function iniciarRenderVEO(masterId, prompt) {
+            Swal.fire({
+                title: 'Iniciando VEO...',
+                text: 'Contactando al motor de renderizado de Google.',
+                background: '#1e293b', color: '#fff',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            google.script.run.withSuccessHandler(res => {
+                const d = JSON.parse(res);
+                if (d.success && d.operationId) {
+                    Swal.fire({
+                        title: 'Renderizado en Proceso',
+                        html: `<div class="text-sm">${d.message}</div><div class="mt-4 p-2 bg-slate-950 rounded text-[10px] font-mono text-indigo-400">${d.operationId}</div>`,
+                        icon: 'info', background: '#1e293b', color: '#fff',
+                        timer: 10000, timerProgressBar: true
+                    });
+                    // Comenzar seguimiento con metadata de guardado
+                    setTimeout(() => monitorizarVideoVEO(d.operationId, d.sku, d.carpetaId), 30000);
+                } else {
+                    Swal.fire('Error VEO', d.error, 'error');
+                }
+            }).ejecutarRenderizadoVideoVEO(masterId, prompt, currentPaidPin);
+        }
+
+        function monitorizarVideoVEO(opId, sku, carpetaId) {
+            log("Verificando estado del video...", "info");
+            google.script.run.withSuccessHandler(res => {
+                const d = JSON.parse(res);
+                if (d.success) {
+                    if (d.done) {
+                        const finalLink = d.driveUrl || d.videoUri;
+                        const linkText = d.driveUrl ? "Ver en Google Drive" : "Ver / Descargar (Link Temporal)";
+
+                        Swal.fire({
+                            title: '¡Video Listo!',
+                            html: `<p class="text-xs text-slate-400">El video ha sido procesado y guardado en tu Drive.</p>
+                                   <div class="mt-4">
+                                       <a href="${finalLink}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                            <span class="material-icons text-sm">movie</span> ${linkText}
+                                       </a>
+                                   </div>`,
+                            icon: 'success', background: '#1e293b', color: '#fff'
+                        });
+                        log("Renderizado de video completado.", "success");
+                        recargar(); // Refrescar galería automáticamente
+                    } else {
+                        // Reintentar en 30 segundos
+                        setTimeout(() => monitorizarVideoVEO(opId, sku, carpetaId), 30000);
+                        log("VEO: El video sigue cocinándose...", "info");
+                    }
+                } else {
+                    log("Fallo al verificar video: " + d.error, "error");
+                }
+            }).verificarEstadoVideoVEO(opId, sku, carpetaId);
+        }
+
+        function formatVideoScript(raw) {
+            if (!raw) return "";
+            try {
+                // Limpiar posibles bloques de código markdown de la IA o texto antes del JSON
+                let cleanJson = raw.trim();
+                if (cleanJson.includes('```json')) {
+                    cleanJson = cleanJson.split('```json')[1].split('```')[0].trim();
+                } else if (cleanJson.includes('```')) {
+                    cleanJson = cleanJson.split('```')[1].split('```')[0].trim();
+                }
+
+                // Si aún no es un JSON puro (ej. tiene texto antes del {), buscar el primer {
+                const firstBrace = cleanJson.indexOf('{');
+                const lastBrace = cleanJson.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+                }
+
+                const d = JSON.parse(cleanJson);
+                let out = "";
+                if (d.TEMA_DETECTADO) out += `📌 TEMA: ${d.TEMA_DETECTADO}\n`;
+                if (d.MUSICA_RECOMENDADA || d.AUDIO_SUGGESTION) out += `🎵 MÚSICA: ${d.MUSICA_RECOMENDADA || d.AUDIO_SUGGESTION}\n`;
+                if (d.PERFIL_DE_VOZ) out += `🎙️ VOZ: ${d.PERFIL_DE_VOZ}\n`;
+                if (d.HOOK) out += `\n🪝 HOOK:\n${d.HOOK}\n`;
+
+                if (d.TOMAS && Array.isArray(d.TOMAS) && d.TOMAS.length > 0) {
+                    out += `\n🎬 ESCENAS:\n`;
+                    d.TOMAS.forEach(t => {
+                        out += `[${t.id_toma}] (${t.duracion}): ${t.descripcion_español}\n`;
+                        out += `   🤖 Prompt: ${t.visual_prompt}\n\n`;
+                    });
+                }
+
+                if (d.VOICEOVER) out += `\n🗣️ VOICEOVER:\n${d.VOICEOVER}\n`;
+                if (d.PROMPT_FOR_VIDEO_AI) out += `\n🤖 PROMPT VIDEO:\n${d.PROMPT_FOR_VIDEO_AI}\n`;
+                if (d.EXPLANATION) out += `\n💡 NOTA: ${d.EXPLANATION}`;
+
+                return out || raw;
+            } catch (e) {
+                console.warn("Error parsing video script JSON:", e, raw);
+                return raw;
+            }
+        }
+
+        // --- MANEJO DE ORDENAMIENTO (DRAG & DROP) ---
+        let sortableInstance = null;
+
+        function toggleReorderMode() {
+            if (!currentProduct) return alert("Selecciona un producto primero.");
+
+            if (isReorderMode) {
+                // SALIENDO del modo reordenar
+                if (hasUnsavedChanges) {
+                    if (confirm("Tienes cambios en el orden sin guardar. ¿Deseas descartar los cambios y volver al orden original?")) {
+                        revertirOrden();
+                        isReorderMode = false;
+                        hasUnsavedChanges = false;
+                        log("Cambios descartados. Se restauró el orden original.", 'info');
+                    } else {
+                        return; // Se queda en modo reordenar
+                    }
+                } else {
+                    isReorderMode = false;
+                }
+            } else {
+                // ENTRANDO al modo reordenar
+                capturarSnapshot();
+                isReorderMode = true;
+                log("Modo Reordenar: Drag and Drop activado. La subida está pausada.", 'warning');
+            }
+
+            actualizarUIModoOrden();
+            if (isReorderMode) initSortable();
+        }
+
+        function capturarSnapshot() {
+            const el = document.getElementById('imageGridActive');
+            gridSnapshot = el.innerHTML;
+        }
+
+        function revertirOrden() {
+            if (gridSnapshot) {
+                const el = document.getElementById('imageGridActive');
+                el.innerHTML = gridSnapshot;
+                reenumerarTarjetas(); // Por si acaso
+                gridSnapshot = null;
+            }
+        }
+
+        function initSortable() {
+            const el = document.getElementById('imageGridActive');
+            if (sortableInstance) sortableInstance.destroy();
+
+            sortableInstance = new Sortable(el, {
+                animation: 150,
+                ghostClass: 'opacity-20',
+                dragClass: 'scale-110',
+                onEnd: function () {
+                    hasUnsavedChanges = true;
+                    document.getElementById('btnSaveOrder').classList.remove('hidden');
+                    reenumerarTarjetas();
+                }
+            });
+        }
+
+        function reenumerarTarjetas() {
+            const cards = document.querySelectorAll('#imageGridActive .img-card');
+            cards.forEach((card, index) => {
+                const badge = card.querySelector('.bottom-1.right-1');
+                if (badge) badge.innerText = index + 1;
+            });
+        }
+
+        function guardarNuevoOrden(callback) {
+            if (!currentProduct) return;
+            const cards = document.querySelectorAll('#imageGridActive .img-card');
+            const idsOrdenados = Array.from(cards).map(c => c.getAttribute('data-id'));
+
+            log(`Guardando nuevo orden para ${currentProduct.sku}...`, 'info');
+            const btn = document.getElementById('btnSaveOrder');
+            btn.disabled = true;
+            btn.innerText = "Guardando...";
+
+            google.script.run.withSuccessHandler(res => {
+                btn.disabled = false;
+                btn.innerText = "Guardar Orden";
+                if (res.success) {
+                    log(res.message, 'success');
+                    btn.classList.add('hidden');
+                    hasUnsavedChanges = false;
+                    gridSnapshot = null; // Limpiar snapshot al guardar
+                    recargar(); // Refrescar para ver nueva portada
+                    if (isReorderMode) toggleReorderMode(); // --- NUEVO: Salir de modo ordenar al guardar ---
+                    if (callback) callback(true);
+                } else {
+                    log(res.message, 'error');
+                    if (callback) callback(false);
+                }
+            }).withFailureHandler(err => {
+                btn.disabled = false;
+                btn.innerText = "Guardar Orden";
+                log(err.message, 'error');
+                if (callback) callback(false);
+            }).guardarNuevoOrdenImagenes(currentProduct.sku, idsOrdenados);
+        }
+
+
+
+        // --- AUDITORÍA DE GASTOS IA ---
+        function mostrarAuditoriaGastosIA() {
+            Swal.fire({
+                title: 'Cargando Auditoría...',
+                html: '<div class="text-slate-400">Consultando base de datos de producción...</div>',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            google.script.run.withSuccessHandler(res => {
+                if (res.success) {
+                    const d = res.data;
+                    Swal.fire({
+                        title: '<span class="text-slate-200">Auditoría de Producción IA</span>',
+                        html: `
+                        <div class="text-left space-y-4 p-2">
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-slate-400 text-sm flex items-center gap-1">
+                                        <span class="material-icons text-indigo-400 text-sm">image</span> Imágenes Generadas
+                                    </span>
+                                    <span class="text-white font-mono font-bold">$ ${d.imagen}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-400 text-sm flex items-center gap-1">
+                                        <span class="material-icons text-rose-400 text-sm">movie</span> Videos (VEO)
+                                    </span>
+                                    <span class="text-white font-mono font-bold">$ ${d.video}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-emerald-900/20 p-4 rounded-xl border border-emerald-500/30 flex justify-between items-center">
+                                <span class="text-emerald-400 font-bold uppercase text-xs tracking-wider">Total Acumulado (USD)</span>
+                                <span class="text-emerald-400 text-2xl font-black font-mono">$ ${d.total}</span>
+                            </div>
+
+                            <p class="text-[10px] text-slate-500 italic text-center">
+                                * Auditoría basada en ${d.count} registros históricos.
+                            </p>
+                        </div>
+                        `,
+                        background: '#0f172a',
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#10b981',
+                        customClass: {
+                            popup: 'border border-slate-700 rounded-2xl shadow-2xl',
+                            confirmButton: 'px-8 py-2 rounded-lg font-bold'
+                        }
+                    });
+                } else {
+                    Swal.fire('Error', res.error, 'error');
+                }
+            }).obtenerResumenGastosIA();
+        }
+    </script>
+</body>
+
+</html>

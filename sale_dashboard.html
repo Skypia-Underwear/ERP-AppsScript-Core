@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Incluir librerías para gráficos e iconos -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    /* --- ESTILOS BASE DARK --- */
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #0f172a;
+      /* Slate 900 */
+      color: #f1f5f9;
+      /* Slate 100 */
+    }
+
+    .dashboard-container {
+      font-family: 'Inter', sans-serif;
+      background-color: #0f172a;
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 4rem;
+      position: relative;
+    }
+
+    /* Scrollbar Dark */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Loader Dark */
+    .loading-overlay {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.95);
+      /* Dark overlay */
+      z-index: 60;
+      backdrop-filter: blur(2px);
+    }
+
+    .loading-overlay.hidden {
+      display: none !important;
+    }
+
+    .spinner {
+      border: 4px solid #1e293b;
+      border-top: 4px solid #6366f1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Modal Dark */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      /* Slate 800 */
+      width: 95%;
+      max-width: 900px;
+      max-height: 90vh;
+      border-radius: 1rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid #334155;
+      transform: scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-backdrop.active .modal-content {
+      transform: scale(1);
+    }
+
+    .modal-body-scroll {
+      overflow-y: auto;
+      padding: 1.5rem;
+      background-color: #1e293b;
+    }
+
+    /* UI Elements Dark */
+    .status-pill {
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.70rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Status Colors Dark Mod */
+    .bg-teal-100 {
+      background-color: rgba(20, 184, 166, 0.1);
+      color: #2dd4bf;
+      border: 1px solid rgba(20, 184, 166, 0.2);
+    }
+
+    .bg-yellow-100 {
+      background-color: rgba(234, 179, 8, 0.1);
+      color: #facc15;
+      border: 1px solid rgba(234, 179, 8, 0.2);
+    }
+
+    .bg-red-100 {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .bg-gray-100 {
+      background-color: rgba(148, 163, 184, 0.1);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .badge-blogger {
+      background-color: rgba(219, 39, 119, 0.1);
+      color: #f472b6;
+      border: 1px solid rgba(219, 39, 119, 0.2);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .badge-local {
+      background-color: rgba(37, 99, 235, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .card-dashboard {
+      background: #1e293b;
+      /* Slate 800 */
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      border: 1px solid #334155;
+    }
+
+    /* Inputs y Selects Dark */
+    .header-select {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background-color: #0f172a;
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      outline: none;
+      transition: all 0.2s;
+      min-width: 100px;
+    }
+
+    .header-select:focus {
+      border-color: #6366f1;
+      background-color: #1e293b;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Sticky Header Dark */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background-color: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #334155;
+      padding: 0.75rem 1.5rem;
+      margin: -1rem -1rem 1.5rem -1rem;
+      box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Botones de Estado */
+    .stat-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      cursor: pointer;
+      min-width: 80px;
+      position: relative;
+    }
+
+    .stat-btn:hover {
+      transform: translateY(-2px);
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-btn:active {
+      transform: translateY(0);
+    }
+
+    .stat-btn.active-filter {
+      border-color: currentColor;
+      background-color: rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-btn.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(100%);
+    }
+
+    /* Main Search Dark */
+    .main-search-input {
+      width: 100%;
+      padding: 10px 12px 10px 40px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #1e293b;
+      color: white;
+    }
+
+    .main-search-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .main-search-input::placeholder {
+      color: #64748b;
+    }
+  </style>
+
+  <div class="dashboard-container p-4 md:p-6">
+
+    <div id="loading-spinner" class="loading-overlay hidden">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="detail-modal" class="modal-backdrop">
+      <div class="modal-content">
+        <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <span class="material-icons text-indigo-500">receipt_long</span> Detalle de Venta
+            </h3>
+            <p class="text-xs text-slate-400 font-mono mt-1" id="modal-subtitle">ID: --</p>
+          </div>
+          <button onclick="closeModal()"
+            class="p-1 hover:bg-slate-700 rounded-full text-slate-500 hover:text-white transition"><span
+              class="material-icons">close</span></button>
+        </div>
+        <div class="modal-body-scroll flex-1" id="modal-body-content"></div>
+        <div class="px-6 py-3 border-t border-slate-700 bg-slate-900/50 flex justify-end">
+          <button onclick="closeModal()"
+            class="px-4 py-2 bg-slate-800 border border-slate-600 text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-700 transition shadow-sm hover:text-white">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <header class="sticky-header flex flex-col xl:flex-row items-center justify-between gap-4">
+
+      <div
+        class="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start border-b xl:border-b-0 border-slate-700 pb-3 xl:pb-0">
+        <div class="flex items-center gap-3">
+          <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+            <span class="material-icons text-2xl">payments</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total Auditado</p>
+            <h2 id="summary-total-audited-monto" class="text-2xl font-black text-white leading-none tracking-tight">
+              $ 0,00</h2>
+          </div>
+        </div>
+
+        <div class="flex items-center bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
+          <span class="material-icons text-slate-500 text-sm mr-1">calendar_month</span>
+          <select id="filter-date-quick"
+            class="bg-transparent text-xs font-bold text-indigo-400 outline-none cursor-pointer py-1 border-none focus:ring-0"
+            onchange="setDateRange(this.value)">
+            <option value="today">📅 Hoy</option>
+            <option value="yesterday">Ayer</option>
+            <option value="week">Semana</option>
+            <option value="month">Mes</option>
+            <option value="">Manual</option>
+          </select>
+          <input type="date" id="filter-date-start" class="hidden"><input type="date" id="filter-date-end"
+            class="hidden">
+        </div>
+      </div>
+
+      <div class="flex gap-2 w-full xl:w-auto justify-center">
+
+        <button id="btn-stat-complete"
+          class="stat-btn bg-teal-500/10 border-teal-500/20 text-teal-400 hover:bg-teal-500/20"
+          onclick="filterByStatusButton('COMPLETADA', this)">
+          <span class="text-[9px] font-extrabold uppercase tracking-wide">Completas</span>
+          <span id="summary-count-complete" class="text-xl font-black leading-none mt-1">0</span>
+        </button>
+
+        <button id="btn-stat-pending"
+          class="stat-btn bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20"
+          onclick="filterByStatusButton('SOLICITADO', this)">
+          <span class="text-[9px] font-extrabold uppercase tracking-wide">Pendientes</span>
+          <span id="summary-count-pending" class="text-xl font-black leading-none mt-1">0</span>
+        </button>
+
+        <button id="btn-stat-canceled" class="stat-btn bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+          onclick="filterByStatusButton('CANCELADO', this)">
+          <span class="text-[9px] font-extrabold uppercase tracking-wide">Canceladas</span>
+          <span id="summary-count-canceled" class="text-xl font-black leading-none mt-1">0</span>
+        </button>
+      </div>
+
+      <div class="flex flex-wrap gap-2 w-full xl:w-auto justify-end items-center">
+        <select id="filter-status" class="header-select hidden">
+          <option value="">Estado</option>
+          <option value="COMPLETADA">Completada</option>
+          <option value="ENTREGADO">Entregado</option>
+          <option value="SOLICITADO">Solicitado</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+
+        <select id="filter-origen" class="header-select">
+          <option value="">Origen</option>
+        </select>
+        <select id="filter-metodo-pago" class="header-select">
+          <option value="">Método Pago</option>
+        </select>
+        <select id="filter-caja" class="header-select">
+          <option value="">Caja ID</option>
+        </select>
+
+        <button onclick="clearAllFilters()" id="clear-filters-btn"
+          class="hidden p-2 text-slate-500 hover:text-red-400 transition rounded-lg hover:bg-slate-800"
+          title="Limpiar Filtros"><span class="material-icons">filter_alt_off</span></button>
+        <button onclick="loadSalesData(true)"
+          class="p-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition" title="Recargar"><span
+            class="material-icons animate-pulse">refresh</span></button>
+      </div>
+    </header>
+
+    <div class="container mx-auto max-w-7xl">
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card-dashboard p-4 lg:col-span-3 relative">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-icons text-slate-500 text-sm">trending_up</span>
+            <h3 class="text-xs font-bold text-slate-500 uppercase">Tendencia de Ventas</h3>
+          </div>
+          <div class="h-40 w-full relative"><canvas id="dailySalesChart"></canvas></div>
+        </div>
+        <div class="card-dashboard p-4 lg:col-span-1 flex flex-col">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-icons text-slate-500 text-sm">emoji_events</span>
+            <h3 class="text-xs font-bold text-slate-500 uppercase">Top Productos</h3>
+          </div>
+          <div id="ranking-list" class="space-y-2 overflow-y-auto flex-1 max-h-40 pr-1 custom-scroll"></div>
+        </div>
+        <div class="card-dashboard p-4 lg:col-span-2">
+          <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Por Origen</h3>
+          <div class="h-40 w-full relative"><canvas id="salesByOriginChart"></canvas></div>
+        </div>
+        <div class="card-dashboard p-4 lg:col-span-2">
+          <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Métodos de Pago</h3>
+          <div class="h-40 w-full relative"><canvas id="paymentMethodChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="relative max-w-md">
+          <span class="material-icons absolute left-3 top-3 text-slate-500">search</span>
+          <input type="text" id="search-input" placeholder="Buscar por ID, Cliente o Asesor..."
+            class="main-search-input shadow-sm">
+        </div>
+      </div>
+
+      <div class="card-dashboard overflow-hidden min-h-[400px]">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead
+              class="bg-slate-900/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-700">
+              <tr>
+                <th class="px-6 py-4 w-16 text-center">Ver</th>
+                <th class="px-6 py-4">ID Venta</th>
+                <th class="px-6 py-4">Fecha / Cliente</th>
+                <th class="px-6 py-4 text-right">Total</th>
+                <th class="px-6 py-4 text-center">Pago</th>
+                <th class="px-6 py-4 text-center">Estado</th>
+                <th class="px-6 py-4 text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="sales-body" class="divide-y divide-slate-700 text-sm text-slate-300"></tbody>
+          </table>
+        </div>
+        <div id="no-results"
+          class="hidden p-10 text-center text-slate-500 flex flex-col items-center justify-center mt-10">
+          <div class="p-4 bg-slate-800 rounded-full mb-3 border border-slate-700">
+            <span class="material-icons text-4xl text-slate-600">search_off</span>
+          </div>
+          <p class="font-medium">No hay ventas encontradas.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="status-message"
+      class="fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm hidden transition-all duration-300 z-[110] flex items-center gap-2">
+    </div>
+
+  </div>
+
+  <script>
+    // --- CHART DEFAULTS FOR DARK MODE ---
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.scale.grid.color = '#334155';
+
+    // --- VARIABLES ---
+    var allSalesData = [], productImageMap = {}, chartInstances = { daily: null, origin: null, payment: null };
+    var tableBody = document.getElementById('sales-body'), modalElement = document.getElementById('detail-modal'), modalBody = document.getElementById('modal-body-content'), loadingSpinner = document.getElementById('loading-spinner');
+
+    // Inputs del Header
+    var filterStatus = document.getElementById('filter-status'), filterOrigen = document.getElementById('filter-origen'), filterMetodoPago = document.getElementById('filter-metodo-pago'), filterCaja = document.getElementById('filter-caja'), filterDateQuick = document.getElementById('filter-date-quick'), filterDateStart = document.getElementById('filter-date-start'), filterDateEnd = document.getElementById('filter-date-end');
+
+    // Botones de Estado
+    var btnStatComplete = document.getElementById('btn-stat-complete'), btnStatPending = document.getElementById('btn-stat-pending'), btnStatCanceled = document.getElementById('btn-stat-canceled');
+
+    // Input Body
+    var searchInput = document.getElementById('search-input'), clearFiltersBtn = document.getElementById('clear-filters-btn');
+
+    var formatMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }), parseMonto = (val) => (typeof val === 'number' && !isNaN(val)) ? val : 0;
+
+    // --- LOGICA DE BOTONES DE ESTADO (FILTROS) ---
+    window.filterByStatusButton = function (statusToSet, btnElement) {
+      if (btnElement.classList.contains('disabled')) return;
+      if (filterStatus.value === statusToSet) { filterStatus.value = ""; renderTable(allSalesData); return; }
+      filterStatus.value = statusToSet; renderTable(allSalesData);
+    }
+
+    function updateStatusButtonsVisuals(counts) {
+      [btnStatComplete, btnStatPending, btnStatCanceled].forEach(b => {
+        b.classList.remove('active-filter', 'disabled', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900');
+        b.classList.remove('ring-teal-500', 'ring-amber-500', 'ring-red-500');
+      });
+
+      document.getElementById('summary-count-complete').textContent = counts.complete;
+      document.getElementById('summary-count-pending').textContent = counts.pending;
+      document.getElementById('summary-count-canceled').textContent = counts.canceled;
+
+      if (counts.complete === 0) btnStatComplete.classList.add('disabled');
+      if (counts.pending === 0) btnStatPending.classList.add('disabled');
+      if (counts.canceled === 0) btnStatCanceled.classList.add('disabled');
+
+      const current = filterStatus.value;
+      // Using darker rings and offsets for dark mode
+      if (current === 'COMPLETADA') { btnStatComplete.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-teal-500'); }
+      if (current === 'SOLICITADO') { btnStatPending.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-amber-500'); }
+      if (current === 'CANCELADO') { btnStatCanceled.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-red-500'); }
+    }
+
+    // --- MODAL (Compactado y Adaptado a Dark Mode) ---
+    function openModal(saleId) {
+      const s = allSalesData.find(x => x.id === saleId); if (!s) return;
+      document.getElementById('modal-subtitle').textContent = `ID: ${s.id} | ${s.fecha}`;
+
+      // TEMPLATE STRINGS ADAPTADOS A DARK MODE
+      let h = `<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <!-- CLIENT CARD -->
+            <div class="p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-icons text-indigo-400 bg-indigo-500/10 p-1 rounded-md text-sm">person</span>
+                    <h4 class="font-bold text-slate-400 text-xs uppercase">Cliente</h4>
+                </div>
+                <p class="text-base font-bold text-white truncate">${s.nombreCliente}</p>
+                <p class="text-xs text-slate-500 mb-2">ID: ${s.clienteId}</p>
+                <div class="text-xs text-slate-400 bg-slate-900/50 p-2 rounded border border-slate-700">
+                    <div class="flex justify-between"><span>Asesor:</span> <span class="font-bold text-slate-200">${s.asesor}</span></div>
+                    <div class="flex justify-between mt-1"><span>Caja:</span> <span class="font-mono text-slate-200">${s.cajaId}</span></div>
+                </div>
+            </div>
+
+            <!-- PAYMENT CARD -->
+            <div class="p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-icons text-emerald-400 bg-emerald-500/10 p-1 rounded-md text-sm">payments</span>
+                    <h4 class="font-bold text-slate-400 text-xs uppercase">Pago</h4>
+                </div>
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <span class="${s.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'} text-xs">${s.origen}</span>
+                    <span class="px-2 py-0.5 bg-slate-700 text-slate-200 rounded text-xs font-bold border border-slate-600">${s.metodoPago}</span>
+                </div>
+                ${s.metodoPago.toLowerCase().includes('transferencia') ? `<div class="bg-blue-900/20 p-2 rounded border border-blue-500/20 text-xs text-blue-300 mb-2"><p><strong>BCO:</strong> ${s.bancoTransferencia}</p><p><strong>ALIAS:</strong> ${s.aliasTransferencia}</p></div>` : ''}
+                
+                <div class="flex flex-wrap gap-2 mt-2 pt-2 border-t border-slate-700">
+                    ${s.pagoMixto ? '<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 text-[10px] font-bold border border-purple-500/20">Pago Mixto</span>' : ''}
+                    ${s.tipoVenta ? `<span class="px-2 py-0.5 rounded bg-slate-700 text-slate-300 text-[10px] font-bold border border-slate-600">${s.tipoVenta}</span>` : ''}
+                    ${s.compraMinima > 0 ? `<span class="px-2 py-0.5 rounded bg-slate-700 text-slate-300 text-[10px] font-bold border border-slate-600">Min: ${s.compraMinima}</span>` : ''}
+                </div>
+            </div>
+
+            <!-- TOTALS CARD (No change needed, already dark styled in original, just removed white styles) -->
+            <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 shadow-sm text-white flex flex-col justify-center relative overflow-hidden">
+              <div class="absolute -top-6 -right-6 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl"></div>
+              <div class="space-y-1 text-sm mb-3 relative z-10">
+                <div class="flex justify-between text-slate-400"><span>Monto Productos:</span> <span>${formatMoneda.format(s.montoProductos || 0)}</span></div>
+                ${s.recargoMenor > 0 ? `<div class="flex justify-between text-orange-400"><span>Recargo Menor:</span><span>+${formatMoneda.format(s.recargoMenor)}</span></div>` : ''}
+                ${s.costoEnvio > 0 ? `<div class="flex justify-between text-blue-400"><span>Envío:</span><span>+${formatMoneda.format(s.costoEnvio)}</span></div>` : ''}
+                ${s.pagoEfectivo > 0 ? `<div class="flex justify-between text-emerald-400"><span>Pago Efectivo:</span><span>-${formatMoneda.format(s.pagoEfectivo)}</span></div>` : ''}
+                <div class="border-b border-slate-700 my-1"></div>
+                <div class="flex justify-between text-slate-200 font-bold"><span>Subtotal:</span> <span>${formatMoneda.format(s.subtotal || 0)}</span></div>
+                ${s.recargoTransferencia > 0 && !s.desactivarRecargoTransferencia ? `<div class="flex justify-between text-yellow-400"><span>Recargo Transf:</span><span>+${formatMoneda.format(s.recargoTransferencia)}</span></div>` : ''}
+              </div>
+              <div class="pt-2 border-t border-slate-700 space-y-1 relative z-10">
+                 <div class="flex justify-between items-end">
+                    <span class="text-xs font-bold uppercase text-slate-500">Total a Pagar</span>
+                    <span class="text-2xl font-black text-white">${formatMoneda.format(s.total)}</span>
+                 </div>
+              </div>
+            </div></div>
+            
+            <!-- PRODUCTS TABLE DARK -->
+            <div class="mb-4 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+                <div class="bg-slate-900/30 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
+                    <h4 class="font-bold text-slate-400 text-xs uppercase">Productos</h4>
+                    <span class="bg-slate-700 text-white px-2 rounded-full text-xs font-bold">${s.detalles.length}</span>
+                </div>
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-900/50 text-xs font-bold text-slate-500 uppercase border-b border-slate-700">
+                        <tr><th class="px-4 py-2 text-left">Desc</th><th class="px-4 py-2 text-center">Var</th><th class="px-4 py-2 text-right">Cant</th><th class="px-4 py-2 text-right">Total</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/50">`;
+
+      s.detalles.forEach(d => {
+        h += `<tr class="hover:bg-slate-700/30 transition">
+            <td class="px-4 py-2 font-medium text-slate-300 truncate max-w-[200px]" title="${d.descripcion}">${d.descripcion}</td>
+            <td class="px-4 py-2 text-center text-xs text-slate-500">${d.talle || '-'}/${d.color || '-'}</td>
+            <td class="px-4 py-2 text-right font-bold text-slate-200">${d.cantidad}</td>
+            <td class="px-4 py-2 text-right font-bold text-indigo-400">${formatMoneda.format(d.subtotal)}</td>
+          </tr>`;
+      });
+
+      h += `</tbody></table></div>
+            <div class="bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-500 uppercase">Estado Actual: ${s.estado}</span>
+                <select class="text-sm p-1.5 border border-amber-500/30 rounded bg-slate-900 text-white outline-none focus:ring-2 focus:ring-amber-500/50 cursor-pointer" onchange="updateSaleStatusInModal('${s.id}', this.value, '${s.origen}')">
+                    <option value="" disabled selected>Cambiar estado...</option>
+                    <option value="COMPLETADA">Completada</option>
+                    <option value="ENTREGADO">Entregado</option>
+                    <option value="SOLICITADO">Solicitado</option>
+                    <option value="CANCELADO">Cancelado</option>
+                </select>
+            </div>`;
+
+      modalBody.innerHTML = h; modalElement.classList.add('active');
+    }
+    function closeModal() { modalElement.classList.remove('active'); }
+    window.updateSaleStatusInModal = (id, est, ori) => window.updateSaleStatus(id, est, ori);
+
+    // --- RENDER TABLE ---
+    function renderTable(data) {
+      tableBody.innerHTML = '';
+      const search = searchInput.value.toLowerCase(), fStat = filterStatus.value, fOri = filterOrigen.value, fPay = filterMetodoPago.value, fCaja = filterCaja.value;
+      const dStart = filterDateStart.value ? new Date(filterDateStart.value + 'T00:00:00') : null, dEnd = filterDateEnd.value ? new Date(filterDateEnd.value + 'T23:59:59') : null;
+
+      let total = 0, cComp = 0, cPend = 0, cCanc = 0;
+
+      const preFiltered = data.filter(s => {
+        if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
+        if (fOri && s.origen !== fOri) return false;
+        if (fPay && s.metodoPago !== fPay) return false;
+        if (fCaja && s.cajaId !== fCaja) return false;
+        if (dStart || dEnd) { const sd = new Date(s.fecha.replace(' ', 'T')); if (dStart && sd < dStart) return false; if (dEnd && sd > dEnd) return false; }
+        return true;
+      });
+
+      preFiltered.forEach(s => {
+        if (['COMPLETADA', 'ENTREGADO'].includes(s.estado)) cComp++;
+        else if (s.estado === 'SOLICITADO') cPend++;
+        else if (s.estado === 'CANCELADO') cCanc++;
+      });
+
+      updateStatusButtonsVisuals({ complete: cComp, pending: cPend, canceled: cCanc });
+
+      const finalFiltered = preFiltered.filter(s => {
+        if (fStat && s.estado !== fStat) return false;
+        if (['COMPLETADA', 'ENTREGADO'].includes(s.estado)) total += s.total;
+        return true;
+      });
+
+      document.getElementById('summary-total-audited-monto').textContent = formatMoneda.format(total);
+
+      renderCharts(calculateChartData(finalFiltered));
+      renderRanking(calculateProductRanking(finalFiltered));
+
+      if (!finalFiltered.length) { document.getElementById('no-results').classList.remove('hidden'); if (search || fStat || fOri || fPay || fCaja || dStart || dEnd) clearFiltersBtn.classList.remove('hidden'); return; }
+      document.getElementById('no-results').classList.add('hidden'); clearFiltersBtn.classList.remove('hidden');
+
+      finalFiltered.forEach(s => {
+        const tr = document.createElement('tr'); tr.className = 'border-b border-slate-700 hover:bg-slate-800 transition';
+        // Status Text Colors Dark
+        let stCls = s.estado === 'SOLICITADO' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : (s.estado === 'CANCELADO' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-teal-500/10 text-teal-400 border border-teal-500/20');
+
+        // TABLE ROW HTML DARK
+        tr.innerHTML = `<td class="px-6 py-4 text-center">
+            <button onclick="openModal('${s.id}')" class="p-2 bg-slate-800 border border-slate-600 rounded-full text-indigo-400 shadow-sm hover:bg-indigo-600 hover:text-white hover:border-indigo-500 transition transform hover:scale-110">
+                <span class="material-icons text-lg leading-none">visibility</span>
+            </button>
+        </td>
+        <td class="px-6 py-4 text-xs font-mono text-slate-500 font-medium">${s.id}</td>
+        <td class="px-6 py-4">
+            <div class="font-bold text-slate-200 text-sm truncate max-w-[180px]">${s.nombreCliente}</div>
+            <div class="text-xs text-slate-500 mt-0.5">${s.fecha.split(' ')[0]} | <span class="text-indigo-400 font-medium">${s.asesor}</span></div>
+        </td>
+        <td class="px-6 py-4 text-right font-black text-white text-sm">${formatMoneda.format(s.total)}</td>
+        <td class="px-6 py-4 text-center">
+            <div class="flex flex-col items-center gap-1">
+                <span class="${s.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'}">${s.origen}</span>
+                <span class="text-[10px] uppercase font-bold text-slate-500 truncate max-w-[100px]">${s.metodoPago}</span>
+            </div>
+        </td>
+        <td class="px-6 py-4 text-center"><span class="status-pill ${stCls}">${s.estado}</span></td>
+        <td class="px-6 py-4 text-center">
+            <select class="bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded py-1 px-2 outline-none cursor-pointer hover:bg-slate-700" onchange="window.updateSaleStatus('${s.id}', this.value, '${s.origen}')">
+                <option value="" disabled selected>Cambiar</option>
+                <option value="COMPLETADA">Completada</option>
+                <option value="ENTREGADO">Entregado</option>
+                <option value="SOLICITADO">Solicitado</option>
+                <option value="CANCELADO">Cancelado</option>
+            </select>
+        </td>`;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // --- DATA & FILTERS ---
+    function loadSalesData(force) {
+      if (allSalesData.length && !force) { renderTable(allSalesData); return; }
+      loadingSpinner.classList.remove('hidden');
+      google.script.run.withSuccessHandler(res => {
+        loadingSpinner.classList.add('hidden');
+        if (res.success) {
+          allSalesData = res.data.map(s => {
+            s.total = parseMonto(s.total); s.costoEnvio = parseMonto(s.costoEnvio); s.recargoTransferencia = parseMonto(s.recargoTransferencia); s.recargoMenor = parseMonto(s.recargoMenor);
+            // Nuevos Campos
+            s.pagoEfectivo = parseMonto(s.pagoEfectivo); s.montoProductos = parseMonto(s.montoProductos); s.subtotal = parseMonto(s.subtotal); s.compraMinima = parseMonto(s.compraMinima);
+            s.detalles = s.detalles.map(d => ({ ...d, precioUnitario: parseMonto(d.precioUnitario), subtotal: parseMonto(d.subtotal) }));
+            return s;
+          });
+          productImageMap = res.productImageMap || {}; populateFilters(res.filterOptions);
+          if (!filterDateStart.value) setDateRange('today'); else renderTable(allSalesData);
+          showStatus(`Datos actualizados`, 'success');
+        } else showStatus(res.message, 'error');
+      }).withFailureHandler(err => { loadingSpinner.classList.add('hidden'); showStatus(err.message, 'error'); }).cargarDashboardVentas();
+    }
+
+    function populateFilters(o) { const fill = (el, a) => { const c = el.value; el.innerHTML = `<option value="">${el.options[0].text}</option>` + a.map(x => `<option value="${x}">${x}</option>`).join(''); el.value = c; }; fill(filterOrigen, o.origenes); fill(filterMetodoPago, o.metodosPago); fill(filterCaja, o.cajas); }
+    window.setDateRange = (v) => {
+      const n = new Date(), fmt = d => d.toISOString().split('T')[0];
+      if (v === 'today') { filterDateStart.value = fmt(n); filterDateEnd.value = fmt(n); }
+      else if (v === 'yesterday') { const p = new Date(n); p.setDate(n.getDate() - 1); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(p); }
+      else if (v === 'week') { const p = new Date(n); p.setDate(n.getDate() - 7); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(n); }
+      else if (v === 'month') { const f = new Date(n.getFullYear(), n.getMonth(), 1); filterDateStart.value = fmt(f); filterDateEnd.value = fmt(n); }
+      else { filterDateStart.value = ''; filterDateEnd.value = ''; }
+      renderTable(allSalesData);
+    };
+    filterDateStart.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
+    filterDateEnd.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
+
+    window.updateSaleStatus = (id, st, ori) => {
+      loadingSpinner.classList.remove('hidden');
+      google.script.run.withSuccessHandler(r => {
+        loadingSpinner.classList.add('hidden');
+        if (r.success) { const i = allSalesData.findIndex(x => x.id === id); if (i !== -1) allSalesData[i].estado = st; renderTable(allSalesData); showStatus('Actualizado', 'success'); }
+        else showStatus(r.message, 'error');
+      }).actualizarEstadoVenta(id, st, ori);
+    };
+
+    window.clearAllFilters = () => { searchInput.value = ''; filterStatus.value = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); };
+    function showStatus(m, t) { const e = document.getElementById('status-message'); e.innerHTML = t === 'success' ? `<span class="material-icons">check_circle</span> ${m}` : `<span class="material-icons">error</span> ${m}`; e.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 z-[110] flex items-center gap-2 ${t === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 3000); }
+
+    // --- CHART LOGIC ---
+    function calculateProductRanking(d) { const m = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO'].includes(s.estado)).forEach(s => s.detalles.forEach(x => { if (x.productoId) m.set(x.productoId, (m.get(x.productoId) || 0) + Number(x.cantidad)) })); return Array.from(m.entries()).map(e => ({ id: e[0], qty: e[1], img: productImageMap[e[0]] || 'https://placehold.co/40x40' })).sort((a, b) => b.qty - a.qty).slice(0, 5); }
+    function renderRanking(d) { const c = document.getElementById('ranking-list'); c.innerHTML = ''; if (!d.length) { c.innerHTML = '<p class="text-center text-xs text-slate-500 mt-4">Sin datos</p>'; return; } d.forEach((i, x) => c.innerHTML += `<div class="flex items-center gap-3 p-2 hover:bg-slate-700/50 rounded-lg"><div class="w-6 h-6 flex justify-center items-center rounded-full text-xs font-bold ${x === 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-700 text-slate-400'}">${x + 1}</div><img src="${i.img}" class="w-8 h-8 rounded border border-slate-600 bg-slate-800"><div class="flex-1 truncate text-xs font-bold text-slate-300">${i.id}</div><span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 rounded-full font-bold">${i.qty}</span></div>`); }
+    function calculateChartData(d) { const D = new Map(), O = new Map(), P = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO'].includes(s.estado)).forEach(s => { const dy = s.fecha.split(' ')[0]; D.set(dy, (D.get(dy) || 0) + s.total); O.set(s.tiendaId || 'N/A', (O.get(s.tiendaId) || 0) + s.total); P.set(s.metodoPago || 'N/A', (P.get(s.metodoPago) || 0) + s.total); }); return { daily: Array.from(D.entries()).sort((a, b) => new Date(a[0]) - new Date(b[0])), origin: Array.from(O.entries()), payment: Array.from(P.entries()) }; }
+    function renderCharts(c) {
+      if (chartInstances.daily) chartInstances.daily.destroy();
+      chartInstances.daily = new Chart(document.getElementById('dailySalesChart'), { type: 'line', data: { labels: c.daily.map(d => d[0]), datasets: [{ data: c.daily.map(d => d[1]), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => formatMoneda.format(x.raw) } } }, scales: { x: { display: true, ticks: { font: { size: 10 } }, grid: { display: false } }, y: { display: true, beginAtZero: true, ticks: { font: { size: 10 }, callback: v => '$' + v.toLocaleString('es-AR') }, grid: { borderDash: [2, 4], color: '#334155' } } } } });
+      if (chartInstances.origin) chartInstances.origin.destroy();
+      chartInstances.origin = new Chart(document.getElementById('salesByOriginChart'), { type: 'bar', data: { labels: c.origin.map(d => d[0]), datasets: [{ data: c.origin.map(d => d[1]), backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'] }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#334155' } }, y: { grid: { display: false } } } } });
+      if (chartInstances.payment) chartInstances.payment.destroy();
+      chartInstances.payment = new Chart(document.getElementById('paymentMethodChart'), { type: 'doughnut', data: { labels: c.payment.map(d => d[0]), datasets: [{ data: c.payment.map(d => d[1]), backgroundColor: ['#34d399', '#60a5fa', '#f87171', '#fbbf24'], borderColor: '#1e293b', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: '#cbd5e1' } } } } });
+    }
+
+    [searchInput, filterStatus, filterOrigen, filterMetodoPago, filterCaja].forEach(el => el.addEventListener('input', () => renderTable(allSalesData)));
+    loadSalesData();
+  </script>
+  </body>
+
+</html>

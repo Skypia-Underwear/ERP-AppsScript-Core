@@ -1,0 +1,12 @@
+# Excluir carpeta de análisis externo
+External_Analysis/**
+
+# Excluir archivos de configuración local
+.clasp.json
+.claspignore
+node_modules/**
+
+# Ignorar otros archivos innecesarios
+*.md
+*.json
+!appsscript.json
