@@ -305,83 +305,83 @@ function instalarWebhookTelegram() {
   } catch (e) {
     Logger.log("❌ Error crítico: " + e.message);
   }
+}
 
-  /**
-   * RESET TOTAL: Elimina el webhook actual y lo vuelve a instalar con el ID forzado.
-   */
-  function resetearWebhookTelegramTotalmente() {
-    const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN || GITHUB_GLOBAL_CONFIG_TELEGRAM_TOKEN();
-    const scriptId = GLOBAL_CONFIG.SCRIPTS.GLOBAL;
-    const webAppUrl = scriptId ? `https://script.google.com/macros/s/${scriptId}/exec` : ScriptApp.getService().getUrl();
+/**
+ * RESET TOTAL: Elimina el webhook actual y lo vuelve a instalar con el ID forzado.
+ */
+function resetearWebhookTelegramTotalmente() {
+  const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN || GITHUB_GLOBAL_CONFIG_TELEGRAM_TOKEN();
+  const scriptId = GLOBAL_CONFIG.SCRIPTS.GLOBAL;
+  const webAppUrl = scriptId ? `https://script.google.com/macros/s/${scriptId}/exec` : ScriptApp.getService().getUrl();
 
-    if (!token) {
-      const msg = "❌ Error: Sin Token de Telegram.";
-      try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
-      return;
-    }
-
-    try {
-      // 1. ELIMINAR WEBHOOK
-      const deleteUrl = `https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=true`;
-      const resDelete = UrlFetchApp.fetch(deleteUrl, { muteHttpExceptions: true });
-      Logger.log("🧹 Resultado Delete: " + resDelete.getContentText());
-
-      // 2. INSTALAR NUEVO WEBHOOK
-      const setUrl = `https://api.telegram.org/bot${token}/setWebhook?url=${webAppUrl}`;
-      const resSet = UrlFetchApp.fetch(setUrl, { muteHttpExceptions: true });
-      const resObj = JSON.parse(resSet.getContentText());
-
-      if (resObj.ok) {
-        const successMsg = "✅ Webhook RESETEADO con éxito!\n\nNueva URL registrada:\n" + webAppUrl;
-        try { SpreadsheetApp.getUi().alert(successMsg); } catch (e) { Logger.log(successMsg); }
-      } else {
-        const failMsg = "❌ Error al re-instalar:\n" + resObj.description;
-        try { SpreadsheetApp.getUi().alert(failMsg); } catch (e) { Logger.log(failMsg); }
-      }
-    } catch (e) {
-      Logger.log("❌ Error en Reset: " + e.message);
-    }
+  if (!token) {
+    const msg = "❌ Error: Sin Token de Telegram.";
+    try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+    return;
   }
 
-  /**
-   * Consulta el estado actual del Webhook en los servidores de Telegram.
-   */
-  function verificarEstadoWebhookTelegram() {
-    const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN || GITHUB_GLOBAL_CONFIG_TELEGRAM_TOKEN();
-    const scriptId = GLOBAL_CONFIG.SCRIPTS.GLOBAL;
-    const expectedUrl = scriptId ? `https://script.google.com/macros/s/${scriptId}/exec` : "Auto-detect";
+  try {
+    // 1. ELIMINAR WEBHOOK
+    const deleteUrl = `https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=true`;
+    const resDelete = UrlFetchApp.fetch(deleteUrl, { muteHttpExceptions: true });
+    Logger.log("🧹 Resultado Delete: " + resDelete.getContentText());
 
-    if (!token) {
-      Logger.log("❌ Error: Sin Token de Telegram.");
+    // 2. INSTALAR NUEVO WEBHOOK
+    const setUrl = `https://api.telegram.org/bot${token}/setWebhook?url=${webAppUrl}`;
+    const resSet = UrlFetchApp.fetch(setUrl, { muteHttpExceptions: true });
+    const resObj = JSON.parse(resSet.getContentText());
+
+    if (resObj.ok) {
+      const successMsg = "✅ Webhook RESETEADO con éxito!\n\nNueva URL registrada:\n" + webAppUrl;
+      try { SpreadsheetApp.getUi().alert(successMsg); } catch (e) { Logger.log(successMsg); }
+    } else {
+      const failMsg = "❌ Error al re-instalar:\n" + resObj.description;
+      try { SpreadsheetApp.getUi().alert(failMsg); } catch (e) { Logger.log(failMsg); }
+    }
+  } catch (e) {
+    Logger.log("❌ Error en Reset: " + e.message);
+  }
+}
+
+/**
+ * Consulta el estado actual del Webhook en los servidores de Telegram.
+ */
+function verificarEstadoWebhookTelegram() {
+  const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN || GITHUB_GLOBAL_CONFIG_TELEGRAM_TOKEN();
+  const scriptId = GLOBAL_CONFIG.SCRIPTS.GLOBAL;
+  const expectedUrl = scriptId ? `https://script.google.com/macros/s/${scriptId}/exec` : "Auto-detect";
+
+  if (!token) {
+    Logger.log("❌ Error: Sin Token de Telegram.");
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${token}/getWebhookInfo`;
+  try {
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const resObj = JSON.parse(response.getContentText());
+
+    if (!resObj.ok) {
+      Logger.log("❌ Error consultando a Telegram: " + resObj.description);
       return;
     }
 
-    const url = `https://api.telegram.org/bot${token}/getWebhookInfo`;
-    try {
-      const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-      const resObj = JSON.parse(response.getContentText());
+    const res = resObj.result;
+    const info = [
+      "--- DIAGNÓSTICO TELEGRAM ---",
+      "ID Configurado (Hoja): " + scriptId,
+      "URL que DEBERÍA estar: " + expectedUrl,
+      "URL que Telegram TIENE: " + (res.url || "NINGUNA"),
+      "Mensajes Pendientes: " + res.pending_update_count,
+      "Último Error: " + (res.last_error_message || "NINGUNO"),
+      "Fecha Error: " + (res.last_error_date ? new Date(res.last_error_date * 1000).toLocaleString() : "N/A"),
+      "---------------------------"
+    ].join("\n");
 
-      if (!resObj.ok) {
-        Logger.log("❌ Error consultando a Telegram: " + resObj.description);
-        return;
-      }
-
-      const res = resObj.result;
-      const info = [
-        "--- DIAGNÓSTICO TELEGRAM ---",
-        "ID Configurado (Hoja): " + scriptId,
-        "URL que DEBERÍA estar: " + expectedUrl,
-        "URL que Telegram TIENE: " + (res.url || "NINGUNA"),
-        "Mensajes Pendientes: " + res.pending_update_count,
-        "Último Error: " + (res.last_error_message || "NINGUNO"),
-        "Fecha Error: " + (res.last_error_date ? new Date(res.last_error_date * 1000).toLocaleString() : "N/A"),
-        "---------------------------"
-      ].join("\n");
-
-      Logger.log(info);
-      try { SpreadsheetApp.getUi().alert(info); } catch (e) { }
-    } catch (err) {
-      Logger.log("❌ Error de red: " + err.message);
-    }
+    Logger.log(info);
+    try { SpreadsheetApp.getUi().alert(info); } catch (e) { }
+  } catch (err) {
+    Logger.log("❌ Error de red: " + err.message);
   }
 }
