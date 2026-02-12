@@ -35,6 +35,9 @@ function handleTelegramRequest(contents) {
         if (text === "/setup") {
             const res = configurarComandosNativosTelegram();
             enviarTelegramRespuestaSimple(chatId, res.success ? "✅ Menú de comandos configurado. Reinicia el chat o espera unos segundos para verlo." : "❌ Error: " + res.message);
+        } else if (text === "/webapp") {
+            const res = configurarMiniAppTelegram();
+            enviarTelegramRespuestaSimple(chatId, res.success ? "✅ Botón ERP configurado. Mira el botón al lado de la barra de mensajes." : "❌ Error: " + res.message);
         } else if (text.startsWith("/ventas") || data === "cmd_ventas" || data === "upd_ventas") {
             const isUpdate = (data === "upd_ventas");
             responderResumenVentas(chatId, isUpdate, messageId);
@@ -127,6 +130,41 @@ function configurarComandosNativosTelegram() {
             { command: "menu", description: "Abrir menú principal interactivo" },
             { command: "salud", description: "Diagnóstico de salud del sistema" }
         ]
+    };
+
+    const options = {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+    };
+
+    try {
+        const res = UrlFetchApp.fetch(url, options);
+        const data = JSON.parse(res.getContentText());
+        return { success: data.ok, data: data };
+    } catch (e) {
+        return { success: false, message: e.message };
+    }
+}
+
+/**
+ * Configura el Botón de Menú de Telegram para que abra el ERP como una Mini App (Web App).
+ * Esto reemplaza el icono de "/" por uno que abre tu Dashboard directamente.
+ */
+function configurarMiniAppTelegram() {
+    const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+    const webAppUrl = ScriptApp.getService().getUrl();
+
+    if (!token || !webAppUrl) return { success: false, message: "Token o URL de Web App no disponibles." };
+
+    const url = `https://api.telegram.org/bot${token}/setChatMenuButton`;
+    const payload = {
+        menu_button: JSON.stringify({
+            type: "web_app",
+            text: "Abrir ERP",
+            web_app: { url: webAppUrl }
+        })
     };
 
     const options = {
