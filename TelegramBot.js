@@ -45,6 +45,8 @@ function handleTelegramRequest(contents) {
             enviarMenuPrincipal(chatId);
         } else if (text === "/salud" || data === "cmd_salud") {
             probarConexionDirectaTelegram();
+        } else if (text === "/exportar" || data === "cmd_exportar") {
+            responderExportarDatos(chatId);
         } else if (callbackQuery) {
             // Responder al callback para quitar el relojito de carga en Telegram
             answerCallbackQuery(callbackQuery.id);
@@ -65,6 +67,7 @@ function enviarMenuPrincipal(chatId) {
     const keyboard = {
         inline_keyboard: [
             [{ text: "📊 Resumen de Ventas", callback_data: "cmd_ventas" }],
+            [{ text: "📄 Exportar Datos (CSV)", callback_data: "cmd_exportar" }],
             [{ text: "🩺 Probar Salud", callback_data: "cmd_salud" }],
             [{ text: "🏠 Menú ERP", callback_data: "cmd_menu" }]
         ]
@@ -117,6 +120,39 @@ function responderResumenVentas(chatId, isUpdate = false, messageId = null) {
 }
 
 /**
+ * Exporta datos críticos a CSV y los envía al usuario.
+ */
+function responderExportarDatos(chatId) {
+    try {
+        enviarTelegramRespuestaSimple(chatId, "⏳ Generando reporte de stock crítico...");
+
+        const ss = getActiveSS();
+        const sheet = ss.getSheetByName(SHEETS.INVENTORY);
+        if (!sheet) throw new Error("No se encontró la hoja de inventario.");
+
+        const data = sheet.getDataRange().getValues();
+        // Filtrar solo productos con stock > 0 para que el archivo no sea gigante
+        const stockHeaders = data[0];
+        const stockActualIdx = stockHeaders.indexOf("STOCK_ACTUAL");
+
+        const csvRows = [stockHeaders.join(",")];
+        for (let i = 1; i < data.length; i++) {
+            if (parseFloat(data[i][stockActualIdx]) > 0) {
+                csvRows.push(data[i].join(","));
+            }
+        }
+
+        const csvContent = csvRows.join("\n");
+        const fileName = `Inventario_HostingShop_${Utilities.formatDate(new Date(), "GMT-3", "yyyy-MM-dd")}.csv`;
+        const blob = Utilities.newBlob(csvContent, "text/csv", fileName);
+
+        enviarDocumentoTelegram(chatId, blob, "📦 Aquí tienes el reporte de stock actual (solo productos con existencia).");
+    } catch (e) {
+        enviarTelegramRespuestaSimple(chatId, "❌ Error al exportar: " + e.message);
+    }
+}
+
+/**
  * Configura los comandos nativos en el menú del bot (/ventas, /menu, /salud).
  */
 function configurarComandosNativosTelegram() {
@@ -127,6 +163,7 @@ function configurarComandosNativosTelegram() {
     const payload = {
         commands: [
             { command: "ventas", description: "Ver resumen de ventas de hoy" },
+            { command: "exportar", description: "Descargar CSV de stock actual" },
             { command: "menu", description: "Abrir menú principal interactivo" },
             { command: "salud", description: "Diagnóstico de salud del sistema" }
         ]
@@ -226,6 +263,33 @@ function editMessageText(chatId, messageId, text, keyboard = null) {
         payload: JSON.stringify(payload),
         muteHttpExceptions: true
     });
+}
+
+/**
+ * Envía un documento (Blob) a Telegram.
+ */
+function enviarDocumentoTelegram(chatId, blob, caption = "") {
+    const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+    if (!token) return;
+
+    const url = `https://api.telegram.org/bot${token}/sendDocument`;
+    const payload = {
+        chat_id: String(chatId),
+        document: blob,
+        caption: caption
+    };
+
+    const options = {
+        method: "post",
+        payload: payload,
+        muteHttpExceptions: true
+    };
+
+    try {
+        UrlFetchApp.fetch(url, options);
+    } catch (e) {
+        console.error("Error enviando documento a Telegram: " + e.message);
+    }
 }
 
 /**

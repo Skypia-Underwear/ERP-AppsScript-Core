@@ -424,9 +424,41 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
   };
 
   try {
-    UrlFetchApp.fetch(url, options);
+    const res = UrlFetchApp.fetch(url, options);
+    const data = JSON.parse(res.getContentText());
+
+    // Si es un ERROR CRÍTICO, anclamos el mensaje para que no se pierda
+    if (tipo === 'ERROR' && data.ok && data.result) {
+      pinTelegramMessage(data.result.message_id);
+    }
   } catch (e) {
     console.error("Fallo crítico enviando reporte a Telegram: " + e.message);
+  }
+}
+
+/**
+ * Ancla un mensaje en el chat de Telegram.
+ */
+function pinTelegramMessage(messageId) {
+  const config = GLOBAL_CONFIG.TELEGRAM;
+  if (!config.BOT_TOKEN || !config.CHAT_ID) return;
+
+  const url = `https://api.telegram.org/bot${config.BOT_TOKEN}/pinChatMessage`;
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify({
+      chat_id: config.CHAT_ID,
+      message_id: messageId,
+      disable_notification: false
+    }),
+    muteHttpExceptions: true
+  };
+
+  try {
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    console.error("No se pudo anclar el mensaje: " + e.message);
   }
 }
 
