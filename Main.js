@@ -411,6 +411,34 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
     `━━━━━━━━━━━━━━━━━━\n\n` +
     `📝 <b>Mensaje:</b>\n${mensaje}`;
 
+  const props = PropertiesService.getScriptProperties();
+  const lastSuccessId = props.getProperty("LAST_SUCCESS_MSG_ID");
+
+  // Si es EXITO y tenemos un ID previo, intentamos editar
+  if (tipo === 'EXITO' && lastSuccessId) {
+    const editUrl = `https://api.telegram.org/bot${config.BOT_TOKEN}/editMessageText`;
+    const editOptions = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        chat_id: config.CHAT_ID,
+        message_id: lastSuccessId,
+        text: textoFinal,
+        parse_mode: "HTML"
+      }),
+      muteHttpExceptions: true
+    };
+
+    try {
+      const editRes = UrlFetchApp.fetch(editUrl, editOptions);
+      const editData = JSON.parse(editRes.getContentText());
+      if (editData.ok) return; // Editado con éxito, salimos
+    } catch (e) {
+      console.error("Error editando reporte pegajoso: " + e.message);
+    }
+  }
+
+  // Si no se pudo editar o no es EXITO, enviamos mensaje nuevo
   const url = `https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`;
   const options = {
     method: "post",
@@ -427,9 +455,19 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
     const res = UrlFetchApp.fetch(url, options);
     const data = JSON.parse(res.getContentText());
 
-    // Si es un ERROR CRÍTICO, anclamos el mensaje para que no se pierda
-    if (tipo === 'ERROR' && data.ok && data.result) {
-      pinTelegramMessage(data.result.message_id);
+    if (data.ok && data.result) {
+      const newMsgId = data.result.message_id;
+
+      // Si es EXITO, guardamos el nuevo ID para la próxima
+      if (tipo === 'EXITO') {
+        props.setProperty("LAST_SUCCESS_MSG_ID", String(newMsgId));
+        pinTelegramMessage(newMsgId); // También lo anclamos para que sea fácil de ver
+      }
+
+      // Si es un ERROR CRÍTICO, anclamos el mensaje para que no se pierda
+      if (tipo === 'ERROR') {
+        pinTelegramMessage(newMsgId);
+      }
     }
   } catch (e) {
     console.error("Fallo crítico enviando reporte a Telegram: " + e.message);
