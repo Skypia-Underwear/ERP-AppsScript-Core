@@ -774,7 +774,7 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // --- NUEVO: Gestor de Imágenes ---
   if (view === 'imagenes_manager') {
-    const template = HtmlService.createTemplateFromFile('images_dashboard');
+    const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
     template.CATALOG_URL = getCatalogJsonUrl();
     return template.evaluate().getContent();
   }
@@ -788,7 +788,7 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // --- NUEVA: Vista de Registro de Cliente ---
   if (view === 'client_form') {
-    return HtmlService.createTemplateFromFile('client_form_view')
+    return HtmlService.createTemplateFromFile('Web/client_form_view')
       .evaluate().getContent();
   }
 
