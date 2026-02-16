@@ -2,250 +2,571 @@
 
 <style>
     /* Estilos específicos de Detalle de Compra */
+</style>
 
-    <div class="bg-slate-900 min-h-screen text-slate-100 p-4 md:p-8 flex justify-center items-start"><div id="main-container" class="max-w-5xl w-full bg-slate-900 md:bg-transparent">< !-- Loading Overlay --><div id="loading-overlay"
-
-    class="fixed inset-0 bg-slate-900/90 z-50 flex flex-col items-center justify-center backdrop-blur-sm transition-opacity duration-300"><div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div><p class="text-indigo-400 font-medium animate-pulse">Cargando pedido...</p></div><? if (error) {
-        ?><div class="max-w-lg mx-auto bg-red-900/20 border border-red-500/50 rounded-xl p-6 text-center text-red-200 mt-20"><span class="material-icons text-5xl mb-4 text-red-500">error_outline</span><h2 class="text-xl font-bold mb-2">Error al buscar el pedido</h2><p><?=error ?></p></div><?
+<div class="bg-slate-900 min-h-screen text-slate-100 p-4 md:p-8 flex justify-center items-start">
+    <div id="main-container" class="max-w-5xl w-full bg-slate-900 md:bg-transparent">
+        < !-- Loading Overlay -->
+            <div id="loading-overlay"
+                class="fixed inset-0 bg-slate-900/90 z-50 flex flex-col items-center justify-center backdrop-blur-sm transition-opacity duration-300">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+                <p class="text-indigo-400 font-medium animate-pulse">Cargando pedido...</p>
+            </div>
+            <? if (error) {
+        ?>
+            <div
+                class="max-w-lg mx-auto bg-red-900/20 border border-red-500/50 rounded-xl p-6 text-center text-red-200 mt-20">
+                <span class="material-icons text-5xl mb-4 text-red-500">error_outline</span>
+                <h2 class="text-xl font-bold mb-2">Error al buscar el pedido</h2>
+                <p>
+                    <?=error ?>
+                </p>
+            </div>
+            <?
     }
 
     else if (venta) {
-        ?>< !-- HEADER --><div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-slate-800 pb-6"><div><div class="flex items-center gap-3 mb-2"><span class="material-icons text-indigo-500 bg-indigo-500/10 p-2 rounded-lg">receipt_long</span><h1 class="text-2xl md:text-3xl font-black tracking-tight text-white">Detalle de Venta</h1></div><div class="flex items-center gap-4 text-sm text-slate-400 font-mono"><span class="bg-slate-800 px-2 py-1 rounded">ID: <?=venta.VENTA_ID ?></span><span>|</span><span><?=venta.FECHA ?><?=venta.HORA ?></span></div></div><div class="flex items-center gap-3"><? if (venta.ESTADO==='PAGADO') {
-            ?><div class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg flex items-center gap-2 font-bold shadow-[0_0_15px_rgba(16,185,129,0.1)]"><span class="material-icons text-sm">check_circle</span>PAGADO </div><?
+        ?>
+            < !-- HEADER -->
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-slate-800 pb-6">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2"><span
+                                class="material-icons text-indigo-500 bg-indigo-500/10 p-2 rounded-lg">receipt_long</span>
+                            <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white">Detalle de Venta</h1>
+                        </div>
+                        <div class="flex items-center gap-4 text-sm text-slate-400 font-mono"><span
+                                class="bg-slate-800 px-2 py-1 rounded">ID:
+                                <?=venta.VENTA_ID ?>
+                            </span><span>|</span><span>
+                                <?=venta.FECHA ?>
+                                <?=venta.HORA ?>
+                            </span></div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <? if (venta.ESTADO==='PAGADO') {
+            ?>
+                        <div
+                            class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg flex items-center gap-2 font-bold shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                            <span class="material-icons text-sm">check_circle</span>PAGADO
+                        </div>
+                        <?
         }
 
         else if (venta.ESTADO==='CANCELADO') {
-            ?><div class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg flex items-center gap-2 font-bold"><span class="material-icons text-sm">cancel</span>CANCELADO </div><?
+            ?>
+                        <div
+                            class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg flex items-center gap-2 font-bold">
+                            <span class="material-icons text-sm">cancel</span>CANCELADO
+                        </div>
+                        <?
         }
 
         else {
-            ?><div class="px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg flex items-center gap-2 font-bold animate-pulse"><span class="material-icons text-sm">pending</span>PENDIENTE </div><?
+            ?>
+                        <div
+                            class="px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg flex items-center gap-2 font-bold animate-pulse">
+                            <span class="material-icons text-sm">pending</span>PENDIENTE
+                        </div>
+                        <?
         }
 
-        ?></div></div>< !-- CARDS GRID --><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">< !-- 1. CUSTOMER CARD --><div class="p-5 bg-slate-800 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden group hover:border-indigo-500/50 transition duration-300"><div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div><div class="flex items-center gap-2 mb-4"><span class="material-icons text-indigo-400 bg-indigo-500/10 p-1.5 rounded-md text-sm">person</span><h4 class="font-bold text-slate-300 text-xs uppercase tracking-wider">Cliente</h4></div><h3 class="text-xl font-bold text-white mb-1 truncate"><?=cliente.NOMBRE_COMPLETO ?></h3><p class="text-xs text-slate-500 font-mono mb-4">ID: <?=cliente.CLIENTE_ID ?></p><div class="space-y-2 text-sm"><div class="flex justify-between items-center text-slate-400 border-b border-slate-700 pb-2"><span>Celular:</span><span class="text-slate-200"><?=cliente.CELULAR || '--' ?></span></div><div class="flex flex-col gap-1 text-slate-400 pt-1"><span>Email:</span><span id="email-display" class="text-slate-200 truncate font-medium"><?=cliente.CORREO_ELECTRONICO ?></span></div></div>< !-- EMAIL FORM LOGIC --><? if (cliente.correoVacio) {
-            ?><div id="email-form-container" class="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg"><p class="text-xs text-indigo-200 mb-2 font-medium">⚠️ Registra tu email para recibir el comprobante: </p> <form id="emailForm" onsubmit="handleEmailUpdate(event)" class="flex flex-col gap-2" > <input type="hidden" id="clientId" value="<?= cliente.CLIENTE_ID ?>" > <input type="email" id="clientEmail"
-                class="bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
-                placeholder="tu@email.com" required> <button type="submit" id="btnSaveEmail"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded transition" >GUARDAR</button> </form> <div id="email-feedback" class="text-xs mt-2 hidden" ></div> </div> <?
+        ?>
+                    </div>
+                </div>
+                < !-- CARDS GRID -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        < !-- 1. CUSTOMER CARD -->
+                            <div
+                                class="p-5 bg-slate-800 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden group hover:border-indigo-500/50 transition duration-300">
+                                <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                <div class="flex items-center gap-2 mb-4"><span
+                                        class="material-icons text-indigo-400 bg-indigo-500/10 p-1.5 rounded-md text-sm">person</span>
+                                    <h4 class="font-bold text-slate-300 text-xs uppercase tracking-wider">Cliente</h4>
+                                </div>
+                                <h3 class="text-xl font-bold text-white mb-1 truncate">
+                                    <?=cliente.NOMBRE_COMPLETO ?>
+                                </h3>
+                                <p class="text-xs text-slate-500 font-mono mb-4">ID:
+                                    <?=cliente.CLIENTE_ID ?>
+                                </p>
+                                <div class="space-y-2 text-sm">
+                                    <div
+                                        class="flex justify-between items-center text-slate-400 border-b border-slate-700 pb-2">
+                                        <span>Celular:</span><span class="text-slate-200">
+                                            <?=cliente.CELULAR || '--' ?>
+                                        </span>
+                                    </div>
+                                    <div class="flex flex-col gap-1 text-slate-400 pt-1"><span>Email:</span><span
+                                            id="email-display" class="text-slate-200 truncate font-medium">
+                                            <?=cliente.CORREO_ELECTRONICO ?>
+                                        </span></div>
+                                </div>
+                                < !-- EMAIL FORM LOGIC -->
+                                    <? if (cliente.correoVacio) {
+            ?>
+                                    <div id="email-form-container"
+                                        class="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+                                        <p class="text-xs text-indigo-200 mb-2 font-medium">⚠️ Registra tu email para
+                                            recibir el comprobante: </p>
+                                        <form id="emailForm" onsubmit="handleEmailUpdate(event)"
+                                            class="flex flex-col gap-2"> <input type="hidden" id="clientId"
+                                                value="<?= cliente.CLIENTE_ID ?>"> <input type="email" id="clientEmail"
+                                                class="bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                placeholder="tu@email.com" required> <button type="submit"
+                                                id="btnSaveEmail"
+                                                class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded transition">GUARDAR</button>
+                                        </form>
+                                        <div id="email-feedback" class="text-xs mt-2 hidden"></div>
+                                    </div>
+                                    <?
         }
 
-        ?></div>< !-- 2. PAYMENT CARD --><div class="p-5 bg-slate-800 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden group hover:border-emerald-500/50 transition duration-300"><div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div><div class="flex items-center gap-2 mb-4"><span class="material-icons text-emerald-400 bg-emerald-500/10 p-1.5 rounded-md text-sm">payments</span><h4 class="font-bold text-slate-300 text-xs uppercase tracking-wider">Pago</h4></div><div class="flex flex-wrap gap-2 mb-4"><span class="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs font-bold border border-slate-600 uppercase"><?=venta.METODO_PAGO ?></span><? if(venta.PAGO_MIXTO) {
-            ?><span class="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs font-bold border border-purple-500/30">MIXTO</span><?
+        ?>
+                            </div>
+                            < !-- 2. PAYMENT CARD -->
+                                <div
+                                    class="p-5 bg-slate-800 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden group hover:border-emerald-500/50 transition duration-300">
+                                    <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                    <div class="flex items-center gap-2 mb-4"><span
+                                            class="material-icons text-emerald-400 bg-emerald-500/10 p-1.5 rounded-md text-sm">payments</span>
+                                        <h4 class="font-bold text-slate-300 text-xs uppercase tracking-wider">Pago</h4>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 mb-4"><span
+                                            class="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs font-bold border border-slate-600 uppercase">
+                                            <?=venta.METODO_PAGO ?>
+                                        </span>
+                                        <? if(venta.PAGO_MIXTO) {
+            ?><span class="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs font-bold border border-purple-500/30">MIXTO</span>
+                                        <?
         }
 
-        ?></div><? if (venta.METODO_PAGO==='Transferencia' && datosTransferencia) {
-            ?><div class="bg-slate-900/50 p-3 rounded-lg border border-slate-600 space-y-2"><div class="flex justify-between text-xs"><span class="text-slate-400">Banco: </span> <span class="text-emerald-400 font-bold" > <?=datosTransferencia.BANCO ?> </span> </div> <div class="flex justify-between text-xs" > <span class="text-slate-400" >Alias:</span> <span class="text-white font-mono select-all" > <?=datosTransferencia.ALIAS ?> </span> </div> <div class="flex justify-between text-xs" > <span class="text-slate-400" >CBU:</span> <span class="text-white font-mono select-all truncate max-w-[120px]"
-                title="<?= datosTransferencia.CBU ?>" > <?=datosTransferencia.CBU ?> </span> </div> <div class="flex justify-between text-xs" > <span class="text-slate-400" >Titular:</span> <span class="text-slate-200" > <?=datosTransferencia.NOMBRE_CUENTA ?> </span> </div> </div> <?
+        ?>
+                                    </div>
+                                    <? if (venta.METODO_PAGO==='Transferencia' && datosTransferencia) {
+            ?>
+                                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-600 space-y-2">
+                                        <div class="flex justify-between text-xs"><span class="text-slate-400">Banco:
+                                            </span> <span class="text-emerald-400 font-bold">
+                                                <?=datosTransferencia.BANCO ?>
+                                            </span> </div>
+                                        <div class="flex justify-between text-xs"> <span
+                                                class="text-slate-400">Alias:</span> <span
+                                                class="text-white font-mono select-all">
+                                                <?=datosTransferencia.ALIAS ?>
+                                            </span> </div>
+                                        <div class="flex justify-between text-xs"> <span
+                                                class="text-slate-400">CBU:</span> <span
+                                                class="text-white font-mono select-all truncate max-w-[120px]"
+                                                title="<?= datosTransferencia.CBU ?>">
+                                                <?=datosTransferencia.CBU ?>
+                                            </span> </div>
+                                        <div class="flex justify-between text-xs"> <span
+                                                class="text-slate-400">Titular:</span> <span class="text-slate-200">
+                                                <?=datosTransferencia.NOMBRE_CUENTA ?>
+                                            </span> </div>
+                                    </div>
+                                    <?
         }
 
         else {
-            ?><div class="h-24 flex items-center justify-center text-slate-500 text-sm"><p>Pago en Efectivo / Otro medio</p></div><?
+            ?>
+                                    <div class="h-24 flex items-center justify-center text-slate-500 text-sm">
+                                        <p>Pago en Efectivo / Otro medio</p>
+                                    </div>
+                                    <?
         }
 
-        ?></div>< !-- 3. FINANCIAL SUMMARY CARD --><div class="p-5 bg-slate-900 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden flex flex-col justify-center">< !-- Background Glow --><div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div><div class="space-y-3 text-sm mb-4 relative z-10"><div class="flex justify-between text-slate-400"><span>Productos</span><span class="text-white font-medium"><?=venta.MONTO_TOTAL_PRODUCTOS ?></span></div><? if (venta.RECARGO_MENOR && venta.RECARGO_MENOR !=='$0.00') {
-            ?><div class="flex justify-between text-orange-400"><span>Recargo Menor</span><span>+<?=venta.RECARGO_MENOR ?></span></div><?
+        ?>
+                                </div>
+                                < !-- 3. FINANCIAL SUMMARY CARD -->
+                                    <div
+                                        class="p-5 bg-slate-900 rounded-2xl border border-slate-700 shadow-xl relative overflow-hidden flex flex-col justify-center">
+                                        < !-- Background Glow -->
+                                            <div
+                                                class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl">
+                                            </div>
+                                            <div class="space-y-3 text-sm mb-4 relative z-10">
+                                                <div class="flex justify-between text-slate-400">
+                                                    <span>Productos</span><span class="text-white font-medium">
+                                                        <?=venta.MONTO_TOTAL_PRODUCTOS ?>
+                                                    </span>
+                                                </div>
+                                                <? if (venta.RECARGO_MENOR && venta.RECARGO_MENOR !=='$0.00') {
+            ?>
+                                                <div class="flex justify-between text-orange-400"><span>Recargo
+                                                        Menor</span><span>+
+                                                        <?=venta.RECARGO_MENOR ?>
+                                                    </span></div>
+                                                <?
         }
 
-        ?><? if (venta.COSTO_ENVIO && venta.COSTO_ENVIO !=='$0.00') {
-            ?><div class="flex justify-between text-blue-400"><span>Envío</span><span>+<?=venta.COSTO_ENVIO ?></span></div><?
+        ?>
+                                                <? if (venta.COSTO_ENVIO && venta.COSTO_ENVIO !=='$0.00') {
+            ?>
+                                                <div class="flex justify-between text-blue-400">
+                                                    <span>Envío</span><span>+
+                                                        <?=venta.COSTO_ENVIO ?>
+                                                    </span>
+                                                </div>
+                                                <?
         }
 
-        ?><? if (venta.PAGO_EFECTIVO && venta.PAGO_EFECTIVO !=='$0.00') {
-            ?><div class="flex justify-between text-emerald-400"><span>Pago Efectivo</span><span>- <?=venta.PAGO_EFECTIVO ?></span></div><?
+        ?>
+                                                <? if (venta.PAGO_EFECTIVO && venta.PAGO_EFECTIVO !=='$0.00') {
+            ?>
+                                                <div class="flex justify-between text-emerald-400"><span>Pago
+                                                        Efectivo</span><span>-
+                                                        <?=venta.PAGO_EFECTIVO ?>
+                                                    </span></div>
+                                                <?
         }
 
-        ?>< !-- SUBTOTAL ROW --><? if (venta.SUBTOTAL && venta.SUBTOTAL !=='$0.00') {
-            ?><div class="flex justify-between text-slate-300 font-bold border-t border-slate-700 pt-2 mt-2"><span>Subtotal</span><span><?=venta.SUBTOTAL ?></span></div><?
+        ?>
+                                                < !-- SUBTOTAL ROW -->
+                                                    <? if (venta.SUBTOTAL && venta.SUBTOTAL !=='$0.00') {
+            ?>
+                                                    <div
+                                                        class="flex justify-between text-slate-300 font-bold border-t border-slate-700 pt-2 mt-2">
+                                                        <span>Subtotal</span><span>
+                                                            <?=venta.SUBTOTAL ?>
+                                                        </span>
+                                                    </div>
+                                                    <?
         }
 
-        ?><? if (venta.RECARGO_TRANSFERENCIA && venta.RECARGO_TRANSFERENCIA !=='$0.00') {
-            ?><div class="flex justify-between text-yellow-400 pt-1"><span>Recargo Transf.</span><span>+<?=venta.RECARGO_TRANSFERENCIA ?></span></div><?
+        ?>
+                                                    <? if (venta.RECARGO_TRANSFERENCIA && venta.RECARGO_TRANSFERENCIA !=='$0.00') {
+            ?>
+                                                    <div class="flex justify-between text-yellow-400 pt-1"><span>Recargo
+                                                            Transf.</span><span>+
+                                                            <?=venta.RECARGO_TRANSFERENCIA ?>
+                                                        </span></div>
+                                                    <?
         }
 
-        ?></div><div class="border-t border-slate-700 pt-4 flex justify-between items-end relative z-10"><span class="text-xs font-bold text-slate-500 uppercase">Total Final</span><span class="text-3xl font-black text-white tracking-tighter"><?=venta.TOTAL_VENTA ?></span></div></div></div>< !-- PRODUCT TABLE --><div class="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg overflow-hidden mb-8"><div class="px-6 py-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center"><h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Productos</h3><span class="bg-slate-700 text-white px-2 py-1 rounded-md text-xs font-bold"><?=productosParaTabla.length ?>Items </span></div><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-900/50 text-slate-500 text-[10px] uppercase font-bold tracking-wider"><tr><th class="px-6 py-3">Descripción</th><th class="px-6 py-3 text-center">Variedad</th><th class="px-6 py-3 text-right">Cant</th><th class="px-6 py-3 text-right">Unitario</th><th class="px-6 py-3 text-right">Total</th>< !-- Hidden Header Cols for Compatibility --><th class="hidden">SKU</th><th class="hidden">Cat</th></tr></thead><tbody class="divide-y divide-slate-700 text-sm text-slate-300"><? if (productosParaTabla.length > 0) {
-            ?><? for (let i=0; i < productosParaTabla.length; i++) {
-                ?><? const item=productosParaTabla[i];
-                ?><tr class="hover:bg-slate-700/50 transition"><td class="px-6 py-4"><div class="font-bold text-white"><?=item.producto.MODELO ?></div><div class="text-xs text-slate-500 mt-1"><?=item.producto.CATEGORIA ?></div></td><td class="px-6 py-4 text-center"><div class="inline-flex flex-col items-center"><span class="text-xs bg-slate-900 px-2 py-1 rounded border border-slate-600 text-slate-400 whitespace-nowrap"><?=item.detalle.TALLE ?>/ <?=item.detalle.COLOR ?></span><span class="text-[10px] text-slate-500 mt-1"><?=item.detalle.TIPO_PRECIO ?></span></div></td><td class="px-6 py-4 text-right font-bold text-white"><?=item.detalle.CANTIDAD ?></td><td class="px-6 py-4 text-right text-slate-400 font-mono"><?=item.detalle.PRECIO_FORMATO ?></td><td class="px-6 py-4 text-right text-indigo-400 font-bold font-mono"><?=item.detalle.MONTO_FORMATO ?></td>< !-- Hidden Data Cells --><td class="hidden"><?=item.producto.SKU ?></td><td class="hidden"><?=item.producto.CATEGORIA ?></td><td class="hidden"><?=item.producto.MARCA ?></td><td class="hidden"><?=item.producto.GENERO ?></td><td class="hidden"><?=item.producto.MATERIAL ?></td><td class="hidden"><?=item.producto.CODIGO_ID ?></td></tr><?
+        ?>
+                                            </div>
+                                            <div
+                                                class="border-t border-slate-700 pt-4 flex justify-between items-end relative z-10">
+                                                <span class="text-xs font-bold text-slate-500 uppercase">Total
+                                                    Final</span><span
+                                                    class="text-3xl font-black text-white tracking-tighter">
+                                                    <?=venta.TOTAL_VENTA ?>
+                                                </span>
+                                            </div>
+                                    </div>
+                    </div>
+                    < !-- PRODUCT TABLE -->
+                        <div class="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg overflow-hidden mb-8">
+                            <div
+                                class="px-6 py-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Productos</h3>
+                                <span class="bg-slate-700 text-white px-2 py-1 rounded-md text-xs font-bold">
+                                    <?=productosParaTabla.length ?>Items
+                                </span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead
+                                        class="bg-slate-900/50 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                                        <tr>
+                                            <th class="px-6 py-3">Descripción</th>
+                                            <th class="px-6 py-3 text-center">Variedad</th>
+                                            <th class="px-6 py-3 text-right">Cant</th>
+                                            <th class="px-6 py-3 text-right">Unitario</th>
+                                            <th class="px-6 py-3 text-right">Total</th>
+                                            < !-- Hidden Header Cols for Compatibility -->
+                                                <th class="hidden">SKU</th>
+                                                <th class="hidden">Cat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-700 text-sm text-slate-300">
+                                        <? if (productosParaTabla.length > 0) {
+            ?>
+                                        <? for (let i=0; i < productosParaTabla.length; i++) {
+                ?>
+                                        <? const item=productosParaTabla[i];
+                ?>
+                                        <tr class="hover:bg-slate-700/50 transition">
+                                            <td class="px-6 py-4">
+                                                <div class="font-bold text-white">
+                                                    <?=item.producto.MODELO ?>
+                                                </div>
+                                                <div class="text-xs text-slate-500 mt-1">
+                                                    <?=item.producto.CATEGORIA ?>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                <div class="inline-flex flex-col items-center"><span
+                                                        class="text-xs bg-slate-900 px-2 py-1 rounded border border-slate-600 text-slate-400 whitespace-nowrap">
+                                                        <?=item.detalle.TALLE ?>/
+                                                        <?=item.detalle.COLOR ?>
+                                                    </span><span class="text-[10px] text-slate-500 mt-1">
+                                                        <?=item.detalle.TIPO_PRECIO ?>
+                                                    </span></div>
+                                            </td>
+                                            <td class="px-6 py-4 text-right font-bold text-white">
+                                                <?=item.detalle.CANTIDAD ?>
+                                            </td>
+                                            <td class="px-6 py-4 text-right text-slate-400 font-mono">
+                                                <?=item.detalle.PRECIO_FORMATO ?>
+                                            </td>
+                                            <td class="px-6 py-4 text-right text-indigo-400 font-bold font-mono">
+                                                <?=item.detalle.MONTO_FORMATO ?>
+                                            </td>
+                                            < !-- Hidden Data Cells -->
+                                                <td class="hidden">
+                                                    <?=item.producto.SKU ?>
+                                                </td>
+                                                <td class="hidden">
+                                                    <?=item.producto.CATEGORIA ?>
+                                                </td>
+                                                <td class="hidden">
+                                                    <?=item.producto.MARCA ?>
+                                                </td>
+                                                <td class="hidden">
+                                                    <?=item.producto.GENERO ?>
+                                                </td>
+                                                <td class="hidden">
+                                                    <?=item.producto.MATERIAL ?>
+                                                </td>
+                                                <td class="hidden">
+                                                    <?=item.producto.CODIGO_ID ?>
+                                                </td>
+                                        </tr>
+                                        <?
             }
 
-            ?><?
+            ?>
+                                        <?
         }
 
         else {
-            ?><tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">Sin productos.</td></tr><?
+            ?>
+                                        <tr>
+                                            <td colspan="5" class="px-6 py-8 text-center text-slate-500">Sin productos.
+                                            </td>
+                                        </tr>
+                                        <?
         }
 
-        ?></tbody></table></div></div>< !-- RECEIPT UPLOAD SECTION --><? if (venta.METODO_PAGO==='Transferencia') {
-            ?><div id="comprobante-container"
-
-            class="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-xl relative overflow-hidden"><? if (venta.ESTADO==='PAGADO' && publicComprobanteURL) {
-                ?>< !-- ALREADY PAID VIEW --><div class="text-center py-6"><div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 rounded-full mb-4"><span class="material-icons text-3xl text-emerald-500">verified</span></div><h3 class="text-xl font-bold text-white mb-2">Comprobante Recibido</h3><p class="text-slate-400 mb-6 max-w-md mx-auto">Tu pago ha sido verificado y aprobado. Gracias por tu compra.</p><? if (publicComprobanteURL.toLowerCase().endsWith ('.pdf')) {
+        ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        < !-- RECEIPT UPLOAD SECTION -->
+                            <? if (venta.METODO_PAGO==='Transferencia') {
+            ?>
+                            <div id="comprobante-container"
+                                class="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-xl relative overflow-hidden">
+                                <? if (venta.ESTADO==='PAGADO' && publicComprobanteURL) {
+                ?>
+                                < !-- ALREADY PAID VIEW -->
+                                    <div class="text-center py-6">
+                                        <div
+                                            class="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 rounded-full mb-4">
+                                            <span class="material-icons text-3xl text-emerald-500">verified</span>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-white mb-2">Comprobante Recibido</h3>
+                                        <p class="text-slate-400 mb-6 max-w-md mx-auto">Tu pago ha sido verificado y
+                                            aprobado. Gracias por tu compra.</p>
+                                        <? if (publicComprobanteURL.toLowerCase().endsWith ('.pdf')) {
                     ?><a href="<?= publicComprobanteURL ?>" target="_blank"
-                    class="inline-flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition font-medium"><span class="material-icons">picture_as_pdf</span>Ver PDF </a><?
+                                            class="inline-flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition font-medium"><span
+                                                class="material-icons">picture_as_pdf</span>Ver PDF </a>
+                                        <?
                 }
 
                 else {
-                    ?><div class="max-w-xs mx-auto rounded-lg overflow-hidden border border-slate-600 shadow-lg"><img src="<?= publicComprobanteURL ?>"
-                    class="w-full h-auto object-cover opacity-80 hover:opacity-100 transition"></div><?
+                    ?>
+                                        <div
+                                            class="max-w-xs mx-auto rounded-lg overflow-hidden border border-slate-600 shadow-lg">
+                                            <img src="<?= publicComprobanteURL ?>"
+                                                class="w-full h-auto object-cover opacity-80 hover:opacity-100 transition">
+                                        </div>
+                                        <?
                 }
 
-                ?></div><?
+                ?>
+                                    </div>
+                                    <?
             }
 
             else {
-                ?>< !-- UPLOAD FORM VIEW --><div class="max-w-xl mx-auto text-center" id="upload-ui"><div class="mb-6"><span class="material-icons text-4xl text-indigo-500 mb-2">cloud_upload</span><h3 class="text-xl font-bold text-white">Confirmar Transferencia</h3><p class="text-slate-400 text-sm mt-1">Sube la captura o PDF de tu comprobante. Nuestra IA lo verificará al instante.</p></div><form id="uploadForm" onsubmit="handleReceiptSubmit(event)" class="relative group"><input type="hidden" name="ventaId" value="<?= venta.VENTA_ID ?>"><div class="border-2 border-dashed border-slate-600 rounded-xl p-8 transition-colors group-hover:border-indigo-500 cursor-pointer bg-slate-900/50"
-                onclick="document.getElementById('fileToUpload').click()"><input type="file" id="fileToUpload" name="fileToUpload" accept="image/*,.pdf" class="hidden"
-                onchange="previewFile()"><div id="preview-area"><p class="text-slate-300 pointer-events-none">Haz click para seleccionar archivo</p><p class="text-xs text-slate-500 mt-2 pointer-events-none">JPG,
-                PNG o PDF</p></div></div><button type="submit" id="btnUpload"
-                class="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled>ENVIAR COMPROBANTE </button></form></div>< !-- AI ANALYZING STATE --><div id="analyzing-ui" class="hidden text-center py-10"><div class="spinner-border animate-spin inline-block w-12 h-12 border-4 rounded-full border-t-indigo-500 border-r-transparent border-b-indigo-500 border-l-transparent mb-4"></div><h3 class="text-lg font-bold text-white animate-pulse">Analizando comprobante con IA...</h3><p class="text-slate-400 text-sm mt-2">Estamos verificando el monto,
-                fecha y destino.</p></div>< !-- RESULT STATE --><div id="result-ui" class="hidden text-center py-6"></div><?
+                ?>
+                                    < !-- UPLOAD FORM VIEW -->
+                                        <div class="max-w-xl mx-auto text-center" id="upload-ui">
+                                            <div class="mb-6"><span
+                                                    class="material-icons text-4xl text-indigo-500 mb-2">cloud_upload</span>
+                                                <h3 class="text-xl font-bold text-white">Confirmar Transferencia</h3>
+                                                <p class="text-slate-400 text-sm mt-1">Sube la captura o PDF de tu
+                                                    comprobante. Nuestra IA lo verificará al instante.</p>
+                                            </div>
+                                            <form id="uploadForm" onsubmit="handleReceiptSubmit(event)"
+                                                class="relative group"><input type="hidden" name="ventaId"
+                                                    value="<?= venta.VENTA_ID ?>">
+                                                <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 transition-colors group-hover:border-indigo-500 cursor-pointer bg-slate-900/50"
+                                                    onclick="document.getElementById('fileToUpload').click()"><input
+                                                        type="file" id="fileToUpload" name="fileToUpload"
+                                                        accept="image/*,.pdf" class="hidden" onchange="previewFile()">
+                                                    <div id="preview-area">
+                                                        <p class="text-slate-300 pointer-events-none">Haz click para
+                                                            seleccionar archivo</p>
+                                                        <p class="text-xs text-slate-500 mt-2 pointer-events-none">JPG,
+                                                            PNG o PDF</p>
+                                                    </div>
+                                                </div><button type="submit" id="btnUpload"
+                                                    class="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    disabled>ENVIAR COMPROBANTE </button>
+                                            </form>
+                                        </div>
+                                        < !-- AI ANALYZING STATE -->
+                                            <div id="analyzing-ui" class="hidden text-center py-10">
+                                                <div
+                                                    class="spinner-border animate-spin inline-block w-12 h-12 border-4 rounded-full border-t-indigo-500 border-r-transparent border-b-indigo-500 border-l-transparent mb-4">
+                                                </div>
+                                                <h3 class="text-lg font-bold text-white animate-pulse">Analizando
+                                                    comprobante con IA...</h3>
+                                                <p class="text-slate-400 text-sm mt-2">Estamos verificando el monto,
+                                                    fecha y destino.</p>
+                                            </div>
+                                            < !-- RESULT STATE -->
+                                                <div id="result-ui" class="hidden text-center py-6"></div>
+                                                <?
             }
 
-            ?></div><?
+            ?>
+                            </div>
+                            <?
         }
 
-        ?><?
+        ?>
+                            <?
     }
 
-    ?></div>< !-- SCRIPTS --><script> // --- PRELOADER ---
+    ?>
+    </div>
+    < !-- SCRIPTS -->
+        <script> // --- PRELOADER ---
 
-    window.onload=()=> {
-        const overlay=document.getElementById('loading-overlay');
+            window.onload = () => {
+                const overlay = document.getElementById('loading-overlay');
 
-        if (overlay) {
-            overlay.classList.add('opacity-0');
-            setTimeout(()=> overlay.remove(), 3000); // Remove after fade out
-        }
-    }
-
-    ;
-
-    // --- EMAIL UPDATE LOGIC ---
-    function handleEmailUpdate(e) {
-        e.preventDefault();
-        const email=document.getElementById('clientEmail').value;
-        const id=document.getElementById('clientId').value;
-        const btn=document.getElementById('btnSaveEmail');
-        const feedback=document.getElementById('email-feedback');
-
-        if ( !email) return;
-
-        btn.disabled=true;
-        btn.innerHTML='GUARDANDO...';
-        feedback.className='text-xs mt-2 text-indigo-300';
-        feedback.textContent='Actualizando...';
-        feedback.classList.remove('hidden');
-
-        google.script.run.withSuccessHandler(()=> {
-                // Success UI
-                document.getElementById('email-display').textContent=email;
-                document.getElementById('email-form-container').innerHTML=` <div class="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 p-2 rounded border border-emerald-500/20" > <span class="material-icons text-sm" >check_circle</span> <span class="text-xs font-bold" >Email registrado correctamente.</span> </div>`;
-
-            }).withFailureHandler((err)=> {
-                btn.disabled=false;
-                btn.innerHTML='GUARDAR';
-                feedback.className='text-xs mt-2 text-red-400';
-                feedback.textContent='Error: ' + err.message;
-            }).updateClientEmail(id, email);
-    }
-
-    // --- FILE UPLOAD PREVIEW ---
-    function previewFile() {
-        const input=document.getElementById('fileToUpload');
-        const preview=document.getElementById('preview-area');
-        const btn=document.getElementById('btnUpload');
-
-        if (input.files && input.files[0]) {
-            const f=input.files[0];
-
-            preview.innerHTML=`<p class="text-indigo-400 font-bold">$ {
-                f.name
+                if (overlay) {
+                    overlay.classList.add('opacity-0');
+                    setTimeout(() => overlay.remove(), 3000); // Remove after fade out
+                }
             }
 
-            </p><p class="text-xs text-slate-400 mt-1">$ {
-                (f.size / 1024 / 1024).toFixed(2)
+                ;
+
+            // --- EMAIL UPDATE LOGIC ---
+            function handleEmailUpdate(e) {
+                e.preventDefault();
+                const email = document.getElementById('clientEmail').value;
+                const id = document.getElementById('clientId').value;
+                const btn = document.getElementById('btnSaveEmail');
+                const feedback = document.getElementById('email-feedback');
+
+                if (!email) return;
+
+                btn.disabled = true;
+                btn.innerHTML = 'GUARDANDO...';
+                feedback.className = 'text-xs mt-2 text-indigo-300';
+                feedback.textContent = 'Actualizando...';
+                feedback.classList.remove('hidden');
+
+                google.script.run.withSuccessHandler(() => {
+                    // Success UI
+                    document.getElementById('email-display').textContent = email;
+                    document.getElementById('email-form-container').innerHTML = ` <div class="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 p-2 rounded border border-emerald-500/20" > <span class="material-icons text-sm" >check_circle</span> <span class="text-xs font-bold" >Email registrado correctamente.</span> </div>`;
+
+                }).withFailureHandler((err) => {
+                    btn.disabled = false;
+                    btn.innerHTML = 'GUARDAR';
+                    feedback.className = 'text-xs mt-2 text-red-400';
+                    feedback.textContent = 'Error: ' + err.message;
+                }).updateClientEmail(id, email);
             }
 
-            MB</p>`;
-            btn.disabled=false;
-        }
-    }
+            // --- FILE UPLOAD PREVIEW ---
+            function previewFile() {
+                const input = document.getElementById('fileToUpload');
+                const preview = document.getElementById('preview-area');
+                const btn = document.getElementById('btnUpload');
 
-    // --- HANDLE RECEIPT SUBMIT ---
-    function handleReceiptSubmit(e) {
-        e.preventDefault();
-        const input=document.getElementById('fileToUpload');
-        const ventaId=document.querySelector('input[name="ventaId"]').value;
+                if (input.files && input.files[0]) {
+                    const f = input.files[0];
 
-        if ( !input.files.length) return;
-        const file=input.files[0];
-
-        // Switch UI
-        document.getElementById('upload-ui').classList.add('hidden');
-        document.getElementById('analyzing-ui').classList.remove('hidden');
-
-        const reader=new FileReader();
-
-        reader.onload=function (ev) {
-            const fileData= {
-                fileName: file.name,
-                    mimeType: file.type,
-                    content: ev.target.result.split(',')[1],
-                    ventaId: ventaId
+                    preview.innerHTML = `<p class="text-indigo-400 font-bold">${f.name} </p><p class="text-xs text-slate-400 mt-1">${(f.size / 1024 / 1024).toFixed(2)} MB</p>`;
+                    btn.disabled = false;
+                }
             }
 
-            ;
+            // --- HANDLE RECEIPT SUBMIT ---
+            function handleReceiptSubmit(e) {
+                e.preventDefault();
+                const input = document.getElementById('fileToUpload');
+                const ventaId = document.querySelector('input[name="ventaId"]').value;
 
-            google.script.run.withSuccessHandler((res)=> {
-                    document.getElementById('analyzing-ui').classList.add('hidden');
-                    const resultDiv=document.getElementById('result-ui');
-                    resultDiv.classList.remove('hidden');
+                if (!input.files.length) return;
+                const file = input.files[0];
 
-                    console.log("Email Result Debug:", res.emailResult); // [DEBUG] Ver estado del correo
+                // Switch UI
+                document.getElementById('upload-ui').classList.add('hidden');
+                document.getElementById('analyzing-ui').classList.remove('hidden');
 
+                const reader = new FileReader();
 
-                    let feedbackHtml='';
-
-                    if (res.aiReason) {
-                        const borderColor=res.verified ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5';
-                        const iconColor=res.verified ? 'text-emerald-400' : 'text-amber-400';
-                        feedbackHtml=` <div class="mt-4 text-left p-3 rounded-lg border ${borderColor}" > <div class="flex items-center gap-2 mb-1" > <span class="material-icons text-sm ${iconColor}" >smart_toy</span> <span class="text-xs font-bold text-slate-400 uppercase tracking-wider" >Análisis de Agente IA</span> </div> <p class="text-xs text-slate-300 leading-relaxed italic" >"${res.aiReason}" </p> </div> `;
+                reader.onload = function (ev) {
+                    const fileData = {
+                        fileName: file.name,
+                        mimeType: file.type,
+                        content: ev.target.result.split(',')[1],
+                        ventaId: ventaId
                     }
 
-                    if (res.verified) {
-                        resultDiv.innerHTML=` <div class="max-w-md mx-auto bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-xl shadow-2xl" > <span class="material-icons text-4xl text-emerald-500 mb-2" >verified_user</span> <h3 class="text-xl font-bold text-white mb-2" >¡Pago Verificado !</h3> <p class="text-slate-300 text-sm mb-4" >$ {
-                            res.message.replace("✅ ", "")
+                        ;
+
+                    google.script.run.withSuccessHandler((res) => {
+                        document.getElementById('analyzing-ui').classList.add('hidden');
+                        const resultDiv = document.getElementById('result-ui');
+                        resultDiv.classList.remove('hidden');
+
+                        console.log("Email Result Debug:", res.emailResult); // [DEBUG] Ver estado del correo
+
+
+                        let feedbackHtml = '';
+
+                        if (res.aiReason) {
+                            const borderColor = res.verified ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5';
+                            const iconColor = res.verified ? 'text-emerald-400' : 'text-amber-400';
+                            feedbackHtml = ` <div class="mt-4 text-left p-3 rounded-lg border ${borderColor}" > <div class="flex items-center gap-2 mb-1" > <span class="material-icons text-sm ${iconColor}" >smart_toy</span> <span class="text-xs font-bold text-slate-400 uppercase tracking-wider" >Análisis de Agente IA</span> </div> <p class="text-xs text-slate-300 leading-relaxed italic" >"${res.aiReason}" </p> </div> `;
                         }
 
-                        </p> $ {
-                            feedbackHtml
-                        }
+                        if (res.verified) {
+                            resultDiv.innerHTML = ` <div class="max-w-md mx-auto bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-xl shadow-2xl" > <span class="material-icons text-4xl text-emerald-500 mb-2" >verified_user</span> <h3 class="text-xl font-bold text-white mb-2" >¡Pago Verificado !</h3> <p class="text-slate-300 text-sm mb-4" >${res.message.replace("✅ ", "")}</p>${feedbackHtml}
 
                         <div class="mt-6" > <button onclick="location.reload()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-bold transition shadow-lg shadow-emerald-900/20" > Ver Pedido Actualizado </button> </div> </div> `;
-                    }
-
-                    else {
-                        resultDiv.innerHTML=` <div class="max-w-md mx-auto bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl shadow-2xl" > <span class="material-icons text-4xl text-amber-500 mb-2" >fact_check</span> <h3 class="text-xl font-bold text-white mb-2" >Revisión Requerida</h3> <p class="text-slate-300 text-sm mb-4" >$ {
-                            res.message
                         }
 
-                        </p> $ {
-                            feedbackHtml
-                        }
+                        else {
+                            resultDiv.innerHTML = ` <div class="max-w-md mx-auto bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl shadow-2xl" > <span class="material-icons text-4xl text-amber-500 mb-2" >fact_check</span> <h3 class="text-xl font-bold text-white mb-2" >Revisión Requerida</h3> <p class="text-slate-300 text-sm mb-4" >${res.message}</p>${feedbackHtml}
 
                         <div class="mt-6" > <button onclick="location.reload()" class="w-full bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-bold transition" > Continuar </button> </div> </div> `;
-                    }
+                        }
 
-                }).withFailureHandler((err)=> {
-                    document.getElementById('analyzing-ui').classList.add('hidden');
-                    document.getElementById('upload-ui').classList.remove('hidden');
-                    alert('Error: ' + err.message);
-                }).handleReceiptUpload(fileData);
-        }
+                    }).withFailureHandler((err) => {
+                        document.getElementById('analyzing-ui').classList.add('hidden');
+                        document.getElementById('upload-ui').classList.remove('hidden');
+                        alert('Error: ' + err.message);
+                    }).handleReceiptUpload(fileData);
+                }
 
-        ;
-        reader.readAsDataURL(file);
-    }
+                    ;
+                reader.readAsDataURL(file);
+            }
 
-    </script>
+        </script>
