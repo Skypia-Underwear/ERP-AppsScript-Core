@@ -115,3 +115,39 @@ function getFastDailyResumen() {
 
     return resumen;
 }
+
+/**
+ * Provee datos de telemetría para el Dashboard de Inicio.
+ */
+function getHomeDashboardData() {
+    try {
+        const ventas = getFastDailyResumen();
+        const ss = getActiveSS();
+        const sheetNum = ss.getSheetByName(SHEETS.INVENTORY);
+        let stockBajo = 0;
+
+        if (sheetNum) {
+            const data = sheetNum.getDataRange().getValues();
+            const headers = data[0].map(h => String(h).trim());
+            const idxStock = headers.indexOf("STOCK_ACTUAL");
+            const idxMin = headers.indexOf("STOCK_MINIMO") !== -1 ? headers.indexOf("STOCK_MINIMO") : -1;
+
+            if (idxStock !== -1) {
+                for (let i = 1; i < data.length; i++) {
+                    const actual = parseFloat(data[i][idxStock]) || 0;
+                    const min = idxMin !== -1 ? (parseFloat(data[i][idxMin]) || 5) : 5;
+                    if (actual <= min && actual > 0) stockBajo++;
+                }
+            }
+        }
+
+        return {
+            ventas: { total: ventas.total, cantidad: ventas.cantidad },
+            stock: { bajo: stockBajo },
+            system: { mode: GLOBAL_CONFIG.TELEGRAM.MODE || "PROD", target: GLOBAL_CONFIG.PUBLICATION_TARGET || "DONWEB" }
+        };
+    } catch (e) {
+        console.error("Error en getHomeDashboardData: " + e.message);
+        return { error: e.message };
+    }
+}

@@ -1,23 +1,12 @@
-// 1. PUNTOS DE ENTRADA (Mover al inicio para asegurar registro)
-/**
- * Manejador de solicitudes GET (Prueba en navegador)
- */
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: "OK",
-    bot: "HostingShop V2.0",
-    time: new Date().toLocaleString()
-  }, null, 2)).setMimeType(ContentService.MimeType.JSON);
-}
 
 /**
  * Manejador de solicitudes POST (Telegram, AppSheet, etc.)
  */
 function doPost(e) {
   // LOG DE EMERGENCIA: Escribir directamente en la hoja si se detecta actividad
-  try {
+  /* try {
     SpreadsheetApp.getActiveSpreadsheet().getSheetByName("BD_APP_SCRIPT").appendRow([new Date(), "POST_HIT", JSON.stringify(e)]);
-  } catch (f) { }
+  } catch (f) { } */
 
   try {
     if (!e || !e.postData || !e.postData.contents) return ContentService.createTextOutput("no data");
@@ -49,6 +38,34 @@ function doPost(e) {
       return handleImageRequest(contents);
     }
 
+    // --- ACCIONES BLOGGER (NUEVO) ---
+    if (contents.op) {
+      let respuestaBlogger = {};
+      switch (contents.op) {
+        case "configuracion":
+          respuestaBlogger = blogger_listar_configuracion_sinCache();
+          if (contents.id) {
+            blogger_adjuntar_pedido_a_respuesta(respuestaBlogger, contents.id);
+          }
+          break;
+        case "venta":
+          respuestaBlogger = blogger_registrar_venta(e.postData.contents);
+          break;
+        case "cargar_venta":
+          respuestaBlogger = blogger_cargar_venta(e.postData.contents);
+          break;
+        case "pagar":
+          respuestaBlogger = blogger_pagar_venta(e.postData.contents);
+          break;
+        case "cancelar":
+          respuestaBlogger = blogger_cancelar_venta(e.postData.contents);
+          break;
+        default:
+          respuestaBlogger = { status: "-1", message: "Operación Blogger no soportada" };
+      }
+      return ContentService.createTextOutput(JSON.stringify(respuestaBlogger)).setMimeType(ContentService.MimeType.JSON);
+    }
+
   } catch (error) {
     console.error("❌ Error en doPost: " + error.message);
   }
@@ -62,10 +79,30 @@ let _cacheConfig = null;
 // Hojas de Auditoría y Logs
 const SHT_AUDIT_CLIENTE = "BD_FORMULARIO_CLIENTE";
 
+/**
+ * Función de reintento para operaciones críticas de Google Services.
+ */
+function executeWithRetry(fn, maxRetries = 3) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return fn();
+    } catch (e) {
+      lastError = e;
+      if (e.message.includes("Service Spreadsheets failed") || e.message.includes("Timed out")) {
+        Utilities.sleep(Math.pow(2, i) * 1000); // Exponential backoff (1s, 2s, 4s)
+        continue;
+      }
+      throw e; // Si no es un error de servicio, lanzamos
+    }
+  }
+  throw lastError;
+}
+
 function getActiveSS() {
   if (!_cacheSS) {
     try {
-      _cacheSS = SpreadsheetApp.getActiveSpreadsheet();
+      _cacheSS = executeWithRetry(() => SpreadsheetApp.getActiveSpreadsheet());
     } catch (e) {
       console.error("Error obteniendo SS: " + e.message);
     }
@@ -74,79 +111,97 @@ function getActiveSS() {
 }
 
 function getAppScriptConfig() {
-  if (_cacheConfig) return _cacheConfig;
+  // Solo devolvemos caché si tiene datos (evita propagar fallos temporales)
+  if (_cacheConfig && Object.keys(_cacheConfig).length > 0) return _cacheConfig;
+
   try {
-    const sheetSS = getActiveSS();
-    if (!sheetSS) return {};
-    const sheet = sheetSS.getSheetByName("BD_APP_SCRIPT");
-    if (!sheet) return {};
-    const data = sheet.getDataRange().getValues();
-    const config = {};
-    for (let i = 1; i < data.length; i++) {
-      const clave = String(data[i][1]).trim();
-      const valor = String(data[i][2]).trim();
-      if (clave) config[clave] = valor;
-    }
-    _cacheConfig = config;
+    const config = executeWithRetry(() => {
+      const sheetSS = getActiveSS();
+      if (!sheetSS) return {};
+      const sheet = sheetSS.getSheetByName("BD_APP_SCRIPT");
+      if (!sheet) return {};
+      const data = sheet.getDataRange().getValues();
+      const cfg = {};
+      for (let i = 1; i < data.length; i++) {
+        const clave = String(data[i][1]).trim();
+        const valor = String(data[i][2]).trim();
+        if (clave) cfg[clave] = valor;
+      }
+      return cfg;
+    });
+
+    if (Object.keys(config).length > 0) _cacheConfig = config;
     return config;
   } catch (e) {
     console.error("Error cargando SCRIPT_CONFIG: " + e.message);
-    return {};
+    return _cacheConfig || {}; // Devolver caché aunque sea vieja si falló el reintento
   }
 }
 
-// Las constantes que no dependen de la carga inmediata del SS
-const SCRIPT_CONFIG = getAppScriptConfig();
+/**
+ * GLOBAL_CONFIG dinámico (V3.0)
+ * Usa getters para asegurar que los valores se lean de SCRIPT_CONFIG en tiempo de ejecución.
+ */
 const GLOBAL_CONFIG = {
+  get SCRIPT_CONFIG() { return getAppScriptConfig(); },
   get SPREADSHEET_ID() { return getActiveSS() ? getActiveSS().getId() : ""; },
+
   DRIVE: {
-    PARENT_FOLDER_ID: SCRIPT_CONFIG["DRIVE_PARENT_FOLDER_ID"] || "",
-    TEMP_FOLDER_ID: SCRIPT_CONFIG["DRIVE_TEMP_FOLDER_ID"] || "",
-    JSON_CONFIG_FOLDER_ID: SCRIPT_CONFIG["DRIVE_JSON_CONFIG_FOLDER_ID"] || "",
-    JSON_CONFIG_FILE_ID: SCRIPT_CONFIG["DRIVE_JSON_CONFIG_FILE_ID"] || "",
-    WOO_FOLDER_ID: SCRIPT_CONFIG["DRIVE_WOO_FOLDER_ID"] || "",
-    BACKUP_FOLDER_ID: SCRIPT_CONFIG["DRIVE_BACKUP_FOLDER_ID"] || ""
+    get PARENT_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DRIVE_PARENT_FOLDER_ID"] || ""; },
+    get TEMP_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DRIVE_TEMP_FOLDER_ID"] || ""; },
+    get JSON_CONFIG_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DRIVE_JSON_CONFIG_FOLDER_ID"] || ""; },
+    get JSON_CONFIG_FILE_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DRIVE_JSON_CONFIG_FILE_ID"] || ""; },
+    get WOO_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DRIVE_WOO_FOLDER_ID"] || ""; },
+    get BACKUP_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DRIVE_BACKUP_FOLDER_ID"] || "" }
   },
+
   APPSHEET: {
-    APP_NAME: SCRIPT_CONFIG["APPSHEET_APP_NAME"] || "CASTFERSYSTEMV1-DEFAULT",
-    APP_ID: SCRIPT_CONFIG["APPSHEET_APP_ID"] || "",
-    ACCESS_KEY: SCRIPT_CONFIG["APPSHEET_ACCESS_KEY"] || "",
-    COMPROBANTES_FOLDER_ID: SCRIPT_CONFIG["APPSHEET_CARPETA_COMPROBANTES_ID"] || ""
+    get APP_NAME() { return GLOBAL_CONFIG.SCRIPT_CONFIG["APPSHEET_APP_NAME"] || "CASTFERSYSTEMV1-DEFAULT"; },
+    get APP_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["APPSHEET_APP_ID"] || ""; },
+    get ACCESS_KEY() { return GLOBAL_CONFIG.SCRIPT_CONFIG["APPSHEET_ACCESS_KEY"] || ""; },
+    get COMPROBANTES_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["APPSHEET_CARPETA_COMPROBANTES_ID"] || ""; }
   },
+
   SCRIPTS: {
-    GLOBAL: SCRIPT_CONFIG["GLOBAL_SCRIPT_ID"] || "",
-    BLOGGER: SCRIPT_CONFIG["MACRO_BLOGGER_ID"] || ""
+    get GLOBAL() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GLOBAL_SCRIPT_ID"] || ""; },
+    get BLOGGER() { return GLOBAL_CONFIG.SCRIPT_CONFIG["MACRO_BLOGGER_ID"] || ""; }
   },
+
   WORDPRESS: {
-    IMAGE_API_URL: SCRIPT_CONFIG["WP_IMAGE_API_URL"] || "",
-    IMAGE_API_KEY: SCRIPT_CONFIG["WP_IMAGE_API_KEY"] || "",
-    PRODUCT_API_URL: SCRIPT_CONFIG["WP_PRODUCT_API_URL"] || "",
-    SITE_URL: SCRIPT_CONFIG["WP_SITE_URL"] || "",
-    CONSUMER_KEY: SCRIPT_CONFIG["WP_CONSUMER_KEY"] || "",
-    CONSUMER_SECRET: SCRIPT_CONFIG["WP_CONSUMER_SECRET"] || ""
+    get IMAGE_API_URL() { return GLOBAL_CONFIG.SCRIPT_CONFIG["WP_IMAGE_API_URL"] || ""; },
+    get IMAGE_API_KEY() { return GLOBAL_CONFIG.SCRIPT_CONFIG["WP_IMAGE_API_KEY"] || ""; },
+    get PRODUCT_API_URL() { return GLOBAL_CONFIG.SCRIPT_CONFIG["WP_PRODUCT_API_URL"] || ""; },
+    get SITE_URL() { return GLOBAL_CONFIG.SCRIPT_CONFIG["WP_SITE_URL"] || ""; },
+    get CONSUMER_KEY() { return GLOBAL_CONFIG.SCRIPT_CONFIG["WP_CONSUMER_KEY"] || ""; },
+    get CONSUMER_SECRET() { return GLOBAL_CONFIG.SCRIPT_CONFIG["WP_CONSUMER_SECRET"] || ""; }
   },
+
   GEMINI: {
-    API_KEY: SCRIPT_CONFIG["GM_IMAGE_API_KEY"] || "",
-    PAID_PIN: SCRIPT_CONFIG["GM_PAID_PIN"] || "1234"
+    get API_KEY() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GM_IMAGE_API_KEY"] || ""; },
+    get PAID_PIN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GM_PAID_PIN"] || "1234"; }
   },
+
   TELEGRAM: {
-    BOT_TOKEN: SCRIPT_CONFIG["TELEGRAM_BOT_TOKEN"] || "",
-    CHAT_ID: SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || "",
-    MODE: (SCRIPT_CONFIG["TELEGRAM_MODE"] || "DEV").toUpperCase()
+    get BOT_TOKEN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_BOT_TOKEN"] || ""; },
+    get CHAT_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || ""; },
+    get MODE() { return (GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_MODE"] || "DEV").toUpperCase(); }
   },
+
   NOTIFICACIONES: {
-    PROVIDER: SCRIPT_CONFIG["NOTIFICATION_PROVIDER"] || "TELEGRAM",
-    EMAIL: SCRIPT_CONFIG["NOTIFICATION_EMAIL"] || ""
+    get PROVIDER() { return GLOBAL_CONFIG.SCRIPT_CONFIG["NOTIFICATION_PROVIDER"] || "TELEGRAM"; },
+    get EMAIL() { return GLOBAL_CONFIG.SCRIPT_CONFIG["NOTIFICATION_EMAIL"] || ""; }
   },
-  // --- NUEVAS CLAVES DE PUBLICACIÓN ---
-  PUBLICATION_TARGET: SCRIPT_CONFIG["PUBLICATION_TARGET"] || "DONWEB",
+
+  get PUBLICATION_TARGET() { return GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "DONWEB"; },
+
   GITHUB: {
-    USER: SCRIPT_CONFIG["GITHUB_USER"] || "",
-    REPO: SCRIPT_CONFIG["GITHUB_REPO"] || "",
-    TOKEN: SCRIPT_CONFIG["GITHUB_TOKEN"] || "",
-    FILE_PATH: SCRIPT_CONFIG["GITHUB_FILE_PATH"] || "catalogo.json"
+    get USER() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GITHUB_USER"] || ""; },
+    get REPO() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GITHUB_REPO"] || ""; },
+    get TOKEN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GITHUB_TOKEN"] || ""; },
+    get FILE_PATH() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GITHUB_FILE_PATH"] || "catalogo.json"; }
   },
-  ENABLE_BIGQUERY: false // Cambiar a true cuando se habilite la facturación en GCP
+
+  ENABLE_BIGQUERY: false
 };
 
 /**
@@ -157,10 +212,13 @@ const SHEET_SCHEMA = {
   STORES: ["TIENDA_ID", "MODO_VENTA", "RECARGO_MENOR", "IP_IMPRESORA_LOCAL"],
   PRODUCTS: ["CODIGO_ID", "MODELO", "PRECIO_COSTO", "RECARGO_MENOR", "CATEGORIA", "COLORES", "TALLES", "WOO_ID"],
   INVENTORY: ["INVENTARIO_ID", "TIENDA_ID", "PRODUCTO_ID", "COLOR", "TALLE", "STOCK_ACTUAL", "VENTAS_LOCAL", "VENTAS_WEB", "WOO_ID"],
-  CATEGORIES: ["CATEGORIA_ID", "ICONO"], // SVG_ID es opcional
+  CATEGORIES: ["CATEGORIA_ID", "CATEGORIA_GENERAL", "HTML", "ICONO"], // ICONO suele ser el ID del SVG
+  SVG_GALLERY: ["NOMBRE", "CODE"],
   COLORS: ["COLOR_ID", "HEXADECIMAL", "TEXTO"],
   PRODUCT_IMAGES: ["IMAGEN_ID", "PRODUCTO_ID", "IMAGEN_RUTA", "ARCHIVO_ID", "ESTADO", "PORTADA", "URL", "THUMBNAIL_URL", "COSTO", "ORDEN", "SYNC_WC"],
-  CLIENTS: ["CLIENTE_ID", "NOMBRE_COMPLETO", "CELULAR", "CORREO_ELECTRONICO"],
+  CLIENTS: ["CLIENTE_ID", "NOMBRE_COMPLETO", "CELULAR", "CORREO_ELECTRONICO", "CUIT_DNI", "AGENCIA_ENVIO", "TIPO_ENVIO", "CALLE", "NUMERO", "PISO", "DEPARTAMENTO", "CODIGO_POSTAL", "LOCALIDAD", "PROVINCIA", "OBSERVACION"],
+  BLOGGER_SALES: ["CODIGO", "FECHA", "HORA", "CAJA_ID", "METODO_PAGO", "DATOS_TRANSFERENCIA", "CLIENTE_ID", "DOCUMENTO", "CELULAR", "CORREO_ELECTRONICO", "DIRECCION", "AGENCIA", "TIEMPO_ENTREGA_AGENCIA", "MONEDA", "COSTO_ENVIO", "RECARGO_TRANSFERENCIA", "TOTAL_VENTA", "DETALLE_JSON", "ESTADO", "JSON_BACKUP"],
+  BLOGGER_SALES_DETAILS: ["VENTA_ID", "PRODUCTO_VARIACION", "DETALLE_JSON", "CANTIDAD", "PRECIO", "SUBTOTAL", "PRODUCTO_ID", "COLOR", "TALLE", "VARIEDAD_ID"],
   VENTAS_PEDIDOS: ["VENTA_ID", "TIENDA_ID", "ASESOR_ID", "FECHA", "HORA", "CLIENTE_ID", "TOTAL_VENTA", "ESTADO"],
   DETALLE_VENTAS: ["VENTA_ID", "VARIACION_ID", "PRODUCTO_ID", "CATEGORIA", "PRECIO", "CANTIDAD", "MONTO"],
   GESTION_CAJA: ["CAJA_ID", "TIENDA_ID", "ASESOR_ID", "FECHA", "ESTADO"],
@@ -206,12 +264,17 @@ const HeaderManager = {
         const h = String(header).trim().toUpperCase();
         mapping[h] = index;
         // Alias para compatibilidad global
-        if (h.includes("MACRO_ID")) mapping["ID"] = index;
+        if (h.includes("MACRO_ID") || h.includes("CATEGORIA_ID") || h.includes("PROD_ID") || h.includes("PRODUCTO_ID")) mapping["ID"] = index;
         if (h.includes("CLAVE")) mapping["CLAVE"] = index;
         if (h.includes("VALOR")) mapping["VALOR"] = index;
         if (h.includes("CORREO") || h.includes("MAIL") || h.includes("CORREO_ELECTRONICO")) mapping["EMAIL"] = index;
         if (h.includes("ROL") || h.includes("ROL_TIENDA")) mapping["ROL"] = index;
         if (h.includes("TIENDA_ADMINISTRADA") || h.includes("MANAGED_STORE")) mapping["MANAGED_STORE"] = index;
+        // Alias para SVG
+        if (h.includes("SVG_CODE") || h.includes("CODIGO_SVG") || h === "CODE") mapping["CODE"] = index;
+        if (h.includes("SVG_NOMBRE") || h === "NOMBRE") mapping["NOMBRE"] = index;
+        // Alias para Categorías
+        if (h.includes("CATEGORIA_GENERAL") || h.includes("CATEGORIA_PADRE") || h.includes("PADRE")) mapping["PADRE"] = index;
         // Alias para WooCommerce / Pedidos
         if (h.includes("ID ORDEN") || h.includes("ORDER_ID") || h.includes("NRO ORDEN") || h.includes("ID_ORDEN")) mapping["ID_ORDEN"] = index;
         if (h.includes("ID CLIENTE") || h.includes("CUSTOMER_ID") || h.includes("CLIENTE")) mapping["CLIENTE"] = index;
@@ -390,7 +453,12 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
   const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "ERP_CORE";
   const mode = config.MODE || "PROD";
 
-  if (!config.BOT_TOKEN || !config.CHAT_ID) return;
+  Logger.log(`📡 [Health] Iniciando reporte: ${tipo} | Msg: ${mensaje.substring(0, 30)}...`);
+
+  if (!config.BOT_TOKEN || !config.CHAT_ID) {
+    Logger.log("❌ [Health] Faltan BOT_TOKEN o CHAT_ID en GLOBAL_CONFIG.");
+    return;
+  }
 
   const iconos = {
     'ERROR': '🚨 [ERROR CRÍTICO]',
@@ -416,6 +484,7 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
 
   // Si es EXITO y tenemos un ID previo, intentamos editar
   if (tipo === 'EXITO' && lastSuccessId) {
+    Logger.log(`🔄 [Health] Intentando editar mensaje pegajoso: ${lastSuccessId}`);
     const editUrl = `https://api.telegram.org/bot${config.BOT_TOKEN}/editMessageText`;
     const editOptions = {
       method: "post",
@@ -432,13 +501,21 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
     try {
       const editRes = UrlFetchApp.fetch(editUrl, editOptions);
       const editData = JSON.parse(editRes.getContentText());
-      if (editData.ok) return; // Editado con éxito, salimos
+      if (editData.ok) {
+        Logger.log("✅ [Health] Mensaje editado correctamente.");
+        return;
+      } else {
+        Logger.log(`⚠️ [Health] No se pudo editar (${editData.description}). Enviando nuevo...`);
+        props.deleteProperty("LAST_SUCCESS_MSG_ID");
+      }
     } catch (e) {
-      console.error("Error editando reporte pegajoso: " + e.message);
+      Logger.log(`❌ [Health] Error en edición: ${e.message}`);
+      props.deleteProperty("LAST_SUCCESS_MSG_ID");
     }
   }
 
-  // Si no se pudo editar o no es EXITO, enviamos mensaje nuevo
+  // Enviar mensaje nuevo
+  Logger.log(`📨 [Health] Enviando mensaje nuevo a ${config.CHAT_ID}...`);
   const url = `https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`;
   const options = {
     method: "post",
@@ -453,24 +530,25 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
 
   try {
     const res = UrlFetchApp.fetch(url, options);
-    const data = JSON.parse(res.getContentText());
+    const resText = res.getContentText();
+    const data = JSON.parse(resText);
 
     if (data.ok && data.result) {
       const newMsgId = data.result.message_id;
+      Logger.log(`✅ [Health] Mensaje enviado OK. ID: ${newMsgId}`);
 
-      // Si es EXITO, guardamos el nuevo ID para la próxima
       if (tipo === 'EXITO') {
         props.setProperty("LAST_SUCCESS_MSG_ID", String(newMsgId));
-        pinTelegramMessage(newMsgId); // También lo anclamos para que sea fácil de ver
+        pinTelegramMessage(newMsgId);
       }
-
-      // Si es un ERROR CRÍTICO, anclamos el mensaje para que no se pierda
       if (tipo === 'ERROR') {
         pinTelegramMessage(newMsgId);
       }
+    } else {
+      Logger.log(`❌ [Health] Error de API Telegram: ${resText}`);
     }
   } catch (e) {
-    console.error("Fallo crítico enviando reporte a Telegram: " + e.message);
+    Logger.log(`❌ [Health] Fallo crítico fetch: ${e.message}`);
   }
 }
 
@@ -602,6 +680,26 @@ function doGet(e) {
     return ContentService.createTextOutput("Tienda no encontrada").setMimeType(ContentService.MimeType.TEXT);
   }
 
+  // --- APOYO BLOGGER: CATÁLOGO (NUEVO) ---
+  if (params.op === "configuracion") {
+    // 1. Obtener configuración (usa el Bridge)
+    const respuestaObjeto = blogger_listar_configuracion_sinCache();
+
+    // 2. Adjuntar pedido si existe ID
+    if (params.id) {
+      blogger_adjuntar_pedido_a_respuesta(respuestaObjeto, params.id);
+    }
+
+    const respuestaJSON_string = JSON.stringify(respuestaObjeto);
+
+    // 3. Soporte JSONP para Blogger
+    const callback = params.callback || "callback";
+    const jsonpResponse = `${callback}(${respuestaJSON_string})`;
+
+    return ContentService.createTextOutput(jsonpResponse)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
   // --- Dashboard de Imágenes (NUEVO) ---
   if (view === 'imagenes_manager') {
     const template = HtmlService.createTemplateFromFile('images_dashboard');
@@ -706,11 +804,16 @@ function getPageContent(view, accion, codigo, fecha) {
     return template.evaluate().getContent();
   }
 
-  // 4. Bienvenida
+  // 4. Bienvenida (Nuevo Panel de Control)
+  if (view === 'welcome') {
+    return HtmlService.createTemplateFromFile('home_dashboard')
+      .evaluate().getContent();
+  }
+
   return `
     <div style="font-family: sans-serif; text-align: center; padding: 50px; color: #64748b;">
       <h1>👋 Sistema de Gestión</h1>
-      <p>Selecciona una opción del menú.</p>
+      <p>Vista no encontrada: ${view}</p>
     </div>
   `;
 }
@@ -1042,4 +1145,11 @@ function testAllSchemas() {
   const finalSummary = results.join("\n");
   debugLog(finalSummary, true);
   return finalSummary;
+}
+
+/**
+ * Función de prueba para verificar notificaciones de éxito.
+ */
+function testSuccessNotification() {
+  notificarTelegramSalud("🧪 Prueba de notificación de ÉXITO (Sticky). Si ves esto, la configuración es correcta.", "EXITO");
 }

@@ -173,6 +173,18 @@
             justify-content: space-between;
         }
 
+        /* --- ZOOM MODAL --- */
+        #modalImage {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+            cursor: zoom-in;
+        }
+
+        #modalImage.zoomed {
+            transform: scale(2.5);
+            cursor: zoom-out;
+        }
+
         /* Checkbox Dark */
         .card-checkbox {
             position: absolute;
@@ -223,6 +235,12 @@
 
         #console-panel-wrapper.expanded {
             transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            #console-panel-wrapper {
+                bottom: 64px;
+            }
         }
 
         #console-header {
@@ -1591,14 +1609,57 @@
                 mediaEl.className = 'max-w-full max-h-full object-contain';
             } else {
                 mediaEl = document.createElement('img');
-                mediaEl.className = 'max-w-full max-h-full object-contain cursor-zoom-in';
-                mediaEl.onclick = () => window.open(img.URL, '_blank');
-                mediaEl.onerror = () => { mediaEl.src = 'https://via.placeholder.com/400x400?text=Error'; };
+                mediaEl.className = 'max-w-full max-h-full object-contain';
+                mediaEl.onclick = (e) => toggleZoom(e);
+                mediaEl.onmousemove = (e) => handleZoomMove(e);
+
+                // --- NUEVO: Manejo de error con reintento ---
+                let retryCount = 0;
+                const maxRetries = 5;
+                mediaEl.onerror = () => {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        const delay = retryCount * 2000; // 2s, 4s, 6s...
+                        log(`⚠️ Imagen no disponible aún. Reintentando en ${delay / 1000}s... (Intento ${retryCount}/${maxRetries})`, 'warning');
+                        setTimeout(() => {
+                            // Añadimos timestamp para romper caché en cada reintento
+                            const separator = img.URL.includes('?') ? '&' : '?';
+                            mediaEl.src = img.URL + separator + 'retry=' + Date.now();
+                        }, delay);
+                    } else {
+                        log("❌ Error persistente al cargar la imagen. AppSheet podría tardar unos minutos en indexarla.", 'error');
+                        container.innerHTML = `
+                            <div class="flex flex-col items-center justify-center p-10 text-slate-500">
+                                <span class="material-icons text-6xl mb-4 opacity-20">broken_image</span>
+                                <p class="text-xs font-bold uppercase tracking-widest">Imagen no disponible</p>
+                                <p class="text-[10px] mt-2 opacity-60 text-center max-w-[200px]">La ruta existe en Drive pero la URL de AppSheet aún está en proceso de indexación.</p>
+                                <button onclick="recargar(); closeModal();" class="mt-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-[10px] rounded uppercase font-bold transition">Reintentar Todo</button>
+                            </div>`;
+                    }
+                };
             }
 
+            // --- NUEVO: Spinner de carga ---
+            const spinner = document.createElement('div');
+            spinner.id = 'modalMediaLoading';
+            spinner.className = 'absolute inset-0 flex items-center justify-center bg-slate-900/50 z-20';
+            spinner.innerHTML = '<div class="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>';
+            container.appendChild(spinner);
+
             mediaEl.id = 'modalImage';
+            mediaEl.onload = () => {
+                const s = document.getElementById('modalMediaLoading');
+                if (s) s.remove();
+            };
+            if (isVideo) {
+                mediaEl.onloadeddata = () => {
+                    const s = document.getElementById('modalMediaLoading');
+                    if (s) s.remove();
+                };
+            }
+
             container.appendChild(mediaEl);
-            mediaEl.src = img.URL;
+            mediaEl.src = img.URL + (img.URL.includes('?') ? '&' : '?') + 't=' + Date.now();
 
             document.getElementById('modalFileName').innerText = (img.IMAGEN_RUTA || "").split('/').pop();
             document.getElementById('aiResultBox').classList.add('hidden');
@@ -1653,7 +1714,42 @@
                 anglePanel.classList.add('hidden');
             }
         }
-        function closeModal() { document.getElementById('imageModal').classList.add('hidden'); }
+        function closeModal() {
+            resetZoom();
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+
+        // --- FUNCIONES DE ZOOM ---
+        function toggleZoom(e) {
+            const img = document.getElementById('modalImage');
+            if (!img || img.tagName !== 'IMG') return;
+
+            const isZoomed = img.classList.toggle('zoomed');
+            if (isZoomed) {
+                handleZoomMove(e);
+            } else {
+                img.style.transformOrigin = 'center';
+            }
+        }
+
+        function handleZoomMove(e) {
+            const img = document.getElementById('modalImage');
+            if (!img || !img.classList.contains('zoomed')) return;
+
+            const rect = img.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+            img.style.transformOrigin = `${x}% ${y}%`;
+        }
+
+        function resetZoom() {
+            const img = document.getElementById('modalImage');
+            if (img) {
+                img.classList.remove('zoomed');
+                img.style.transformOrigin = 'center';
+            }
+        }
 
         function toggleModalPanel() {
             const panel = document.getElementById('modalSidePanel');
@@ -1699,12 +1795,14 @@
 
         function nextImage() {
             if (currentImageIndex < CURRENT_IMAGES.length - 1) {
+                resetZoom();
                 abrirModal(CURRENT_IMAGES[currentImageIndex + 1]);
             }
         }
 
         function prevImage() {
             if (currentImageIndex > 0) {
+                resetZoom();
                 abrirModal(CURRENT_IMAGES[currentImageIndex - 1]);
             }
         }
