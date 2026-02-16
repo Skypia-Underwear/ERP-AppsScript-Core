@@ -702,7 +702,7 @@ function doGet(e) {
 
   // --- Dashboard de Imágenes (NUEVO) ---
   if (view === 'imagenes_manager') {
-    const template = HtmlService.createTemplateFromFile('images_dashboard');
+    const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
     template.CATALOG_URL = getCatalogJsonUrl();
     return template.evaluate()
       .setTitle('Gestor de Imágenes')
@@ -717,7 +717,7 @@ function doGet(e) {
 
   // --- Vista Registro Cliente (NEW) ---
   if (view === 'client_form') {
-    return HtmlService.createTemplateFromFile('client_form_view')
+    return HtmlService.createTemplateFromFile('Web/client_form_view')
       .evaluate()
       .setTitle('Registro de Cliente')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
@@ -737,7 +737,7 @@ function doGet(e) {
 
   // --- CASO 2: SOLICITUD SPA (SYSTEM CONTAINER) ---
   // Si no es una acción directa, cargamos el Contenedor Principal.
-  const template = HtmlService.createTemplateFromFile('systemContainer');
+  const template = HtmlService.createTemplateFromFile('Web/systemContainer');
   template.scriptUrl = ScriptApp.getService().getUrl();
 
   // Lógica para ocultar menú de WooCommerce si no hay credenciales
@@ -762,13 +762,13 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // 1. Dashboard Inventario
   if (view === 'inventory_dashboard') {
-    return HtmlService.createTemplateFromFile('inventory_dashboard')
+    return HtmlService.createTemplateFromFile('Web/inventory_dashboard')
       .evaluate().getContent();
   }
 
   // 2. Auditoría
   if (view === 'auditoria') {
-    return HtmlService.createTemplateFromFile('sale_dashboard')
+    return HtmlService.createTemplateFromFile('Web/sale_dashboard')
       .evaluate().getContent();
   }
 
@@ -781,7 +781,7 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // --- NUEVO: Punto de Venta (TPV) ---
   if (view === 'pos_manager') {
-    const template = HtmlService.createTemplateFromFile('pos_view');
+    const template = HtmlService.createTemplateFromFile('Web/pos_view');
     template.CATALOG_URL = getCatalogJsonUrl();
     return template.evaluate().getContent();
   }
@@ -794,7 +794,7 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // --- NUEVA: Vista de Login ---
   if (view === 'login') {
-    return HtmlService.createTemplateFromFile('login_view')
+    return HtmlService.createTemplateFromFile('Web/login_view')
       .evaluate().getContent();
   }
 
@@ -806,7 +806,7 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // 4. Bienvenida (Nuevo Panel de Control)
   if (view === 'welcome') {
-    return HtmlService.createTemplateFromFile('home_dashboard')
+    return HtmlService.createTemplateFromFile('Web/home_dashboard')
       .evaluate().getContent();
   }
 
@@ -833,7 +833,7 @@ function configurarTemplateRunner(accion, codigo, fecha) {
     }
   }
 
-  const template = HtmlService.createTemplateFromFile('page_template');
+  const template = HtmlService.createTemplateFromFile('Web/page_template');
   template.codigo = codigo || '';
   template.fechaInicial = fecha || new Date().toISOString().split('T')[0];
   template.mostrarBotonPrompt = false;

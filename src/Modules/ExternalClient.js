@@ -7,7 +7,7 @@
  * Se llama desde Main.js -> doGet cuando view='customer_order'
  */
 function renderCustomerSaleView(ventaId) {
-    const template = HtmlService.createTemplateFromFile('customer_sale_view');
+    const template = HtmlService.createTemplateFromFile('Web/customer_sale_view');
 
     // Inicialización de variables de plantilla
     template.venta = null;
