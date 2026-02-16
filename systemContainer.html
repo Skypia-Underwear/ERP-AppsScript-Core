@@ -70,7 +70,7 @@
     #main-sidebar {
       width: 14rem;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow-x: hidden;
+      overflow-x: hidden !important;
     }
 
     #main-sidebar.collapsed {
@@ -104,9 +104,28 @@
     }
 
     #main-sidebar.collapsed .nav-section-title {
-      visibility: hidden;
-      opacity: 0;
-      white-space: nowrap;
+      display: none;
+    }
+
+    #main-sidebar.collapsed nav {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    #main-sidebar.collapsed .p-4.border-t {
+      padding: 1rem 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Eliminar barra de desplazamiento en sidebar */
+    #main-sidebar::-webkit-scrollbar {
+      display: none;
+    }
+
+    #main-sidebar {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
 
     #main-sidebar.collapsed .sidebar-link {
@@ -124,6 +143,21 @@
 
     #main-sidebar.collapsed #sidebar-toggle-btn {
       transform: rotate(0deg);
+    }
+
+    #main-sidebar.collapsed .p-4.border-t {
+      padding: 1rem 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    #main-sidebar.collapsed .p-4.border-t>div {
+      gap: 0 !important;
+      justify-content: center;
+    }
+
+    #main-sidebar.collapsed .sidebar-link i {
+      margin: 0;
     }
 
     /* Ajustes adicionales de padding/margin */
@@ -148,6 +182,56 @@
       width: 20px;
       height: 20px;
       animation: spin 1s linear infinite;
+    }
+
+    /* Mobile Bottom Nav Styles */
+    #mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background-color: #0f172a;
+      border-top: 1px solid #1e293b;
+      z-index: 100;
+      align-items: center;
+      justify-content: space-around;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .nav-item-mobile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 10px;
+      gap: 4px;
+      width: 20%;
+      height: 100%;
+    }
+
+    .nav-item-mobile i {
+      font-size: 22px;
+    }
+
+    .nav-item-mobile.active {
+      color: #818cf8;
+    }
+
+    @media (max-width: 768px) {
+      #mobile-bottom-nav {
+        display: flex;
+      }
+
+      #main-sidebar {
+        display: none !important;
+      }
+
+      main {
+        padding-bottom: 64px;
+      }
     }
   </style>
 </head>
@@ -221,12 +305,6 @@
         id="btn-wc-import">
         <i class="ph-duotone ph-download-simple text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">Importar Pedidos</span>
-      </button>
-
-      <button onclick="runAction('sincronizarGlobal', 'Sync Imágenes Global')"
-        class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-wc-img">
-        <i class="ph-duotone ph-images text-xl flex-shrink-0"></i>
-        <span class="text-sm font-medium sidebar-text">Sync Imágenes</span>
       </button>
       <? } ?>
 
@@ -358,6 +436,18 @@
           container.innerHTML = htmlContent;
           executeScripts(container);
           hideLoader();
+          updateMobileNavActive(view);
+
+          // Ocultar botón flotante de sidebar en vistas principales para evitar redundancia con el Bottom Nav
+          const mobileToggle = document.querySelector('#shell-status-container button');
+          if (mobileToggle) {
+            const mainDashboardViews = ['welcome', 'inventory_dashboard', 'pos_manager', 'imagenes_manager', 'auditoria'];
+            if (mainDashboardViews.includes(view)) {
+              mobileToggle.classList.add('hidden');
+            } else {
+              mobileToggle.classList.remove('hidden');
+            }
+          }
 
           if (window.innerWidth < 768) {
             document.getElementById('main-sidebar').classList.remove('open');
@@ -524,7 +614,38 @@
     window.onload = () => {
       handleInitialRoute();
     };
+
+    // Actualizar clase active en mobile nav
+    function updateMobileNavActive(view) {
+      document.querySelectorAll('.nav-item-mobile').forEach(el => el.classList.remove('active'));
+      const activeItem = document.querySelector(`.nav-item-mobile[onclick*="${view}"]`);
+      if (activeItem) activeItem.classList.add('active');
+    }
   </script>
+
+  <!-- Mobile Bottom Navigation -->
+  <div id="mobile-bottom-nav" class="safe-area-bottom">
+    <button onclick="navigate('welcome')" class="nav-item-mobile">
+      <i class="ph ph-house"></i>
+      <span>Inicio</span>
+    </button>
+    <button onclick="loadView('pos_manager', '', '', '')" class="nav-item-mobile">
+      <i class="ph ph-calculator"></i>
+      <span>TPV</span>
+    </button>
+    <button onclick="navigate('inventory_dashboard')" class="nav-item-mobile">
+      <i class="ph ph-check-circle"></i>
+      <span>Inv</span>
+    </button>
+    <button onclick="loadView('imagenes_manager', '', '', '')" class="nav-item-mobile">
+      <i class="ph ph-image"></i>
+      <span>Fotos</span>
+    </button>
+    <button onclick="navigate('auditoria')" class="nav-item-mobile">
+      <i class="ph ph-chart-line-up"></i>
+      <span>Stats</span>
+    </button>
+  </div>
 </body>
 
 </html>

@@ -26,7 +26,7 @@ function handleTelegramRequest(contents) {
         if (cache.get(`msg_${updateId}`)) {
             return ContentService.createTextOutput("ok"); // Ya procesado
         }
-        cache.put(`msg_${updateId}`, "true", 600); // 10 min
+        cache.put(`msg_${updateId}`, "true", 86400); // Protección por 24 horas para evitar re-procesar reintentos de Telegram
 
         // --- SEGURIDAD: Validar si el usuario es el dueño o desarrollador ---
         const config = GLOBAL_CONFIG.TELEGRAM;

@@ -64,19 +64,19 @@ function generarCatalogoJsonTPV() {
     try {
         // 1. Mapear TIENDAS (BD_TIENDAS)
         const sheetTiendas = ss.getSheetByName(SHEETS.STORES);
-        if (sheetTiendas) {
-            const tiendasData = convertirRangoAObjetos(sheetTiendas);
-            tiendasData.forEach(t => {
-                catalogo.stores[t.TIENDA_ID] = {
-                    name: t.TIENDA_ID,
-                    address: t.DIRECCION || "",
-                    phone: t.CELULAR || t.TELEFONO || "",
-                    policies: t.SOBRE_NOSOTROS || "",
-                    logoUrl: t.LOGOTIPO || "",
-                    qrData: t.QR_DATA || ""
-                };
-            });
-        }
+        if (!sheetTiendas) throw new Error(`No se encuentra la hoja de tiendas (${SHEETS.STORES})`);
+
+        const tiendasData = convertirRangoAObjetos(sheetTiendas);
+        tiendasData.forEach(t => {
+            catalogo.stores[t.TIENDA_ID] = {
+                name: t.TIENDA_ID,
+                address: t.DIRECCION || "",
+                phone: t.CELULAR || t.TELEFONO || "",
+                policies: t.SOBRE_NOSOTROS || "",
+                logoUrl: t.LOGOTIPO || "",
+                qrData: t.QR_DATA || ""
+            };
+        });
 
         // 2. Mapear COLORES (BD_COLORES)
         const sheetColores = ss.getSheetByName(SHEETS.COLORS);
@@ -179,7 +179,7 @@ function generarCatalogoJsonTPV() {
                     minor_surcharge: parseFloat(p.RECARGO_MENOR || 0),
                     category_id: p.CATEGORIA || "",
                     categoryName: p.CATEGORIA || "",
-                    parentCategory: p.CATEGORIA_PADRE || "",
+                    parentCategory: p.CATEGORIA_GENERAL || "",
                     season: p.TEMPORADA || "",
                     gender: p.GENERO || "",   // Nuevo filtro
                     brand: p.MARCA || "",     // Nuevo filtro
@@ -390,6 +390,15 @@ function publicarCatalogo() {
     // 2. PASO 2: Publicación Externo (Condicional)
     const target = (GLOBAL_CONFIG.PUBLICATION_TARGET || "DONWEB").toUpperCase();
     debugLog(`📡 Destino de publicación: ${target}`);
+
+    // 3. PASO 3: Ecosistema Blogger (NUEVO)
+    try {
+        if (typeof blogger_regenerarCacheConfiguracion === 'function') {
+            blogger_regenerarCacheConfiguracion();
+        }
+    } catch (e) {
+        debugLog("⚠️ Error en caché Blogger (No crítico para TPV): " + e.message);
+    }
 
     if (target === "GITHUB") {
         const res = subirCatalogoAGitHub();
