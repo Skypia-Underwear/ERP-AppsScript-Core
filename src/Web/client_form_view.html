@@ -1,361 +1,350 @@
-<!DOCTYPE html>
-<html lang="es">
+<?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 
-<head>
-    <base target="_top">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Cliente - ERP</title>
+<!-- FontAwesome se mantiene si es necesario para este formulario específico -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <!-- Modern Fonts and Frameworks -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
+<style>
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #0f172a;
+        /* Slate 900 */
+        color: #f1f5f9;
+        /* Slate 100 */
+        background-image: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
 
-    <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #0f172a;
-            /* Slate 900 */
-            color: #f1f5f9;
-            /* Slate 100 */
-            background-image: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
+    .glass-card {
+        background: rgba(30, 41, 59, 0.7);
+        /* Slate 800 with opacity */
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    input,
+    select,
+    textarea {
+        background: #1e293b !important;
+        /* Slate 800 */
+        border: 1px solid #334155 !important;
+        /* Slate 700 */
+        color: #f1f5f9 !important;
+        transition: all 0.2s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+        border-color: #6366f1 !important;
+        /* Indigo 500 */
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+        outline: none;
+    }
+
+    input:disabled,
+    select:disabled,
+    textarea:disabled {
+        background: #0f172a !important;
+        /* Slate 900 */
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-toggle {
+        background: #1e293b;
+        border: 1px solid #334155;
+        color: #94a3b8;
+        transition: all 0.2s;
+    }
+
+    .btn-toggle.active {
+        background: #6366f1;
+        color: white;
+        border-color: #6366f1;
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+    }
+
+    .input-alert {
+        border-color: #ef4444 !important;
+        /* Red 500 */
+    }
+
+    /* Custom Mobile Optimizations */
+    @media (max-width: 640px) {
+        .container {
+            padding: 1.5rem;
         }
 
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            /* Slate 800 with opacity */
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        .form-title {
+            font-size: 1.5rem;
         }
+    }
 
-        input,
-        select,
-        textarea {
-            background: #1e293b !important;
-            /* Slate 800 */
-            border: 1px solid #334155 !important;
-            /* Slate 700 */
-            color: #f1f5f9 !important;
-            transition: all 0.2s ease;
-        }
+    /* SweetAlert Dark Support */
+    .swal2-popup {
+        background: #1e293b !important;
+        color: #f1f5f9 !important;
+    }
+</style>
 
-        input:focus,
-        select:focus,
-        textarea:focus {
-            border-color: #6366f1 !important;
-            /* Indigo 500 */
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
-            outline: none;
-        }
+<script>
+    let UBIGEO_DATA = [];
+    let STORE_CONFIG = {};
+    const STORAGE_KEY = 'UBIGEO_CACHE_V3';
 
-        input:disabled,
-        select:disabled,
-        textarea:disabled {
-            background: #0f172a !important;
-            /* Slate 900 */
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    document.addEventListener("DOMContentLoaded", function () {
+        // Load Store Config
+        google.script.run.withSuccessHandler(function (config) {
+            STORE_CONFIG = config;
+            if (config.logoUrl) document.getElementById("form-logo").src = config.logoUrl;
+            if (config.tienda) document.getElementById("form-subtitle").textContent = config.tienda;
+        }).getStoreConfig();
 
-        .btn-toggle {
-            background: #1e293b;
-            border: 1px solid #334155;
-            color: #94a3b8;
-            transition: all 0.2s;
-        }
-
-        .btn-toggle.active {
-            background: #6366f1;
-            color: white;
-            border-color: #6366f1;
-            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
-        }
-
-        .input-alert {
-            border-color: #ef4444 !important;
-            /* Red 500 */
-        }
-
-        /* Custom Mobile Optimizations */
-        @media (max-width: 640px) {
-            .container {
-                padding: 1.5rem;
+        // Load Agencies
+        google.script.run.withSuccessHandler(function (agencias) {
+            const selectAgencia = document.getElementById("AGENCIA_ENVIO");
+            let options = '<option value="">Seleccione una agencia</option>';
+            if (agencias && agencias.length > 0) {
+                agencias.forEach(agencia => {
+                    options += `<option value="${agencia}">${agencia}</option>`;
+                });
+            } else {
+                options = '<option value="">No hay agencias disponibles</option>';
             }
+            selectAgencia.innerHTML = options;
+        }).getAgenciasEnvio();
 
-            .form-title {
-                font-size: 1.5rem;
-            }
-        }
+        // Load Ubigeo
+        cargarUbigeoCompleto();
 
-        /* SweetAlert Dark Support */
-        .swal2-popup {
-            background: #1e293b !important;
-            color: #f1f5f9 !important;
-        }
-    </style>
+        // UI Event Listeners
+        setupToggleButtons();
 
-    <script>
-        let UBIGEO_DATA = [];
-        let STORE_CONFIG = {};
-        const STORAGE_KEY = 'UBIGEO_CACHE_V3';
+        document.getElementById("PROVINCIA").addEventListener("change", listenerCambioProvincia);
+        document.getElementById("MUNICIPIO").addEventListener("change", listenerCambioMunicipio);
+        document.getElementById("AGENCIA_ENVIO").addEventListener("change", toggleFields);
 
-        document.addEventListener("DOMContentLoaded", function () {
-            // Load Store Config
-            google.script.run.withSuccessHandler(function (config) {
-                STORE_CONFIG = config;
-                if (config.logoUrl) document.getElementById("form-logo").src = config.logoUrl;
-                if (config.tienda) document.getElementById("form-subtitle").textContent = config.tienda;
-            }).getStoreConfig();
+        // Initial state
+        toggleFields();
 
-            // Load Agencies
-            google.script.run.withSuccessHandler(function (agencias) {
-                const selectAgencia = document.getElementById("AGENCIA_ENVIO");
-                let options = '<option value="">Seleccione una agencia</option>';
-                if (agencias && agencias.length > 0) {
-                    agencias.forEach(agencia => {
-                        options += `<option value="${agencia}">${agencia}</option>`;
-                    });
-                } else {
-                    options = '<option value="">No hay agencias disponibles</option>';
-                }
-                selectAgencia.innerHTML = options;
-            }).getAgenciasEnvio();
-
-            // Load Ubigeo
-            cargarUbigeoCompleto();
-
-            // UI Event Listeners
-            setupToggleButtons();
-
-            document.getElementById("PROVINCIA").addEventListener("change", listenerCambioProvincia);
-            document.getElementById("MUNICIPIO").addEventListener("change", listenerCambioMunicipio);
-            document.getElementById("AGENCIA_ENVIO").addEventListener("change", toggleFields);
-
-            // Initial state
-            toggleFields();
-
-            // Initial choice modal
-            Swal.fire({
-                title: "Gestión de Cliente",
-                text: "¿Qué desea realizar hoy?",
-                icon: 'question',
-                showConfirmButton: false,
-                footer: `
+        // Initial choice modal
+        Swal.fire({
+            title: "Gestión de Cliente",
+            text: "¿Qué desea realizar hoy?",
+            icon: 'question',
+            showConfirmButton: false,
+            footer: `
               <div class="flex gap-4 w-full px-4 mb-4">
                 <button type="button" class="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition" onclick="mostrarFormulario('registro')">Registro Nuevo</button>
                 <button type="button" class="flex-1 py-3 px-4 bg-slate-700 text-slate-200 rounded-lg font-bold hover:bg-slate-600 transition" onclick="mostrarFormulario('actualizacion')">Actualizar Datos</button>
               </div>
             `
-            });
-            document.getElementById("main-container").classList.add("hidden");
         });
+        document.getElementById("main-container").classList.add("hidden");
+    });
 
-        function setupToggleButtons() {
-            // Handle Button Groups
-            document.querySelectorAll(".btn-group button").forEach(btn => {
-                btn.addEventListener("click", function () {
-                    const parent = this.parentElement;
-                    parent.querySelectorAll("button").forEach(b => b.classList.remove("active"));
-                    this.classList.add("active");
-                    toggleFields();
-                });
+    function setupToggleButtons() {
+        // Handle Button Groups
+        document.querySelectorAll(".btn-group button").forEach(btn => {
+            btn.addEventListener("click", function () {
+                const parent = this.parentElement;
+                parent.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+                this.classList.add("active");
+                toggleFields();
             });
-        }
+        });
+    }
 
-        async function cargarUbigeoCompleto() {
-            const selectProvincia = document.getElementById("PROVINCIA");
-            selectProvincia.innerHTML = '<option value="">Cargando datos...</option>';
-            const cachedData = localStorage.getItem(STORAGE_KEY);
+    async function cargarUbigeoCompleto() {
+        const selectProvincia = document.getElementById("PROVINCIA");
+        selectProvincia.innerHTML = '<option value="">Cargando datos...</option>';
+        const cachedData = localStorage.getItem(STORAGE_KEY);
 
-            if (cachedData) {
-                UBIGEO_DATA = JSON.parse(cachedData);
+        if (cachedData) {
+            UBIGEO_DATA = JSON.parse(cachedData);
+            llenarSelectProvincias();
+        } else {
+            try {
+                const response = await fetch('https://www.castfer.com.ar/ubigeo_json.php');
+                if (!response.ok) throw new Error("Error en la red");
+                UBIGEO_DATA = await response.json();
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(UBIGEO_DATA)); } catch (e) { }
                 llenarSelectProvincias();
-            } else {
-                try {
-                    const response = await fetch('https://www.castfer.com.ar/ubigeo_json.php');
-                    if (!response.ok) throw new Error("Error en la red");
-                    UBIGEO_DATA = await response.json();
-                    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(UBIGEO_DATA)); } catch (e) { }
-                    llenarSelectProvincias();
-                } catch (error) {
-                    console.error("Error cargando Ubigeo:", error);
-                    selectProvincia.innerHTML = '<option value="">Error de conexión</option>';
-                }
+            } catch (error) {
+                console.error("Error cargando Ubigeo:", error);
+                selectProvincia.innerHTML = '<option value="">Error de conexión</option>';
             }
         }
+    }
 
-        function llenarSelectProvincias() {
-            const selectProvincia = document.getElementById("PROVINCIA");
-            let options = '<option value="">Seleccione una provincia</option>';
-            if (!UBIGEO_DATA || UBIGEO_DATA.length === 0) return;
-            UBIGEO_DATA.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            UBIGEO_DATA.forEach(p => options += `<option value="${p.id}">${p.nombre}</option>`);
-            selectProvincia.innerHTML = options;
+    function llenarSelectProvincias() {
+        const selectProvincia = document.getElementById("PROVINCIA");
+        let options = '<option value="">Seleccione una provincia</option>';
+        if (!UBIGEO_DATA || UBIGEO_DATA.length === 0) return;
+        UBIGEO_DATA.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        UBIGEO_DATA.forEach(p => options += `<option value="${p.id}">${p.nombre}</option>`);
+        selectProvincia.innerHTML = options;
+    }
+
+    function listenerCambioProvincia() {
+        const provId = this.value;
+        const selectMuni = document.getElementById("MUNICIPIO");
+        const selectLoca = document.getElementById("LOCALIDAD");
+        selectMuni.innerHTML = '<option value="">Seleccione un municipio</option>';
+        selectLoca.innerHTML = '<option value="">Seleccione primero su municipio</option>';
+        selectMuni.disabled = true;
+        selectLoca.disabled = true;
+        if (!provId) return;
+        const prov = UBIGEO_DATA.find(p => p.id === provId);
+        if (prov && prov.municipios) {
+            let options = '<option value="">Seleccione un municipio</option>';
+            prov.municipios.sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(m => options += `<option value="${m.id}">${m.nombre}</option>`);
+            selectMuni.innerHTML = options;
+            selectMuni.disabled = false;
         }
+    }
 
-        function listenerCambioProvincia() {
-            const provId = this.value;
-            const selectMuni = document.getElementById("MUNICIPIO");
-            const selectLoca = document.getElementById("LOCALIDAD");
-            selectMuni.innerHTML = '<option value="">Seleccione un municipio</option>';
-            selectLoca.innerHTML = '<option value="">Seleccione primero su municipio</option>';
-            selectMuni.disabled = true;
-            selectLoca.disabled = true;
-            if (!provId) return;
-            const prov = UBIGEO_DATA.find(p => p.id === provId);
-            if (prov && prov.municipios) {
-                let options = '<option value="">Seleccione un municipio</option>';
-                prov.municipios.sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(m => options += `<option value="${m.id}">${m.nombre}</option>`);
-                selectMuni.innerHTML = options;
-                selectMuni.disabled = false;
+    function listenerCambioMunicipio() {
+        const provId = document.getElementById("PROVINCIA").value;
+        const muniId = this.value;
+        const selectLoca = document.getElementById("LOCALIDAD");
+        selectLoca.innerHTML = '<option value="">Seleccione una localidad</option>';
+        selectLoca.disabled = true;
+        if (!muniId) return;
+        const prov = UBIGEO_DATA.find(p => p.id === provId);
+        if (prov) {
+            const muni = prov.municipios.find(m => m.id === muniId);
+            if (muni && muni.localidades) {
+                let options = '<option value="">Seleccione una localidad</option>';
+                muni.localidades.sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(l => options += `<option value="${l.id}">${l.nombre}</option>`);
+                selectLoca.innerHTML = options;
+                selectLoca.disabled = false;
             }
         }
+    }
 
-        function listenerCambioMunicipio() {
-            const provId = document.getElementById("PROVINCIA").value;
-            const muniId = this.value;
-            const selectLoca = document.getElementById("LOCALIDAD");
-            selectLoca.innerHTML = '<option value="">Seleccione una localidad</option>';
-            selectLoca.disabled = true;
-            if (!muniId) return;
-            const prov = UBIGEO_DATA.find(p => p.id === provId);
-            if (prov) {
-                const muni = prov.municipios.find(m => m.id === muniId);
-                if (muni && muni.localidades) {
-                    let options = '<option value="">Seleccione una localidad</option>';
-                    muni.localidades.sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(l => options += `<option value="${l.id}">${l.nombre}</option>`);
-                    selectLoca.innerHTML = options;
-                    selectLoca.disabled = false;
-                }
-            }
-        }
+    function toggleFields() {
+        const activeClasif = document.querySelector(".group-clasif button.active");
+        const tipoClasif = activeClasif ? activeClasif.innerText : "SIMPLE";
 
-        function toggleFields() {
-            const activeClasif = document.querySelector(".group-clasif button.active");
-            const tipoClasif = activeClasif ? activeClasif.innerText : "SIMPLE";
+        const activeEnvio = document.querySelector(".group-envio button.active");
+        const tipoEnvio = activeEnvio ? activeEnvio.innerText : "RETIRO TIENDA";
 
-            const activeEnvio = document.querySelector(".group-envio button.active");
-            const tipoEnvio = activeEnvio ? activeEnvio.innerText : "RETIRO TIENDA";
+        const allConditionalFields = ["CUIT_DNI", "CONDICION_FISCAL", "AGENCIA_ENVIO", "CODIGO_POSTAL", "PROVINCIA", "MUNICIPIO", "LOCALIDAD", "CALLE", "NUMERO", "PISO", "DEPARTAMENTO", "OBSERVACION"];
+        const ubigeoFields = ["CODIGO_POSTAL", "PROVINCIA", "MUNICIPIO", "LOCALIDAD", "CALLE", "NUMERO", "PISO", "DEPARTAMENTO", "OBSERVACION"];
 
-            const allConditionalFields = ["CUIT_DNI", "CONDICION_FISCAL", "AGENCIA_ENVIO", "CODIGO_POSTAL", "PROVINCIA", "MUNICIPIO", "LOCALIDAD", "CALLE", "NUMERO", "PISO", "DEPARTAMENTO", "OBSERVACION"];
-            const ubigeoFields = ["CODIGO_POSTAL", "PROVINCIA", "MUNICIPIO", "LOCALIDAD", "CALLE", "NUMERO", "PISO", "DEPARTAMENTO", "OBSERVACION"];
-
-            if (tipoClasif === "SIMPLE") {
-                allConditionalFields.forEach(id => toggleVisibility(id, false));
-                document.querySelectorAll(".group-envio button").forEach(btn => {
-                    if (!btn.innerText.includes("RETIRO")) btn.setAttribute("disabled", "true");
-                    else btn.removeAttribute("disabled");
-                });
-                // Force RETIRO TIENDA for Simple
-                if (!tipoEnvio.includes("RETIRO")) setToggleActive("group-envio", "RETIRO TIENDA");
-            } else {
-                allConditionalFields.forEach(id => toggleVisibility(id, true));
-                document.querySelectorAll(".group-envio button").forEach(btn => btn.removeAttribute("disabled"));
-            }
-
-            // Logical visibility overrides based on Shipping method
-            const currentEnvio = document.querySelector(".group-envio button.active")?.innerText || "RETIRO TIENDA";
-            const agencySelect = document.getElementById("AGENCIA_ENVIO");
-
-            if (currentEnvio.includes("RETIRO TIENDA")) {
-                ubigeoFields.forEach(id => toggleVisibility(id, false));
-                toggleVisibility("AGENCIA_ENVIO", false);
-
-                // Auto-fill agency for AppSheet processing
-                if (agencySelect) {
-                    // Check if option exists, otherwise add it temporarily
-                    let exists = Array.from(agencySelect.options).some(o => o.value === "RETIRO TIENDA");
-                    if (!exists) {
-                        const opt = document.createElement("option");
-                        opt.value = opt.text = "RETIRO TIENDA";
-                        agencySelect.add(opt);
-                    }
-                    agencySelect.value = "RETIRO TIENDA";
-                }
-            } else {
-                // SUCURSAL or DOMICILIO
-                ubigeoFields.forEach(id => toggleVisibility(id, true));
-                toggleVisibility("AGENCIA_ENVIO", true);
-
-                // Reset agency if it was set to RETIRO TIENDA auto-fill
-                if (agencySelect && agencySelect.value === "RETIRO TIENDA") {
-                    agencySelect.value = "";
-                }
-
-                // Dynamic Grid Spans (Desktop focus)
-                const contCP = document.getElementById("cont-CODIGO_POSTAL");
-                const contCalle = document.getElementById("cont-CALLE");
-                const contNum = document.getElementById("cont-NUMERO");
-                const contPiso = document.getElementById("cont-PISO");
-                const contDepto = document.getElementById("cont-DEPARTAMENTO");
-
-                if (currentEnvio.includes("SUCURSAL")) {
-                    toggleVisibility("PISO", false);
-                    toggleVisibility("DEPARTAMENTO", false);
-
-                    // SUCURSAL Layout: 3 (CP) - 6 (Calle) - 3 (Num)
-                    if (contCP) contCP.className = "field-container col-span-6 sm:col-span-3";
-                    if (contCalle) contCalle.className = "field-container col-span-12 sm:col-span-6";
-                    if (contNum) contNum.className = "field-container col-span-6 sm:col-span-3";
-                } else {
-                    // DOMICILIO Layout: 2 (CP) - 4 (Calle) - 2 (Num) - 2 (Piso) - 2 (Depto)
-                    toggleVisibility("PISO", true);
-                    toggleVisibility("DEPARTAMENTO", true);
-
-                    if (contCP) contCP.className = "field-container col-span-6 sm:col-span-2";
-                    if (contCalle) contCalle.className = "field-container col-span-12 sm:col-span-4";
-                    if (contNum) contNum.className = "field-container col-span-6 sm:col-span-2";
-                    if (contPiso) contPiso.className = "field-container col-span-6 sm:col-span-2";
-                    if (contDepto) contDepto.className = "field-container col-span-6 sm:col-span-2";
-                }
-            }
-        }
-
-        function toggleVisibility(id, show) {
-            const el = document.getElementById(id);
-            const container = el?.closest('.field-container');
-            if (container) {
-                container.style.display = show ? 'block' : 'none';
-            }
-            if (el) el.disabled = !show;
-        }
-
-        function setToggleActive(groupClass, text) {
-            const group = document.querySelector(`.${groupClass}`);
-            group.querySelectorAll("button").forEach(btn => {
-                if (btn.innerText.includes(text)) {
-                    btn.classList.add("active");
-                } else {
-                    btn.classList.remove("active");
-                }
+        if (tipoClasif === "SIMPLE") {
+            allConditionalFields.forEach(id => toggleVisibility(id, false));
+            document.querySelectorAll(".group-envio button").forEach(btn => {
+                if (!btn.innerText.includes("RETIRO")) btn.setAttribute("disabled", "true");
+                else btn.removeAttribute("disabled");
             });
-            toggleFields();
+            // Force RETIRO TIENDA for Simple
+            if (!tipoEnvio.includes("RETIRO")) setToggleActive("group-envio", "RETIRO TIENDA");
+        } else {
+            allConditionalFields.forEach(id => toggleVisibility(id, true));
+            document.querySelectorAll(".group-envio button").forEach(btn => btn.removeAttribute("disabled"));
         }
 
-        function mostrarFormulario(tipo) {
-            Swal.close();
-            const container = document.getElementById("main-container");
-            container.classList.remove("hidden");
-            const submitBtn = document.getElementById("submit-btn");
+        // Logical visibility overrides based on Shipping method
+        const currentEnvio = document.querySelector(".group-envio button.active")?.innerText || "RETIRO TIENDA";
+        const agencySelect = document.getElementById("AGENCIA_ENVIO");
 
-            if (tipo === 'registro') {
-                document.getElementById("form-title").textContent = "Registro de Cliente";
-                document.getElementById("CLIENTE_ID").disabled = false;
-                document.getElementById("CORREO_ELECTRONICO").disabled = false;
-                submitBtn.value = "Registrar Cliente";
+        if (currentEnvio.includes("RETIRO TIENDA")) {
+            ubigeoFields.forEach(id => toggleVisibility(id, false));
+            toggleVisibility("AGENCIA_ENVIO", false);
+
+            // Auto-fill agency for AppSheet processing
+            if (agencySelect) {
+                // Check if option exists, otherwise add it temporarily
+                let exists = Array.from(agencySelect.options).some(o => o.value === "RETIRO TIENDA");
+                if (!exists) {
+                    const opt = document.createElement("option");
+                    opt.value = opt.text = "RETIRO TIENDA";
+                    agencySelect.add(opt);
+                }
+                agencySelect.value = "RETIRO TIENDA";
+            }
+        } else {
+            // SUCURSAL or DOMICILIO
+            ubigeoFields.forEach(id => toggleVisibility(id, true));
+            toggleVisibility("AGENCIA_ENVIO", true);
+
+            // Reset agency if it was set to RETIRO TIENDA auto-fill
+            if (agencySelect && agencySelect.value === "RETIRO TIENDA") {
+                agencySelect.value = "";
+            }
+
+            // Dynamic Grid Spans (Desktop focus)
+            const contCP = document.getElementById("cont-CODIGO_POSTAL");
+            const contCalle = document.getElementById("cont-CALLE");
+            const contNum = document.getElementById("cont-NUMERO");
+            const contPiso = document.getElementById("cont-PISO");
+            const contDepto = document.getElementById("cont-DEPARTAMENTO");
+
+            if (currentEnvio.includes("SUCURSAL")) {
+                toggleVisibility("PISO", false);
+                toggleVisibility("DEPARTAMENTO", false);
+
+                // SUCURSAL Layout: 3 (CP) - 6 (Calle) - 3 (Num)
+                if (contCP) contCP.className = "field-container col-span-6 sm:col-span-3";
+                if (contCalle) contCalle.className = "field-container col-span-12 sm:col-span-6";
+                if (contNum) contNum.className = "field-container col-span-6 sm:col-span-3";
             } else {
-                Swal.fire({
-                    title: "Actualizar Datos",
-                    html: `
+                // DOMICILIO Layout: 2 (CP) - 4 (Calle) - 2 (Num) - 2 (Piso) - 2 (Depto)
+                toggleVisibility("PISO", true);
+                toggleVisibility("DEPARTAMENTO", true);
+
+                if (contCP) contCP.className = "field-container col-span-6 sm:col-span-2";
+                if (contCalle) contCalle.className = "field-container col-span-12 sm:col-span-4";
+                if (contNum) contNum.className = "field-container col-span-6 sm:col-span-2";
+                if (contPiso) contPiso.className = "field-container col-span-6 sm:col-span-2";
+                if (contDepto) contDepto.className = "field-container col-span-6 sm:col-span-2";
+            }
+        }
+    }
+
+    function toggleVisibility(id, show) {
+        const el = document.getElementById(id);
+        const container = el?.closest('.field-container');
+        if (container) {
+            container.style.display = show ? 'block' : 'none';
+        }
+        if (el) el.disabled = !show;
+    }
+
+    function setToggleActive(groupClass, text) {
+        const group = document.querySelector(`.${groupClass}`);
+        group.querySelectorAll("button").forEach(btn => {
+            if (btn.innerText.includes(text)) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
+        toggleFields();
+    }
+
+    function mostrarFormulario(tipo) {
+        Swal.close();
+        const container = document.getElementById("main-container");
+        container.classList.remove("hidden");
+        const submitBtn = document.getElementById("submit-btn");
+
+        if (tipo === 'registro') {
+            document.getElementById("form-title").textContent = "Registro de Cliente";
+            document.getElementById("CLIENTE_ID").disabled = false;
+            document.getElementById("CORREO_ELECTRONICO").disabled = false;
+            submitBtn.value = "Registrar Cliente";
+        } else {
+            Swal.fire({
+                title: "Actualizar Datos",
+                html: `
                   <div class="text-left py-2">
                     <label class="block text-xs font-bold text-slate-400 mb-1">ID CLIENTE / PIN:</label>
                     <input type="text" id="modal-id" class="w-full p-3 rounded-lg bg-slate-800 border-slate-700 text-sm focus:border-indigo-500">
@@ -365,83 +354,83 @@
                     <input type="email" id="modal-email" class="w-full p-3 rounded-lg bg-slate-800 border-slate-700 text-sm focus:border-indigo-500">
                   </div>
                 `,
-                    showCancelButton: true,
-                    confirmButtonText: 'Consultar',
-                    cancelButtonText: 'Cerrar',
-                    preConfirm: () => {
-                        const id = document.getElementById('modal-id').value;
-                        const email = document.getElementById('modal-email').value;
-                        if (!id || !email) return Swal.showValidationMessage('Complete ambos campos');
-                        return { id, email };
-                    }
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        mostrarLoader("Consultando base de datos...");
-                        consultarDatosCliente(result.value.id, result.value.email);
-                    }
-                });
-            }
-        }
-
-        function consultarDatosCliente(id, email) {
-            google.script.run.withSuccessHandler(function (response) {
-                Swal.close();
-                if (response && response.length > 0) {
-                    const data = response[0];
-                    Object.keys(data).forEach(key => {
-                        const el = document.getElementById(key);
-                        if (el && !["PROVINCIA", "MUNICIPIO", "LOCALIDAD"].includes(key)) {
-                            el.value = data[key] || "";
-                        }
-                    });
-
-                    if (data.CLASIFICACION) setToggleActive("group-clasif", data.CLASIFICACION);
-                    if (data.TIPO_ENVIO) setToggleActive("group-envio", data.TIPO_ENVIO);
-
-                    // Ubigeo Reconstitution
-                    const provObj = UBIGEO_DATA.find(p => p.nombre === data.PROVINCIA);
-                    if (provObj) {
-                        document.getElementById("PROVINCIA").value = provObj.id;
-                        listenerCambioProvincia.call(document.getElementById("PROVINCIA"));
-                        const muniObj = provObj.municipios.find(m => m.nombre === data.MUNICIPIO);
-                        if (muniObj) {
-                            document.getElementById("MUNICIPIO").value = muniObj.id;
-                            listenerCambioMunicipio.call(document.getElementById("MUNICIPIO"));
-                            const locObj = muniObj.localidades.find(l => l.nombre === data.LOCALIDAD);
-                            if (locObj) document.getElementById("LOCALIDAD").value = locObj.id;
-                        }
-                    }
-
-                    document.getElementById("form-title").textContent = "Actualización de Datos";
-                    document.getElementById("CLIENTE_ID").disabled = true;
-                    document.getElementById("CORREO_ELECTRONICO").disabled = true;
-                    document.getElementById("submit-btn").value = "Actualizar Datos";
-                } else {
-                    Swal.fire("No encontrado", "Verifique su ID/PIN y correo electrónico.", "error");
+                showCancelButton: true,
+                confirmButtonText: 'Consultar',
+                cancelButtonText: 'Cerrar',
+                preConfirm: () => {
+                    const id = document.getElementById('modal-id').value;
+                    const email = document.getElementById('modal-email').value;
+                    if (!id || !email) return Swal.showValidationMessage('Complete ambos campos');
+                    return { id, email };
                 }
-            }).obtenerDatosCliente(id, email);
-        }
-
-        function mostrarLoader(texto) {
-            Swal.fire({
-                title: texto,
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
+            }).then(result => {
+                if (result.isConfirmed) {
+                    mostrarLoader("Consultando base de datos...");
+                    consultarDatosCliente(result.value.id, result.value.email);
                 }
             });
         }
+    }
 
-        function showTerms() {
-            const tienda = STORE_CONFIG.tienda || "la Empresa";
-            const cuit = STORE_CONFIG.cuit ? `con CUIT ${STORE_CONFIG.cuit}` : "";
-            const address = STORE_CONFIG.direccion || "nuestro domicilio legal";
-            const whatsapp = STORE_CONFIG.telefono || "nuestro canal oficial";
-            const web = STORE_CONFIG.web || "nuestra plataforma";
+    function consultarDatosCliente(id, email) {
+        google.script.run.withSuccessHandler(function (response) {
+            Swal.close();
+            if (response && response.length > 0) {
+                const data = response[0];
+                Object.keys(data).forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el && !["PROVINCIA", "MUNICIPIO", "LOCALIDAD"].includes(key)) {
+                        el.value = data[key] || "";
+                    }
+                });
 
-            Swal.fire({
-                title: 'Términos y Condiciones',
-                html: `
+                if (data.CLASIFICACION) setToggleActive("group-clasif", data.CLASIFICACION);
+                if (data.TIPO_ENVIO) setToggleActive("group-envio", data.TIPO_ENVIO);
+
+                // Ubigeo Reconstitution
+                const provObj = UBIGEO_DATA.find(p => p.nombre === data.PROVINCIA);
+                if (provObj) {
+                    document.getElementById("PROVINCIA").value = provObj.id;
+                    listenerCambioProvincia.call(document.getElementById("PROVINCIA"));
+                    const muniObj = provObj.municipios.find(m => m.nombre === data.MUNICIPIO);
+                    if (muniObj) {
+                        document.getElementById("MUNICIPIO").value = muniObj.id;
+                        listenerCambioMunicipio.call(document.getElementById("MUNICIPIO"));
+                        const locObj = muniObj.localidades.find(l => l.nombre === data.LOCALIDAD);
+                        if (locObj) document.getElementById("LOCALIDAD").value = locObj.id;
+                    }
+                }
+
+                document.getElementById("form-title").textContent = "Actualización de Datos";
+                document.getElementById("CLIENTE_ID").disabled = true;
+                document.getElementById("CORREO_ELECTRONICO").disabled = true;
+                document.getElementById("submit-btn").value = "Actualizar Datos";
+            } else {
+                Swal.fire("No encontrado", "Verifique su ID/PIN y correo electrónico.", "error");
+            }
+        }).obtenerDatosCliente(id, email);
+    }
+
+    function mostrarLoader(texto) {
+        Swal.fire({
+            title: texto,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+    }
+
+    function showTerms() {
+        const tienda = STORE_CONFIG.tienda || "la Empresa";
+        const cuit = STORE_CONFIG.cuit ? `con CUIT ${STORE_CONFIG.cuit}` : "";
+        const address = STORE_CONFIG.direccion || "nuestro domicilio legal";
+        const whatsapp = STORE_CONFIG.telefono || "nuestro canal oficial";
+        const web = STORE_CONFIG.web || "nuestra plataforma";
+
+        Swal.fire({
+            title: 'Términos y Condiciones',
+            html: `
                     <div class="text-left text-xs space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar leading-relaxed">
                         <p><strong>1. Identificación:</strong> El presente registro es gestionado por <strong>${tienda}</strong> ${cuit}, con sede en ${address}.</p>
                         <p><strong>2. Propósito del Tratamiento:</strong> Los datos proporcionados serán utilizados exclusivamente para la gestión de su cuenta de cliente, procesamiento de compras, seguimiento de pedidos, emisión de facturas y la generación automatizada de rótulos de envío para logística.</p>
@@ -450,74 +439,72 @@
                         <p><strong>5. Consentimiento de Comunicación:</strong> Al completar este registro, usted acepta recibir notificaciones transaccionales vía WhatsApp (${whatsapp}), Correo Electrónico y a través de ${web} relativas a sus operaciones en el sistema.</p>
                     </div>
                 `,
-                confirmButtonText: 'He leído y comprendo',
-                confirmButtonColor: '#6366f1'
-            });
+            confirmButtonText: 'He leído y comprendo',
+            confirmButtonColor: '#6366f1'
+        });
+    }
+
+    function validateFields() {
+        const getVal = id => document.getElementById(id).value.trim();
+        const cp = getVal("CODIGO_POSTAL");
+        if (cp && isNaN(cp)) {
+            Swal.fire("Código Postal Inválido", "El código postal debe ser solo números (Requerido por AppSheet).", "warning");
+            document.getElementById("CODIGO_POSTAL").classList.add("input-alert");
+            return false;
         }
 
-        function validateFields() {
-            const getVal = id => document.getElementById(id).value.trim();
-            const cp = getVal("CODIGO_POSTAL");
-            if (cp && isNaN(cp)) {
-                Swal.fire("Código Postal Inválido", "El código postal debe ser solo números (Requerido por AppSheet).", "warning");
-                document.getElementById("CODIGO_POSTAL").classList.add("input-alert");
-                return false;
+        if (!document.getElementById("terms_check").checked && !document.getElementById("submit-btn").value.includes("Actualizar")) {
+            Swal.fire("Términos y Condiciones", "Debe aceptar los términos para registrarse.", "warning");
+            return false;
+        }
+
+        document.getElementById("CODIGO_POSTAL").classList.remove("input-alert");
+        return true;
+    }
+
+    function enviarSolicitud() {
+        if (!validateFields()) return;
+
+        const getVal = id => document.getElementById(id).value;
+        const getActive = group => document.querySelector(`.${group} button.active`).innerText;
+        const getSelText = id => { const s = document.getElementById(id); return s.selectedIndex > 0 ? s.options[s.selectedIndex].text : ""; };
+
+        const cpValue = getVal("CODIGO_POSTAL");
+
+        const data = {
+            CLIENTE_ID: getVal("CLIENTE_ID"),
+            CLASIFICACION: getActive("group-clasif"),
+            NOMBRE_COMPLETO: getVal("NOMBRE_COMPLETO"),
+            CELULAR: getVal("CELULAR"),
+            CORREO_ELECTRONICO: getVal("CORREO_ELECTRONICO"),
+            CUIT_DNI: getVal("CUIT_DNI"),
+            CONDICION_FISCAL: getVal("CONDICION_FISCAL"),
+            TIPO_ENVIO: getActive("group-envio"),
+            AGENCIA_ENVIO: getVal("AGENCIA_ENVIO"),
+            CODIGO_POSTAL: cpValue ? Number(cpValue) : null, // Ensure numeric for AppSheet
+            PROVINCIA: getSelText("PROVINCIA"),
+            MUNICIPIO: getSelText("MUNICIPIO"),
+            LOCALIDAD: getSelText("LOCALIDAD"),
+            CALLE: getVal("CALLE"),
+            NUMERO: getVal("NUMERO"),
+            PISO: getVal("PISO"),
+            DEPARTAMENTO: getVal("DEPARTAMENTO"),
+            OBSERVACION: getVal("OBSERVACION"),
+            ES_ACTUALIZACION: document.getElementById("submit-btn").value.includes("Actualizar")
+        };
+
+        mostrarLoader("Enviando solicitud...");
+        google.script.run.withSuccessHandler(response => {
+            if (response) {
+                Swal.fire("¡Éxito!", data.ES_ACTUALIZACION ? "Datos actualizados correctamente." : "Su registro ha sido completado.", "success")
+                    .then(() => location.reload());
+            } else {
+                Swal.fire("Error", "No se pudo procesar la solicitud. Intente nuevamente.", "error");
             }
-
-            if (!document.getElementById("terms_check").checked && !document.getElementById("submit-btn").value.includes("Actualizar")) {
-                Swal.fire("Términos y Condiciones", "Debe aceptar los términos para registrarse.", "warning");
-                return false;
-            }
-
-            document.getElementById("CODIGO_POSTAL").classList.remove("input-alert");
-            return true;
-        }
-
-        function enviarSolicitud() {
-            if (!validateFields()) return;
-
-            const getVal = id => document.getElementById(id).value;
-            const getActive = group => document.querySelector(`.${group} button.active`).innerText;
-            const getSelText = id => { const s = document.getElementById(id); return s.selectedIndex > 0 ? s.options[s.selectedIndex].text : ""; };
-
-            const cpValue = getVal("CODIGO_POSTAL");
-
-            const data = {
-                CLIENTE_ID: getVal("CLIENTE_ID"),
-                CLASIFICACION: getActive("group-clasif"),
-                NOMBRE_COMPLETO: getVal("NOMBRE_COMPLETO"),
-                CELULAR: getVal("CELULAR"),
-                CORREO_ELECTRONICO: getVal("CORREO_ELECTRONICO"),
-                CUIT_DNI: getVal("CUIT_DNI"),
-                CONDICION_FISCAL: getVal("CONDICION_FISCAL"),
-                TIPO_ENVIO: getActive("group-envio"),
-                AGENCIA_ENVIO: getVal("AGENCIA_ENVIO"),
-                CODIGO_POSTAL: cpValue ? Number(cpValue) : null, // Ensure numeric for AppSheet
-                PROVINCIA: getSelText("PROVINCIA"),
-                MUNICIPIO: getSelText("MUNICIPIO"),
-                LOCALIDAD: getSelText("LOCALIDAD"),
-                CALLE: getVal("CALLE"),
-                NUMERO: getVal("NUMERO"),
-                PISO: getVal("PISO"),
-                DEPARTAMENTO: getVal("DEPARTAMENTO"),
-                OBSERVACION: getVal("OBSERVACION"),
-                ES_ACTUALIZACION: document.getElementById("submit-btn").value.includes("Actualizar")
-            };
-
-            mostrarLoader("Enviando solicitud...");
-            google.script.run.withSuccessHandler(response => {
-                if (response) {
-                    Swal.fire("¡Éxito!", data.ES_ACTUALIZACION ? "Datos actualizados correctamente." : "Su registro ha sido completado.", "success")
-                        .then(() => location.reload());
-                } else {
-                    Swal.fire("Error", "No se pudo procesar la solicitud. Intente nuevamente.", "error");
-                }
-            }).enviarDatosAppSheet(btoa(unescape(encodeURIComponent(JSON.stringify(data)))));
-        }
-    </script>
-</head>
-
-<body>
+        }).enviarDatosAppSheet(btoa(unescape(encodeURIComponent(JSON.stringify(data)))));
+    }
+</script>
+<div class="registration-page-wrapper">
 
     <div id="main-container" class="max-w-4xl w-full glass-card rounded-3xl p-6 md:p-10 mx-auto">
         <div class="flex flex-col items-center mb-8">
@@ -743,6 +730,4 @@
         </form>
     </div>
 
-</body>
-
-</html>
+    </body>
