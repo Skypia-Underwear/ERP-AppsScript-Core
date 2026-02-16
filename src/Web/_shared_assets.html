@@ -1,0 +1,97 @@
+<!-- 
+  =================================================================
+  === ARCHIVO DE ASSETS COMPARTIDOS (Tailwind, Iconos, Fonts) ===
+  =================================================================
+  Se incluye en las vistas usando: 
+  <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+-->
+
+<!-- Fuentes: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+<!-- Framework CSS: Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Iconos: Phosphor Icons & Material Icons -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<!-- Librerías de UI: SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Estilos Globales de Scrollbar Dark & Config Tailwind -->
+<style>
+    :root {
+        --bg-main: #0f172a;
+        --bg-secondary: #1e293b;
+        --accent: #6366f1;
+    }
+
+    /* Scrollbar Universal Dark */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 20px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+        background-clip: content-box;
+    }
+
+    /* Utilidad para ocultar scrollbar */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Animaciones Base */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+</style>
+
+<script>
+    // Configuración de Tailwind (Opcional, para extender colores si es necesario)
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    slate: {
+                        950: '#020617',
+                    }
+                },
+                fontFamily: {
+                    sans: ['Plus Jakarta Sans', 'sans-serif'],
+                }
+            }
+        }
+    }
+</script>

@@ -1,72 +1,58 @@
-<!DOCTYPE html>
-<html>
+<?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 
-<head>
-  <base target="_top">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-    rel="stylesheet">
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <style>
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #0f172a;
-      /* Slate 900 */
-      color: #f1f5f9;
-      /* Slate 100 */
-    }
+<style>
+  /* Estilos específicos de Inventario */
 
-    #console-output {
-      background-color: #1e293b;
-      /* Slate 800 */
-      color: #e2e8f0;
-      font-family: 'Consolas', monospace;
-      font-size: 0.85rem;
-      line-height: 1.6;
-      overflow-y: auto;
-      flex-grow: 1;
-    }
+  #console-output {
+    background-color: #1e293b;
+    /* Slate 800 */
+    color: #e2e8f0;
+    font-family: 'Consolas', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
 
-    /* Scrollbar Dark */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
+  /* Scrollbar Dark */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 3px;
-    }
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+  }
 
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
 
-    .log-line {
-      border-bottom: 1px solid #334155;
-      padding: 4px 0;
-    }
+  .log-line {
+    border-bottom: 1px solid #334155;
+    padding: 4px 0;
+  }
 
-    .log-success {
-      color: #4ade80;
-    }
+  .log-success {
+    color: #4ade80;
+  }
 
-    .log-error {
-      color: #f87171;
-      font-weight: bold;
-    }
+  .log-error {
+    color: #f87171;
+    font-weight: bold;
+  }
 
-    .log-info {
-      color: #60a5fa;
-    }
-  </style>
-</head>
+  .log-info {
+    color: #60a5fa;
+  }
+</style>
 
-<body class="text-slate-200 h-full flex flex-col overflow-hidden bg-slate-950">
+<div class="text-slate-200 h-full flex flex-col overflow-hidden bg-slate-950">
 
   <div class="w-full h-full flex flex-col space-y-6 max-w-[1400px] mx-auto overflow-hidden p-6 md:p-8">
 
@@ -467,7 +453,3 @@
       </div>
     </div>
   </div>
-
-</body>
-
-</html>
