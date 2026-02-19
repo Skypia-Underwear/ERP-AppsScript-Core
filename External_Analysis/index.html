@@ -4,6 +4,7 @@
     xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
 
 <head>
+    <!-- Open Graph -->
     <meta content='Skypia Underwear' property='og:title' />
     <meta content='https://skypia-underwear.blogspot.com' property='og:url' />
     <meta content='website' property='og:type' />
@@ -12,17 +13,48 @@
     <meta
         content='https://cdn.filestackcontent.com/A96uIBVEaSfSGzSE1ZpmVz/border%3Dwidth%3A4%2Ccolor%3A1E90FFFF/shadow%3Dopacity%3A90%2Cvector%3A%5B4%2C4%5D%2Ccolor%3A1E90FFFF%2Cbackground%3AF0F8FFFF/resize%3Dwidth%3A545/cache=expiry:max/auto_image/https://www.appsheet.com/template/gettablefileurl?appName=TiendaOnlineBlogger-337846396&amp;tableName=Info%20Tienda&amp;fileName=Info%20Tienda_Images%2FSkypia%20Underwear.Logotipo.012135.png'
         property='og:image' />
-    <meta content='Tienda de Ropa Jacional e Importada de la mejor calidad y precio.' name='description' />
+    <meta content='Tienda de Ropa Nacional e Importada de la mejor calidad y precio.' name='description' />
     <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
     <meta content='width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=yes'
         name='viewport' />
     <b:skin version='1.3.0'>
         <![CDATA[
-        
-        
-    
     ]]>
     </b:skin>
+
+    <!-- CONFIGURACIÓN DE INSTALACIÓN ERP; buscar esto para configurar
+         Solo este bloque se edita al instalar el tema en una nueva tienda.-->
+    <script type='text/javascript'>
+        //<![CDATA[
+
+        // ── 1. APPS SCRIPT (ID del deployment de la macro/ERP) ───────────────
+        var GAS_DEPLOYMENT_ID = 'AKfycbzss0AHtYrkWd1qp6dqCwA3tgvFA_8JaWL5kIVCUO4xnyYi2-TNvLPRD2E76eDRdz7T';
+        var GAS_BASE_URL = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/';
+
+        // ── 2. HOSTING / DONWEB ──────────────────────────────────────────────
+        var DONWEB_BASE_URL = 'https://castfer.com.ar/';
+        var DONWEB_READ_SCRIPT = 'leer_json_hostingshop.php';   // script lector ya existente en el server
+
+        // ── 3. GITHUB ────────────────────────────────────────────────────────
+        var GITHUB_USER = 'Skypia-Underwear';
+        var GITHUB_REPO = 'api-tienda';
+        var GITHUB_BRANCH = 'main';
+
+        // ── 4. ARCHIVOS JSON DE ESTA TIENDA ──────────────────────────────────
+        var BLOGGER_JSON_FILE = 'skypia-underwear-blogger-config.json';
+        var TPV_JSON_FILE = 'skypia-underwear-catalog-tpv.json';
+
+        // ── URLs construidas automáticamente (no editar debajo de esta línea) ─
+        var url_final_venta = GAS_BASE_URL;   // alias de compatibilidad con código existente
+        var DONWEB_BLOGGER_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + BLOGGER_JSON_FILE;
+        var GITHUB_BLOGGER_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + BLOGGER_JSON_FILE;
+        var DONWEB_TPV_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + TPV_JSON_FILE;
+        var GITHUB_TPV_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + TPV_JSON_FILE;
+
+        //]]>
+    </script>
+
+    <!-- CSS -->
     <title>Skypia Underwear</title>
     <link id='manifest' rel='manifest' />
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet' />
@@ -30,8 +62,6 @@
     <link href='https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.0/dist/fancybox/fancybox.css' rel='stylesheet' />
     <link href='https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css' rel='stylesheet' />
     <link href='https://cdn.datatables.net/buttons/2.3.2/css/buttons.dataTables.min.css' rel='stylesheet' />
-    <meta charset='UTF-8' />
-    <meta content='width=device-width' name='viewport' />
 </head>
 <style>
     .tiktok-button {
@@ -70,118 +100,17 @@
         font-size: 32px;
         font-weight: bold;
         margin-top: 10px;
-        color: var(--text-main);
+        color: #333;
         text-transform: uppercase;
-        font-family: 'Outfit', sans-serif;
-    }
-
-    :root {
-        --bg-page: #0f172a;
-        --bg-card: rgba(30, 41, 59, 0.7);
-        --bg-nav: rgba(15, 23, 42, 0.8);
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-        --accent-primary: #38bdf8;
-        --accent-secondary: #818cf8;
-        --border-color: rgba(255, 255, 255, 0.1);
-        --glass-blur: blur(12px);
-        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    }
-
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@600;700;800&amp;display=swap');
-
-    body {
-        background-color: var(--bg-page);
-        color: var(--text-main);
-        font-family: 'Inter', sans-serif;
-        transition: background-color 0.3s ease;
-    }
-
-    .navbar {
-        background-color: var(--bg-nav) !important;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .list-group-item {
-        background-color: var(--bg-card) !important;
-        color: var(--text-main) !important;
-        border: 1px solid var(--border-color) !important;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        border-radius: 16px !important;
-        margin-bottom: 12px !important;
-        box-shadow: var(--shadow-md);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .list-group-item:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-        border-color: var(--accent-primary) !important;
-    }
-
-    .accordion-button {
-        background-color: transparent !important;
-        color: var(--text-main) !important;
-        font-weight: 600;
-    }
-
-    .accordion-button:not(.collapsed) {
-        color: var(--accent-primary) !important;
-        box-shadow: none !important;
-    }
-
-    .accordion-item {
-        background-color: transparent !important;
-        border: none !important;
-    }
-
-    .sidebar-container,
-    .filter-sidebar,
-    .cart-sidebar {
-        background-color: var(--bg-nav) !important;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        color: var(--text-main);
-        border-left: 1px solid var(--border-color);
-        border-right: 1px solid var(--border-color);
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) !important;
-        border: none !important;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 8px 16px;
-        box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
-    }
-
-    .form-control,
-    .form-select {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid var(--border-color) !important;
-        color: var(--text-main) !important;
-        border-radius: 8px;
-    }
-
-    .form-control::placeholder {
-        color: var(--text-muted);
     }
 
     .store-description {
         text-align: center;
         margin-top: 10px;
-        font-weight: 500;
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        color: #0d6efd;
         font-style: italic;
         margin-block-end: 15px;
-        font-family: 'Outfit', sans-serif;
     }
 
     .titulo-productos {
@@ -189,10 +118,10 @@
         text-align: center;
         font-size: 1.25em;
         font-weight: bold;
-        font-family: 'Outfit', sans-serif;
-        color: var(--accent-primary);
+        font-family: serif;
+        color: #333;
         padding: 10px 0;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 1px solid #ddd;
         margin-top: -8px;
     }
 
@@ -202,7 +131,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: var(--bg-page);
+        background-color: rgba(255, 255, 255, 0.9);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -261,7 +190,7 @@
     .loading-text {
         margin-top: 20px;
         font-size: 1.4em;
-        color: var(--text-main);
+        color: #34495e;
         font-weight: bold;
         animation: fade-in 2s ease-in-out infinite;
     }
@@ -395,23 +324,19 @@
         flex-direction: column;
         align-items: center;
         display: flex;
-        padding: 12px;
-        background-color: var(--bg-card);
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
+        padding: 2px;
+        background-color: #ffffff;
         width: 100%;
         max-width: 466px;
-        border-radius: 16px;
-        border: 1px solid var(--border-color);
-        box-shadow: var(--shadow-md);
+        border-radius: 10px;
+        box-shadow: 0px 2px 5px #ddd;
     }
 
     .total-compra {
-        background-color: rgba(255, 255, 255, 0.05);
-        padding: 5px 12px;
+        background-color: #fff;
+        padding: 5px;
         margin-left: 5px;
         border-radius: 15px;
-        color: var(--text-main);
     }
 
     .total-compra-titulo {
@@ -442,22 +367,21 @@
 
 
     .accordion-button:not(.collapsed) {
-        color: var(--accent-primary) !important;
-        background-color: transparent !important;
+        color: #333;
+        background-color: #F6F8FC;
     }
 
     .modal_pedido,
     .accordion-button.collapsed,
     .list-group-item {
-        background-color: var(--bg-card) !important;
-        color: var(--text-main) !important;
+        background-color: #fff;
     }
 
     .accordion-button:focus {
         z-index: 4;
-        border-color: var(--accent-primary) !important;
+        border-color: #F6F8FC !important;
         outline: none;
-        box-shadow: 0 0 0 0.15rem rgba(56, 189, 248, 0.25);
+        box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.5);
     }
 
     .accordion-button:not(.collapsed)::after {
@@ -862,17 +786,12 @@
 
     .modal-content {
         font-size: 15px;
-        background-color: var(--bg-card) !important;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        color: var(--text-main);
+        background-color: #fff;
         margin: 5% auto;
-        padding: 24px;
-        border: 1px solid var(--border-color) !important;
-        border-radius: 20px;
-        width: 95%;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 100%;
         max-width: 800px;
-        box-shadow: var(--shadow-lg);
     }
 
     .container-sm {
@@ -1063,15 +982,6 @@
         right: 0;
     }
 
-    .navbar-collapse {
-        background-color: var(--bg-nav) !important;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        border-radius: 12px;
-        padding: 10px;
-        margin-top: 10px;
-    }
-
     .img-thumbnail {
         padding: .25rem;
         background-color: #4d90fe;
@@ -1236,7 +1146,12 @@
     }
 
     /* Override for Compact View Products ONLY */
-    body[data-vista="compacta"] [id^="contenedor-productos-"] .list-group-item {
+    body[data-vista=&quot;
+    compacta&quot;
+    ] [id^=&quot;
+    contenedor-productos-&quot;
+
+    ] .list-group-item {
         flex: 0 0 auto !important;
         /* Let Bootstrap col- classes handle width */
         max-width: none !important;
@@ -1517,73 +1432,44 @@
 
     /* --- ESTILOS REFACTORIZADOS Y UNIFICADOS PARA LAYOUT Y PRODUCTOS --- */
 
-    /* 1. Estilos Base para Sidebars */
+    /* 1. Estilos Base para Sidebars (Ahora para TODAS las pantallas) */
+    /* Tomamos tu lógica móvil y la convertimos en el estilo por defecto */
     .filter-sidebar,
     .cart-sidebar {
+        position: fixed;
+        top: 0;
+        width: 370px;
+        /* Un ancho fijo y más manejable que el 50% en escritorio */
+        max-width: 80%;
+        /* Asegura que no ocupe demasiado en pantallas pequeñas */
         height: 100%;
-        background-color: var(--bg-nav) !important;
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
+        z-index: 1050;
+        background-color: #f8f9fa;
         overflow-y: auto;
-        transition: transform 0.3s ease-in-out, background-color 0.3s ease;
-        border-left: 1px solid var(--border-color);
-        border-right: 1px solid var(--border-color);
-        color: var(--text-main);
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease-in-out;
+        /* Usamos transform para mejor rendimiento */
     }
 
-    /* Comportamiento Móvil (Drawer) */
-    @media (max-width: 767.98px) {
-
-        .filter-sidebar,
-        .cart-sidebar {
-            position: fixed;
-            top: 0;
-            width: 370px;
-            max-width: 85%;
-            z-index: 1050;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
-        }
-
-        .filter-sidebar {
-            left: 0;
-            transform: translateX(-100%);
-        }
-
-        .cart-sidebar {
-            right: 0;
-            transform: translateX(100%);
-        }
-
-        .filter-sidebar.active,
-        .cart-sidebar.active {
-            transform: translateX(0);
-        }
+    .filter-sidebar {
+        left: 0;
+        transform: translateX(-100%);
+        /* Oculta a la izquierda */
     }
 
-    /* Comportamiento Escritorio (Grid Flow) */
-    @media (min-width: 768px) {
+    .cart-sidebar {
+        right: 0;
+        transform: translateX(100%);
+        /* Oculta a la derecha */
+    }
 
-        .filter-sidebar,
-        .cart-sidebar {
-            position: relative;
-            /* Vuelve al flujo normal */
-            width: 100%;
-            /* El contenedor padre (col-md-x) controlará el ancho */
-            border-radius: 12px;
-            box-shadow: var(--shadow-md);
-            margin-bottom: 20px;
-        }
+    /* Usamos tu clase &#39;.active&#39; para mostrar las sidebars */
+    .filter-sidebar.active {
+        transform: translateX(0);
+    }
 
-        /* Desactivamos las transformaciones de ocultamiento en escritorio */
-        .filter-sidebar,
-        .cart-sidebar {
-            transform: none !important;
-        }
-
-        /* Ocultar botones flotantes en escritorio si las barras son parte del grid */
-        .btn-flotante {
-            display: none !important;
-        }
+    .cart-sidebar.active {
+        transform: translateX(0);
     }
 
     /* Tu overlay funciona perfecto, solo le añadimos la clase &#39;active&#39; */
@@ -1646,43 +1532,42 @@
 
     /* Efecto hover para los botones */
     .btn-flotante:hover {
-        background-color: var(--accent-primary);
-        filter: brightness(1.1);
-        padding-left: 14px;
-        padding-right: 14px;
+        background-color: #0b5ed7;
+        /* Un azul un poco más oscuro */
+        padding-left: 12px;
+        padding-right: 12px;
     }
 
-    /* Oculta los botones flotantes cuando su sidebar está abierta (Solo móvil) */
-    @media (max-width: 767.98px) {
-        .filter-sidebar.active~#btn-flotante-filtros {
-            transform: translateX(-150%) translateY(-50%);
-            opacity: 0;
-        }
-
-        .cart-sidebar.active~#btn-flotante-carrito {
-            transform: translateX(150%) translateY(-50%);
-            opacity: 0;
-        }
+    /* (Opcional pero recomendado) Oculta los botones flotantes cuando su sidebar está abierta */
+    .filter-sidebar.active~#btn-flotante-filtros,
+    .cart-sidebar.active~#btn-flotante-carrito {
+        transform: translateX(200%) translateY(-50%);
+        /* Los saca de la pantalla */
+        opacity: 0;
     }
+
+    #btn-flotante-filtros {
+        transform-origin: left;
+    }
+
+    .filter-sidebar.active~#btn-flotante-filtros {
+        transform: translateX(-200%) translateY(-50%);
+    }
+
 
     /* Estilo para los botones de CIERRE DENTRO de las sidebars */
     .sidebar-close-btn {
         position: absolute;
-        top: 20px;
-        background-color: var(--bg-card);
-        border: 1px solid var(--border-color);
-        color: var(--text-main);
-        padding: 5px 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #e9ecef;
+        /* Un gris claro */
+        border: 1px solid #dee2e6;
+        padding: 15px 5px;
         cursor: pointer;
         font-size: 18px;
-        border-radius: 8px;
-        z-index: 10;
+        line-height: 1;
         transition: all 0.2s ease;
-    }
-
-    .sidebar-close-btn:hover {
-        background-color: var(--accent-primary);
-        color: white;
     }
 
     /* Posición específica para el botón de cierre de FILTROS */
@@ -1770,29 +1655,29 @@
 
     .resaltado-mini {
         animation: resaltarBloque 1.5s ease;
-        background-color: rgba(251, 191, 36, 0.2) !important;
-        border: 2px solid var(--accent-secondary) !important;
+        background-color: #fff3cd !important;
+        border: 2px solid #ffc107 !important;
         border-radius: 8px;
     }
 
     .boton-actualizado {
         animation: resaltarBloque 1.5s ease;
-        background-color: rgba(251, 191, 36, 0.2) !important;
-        border: 2px solid var(--accent-secondary) !important;
+        background-color: #fff3cd !important;
+        border: 2px solid #ffc107 !important;
         border-radius: 6px;
     }
 
     @keyframes resaltarBloque {
         0% {
-            background-color: rgba(251, 191, 36, 0.1);
+            background-color: #fff3cd;
         }
 
         50% {
-            background-color: rgba(251, 191, 36, 0.3);
+            background-color: #ffeeba;
         }
 
         100% {
-            background-color: rgba(251, 191, 36, 0.1);
+            background-color: #fff3cd;
         }
     }
 
@@ -1943,15 +1828,6 @@
         border-color: #0d6efd;
         background-color: #e7f1ff;
         color: #0d6efd;
-    }
-
-    body {
-        background-color: var(--bg-page) !important;
-        color: var(--text-main) !important;
-        font-family: 'Inter', sans-serif !important;
-        margin: 0;
-        padding-top: 70px;
-        /* Espacio para la navbar fija */
     }
 
     #info-actualizacion {
@@ -2189,9 +2065,8 @@
             <div class='icon-container'>
                 <svg class='database' fill='#000000' height='220px' id='Layer_1' version='1.1' viewBox='0 0 508 508'
                     width='220px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg'
-                    xmlns:xlink='http://www.w3.org/1999/xlink'><text fill='var(--accent-primary)' font-family='Outfit'
-                        font-size='55' text-anchor='middle' x='50%' y='45'
-                        style='text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);'>HOSTINGSHOP</text>
+                    xmlns:xlink='http://www.w3.org/1999/xlink'><text fill='black' font-family='Arial' font-size='55'
+                        text-anchor='middle' x='50%' y='45'>HOSTINGSHOP</text>
                     <g id='SVGRepo_bgCarrier' stroke-width='0' />
                     <g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round' />
                     <g id='SVGRepo_iconCarrier'>
@@ -2635,8 +2510,8 @@
                     style='--bs-gutter-x: 0.5rem; align-content: center; align-items: stretch; flex-direction: row;'>
 
                     <!-- Barra lateral de Búsqueda -->
-                    <aside class='filter-sidebar col-12 col-md-2 p-3 border rounded' id='sidebarFiltros'>
-                        <button class='sidebar-close-btn d-md-none' onclick='closeSidebarFiltros()'>
+                    <aside class='filter-sidebar bg-light p-3 border rounded' id='sidebarFiltros'>
+                        <button class='sidebar-close-btn' onclick='closeSidebarFiltros()'>
                             <span>&#9664;</span> </button>
                         <h4>Filtrado de productos</h4>
 
@@ -2654,8 +2529,8 @@
                     </section>
 
                     <!-- Barra lateral de Carrito -->
-                    <aside class='cart-sidebar col-12 col-md-2 p-3 border rounded' id='sidebarCarrito'>
-                        <button class='sidebar-close-btn d-md-none' onclick='closeSidebarCarrito()'>
+                    <aside class='cart-sidebar bg-light p-3 border rounded' id='sidebarCarrito'>
+                        <button class='sidebar-close-btn' onclick='closeSidebarCarrito()'>
                             <span>&#9654;</span>
                         </button>
 
@@ -3204,7 +3079,6 @@
 
     <script type='text/javascript'>
         //<![CDATA[
-        var url_final_venta = "https://script.google.com/macros/s/AKfycbzJgpU6DPI8QrZHSE5XHtA-CtgexVWQFp0L5ZILFLpZMPPwTPve_WxNfaFnxE1evrEw/";
         var operacion = "";
         var idpedido = "";
 
@@ -3310,7 +3184,103 @@
                 );
             });
 
-            initializeMutationObserver();
+            // ── HANDLER: Vista previa del comprobante ────────────────────────
+            window.previsualizarComprobante = function (event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const wrapper = document.getElementById('comprobante_preview_wrapper');
+                const preview = document.getElementById('comprobante_preview');
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = e => { preview.src = e.target.result; wrapper.style.display = 'block'; };
+                    reader.readAsDataURL(file);
+                } else {
+                    wrapper.style.display = 'none'; // PDF: sin preview
+                }
+            };
+
+            // ── HANDLER: Subir comprobante y verificar con IA ────────────────
+            window.subirComprobante = function (pedidoId) {
+                const fileInput = document.getElementById('comprobante_file');
+                const resultDiv = document.getElementById('comprobante_resultado');
+                const btn = document.getElementById('btn_subir_comprobante');
+
+                if (!fileInput || !fileInput.files.length) {
+                    Swal.fire('Atención', 'Seleccioná un archivo antes de verificar.', 'warning');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const MAX_MB = 8;
+                if (file.size > MAX_MB * 1024 * 1024) {
+                    Swal.fire('Archivo muy grande', `Máximo ${MAX_MB} MB permitidos.`, 'warning');
+                    return;
+                }
+
+                // Estado: cargando
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verificando...';
+                resultDiv.style.display = 'none';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    // Extraer base64 puro (sin el prefijo data:...;base64,)
+                    const base64Full = e.target.result;
+                    const base64Content = base64Full.split(',')[1] || base64Full;
+
+                    const payload = {
+                        op: 'pagar_con_comprobante',
+                        idpedido: pedidoId,
+                        fileData: {
+                            fileName: file.name,
+                            mimeType: file.type,
+                            content: base64Content
+                        }
+                    };
+
+                    // Llamada directa a GAS (fetch POST - no JSONP porque enviamos base64 grande)
+                    fetch(GAS_BASE_URL + 'exec', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    })
+                        .then(r => r.json())
+                        .then(resp => {
+                            const verificado = resp.verified === true;
+                            const icono = verificado ? '✅' : '⚠️';
+                            const color = verificado ? 'success' : 'warning';
+                            const estadoText = resp.nuevoEstado || (verificado ? 'PAGADO' : 'REVISIÓN MANUAL');
+
+                            resultDiv.innerHTML = `
+<div class="alert alert-${color} small mt-2 mb-0" role="alert">
+  <strong>${icono} IA: ${estadoText}</strong><br>
+  ${resp.message || ''}
+  ${resp.aiReason ? '<br><em>' + resp.aiReason + '</em>' : ''}
+</div>`;
+                            resultDiv.style.display = 'block';
+
+                            if (verificado) {
+                                // 🔒 Ocultar botón de pago manual si ya fue verificado
+                                $('#btn_pagar').addClass('d-none');
+                                $('#pago_notificado').removeClass('d-none').text('✅ Pago verificado por IA');
+                            }
+
+                            Swal.fire(verificado ? '✅ Pago Verificado' : '⚠️ Revisión necesaria', resp.message, verificado ? 'success' : 'warning');
+                        })
+                        .catch(err => {
+                            console.error('[Comprobante] Error:', err);
+                            Swal.fire('Error', 'No se pudo contactar al servidor. Intenta de nuevo.', 'error');
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fa fa-magic"></i> Verificar con IA';
+                        });
+                };
+
+                reader.onerror = () => Swal.fire('Error', 'No se pudo leer el archivo.', 'error');
+                reader.readAsDataURL(file);
+            };
+
+
             toggleLoader(false);
 
             // --- Attach Event Listener for Categoria Padre Filter ---
@@ -3581,6 +3551,35 @@
         <p><strong>🏦 Banco:</strong> ${pedido.cuenta_transferencia_banco}</p>
         <p><strong>🔢 CBU:</strong> ${pedido.cuenta_transferencia_cbu}</p>
         <p><strong>👤 Titular:</strong> ${pedido.cuenta_transferencia_nombre}</p>
+      </div>
+    `;
+                // ── CARD DE COMPROBANTE CON IA ──────────────────────────────
+                detalle_pedido += `
+      <div class="comprobante-upload-card border rounded p-3 my-3 shadow-sm bg-white" id="comprobante_card">
+        <h6 class="text-primary fw-bold mb-2">
+          <i class="fa fa-upload me-2"></i>📎 Subir Comprobante de Pago
+        </h6>
+        <p class="small text-muted mb-2">
+          Nuestra IA verificará tu comprobante automáticamente y actualizará el estado del pedido.
+        </p>
+
+        <!-- Preview de la imagen seleccionada -->
+        <div id="comprobante_preview_wrapper" style="display:none; margin-bottom:10px; text-align:center;">
+          <img id="comprobante_preview" alt="Vista previa"
+               style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid #dee2e6; box-shadow:0 1px 4px rgba(0,0,0,.1);" />
+        </div>
+
+        <div class="input-group mb-2">
+          <input type="file" class="form-control form-control-sm" id="comprobante_file"
+                 accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                 onchange="previsualizarComprobante(event)" />
+          <button class="btn btn-sm btn-primary" id="btn_subir_comprobante"
+                  onclick="subirComprobante('${idpedido}')" type="button">
+            <i class="fa fa-magic"></i> Verificar con IA
+          </button>
+        </div>
+
+        <div id="comprobante_resultado" style="display:none;"></div>
       </div>
     `;
             }
@@ -3966,35 +3965,46 @@
             }
         }
 
-        // Helper: Cargar desde Servidor Primario (PHP/Hosting)
+        // ─── FUENTES DE DATOS (en orden de prioridad) ────────────────────────────────
+        // Las URLs vienen del bloque CONFIGURACIÓN DE INSTALACIÓN ERP en el <head>
+
+        // Fuente 1: Servidor Primario (Donweb - más rápido, mismo hosting que el frontend)
         function cargarDesdeServidorPrimario() {
             return $.ajax({
-                url: "https://castfer.com.ar/configurcion_json.php",
+                url: DONWEB_BLOGGER_URL,   // ← definida en <head>
                 method: "GET",
                 dataType: "json"
             });
         }
 
-        // Helper: Cargar desde Apps Script (Backup / Modo Edición)
+        // Fuente 2: GitHub Raw (respaldo externo, JSON estático público)
+        function cargarDesdeGitHub() {
+            return $.ajax({
+                url: GITHUB_BLOGGER_URL,   // ← definida en <head>
+                method: "GET",
+                dataType: "json",
+                cache: false
+            });
+        }
+
+        // Fuente 3: Apps Script (emergencia - más lento, JSONP directo al ERP)
         function cargarDesdeAppsScript(idpedido) {
             return $.ajax({
-                url: url_final_venta + "exec?op=configuracion&id=" + encodeURIComponent(idpedido),
+                url: GAS_BASE_URL + "exec?op=configuracion&id=" + encodeURIComponent(idpedido),  // ← definida en <head>
                 dataType: 'jsonp',
                 jsonp: "callback"
             });
         }
-
+        // ─── ORQUESTADOR PRINCIPAL ───────────────────────────────────────────────────
         function listar_configuracion(idpedido, operacion) {
             $("#carousel-loader").show();
             $("#title-loader").show();
-
             const finalizeUI = () => {
                 $(".loader-wrapper").fadeOut("slow");
                 $("#carousel-loader").hide();
                 $("#title-loader").hide();
             };
-
-            // 1. MODO EDICIÓN: Carga forzosa desde GAS
+            // 1. MODO EDICIÓN: Carga forzosa desde GAS (bypass de todo caché)
             if (operacion === "e") {
                 console.log("🛠 Modo edición: Carga directa desde GAS");
                 $(".loader-wrapper").fadeIn("slow", function () {
@@ -4012,13 +4022,11 @@
                 });
                 return;
             }
-
-            // 2. MODO NORMAL: Verificar Caché
+            // 2. MODO NORMAL: Verificar Caché local (6 min)
             const configuracionPaginaStr = localStorage.getItem('configuracion_pagina');
             const ultimaActualizacion = localStorage.getItem('configuracion_pagina_timestamp');
             const ahora = Date.now();
-            const intervaloActualizacionMs = 6 * 60 * 1000; // 6 minutos
-
+            const intervaloActualizacionMs = 6 * 60 * 1000;
             if (configuracionPaginaStr && ultimaActualizacion && (ahora - ultimaActualizacion) <= intervaloActualizacionMs) {
                 console.log("⚡ Usando caché local");
                 try {
@@ -4029,44 +4037,52 @@
                     console.warn("⚠️ Error parseando caché, recargando...");
                 }
             }
-
-            // 3. MODO NORMAL: Carga desde Servidor con Fallback
+            // 3. MODO NORMAL: Cascada de fuentes con fallback progresivo
             $("#loader-categorias span").text("Cargando Categorías y Productos...");
             $("#loader-categorias").show();
             $("#productos-container").hide();
-
             $(".loader-wrapper").fadeIn("slow", function () {
                 console.time("configuracion");
-
-                // Intento 1: Servidor Primario
+                // Intento 1: Donweb (primario)
                 cargarDesdeServidorPrimario()
                     .done((respuesta) => {
                         console.timeEnd("configuracion");
-                        console.log("✅ Carga exitosa desde Servidor Primario");
+                        console.log("✅ [Fuente 1] Donweb OK");
                         guardarConfiguracionEnLocal(respuesta);
                         procesarConfiguracion(respuesta, idpedido, operacion);
                         finalizeUI();
                     })
                     .fail(() => {
-                        console.warn("⚠️ Falló primario. Iniciando Fallback a GAS...");
-
-                        // Intento 2: Apps Script (Fallback)
-                        cargarDesdeAppsScript(idpedido)
+                        console.warn("⚠️ [Fuente 1] Donweb falló → intentando GitHub...");
+                        // Intento 2: GitHub (respaldo)
+                        cargarDesdeGitHub()
                             .done((respuesta) => {
                                 console.timeEnd("configuracion");
-                                console.log("✅ Carga exitosa desde Fallback (GAS)");
-                                if (respuesta.status == '0') {
-                                    guardarConfiguracionEnLocal(respuesta);
-                                    procesarConfiguracion(respuesta, idpedido, operacion);
-                                } else {
-                                    Swal.fire("Alerta!", respuesta.message || "Error en fallback", "warning");
-                                }
+                                console.log("✅ [Fuente 2] GitHub OK");
+                                guardarConfiguracionEnLocal(respuesta);
+                                procesarConfiguracion(respuesta, idpedido, operacion);
+                                finalizeUI();
                             })
                             .fail(() => {
-                                console.error("❌ Fallaron todas las fuentes de datos");
-                                Swal.fire("Error Crítico", "No se pudo cargar la configuración de la tienda.", "error");
-                            })
-                            .always(finalizeUI);
+                                console.warn("⚠️ [Fuente 2] GitHub falló → intentando GAS (emergencia)...");
+                                // Intento 3: GAS (emergencia)
+                                cargarDesdeAppsScript(idpedido)
+                                    .done((respuesta) => {
+                                        console.timeEnd("configuracion");
+                                        console.log("✅ [Fuente 3] GAS OK");
+                                        if (respuesta.status == '0') {
+                                            guardarConfiguracionEnLocal(respuesta);
+                                            procesarConfiguracion(respuesta, idpedido, operacion);
+                                        } else {
+                                            Swal.fire("Alerta!", respuesta.message || "Error en emergencia", "warning");
+                                        }
+                                    })
+                                    .fail(() => {
+                                        console.error("❌ Fallaron las 3 fuentes de datos");
+                                        Swal.fire("Error Crítico", "No se pudo cargar la configuración de la tienda.", "error");
+                                    })
+                                    .always(finalizeUI);
+                            });
                     });
             });
         }
