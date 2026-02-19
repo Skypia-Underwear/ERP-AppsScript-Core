@@ -70,6 +70,7 @@ function blogger_listar_configuracion_sinCache() {
                 thumbnail_url: r[mI.THUMBNAIL_URL] || "",
                 archivo_id: r[mI.ARCHIVO_ID],
                 portada: blogger_esVerdadero(r[mI.PORTADA]),
+                orden: (mI.ORDEN !== undefined) ? (parseInt(r[mI.ORDEN]) || 999) : 999,
                 fecha_carga: r[mI.FECHA_CARGA]
             });
         }
@@ -134,10 +135,15 @@ function blogger_listar_configuracion_sinCache() {
         const variedad = { moneda, precio, variedad: variedadNombre, minima, sub_variedad };
 
         if (productoActual !== productoId) {
-            // PROCESAR IMÁGENES
+            // PROCESAR IMÁGENES — ordenadas por campo ORDEN (ascendente)
             let imagenes = (imagenesPorProducto[productoId] || [])
                 .filter(img => img.url && !img.url.toLowerCase().includes('_thumb.'))
-                .sort((a, b) => new Date(b.fecha_carga) - new Date(a.fecha_carga));
+                .sort((a, b) => {
+                    // 1° criterio: ORDEN numérico ascendente
+                    if (a.orden !== b.orden) return a.orden - b.orden;
+                    // 2° fallback: fecha_carga descendente (comportamiento anterior)
+                    return new Date(b.fecha_carga) - new Date(a.fecha_carga);
+                });
 
             const tieneWebp = imagenes.some(img => img.url.toLowerCase().endsWith('.webp'));
             const tieneJpg = imagenes.some(img => img.url.toLowerCase().endsWith('.jpg'));
@@ -797,4 +803,130 @@ function blogger_getTemporadaIcono(valor) {
         : valor === "VERANO" ? "☀️"
             : valor === "SIN-TEMPORADA" ? "🚫"
                 : "";
+}
+
+/**
+ * Verifica el comprobante de pago de una venta Blogger usando Gemini IA.
+ * Reutiliza verifyReceiptWithGemini() definida en ExternalClient.js.
+ *
+ * Payload esperado (POST op=pagar_con_comprobante):
+ * {
+ *   op: "pagar_con_comprobante",
+ *   idpedido: "B-XXXXXXXX",
+ *   fileData: {
+ *     fileName: "comprobante.jpg",
+ *     mimeType: "image/jpeg",
+ *     content: "<base64>"
+ *   }
+ * }
+ *
+ * Respuesta:
+ * {
+ *   status: "0",
+ *   verified: true|false,
+ *   aiReason: "...",
+ *   nuevoEstado: "PAGADO"|"REVISION_MANUAL",
+ *   fileUrl: "https://drive.google.com/..."
+ * }
+ */
+function blogger_pagar_venta_con_comprobante(payload) {
+    const jo = {};
+    try {
+        const { idpedido, fileData } = payload;
+
+        if (!idpedido || !fileData || !fileData.content) {
+            return { status: "-1", message: "Faltan datos: idpedido o fileData" };
+        }
+
+        // ── 1. GUARDAR IMAGEN EN DRIVE ────────────────────────────────────────
+        const carpetaId = GLOBAL_CONFIG.SCRIPT_CONFIG["BLOGGER_COMPROBANTES_FOLDER_ID"];
+        if (!carpetaId) return { status: "-1", message: "Falta BLOGGER_COMPROBANTES_FOLDER_ID. Ejecutá el Installer." };
+
+        const folder = DriveApp.getFolderById(carpetaId);
+        const extension = fileData.fileName.includes('.')
+            ? fileData.fileName.substring(fileData.fileName.lastIndexOf('.'))
+            : '';
+        const finalFileName = `${idpedido}.COMPROBANTE.${Math.floor(100000 + Math.random() * 900000)}${extension}`;
+
+        const decodedContent = Utilities.base64Decode(fileData.content);
+        const blob = Utilities.newBlob(decodedContent, fileData.mimeType, finalFileName);
+        const file = folder.createFile(blob);
+        const fileUrl = file.getUrl();
+        Logger.log(`[Blogger Comprobante] Guardado: ${finalFileName}`);
+
+        // ── 2. LEER VENTA DESDE BLOGGER_VENTAS ───────────────────────────────
+        const ss = getActiveSS();
+        const sheet = ss.getSheetByName(SHEETS.BLOGGER_SALES);
+        if (!sheet) return { status: "-1", message: `Hoja ${SHEETS.BLOGGER_SALES} no encontrada.` };
+
+        const mS = HeaderManager.getMapping("BLOGGER_SALES");
+        const data = sheet.getDataRange().getValues();
+
+        // Buscar la fila (ignorando encabezado, índice 0)
+        const rowIndex = data.findIndex((r, i) => i > 0 && String(r[mS.CODIGO]) === String(idpedido));
+        if (rowIndex === -1) return { status: "-1", message: `Pedido ${idpedido} no encontrado en ${SHEETS.BLOGGER_SALES}.` };
+
+        const row = data[rowIndex];
+
+        // Construir objeto venta compatible con verifyReceiptWithGemini()
+        const ventaData = {
+            TOTAL_VENTA: row[mS.TOTAL_VENTA],
+            DATOS_TRANSFERENCIA: row[mS.DATOS_TRANSFERENCIA] || ""
+        };
+
+        // ── 3. OBTENER DATOS DE CUENTA DESTINO (para prompt IA) ──────────────
+        // Intenta leer BD_DATOS_TRANSFERENCIA si existe; sino IA verifica sin esos datos.
+        let cuentaData = null;
+        try {
+            const sheetCuentas = ss.getSheetByName("BD_DATOS_TRANSFERENCIA");
+            if (sheetCuentas && ventaData.DATOS_TRANSFERENCIA) {
+                const cuentas = convertirRangoAObjetos(sheetCuentas);
+                cuentaData = cuentas.find(c => String(c.CUENTA_ID) === String(ventaData.DATOS_TRANSFERENCIA));
+            }
+        } catch (eCuenta) {
+            Logger.log("[Blogger Comprobante] No se pudo leer BD_DATOS_TRANSFERENCIA: " + eCuenta.message);
+        }
+
+        // ── 4. VERIFICAR CON GEMINI ← REUTILIZA ExternalClient.js ────────────
+        const resultado = verifyReceiptWithGemini(blob, ventaData, cuentaData);
+        Logger.log("[Blogger Comprobante] IA resultado: " + JSON.stringify(resultado));
+
+        // ── 5. ACTUALIZAR ESTADO EN HOJA ──────────────────────────────────────
+        const nuevoEstado = resultado.verified ? "PAGADO" : "REVISION_MANUAL";
+        sheet.getRange(rowIndex + 1, mS.ESTADO + 1).setValue(nuevoEstado);
+
+        // Guardar URL del comprobante si la columna existe en el mapping
+        if (mS.URL_COMPROBANTE !== undefined) {
+            sheet.getRange(rowIndex + 1, mS.URL_COMPROBANTE + 1).setValue(fileUrl);
+        }
+
+        // ── 6. NOTIFICAR TELEGRAM ─────────────────────────────────────────────
+        const iconEstado = resultado.verified ? "✅" : "⚠️";
+        const etiquetaEstado = resultado.verified ? "APROBADO" : "REVISIÓN MANUAL";
+        notificarTelegramSalud(
+            `🧾 <b>Comprobante Blogger</b>\n` +
+            `Pedido: <code>${idpedido}</code>\n` +
+            `IA: ${iconEstado} ${etiquetaEstado}\n` +
+            `Motivo: ${resultado.reason || "-"}\n` +
+            `Monto detectado: ${resultado.extracted_amount || "-"}\n` +
+            `Receptor detectado: ${resultado.extracted_receiver || "-"}\n` +
+            `Estado → <b>${nuevoEstado}</b>`,
+            resultado.verified ? "EXITO" : "ERROR"
+        );
+
+        jo.status = "0";
+        jo.verified = resultado.verified;
+        jo.aiReason = resultado.reason || "";
+        jo.nuevoEstado = nuevoEstado;
+        jo.fileUrl = fileUrl;
+        jo.message = resultado.verified
+            ? "✅ Pago verificado por IA. Estado actualizado a PAGADO."
+            : "⚠️ No se pudo verificar automáticamente. Estado: REVISION_MANUAL.";
+
+    } catch (e) {
+        console.error("[Blogger Comprobante] Error:", e);
+        jo.status = "-1";
+        jo.message = e.toString();
+    }
+    return jo;
 }

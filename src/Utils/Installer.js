@@ -141,16 +141,28 @@ function inicializarEntorno() {
     let infoBackup = asegurarClave(sheet, "DRIVE_BACKUP_FOLDER_ID", "", "");
     guardarDato(sheet, infoBackup.fila, backupFolder.getId(), "ID Carpeta Copias de Seguridad");
 
-    // F. Comprobantes (Ventas)
+    // F. Comprobantes (Ventas ERP interno)
     const comprobantesFolder = getOrCreateSubFolder(rootFolder, "CARPETA_COMPROBANTES_ID");
     let infoComprobantes = asegurarClave(sheet, "APPSHEET_CARPETA_COMPROBANTES_ID", "", "");
     guardarDato(sheet, infoComprobantes.fila, comprobantesFolder.getId(), "ID Carpeta Comprobantes de Pago");
 
+    // G. Blogger Cache (JSON público del sitio Blogger/Ecommerce)
+    const bloggerCacheFolder = getOrCreateSubFolder(rootFolder, "BLOGGER_CACHE");
+    let infoBloggerCache = asegurarClave(sheet, "BLOGGER_CACHE_FOLDER_ID", "", "");
+    guardarDato(sheet, infoBloggerCache.fila, bloggerCacheFolder.getId(), "ID Carpeta JSON Cache del Sitio Blogger");
+
+    // H. Blogger Comprobantes (Archivos de pago del flujo externo Blogger)
+    const bloggerComprobantesFolder = getOrCreateSubFolder(rootFolder, "BLOGGER_COMPROBANTES");
+    let infoBloggerComprobantes = asegurarClave(sheet, "BLOGGER_COMPROBANTES_FOLDER_ID", "", "");
+    guardarDato(sheet, infoBloggerComprobantes.fila, bloggerComprobantesFolder.getId(), "ID Carpeta Comprobantes de Pago (Blogger/Ecommerce)");
+
 
     // 5. CONSTANTES RESTANTES
+    // Slug del app: lowercase con guiones (ej: "SKYPIA UNDERWEAR" -> "skypia-underwear")
+    const appSlug = appNameFinal.toLowerCase().replace(/\s+/g, '-');
+
     const otrasConstantes = [
       { clave: "GLOBAL_SCRIPT_ID", val: "", desc: "PEGA AQUÍ: ID WebApp (Este Script)" },
-      { clave: "MACRO_BLOGGER_ID", val: "", desc: "PEGA AQUÍ: ID Script Blogger" },
       { clave: "WP_SITE_URL", val: "https://tudominio.com/", desc: "URL Sitio Web" },
       { clave: "WP_IMAGE_API_URL", val: "https://tudominio.com/api-image-uploader.php", desc: "API Imágenes" },
       { clave: "WP_PRODUCT_API_URL", val: "https://tudominio.com/api-woocommerce-product.php", desc: "API Productos" },
@@ -170,7 +182,10 @@ function inicializarEntorno() {
       { clave: "GITHUB_USER", val: "", desc: "Usuario GitHub" },
       { clave: "GITHUB_REPO", val: "api-tienda", desc: "Repositorio" },
       { clave: "GITHUB_TOKEN", val: "", desc: "Token (repo scope)" },
-      { clave: "GITHUB_FILE_PATH", val: "catalogo.json", desc: "Ruta archivo en GitHub" },
+      { clave: "GITHUB_FILE_PATH", val: appSlug + "-catalog-tpv.json", desc: "Ruta JSON del TPV en GitHub" },
+      { clave: "BLOGGER_GITHUB_FILE_PATH", val: appSlug + "-blogger-config.json", desc: "Ruta JSON de Blogger en GitHub" },
+      { clave: "DONWEB_WRITE_URL", val: "https://tudominio.com/api_json_write.php", desc: "URL PHP de escritura JSON en Donweb" },
+      { clave: "DONWEB_READ_URL", val: "https://tudominio.com/api_json_read.php", desc: "URL PHP de lectura JSON en Donweb" },
       { clave: "GM_PAID_PIN", val: "1234", desc: "PIN de seguridad para activar IA de pago (Nano Banana Pro)" }
     ];
 
@@ -178,7 +193,99 @@ function inicializarEntorno() {
       asegurarClave(sheet, c.clave, c.val, c.desc);
     });
 
-    ui.alert('✅ Instalación completada y normalizada.\n\nEstructura creada:\n- ' + appNameFinal + '\n  |-- BD_PRODUCTO_IMAGENES_Images\n  |-- TEMP_UPLOADS\n  |-- CONFIG_DATA\n  |-- WOOCOMMERCE_FILES\n  |-- BACKUPS');
+    // 6. SINCRONIZAR URLS DESDE BD_CONFIGURACION_GENERAL
+    // Lee SITIO_WEB y propagó automáticamente todas las URLs derivadas.
+    // Usa guardarDato() (sobreescribe) para mantenerse en sync si el dominio cambia.
+    try {
+      const sheetGeneral = ss.getSheetByName(SHEETS.GENERAL_CONFIG);
+      if (sheetGeneral) {
+        const mG = HeaderManager.getMapping("GENERAL_CONFIG");
+        const configRow = sheetGeneral.getRange(2, 1, 1, sheetGeneral.getLastColumn()).getValues()[0];
+        const siteUrl = String(configRow[mG.SITIO_WEB] || "").trim();
+
+        if (siteUrl) {
+          const cleanUrl = siteUrl.endsWith('/') ? siteUrl : siteUrl + '/';
+
+          // Mapa: clave BD_APP_SCRIPT → valor derivado del dominio
+          const urlKeys = [
+            { clave: "WP_SITE_URL", val: cleanUrl, desc: "URL del Sitio Web" },
+            { clave: "WP_IMAGE_API_URL", val: cleanUrl + "api-image-uploader.php", desc: "URL API Imágenes" },
+            { clave: "WP_PRODUCT_API_URL", val: cleanUrl + "api-woocommerce-product.php", desc: "URL API Productos WC" },
+            { clave: "DONWEB_WRITE_URL", val: cleanUrl + "api_json_write.php", desc: "URL PHP escritura JSON en Donweb" },
+            { clave: "DONWEB_READ_URL", val: cleanUrl + "api_json_read.php", desc: "URL PHP lectura JSON en Donweb" }
+          ];
+
+          urlKeys.forEach(k => {
+            const info = asegurarClave(sheet, k.clave, k.val, k.desc);
+            guardarDato(sheet, info.fila, k.val, k.desc); // siempre sobreescribe
+          });
+
+          console.log("🌐 [Installer] URLs sincronizadas desde SITIO_WEB: " + cleanUrl);
+        } else {
+          console.warn("⚠️ [Installer] SITIO_WEB vacío en BD_CONFIGURACION_GENERAL. URLs no sincronizadas.");
+        }
+      }
+    } catch (eUrl) {
+      console.warn("⚠️ [Installer] No se pudo sincronizar SITIO_WEB: " + eUrl.message);
+    }
+
+    // 7. INSTALACIÓN DE TRIGGERS (con validaciones de dependencias mínimas)
+    const triggerLog = [];
+
+    // Helper: elimina triggers previos de una función y crea uno nuevo
+    function reinstalarTrigger(handlerFn, minutosIntervalo) {
+      ScriptApp.getProjectTriggers()
+        .filter(t => t.getHandlerFunction() === handlerFn)
+        .forEach(t => ScriptApp.deleteTrigger(t));
+      ScriptApp.newTrigger(handlerFn).timeBased().everyMinutes(minutosIntervalo).create();
+    }
+
+    // -- TRIGGER TPV (publicarCatalogo, cada 5 min) --
+    // Condiciones: al menos un destino externo configurado
+    const cfg = GLOBAL_CONFIG.SCRIPT_CONFIG;
+    const donwebOk = !!(cfg["DONWEB_WRITE_URL"] && !cfg["DONWEB_WRITE_URL"].includes("tudominio"));
+    const githubOk = !!(cfg["GITHUB_USER"] && cfg["GITHUB_REPO"] && cfg["GITHUB_TOKEN"]);
+
+    if (donwebOk || githubOk) {
+      reinstalarTrigger("publicarCatalogo", 5);
+      triggerLog.push("✅ TPV (cada 5 min): Donweb=" + (donwebOk ? "✅" : "⛔") + " GitHub=" + (githubOk ? "✅" : "⛔"));
+    } else {
+      triggerLog.push("⛔ TPV: Trigger NO instalado. Configurá DONWEB_WRITE_URL o GITHUB_USER/REPO/TOKEN.");
+    }
+
+    // -- TRIGGER BLOGGER (blogger_regenerarCacheConfiguracion, cada 10 min) --
+    // Condiciones: CACHE_FOLDER_ID seteado (Drive disponible) + al menos un destino externo
+    const bloggerCacheOk = !!(cfg["BLOGGER_CACHE_FOLDER_ID"]);
+    const bloggerExtOk = donwebOk || githubOk; // reutiliza misma validación
+
+    if (bloggerCacheOk && bloggerExtOk) {
+      reinstalarTrigger("blogger_regenerarCacheConfiguracion", 10);
+      triggerLog.push("✅ Blogger (cada 10 min): Drive=" + (bloggerCacheOk ? "✅" : "⛔") + " Externo=" + (bloggerExtOk ? "✅" : "⛔"));
+    } else {
+      const motivo = !bloggerCacheOk
+        ? "Falta BLOGGER_CACHE_FOLDER_ID (ejecutá el Installer una vez para crearlo)."
+        : "Falta al menos un destino externo (Donweb o GitHub).";
+      triggerLog.push("⛔ Blogger: Trigger NO instalado. " + motivo);
+    }
+
+    console.log("[Installer] Triggers:\n" + triggerLog.join("\n"));
+
+    // Resumen final visible para el usuario
+    ui.alert(
+      '✅ Instalación completada.\n\n' +
+      '📁 Carpetas Drive:\n' +
+      '- ' + appNameFinal + '\n' +
+      '  |-- BD_PRODUCTO_IMAGENES_Images\n' +
+      '  |-- TEMP_UPLOADS\n' +
+      '  |-- CONFIG_DATA\n' +
+      '  |-- WOOCOMMERCE_FILES\n' +
+      '  |-- BACKUPS\n' +
+      '  |-- CARPETA_COMPROBANTES_ID\n' +
+      '  |-- BLOGGER_CACHE\n' +
+      '  |-- BLOGGER_COMPROBANTES\n\n' +
+      '⏱ Triggers automáticos:\n' +
+      triggerLog.join('\n')
+    );
 
   } catch (e) {
     ui.alert('❌ Error: ' + e.message);

@@ -373,25 +373,57 @@ function manualRefreshStockCache() {
 }
 
 /**
- * Función para subir el catálogo JSON al servidor externo del usuario (Modelo PUSH).
- */
-/**
- * FUNCIÓN ORQUESTADORA: Publicación Selectiva (Respaldo + Publicación Externo)
+ * FUNCIÓN ORQUESTADORA: Publicación de Catálogo TPV
+ * El destino se controla con PUBLICATION_TARGET en BD_APP_SCRIPT:
+ *   "AMBOS"  → Donweb + GitHub (máxima redundancia, valor por defecto)
+ *   "DONWEB" → Solo Donweb    (instalaciones sin GitHub configurado)
+ *   "GITHUB" → Solo GitHub    (instalaciones sin servidor Donweb / sin SITIO_WEB)
+ * También dispara la regeneración del caché de Blogger.
  */
 function publicarCatalogo() {
-    debugLog("🚀 Iniciando proceso de Publicación Selectiva...");
+    // Leer interruptor de destino (por defecto: AMBOS)
+    const target = (GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "AMBOS").toUpperCase();
+    const useDonweb = target === "DONWEB" || target === "AMBOS";
+    const useGitHub = target === "GITHUB" || target === "AMBOS";
 
-    // 1. PASO 1: Persistencia Local (Obligatorio)
+    debugLog("🚀 Iniciando publicación TPV [PUBLICATION_TARGET=" + target + "] Donweb=" + useDonweb + " GitHub=" + useGitHub);
+
+    // 1. PASO 1: Persistencia Local (Obligatorio — Drive siempre)
     const respaldo = guardarRespaldoEnDrive();
     if (!respaldo.success) {
         return { success: false, message: "Fallo el respaldo obligatorio: " + respaldo.message };
     }
 
-    // 2. PASO 2: Publicación Externo (Condicional)
-    const target = (GLOBAL_CONFIG.PUBLICATION_TARGET || "DONWEB").toUpperCase();
-    debugLog(`📡 Destino de publicación: ${target}`);
+    // 2. PASO 2: Generar catálogo UNA SOLA VEZ y reutilizarlo en los destinos activos
+    const catalogo = generarCatalogoJsonTPV();
 
-    // 3. PASO 3: Ecosistema Blogger (NUEVO)
+    const OMITIDO = { success: false, message: "Omitido por PUBLICATION_TARGET=" + target };
+
+    // -- Destino Donweb --
+    let resDonweb = OMITIDO;
+    if (useDonweb) {
+        resDonweb = subirCatalogoADonweb(catalogo);
+        if (resDonweb.success) {
+            debugLog("✅ Donweb: catálogo sincronizado.");
+        } else {
+            debugLog("⚠️ Donweb falló: " + resDonweb.message);
+            notificarTelegramSalud("⚠️ TPV Donweb: " + resDonweb.message, "ERROR");
+        }
+    }
+
+    // -- Destino GitHub --
+    let resGitHub = OMITIDO;
+    if (useGitHub) {
+        resGitHub = subirCatalogoAGitHub(catalogo);
+        if (resGitHub.success) {
+            debugLog("✅ GitHub: catálogo sincronizado.");
+        } else {
+            debugLog("⚠️ GitHub falló: " + resGitHub.message);
+            notificarTelegramSalud("⚠️ TPV GitHub: " + resGitHub.message, "ERROR");
+        }
+    }
+
+    // 3. PASO 3: Ecosistema Blogger (caché propio + su publicación)
     try {
         if (typeof blogger_regenerarCacheConfiguracion === 'function') {
             blogger_regenerarCacheConfiguracion();
@@ -400,70 +432,68 @@ function publicarCatalogo() {
         debugLog("⚠️ Error en caché Blogger (No crítico para TPV): " + e.message);
     }
 
-    if (target === "GITHUB") {
-        const res = subirCatalogoAGitHub();
-        if (res.success) notificarTelegramSalud("📡 Catálogo sincronizado con éxito en GitHub.", "EXITO");
-        return res;
-    } else {
-        const res = subirCatalogoADonweb();
-        if (res.success) notificarTelegramSalud("📡 Catálogo sincronizado con éxito en Donweb.", "EXITO");
-        return res;
+    const exito = resDonweb.success || resGitHub.success;
+    if (exito) {
+        notificarTelegramSalud(
+            "📡 Catálogo TPV publicado [" + target + "] " +
+            (useDonweb ? "Donweb=" + (resDonweb.success ? "✅" : "❌") + " " : "") +
+            (useGitHub ? "GitHub=" + (resGitHub.success ? "✅" : "❌") : ""),
+            "EXITO"
+        );
     }
+    return { success: exito, target: target, donweb: resDonweb, github: resGitHub };
 }
 
 /**
- * Publicación vía GitHub API
+ * GENÉRICO: Sube cualquier objeto JSON a GitHub en el path indicado.
+ * Reutilizable por PosManager (TPV) y Blogger_Cache.
+ * @param {Object} jsonData  - Objeto a serializar y subir.
+ * @param {string} filePath  - Ruta dentro del repo (ej: "catalogo.json" o "blogger_config.json").
+ * @returns {{ success: boolean, message: string }}
  */
-function subirCatalogoAGitHub() {
+function subirArchivoAGitHub(jsonData, filePath) {
     try {
         const user = GLOBAL_CONFIG.GITHUB.USER;
         const repo = GLOBAL_CONFIG.GITHUB.REPO;
         const token = GLOBAL_CONFIG.GITHUB.TOKEN;
-        const path = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalogo.json";
 
         if (!user || !repo || !token) {
-            throw new Error("GitHub: Faltan credenciales (USER, REPO o TOKEN)");
+            throw new Error("GitHub: Faltan credenciales (USER, REPO o TOKEN en BD_APP_SCRIPT)");
         }
 
-        const url = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
-        const catalogo = generarCatalogoJsonTPV();
-        const content = JSON.stringify(catalogo, null, 2);
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${filePath}`;
+        const content = JSON.stringify(jsonData, null, 2);
         const contentBase64 = Utilities.base64Encode(content, Utilities.Charset.UTF_8);
 
-        // A. Obtener SHA para actualización
+        // Obtener SHA para actualización (necesario si el archivo ya existe)
         let sha = null;
-        const getOptions = {
+        const getResponse = UrlFetchApp.fetch(url, {
             method: "get",
             headers: { "Authorization": "token " + token },
             muteHttpExceptions: true
-        };
-        const getResponse = UrlFetchApp.fetch(url, getOptions);
+        });
         if (getResponse.getResponseCode() === 200) {
-            const data = JSON.parse(getResponse.getContentText());
-            sha = data.sha;
+            sha = JSON.parse(getResponse.getContentText()).sha;
         }
 
-        // B. Ejecutar el PUT
         const payload = {
-            message: "Update catalog from ERP - " + new Date().toISOString(),
+            message: "ERP auto-update: " + filePath + " @ " + new Date().toISOString(),
             content: contentBase64
         };
         if (sha) payload.sha = sha;
 
-        const putOptions = {
+        const response = UrlFetchApp.fetch(url, {
             method: "put",
             contentType: "application/json",
             headers: { "Authorization": "token " + token },
             payload: JSON.stringify(payload),
             muteHttpExceptions: true
-        };
+        });
 
-        const response = UrlFetchApp.fetch(url, putOptions);
         const code = response.getResponseCode();
-
         if (code === 200 || code === 201) {
-            debugLog("✅ Sincronización Exitosa con GitHub.");
-            return { success: true, message: "GitHub actualizado." };
+            debugLog(`✅ GitHub: '${filePath}' subido correctamente.`);
+            return { success: true, message: `GitHub '${filePath}' actualizado.` };
         } else {
             throw new Error(`GitHub API Error (${code}): ${response.getContentText()}`);
         }
@@ -474,30 +504,58 @@ function subirCatalogoAGitHub() {
 }
 
 /**
- * Publicación vía Donweb (Legacy Endpoint)
+ * Publicación del catálogo TPV vía GitHub API.
+ * @param {Object} [catalogoPreGenerado] - Catálogo ya generado (evita recalcular). Si no se pasa, lo genera.
  */
-function subirCatalogoADonweb() {
+function subirCatalogoAGitHub(catalogoPreGenerado) {
+    const path = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalogo.json";
+    const catalogo = catalogoPreGenerado || generarCatalogoJsonTPV();
+    return subirArchivoAGitHub(catalogo, path);
+}
+
+/**
+ * GENÉRICO: Sube cualquier objeto JSON a Donweb con el nombre de archivo indicado.
+ * El PHP de destino debe aceptar { fileName, data } y guardar data como fileName.
+ * Reutilizable por PosManager (TPV) y Blogger_Cache.
+ * @param {Object} jsonData  - Objeto a serializar y subir.
+ * @param {string} fileName  - Nombre del archivo a guardar en el servidor (ej: "skypia-catalog-tpv.json").
+ * @returns {{ success: boolean, message: string }}
+ */
+function subirArchivoADonweb(jsonData, fileName) {
     try {
-        const urlDestino = "https://castfer.com.ar/actualizar_json_hostingshop.php";
-        const catalogo = generarCatalogoJsonTPV();
-        const options = {
+        const url = GLOBAL_CONFIG.DONWEB.WRITE_URL;
+        if (!url) throw new Error("Falta configurar DONWEB_WRITE_URL en BD_APP_SCRIPT.");
+
+        const payload = JSON.stringify({ fileName: fileName, data: jsonData });
+        const response = UrlFetchApp.fetch(url, {
             method: "post",
             contentType: "application/json",
-            payload: JSON.stringify(catalogo),
+            payload: payload,
             muteHttpExceptions: true
-        };
+        });
 
-        const response = UrlFetchApp.fetch(urlDestino, options);
-        if (response.getResponseCode() === 200) {
-            debugLog("✅ Sincronización Exitosa con Donweb.");
-            return { success: true, message: "Donweb actualizado." };
+        const code = response.getResponseCode();
+        if (code === 200) {
+            debugLog(`✅ Donweb: '${fileName}' guardado correctamente.`);
+            return { success: true, message: `Donweb '${fileName}' actualizado.` };
         } else {
-            throw new Error(`HTTP Error: ${response.getResponseCode()}`);
+            throw new Error(`HTTP Error (${code}): ${response.getContentText()}`);
         }
     } catch (e) {
         debugLog("❌ Error Donweb: " + e.message);
         return { success: false, message: e.message };
     }
+}
+
+/**
+ * Publicación del catálogo TPV vía Donweb.
+ * Se reutiliza GITHUB_FILE_PATH como nombre porque ambos destinos comparten la misma convención.
+ * @param {Object} [catalogoPreGenerado] - Catálogo ya generado (evita recalcular). Si no se pasa, lo genera.
+ */
+function subirCatalogoADonweb(catalogoPreGenerado) {
+    const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalog-tpv.json";
+    const catalogo = catalogoPreGenerado || generarCatalogoJsonTPV();
+    return subirArchivoADonweb(catalogo, fileName);
 }
 
 /**
