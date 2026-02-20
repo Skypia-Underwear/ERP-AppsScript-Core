@@ -3129,6 +3129,27 @@
                     function (respuesta) {
                         // Ocultar loader si aplica
                         toggleLoader(false);
+
+                        // ── GUARD: Verificación de Estado (Mejora 4) ────────────────
+                        // Si ya está pagado/cancelado y estamos en ?o=p, redirigir a detalle
+                        const estado = (respuesta.pedido.estado || "").toUpperCase();
+                        const esFinalizado = ["PAGADO", "CANCELADO", "REVISION_MANUAL"].includes(estado);
+
+                        if (operacion === "p" && esFinalizado) {
+                            Swal.fire({
+                                icon: estado === "PAGADO" ? "success" : "info",
+                                title: estado === "PAGADO" ? "✅ Pago ya registrado" : `Estado: ${estado}`,
+                                text: "Tu pedido ya fue procesado. Te redirigimos al historial.",
+                                timer: 3000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Redirigir a vista detalle ?o=d
+                                window.location.href = `${window.location.origin}${window.location.pathname}?o=d&id=${idpedido}`;
+                            });
+                            return;
+                        }
+                        // ────────────────────────────────────────────────────────────
+
                         cargar_detalle_pedido(operacion, JSON.stringify(respuesta.pedido));
                     }
                 );
@@ -3199,6 +3220,50 @@
                 }
             };
 
+            // ── HANDLER: Confirmar Pago Presencial (Delegado) ────────────────
+            $(document).on("click", "#btn_confirmar_efectivo", function () {
+                Swal.fire({
+                    title: "¿Confirmar pago?",
+                    text: "Esto marcará el pedido para revisión manual del vendedor.",
+                    icon: "question", showCancelButton: true,
+                    confirmButtonText: "Sí, confirmar"
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+
+                    const btn = $(this);
+                    btn.prop("disabled", true).text("⏳ Procesando...");
+
+                    fetch(GAS_BASE_URL + "exec", {
+                        method: "POST",
+                        body: JSON.stringify({ op: "confirmar_pago_presencial", idpedido })
+                    })
+                        .then(r => r.json())
+                        .then(resp => {
+                            if (resp.status === "0") {
+                                Swal.fire("✅ Registrado", resp.message, "success");
+
+                                // Cambiar URL a ?o=d sin recargar
+                                const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?o=d&id=${idpedido}`;
+                                window.history.replaceState({ path: newUrl }, '', newUrl);
+
+                                btn.text("✓ Confirmado");
+                                $("#btn_pagar, #btn_cancelar").addClass("d-none");
+
+                                // Recargar página tras breve pausa para ver cambios
+                                setTimeout(() => location.reload(), 1500);
+                            } else {
+                                Swal.fire("Error", resp.message, "error");
+                                btn.prop("disabled", false).text("✅ Confirmar recepción de pago");
+                            }
+                        })
+                        .catch(e => {
+                            console.error(e);
+                            Swal.fire("Error", "Error de conexión", "error");
+                            btn.prop("disabled", false).text("✅ Confirmar recepción de pago");
+                        });
+                });
+            });
+
             // ── HANDLER: Subir comprobante y verificar con IA ────────────────
             window.subirComprobante = function (pedidoId) {
                 const fileInput = document.getElementById('comprobante_file');
@@ -3260,8 +3325,16 @@
 
                             if (verificado) {
                                 // 🔒 Ocultar botón de pago manual si ya fue verificado
+                                // 🔒 Ocultar botón de pago manual si ya fue verificado
                                 $('#btn_pagar').addClass('d-none');
                                 $('#pago_notificado').removeClass('d-none').text('✅ Pago verificado por IA');
+
+                                // Cambio de URL ?o=p -> ?o=d sin recargar
+                                const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?o=d&id=${idpedido}`;
+                                window.history.replaceState({ path: newUrl }, '', newUrl);
+
+                                // Ocultar card de subida
+                                document.getElementById("comprobante_card").style.display = "none";
                             }
 
                             Swal.fire(verificado ? '✅ Pago Verificado' : '⚠️ Revisión necesaria', resp.message, verificado ? 'success' : 'warning');
@@ -3582,6 +3655,23 @@
         <div id="comprobante_resultado" style="display:none;"></div>
       </div>
     `;
+            } else if (operacion === "p" && pedido.forma_pago) {
+                // ── CARD: Confirmación para Efectivo / Tarjetas / Otros ─────────────
+                detalle_pedido += `
+      <div class="comprobante-upload-card border rounded p-3 my-3 shadow-sm bg-white">
+        <h6 class="text-dark fw-bold mb-2">
+          💳 Confirmar Pago Presencial
+        </h6>
+        <p class="mb-1">Método seleccionado: <strong class="text-primary">${pedido.forma_pago}</strong></p>
+        <p class="small text-muted mb-3">
+          Si ya realizaste el pago por este medio, confirmalo aquí para que el vendedor lo verifique.
+        </p>
+        <button id="btn_confirmar_efectivo" class="btn btn-warning w-100 fw-bold">
+          ✅ Confirmar recepción de pago
+        </button>
+        <div id="resultado_efectivo" style="display:none"></div>
+      </div>
+                `;
             }
 
             detalle_pedido += `

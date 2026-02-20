@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>🧾 Generador de Comprobante de Prueba</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            gap: 32px;
+            padding: 32px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        /* ─── PANEL IZQUIERDO: CONTROLES ─── */
+        .controls {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 16px;
+            padding: 28px;
+            width: 340px;
+            flex-shrink: 0;
+            color: #e0e0e0;
+        }
+
+        .controls h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #4cc9f0;
+            margin-bottom: 20px;
+            letter-spacing: .5px;
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+        .field label {
+            display: block;
+            font-size: .78rem;
+            color: #a0a0c0;
+            margin-bottom: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            background: #0f3460;
+            border: 1px solid #1a4a8a;
+            border-radius: 8px;
+            color: #e0e0e0;
+            padding: 9px 12px;
+            font-size: .92rem;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: #4cc9f0;
+        }
+
+        .field input::placeholder {
+            color: #607090;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+            flex-direction: column;
+        }
+
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: .9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #4cc9f0, #4361ee);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 201, 240, .3);
+        }
+
+        .btn-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(76, 201, 240, .4);
+        }
+
+        .btn-randomize {
+            background: #0f3460;
+            color: #4cc9f0;
+            border: 1px solid #4cc9f0;
+        }
+
+        .btn-randomize:hover {
+            background: #1a4a7a;
+        }
+
+        .tip {
+            margin-top: 18px;
+            background: rgba(76, 201, 240, .07);
+            border-left: 3px solid #4cc9f0;
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            font-size: .78rem;
+            color: #90b0d0;
+            line-height: 1.5;
+        }
+
+        /* ─── PANEL DERECHO: PREVIEW DEL COMPROBANTE ─── */
+        .preview-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .preview-label {
+            color: #607090;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        /* ─── EL COMPROBANTE (canvas source) ─── */
+        #comprobante {
+            background: #ffffff;
+            border-radius: 14px;
+            width: 400px;
+            padding: 0;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, .5);
+            overflow: hidden;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        .comp-header {
+            background: linear-gradient(135deg, #003087 0%, #009ee3 100%);
+            padding: 22px 24px 18px;
+            color: white;
+        }
+
+        .comp-bank-name {
+            font-size: 1.3rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        .comp-bank-sub {
+            font-size: .72rem;
+            opacity: .75;
+            margin-top: 2px;
+        }
+
+        .comp-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, .18);
+            border: 1px solid rgba(255, 255, 255, .3);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: .7rem;
+            margin-top: 10px;
+            letter-spacing: .5px;
+        }
+
+        .comp-body {
+            padding: 20px 24px 24px;
+        }
+
+        .comp-amount-label {
+            font-size: .72rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 4px;
+        }
+
+        .comp-amount {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #003087;
+            letter-spacing: -1px;
+            margin-bottom: 18px;
+        }
+
+        .comp-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 18px;
+        }
+
+        .comp-status-dot {
+            width: 10px;
+            height: 10px;
+            background: #2e7d32;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .comp-status-text {
+            font-size: .82rem;
+            color: #2e7d32;
+            font-weight: 700;
+        }
+
+        .comp-divider {
+            height: 1px;
+            background: #f0f0f0;
+            margin: 14px 0;
+        }
+
+        .comp-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: .82rem;
+        }
+
+        .comp-row-label {
+            color: #888;
+        }
+
+        .comp-row-value {
+            color: #222;
+            font-weight: 600;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+
+        .comp-footer {
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .comp-footer-label {
+            font-size: .68rem;
+            color: #bbb;
+        }
+
+        .comp-num {
+            font-size: .7rem;
+            color: #bbb;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- CONTROLES -->
+    <div class="controls">
+        <h2>🧾 Generador de Comprobante</h2>
+
+        <div class="field">
+            <label>Monto ($)</label>
+            <input type="number" id="monto" placeholder="59752" min="1" />
+        </div>
+        <div class="field">
+            <label>Banco Emisor</label>
+            <select id="banco">
+                <option value="Mercado Pago">Mercado Pago</option>
+                <option value="Ualá">Ualá</option>
+                <option value="Banco Galicia">Banco Galicia</option>
+                <option value="Banco Nación">Banco Nación</option>
+                <option value="BBVA Argentina">BBVA Argentina</option>
+                <option value="Brubank">Brubank</option>
+                <option value="Naranja X">Naranja X</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Nombre del Emisor</label>
+            <input type="text" id="emisor" placeholder="Juan Pérez" />
+        </div>
+        <div class="field">
+            <label>Nombre del Receptor</label>
+            <input type="text" id="receptor" placeholder="Juan Diego Ricaldi Simon" />
+        </div>
+        <div class="field">
+            <label>Alias / CVU destino</label>
+            <input type="text" id="alias" placeholder="castfer.mp" />
+        </div>
+        <div class="field">
+            <label>Concepto / Referencia</label>
+            <input type="text" id="concepto" placeholder="Pago de pedido" />
+        </div>
+        <div class="field">
+            <label>Fecha</label>
+            <input type="date" id="fecha" />
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-randomize" onclick="randomizar()">🎲 Aleatorizar datos de prueba</button>
+            <button class="btn-download" onclick="descargar()">⬇️ Descargar PNG</button>
+        </div>
+
+        <div class="tip">
+            💡 <strong>Tip de prueba:</strong> Ingresá el monto exacto del pedido en Blogger. La IA lo comparará con el
+            total registrado en la hoja de ventas.
+        </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-wrapper">
+        <div class="preview-label">Vista previa</div>
+
+        <div id="comprobante">
+            <div class="comp-header">
+                <div class="comp-bank-name" id="p-banco">Mercado Pago</div>
+                <div class="comp-bank-sub">Plataforma de pagos digitales</div>
+                <div class="comp-badge">✓ TRANSFERENCIA EXITOSA</div>
+            </div>
+            <div class="comp-body">
+                <div class="comp-amount-label">Monto transferido</div>
+                <div class="comp-amount" id="p-monto">$ 0,00</div>
+                <div class="comp-status">
+                    <div class="comp-status-dot"></div>
+                    <div class="comp-status-text">Acreditado correctamente</div>
+                </div>
+                <div class="comp-row">
+                    <span class="comp-row-label">De</span>
+                    <span class="comp-row-value" id="p-emisor">—</span>
+                </div>
+                <div class="comp-row">
+                    <span class="comp-row-label">Para</span>
+                    <span class="comp-row-value" id="p-receptor">—</span>
+                </div>
+                <div class="comp-row">
+                    <span class="comp-row-label">Alias / CVU</span>
+                    <span class="comp-row-value" id="p-alias">—</span>
+                </div>
+                <div class="comp-divider"></div>
+                <div class="comp-row">
+                    <span class="comp-row-label">Concepto</span>
+                    <span class="comp-row-value" id="p-concepto">—</span>
+                </div>
+                <div class="comp-row">
+                    <span class="comp-row-label">Fecha y hora</span>
+                    <span class="comp-row-value" id="p-fecha">—</span>
+                </div>
+                <div class="comp-row">
+                    <span class="comp-row-label">N° operación</span>
+                    <span class="comp-row-value" id="p-nro">—</span>
+                </div>
+            </div>
+            <div class="comp-footer">
+                <span class="comp-footer-label" id="p-banco-footer">Mercado Pago S.A.</span>
+                <span class="comp-num" id="p-cmp-num">CMP-000000</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- html2canvas desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // ── Setear fecha de hoy por defecto ───────────────────────────────────────
+        (function () {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fecha').value = hoy;
+        })();
+
+        // ── Actualizar preview en tiempo real ────────────────────────────────────
+        const ids = ['monto', 'banco', 'emisor', 'receptor', 'alias', 'concepto', 'fecha'];
+        ids.forEach(id => document.getElementById(id).addEventListener('input', actualizar));
+
+        function formatMonto(n) {
+            if (!n || isNaN(n)) return '$ 0,00';
+            return '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatFecha(str) {
+            if (!str) return '—';
+            const [y, m, d] = str.split('-');
+            const hora = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+            return `${d}/${m}/${y} ${hora} hs`;
+        }
+
+        function nroOp() {
+            return String(Math.floor(Math.random() * 9000000000 + 1000000000));
+        }
+
+        function actualizar() {
+            const banco = document.getElementById('banco').value;
+            const monto = document.getElementById('monto').value;
+            const emisor = document.getElementById('emisor').value || '—';
+            const receptor = document.getElementById('receptor').value || '—';
+            const alias = document.getElementById('alias').value || '—';
+            const concepto = document.getElementById('concepto').value || 'Transferencia';
+            const fecha = document.getElementById('fecha').value;
+
+            document.getElementById('p-banco').textContent = banco;
+            document.getElementById('p-banco-footer').textContent = banco + ' S.A.';
+            document.getElementById('p-monto').textContent = formatMonto(monto);
+            document.getElementById('p-emisor').textContent = emisor;
+            document.getElementById('p-receptor').textContent = receptor;
+            document.getElementById('p-alias').textContent = alias;
+            document.getElementById('p-concepto').textContent = concepto;
+            document.getElementById('p-fecha').textContent = formatFecha(fecha);
+        }
+
+        // ── Aleatorizar ───────────────────────────────────────────────────────────
+        const nombres = ['María González', 'Carlos Rodríguez', 'Laura Martínez', 'Diego Fernández', 'Ana López', 'Martín Pérez'];
+        const conceptos = ['Pago de pedido', 'Compra tienda online', 'Transferencia venta', 'Seña producto', 'Abono pedido'];
+        const alias_list = ['castfer.mp', 'castfer.gal', 'skypia.ualá', 'tienda.cas'];
+
+        function randomizar() {
+            document.getElementById('emisor').value = nombres[Math.floor(Math.random() * nombres.length)];
+            document.getElementById('concepto').value = conceptos[Math.floor(Math.random() * conceptos.length)];
+            document.getElementById('alias').value = alias_list[Math.floor(Math.random() * alias_list.length)];
+            document.getElementById('p-nro').textContent = nroOp();
+            actualizar();
+        }
+
+        // Nro de operación inicial
+        document.getElementById('p-nro').textContent = nroOp();
+        const cmpNum = 'CMP-' + String(Math.floor(Math.random() * 999999)).padStart(6, '0');
+        document.getElementById('p-cmp-num').textContent = cmpNum;
+
+        // ── Descargar como PNG usando html2canvas ─────────────────────────────────
+        function descargar() {
+            const monto = document.getElementById('monto').value;
+            const banco = document.getElementById('banco').value.replace(/\s/g, '_');
+            const nombre = `comprobante_${banco}_$${monto}_prueba.png`;
+
+            html2canvas(document.getElementById('comprobante'), {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = nombre;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // Inicializar
+        actualizar();
+    </script>
+</body>
+
+</html>
