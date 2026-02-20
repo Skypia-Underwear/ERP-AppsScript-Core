@@ -63,6 +63,9 @@ function doPost(e) {
         case "pagar_con_comprobante":
           respuestaBlogger = blogger_pagar_venta_con_comprobante(contents);
           break;
+        case "confirmar_pago_presencial":
+          respuestaBlogger = blogger_confirmar_pago_presencial(contents);
+          break;
         default:
           respuestaBlogger = { status: "-1", message: "Operación Blogger no soportada" };
       }

@@ -930,3 +930,88 @@ function blogger_pagar_venta_con_comprobante(payload) {
     }
     return jo;
 }
+
+/**
+ * Confirma un pago presencial (Efectivo, Débito, Crédito).
+ * Cambia el estado a REVISION_MANUAL para que el vendedor lo confirme luego.
+ * 
+ * @param {Object} contents - { op: "confirmar_pago_presencial", idpedido: "..." }
+ */
+function blogger_confirmar_pago_presencial(contents) {
+    const lock = LockService.getScriptLock();
+    try {
+        lock.waitLock(10000);
+        const pedidoId = contents.idpedido;
+        if (!pedidoId) return { status: "-1", message: "Falta ID del pedido" };
+
+        const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("BLOGGER_VENTAS"); // Usar nombre hardcoded o del schema
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const mS = HeaderManager.mapHeaders(headers); // Mapeo dinámico
+
+        // Buscar pedido
+        let rowIndex = -1;
+        for (let i = 1; i < data.length; i++) {
+            if (String(data[i][mS.CODIGO]) === String(pedidoId)) {
+                rowIndex = i;
+                break;
+            }
+        }
+
+        if (rowIndex === -1) return { status: "-1", message: "Pedido no encontrado" };
+
+        // Actualizar estado
+        const estadoActual = data[rowIndex][mS.ESTADO];
+        if (estadoActual === "PAGADO") {
+            return { status: "-1", message: "El pedido ya figura como PAGADO." };
+        }
+
+        const nuevoEstado = "REVISION_MANUAL";
+        sheet.getRange(rowIndex + 1, mS.ESTADO + 1).setValue(nuevoEstado);
+
+        // Notificar Telegram
+        try {
+            const mensaje = `💳 <b>Pago Presencial Reportado</b>\n` +
+                `🆔 Pedido: <code>${pedidoId}</code>\n` +
+                `ℹ️ Estado: <b>${nuevoEstado}</b>\n` +
+                `👤 Cliente: ${data[rowIndex][mS.CLIENTE_ID] || "?"}\n` +
+                `💰 Monto: ${data[rowIndex][mS.TOTAL_VENTA] || "?"}`;
+
+            // Usar funcion existente de notificación si es posible, o enviar directo
+            // Asumiendo que existe enviarNotificacionTelegram
+            enviarNotificacionTelegramSimple(mensaje);
+        } catch (e) {
+            console.error("Error notificando Telegram: " + e.message);
+        }
+
+        return {
+            status: "0",
+            message: "Pago registrado para revisión manual.",
+            nuevoEstado: nuevoEstado
+        };
+
+    } catch (e) {
+        console.error(e);
+        return { status: "-1", message: "Error: " + e.message };
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+/**
+ * Helper simple para notificar (si no se exporta la del bot)
+ */
+function enviarNotificacionTelegramSimple(msg) {
+    // Intentar usar la global si existe
+    if (typeof notificarTelegramSalud === 'function') {
+        // Es para salud, mejor usar la config
+        const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
+        const chatId = GLOBAL_CONFIG.TELEGRAM.CHAT_ID;
+        if (token && chatId) {
+            UrlFetchApp.fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: "post",
+                payload: { chat_id: chatId, text: msg, parse_mode: "HTML" }
+            });
+        }
+    }
+}
