@@ -895,6 +895,13 @@ function blogger_pagar_venta_con_comprobante(payload) {
         const nuevoEstado = resultado.verified ? "PAGADO" : "REVISION_MANUAL";
         sheet.getRange(rowIndex + 1, mS.ESTADO + 1).setValue(nuevoEstado);
 
+        // Actualizar DETALLE_JSON con el nuevo estado y URL
+        updateBloggerJson(sheet, rowIndex, mS, {
+            estado: nuevoEstado,
+            comprobante_url: fileUrl,
+            fecha_pago: new Date().toISOString()
+        });
+
         // Guardar URL del comprobante si la columna existe en el mapping
         if (mS.URL_COMPROBANTE !== undefined) {
             sheet.getRange(rowIndex + 1, mS.URL_COMPROBANTE + 1).setValue(fileUrl);
@@ -969,6 +976,13 @@ function blogger_confirmar_pago_presencial(contents) {
         const nuevoEstado = "REVISION_MANUAL";
         sheet.getRange(rowIndex + 1, mS.ESTADO + 1).setValue(nuevoEstado);
 
+        // Actualizar DETALLE_JSON
+        updateBloggerJson(sheet, rowIndex, mS, {
+            estado: nuevoEstado,
+            metodo_pago_presencial: true,
+            fecha_confirmacion: new Date().toISOString()
+        });
+
         // Notificar Telegram
         try {
             const mensaje = `💳 <b>Pago Presencial Reportado</b>\n` +
@@ -1013,5 +1027,32 @@ function enviarNotificacionTelegramSimple(msg) {
                 payload: { chat_id: chatId, text: msg, parse_mode: "HTML" }
             });
         }
+    }
+}
+
+
+/**
+ * Helper para actualizar el DETALLE_JSON de una fila Blogger
+ */
+function updateBloggerJson(sheet, rowIndex, mS, updates) {
+    try {
+        if (mS.DETALLE_JSON === undefined) return;
+
+        // Columna es 1-indexed, array map es 0-indexed, rowIndex es 0-indexed relative to data
+        // pero getRange usa 1-indexed absoluto. rowIndex viene de loop data[i] donde data[0] es header.
+        // Ojo: en las funciones de arriba rowIndex viene de data.findIndex.
+        // Si rowIndex es 10 (fila 11 en sheet), getRange debe ser rowIndex+1.
+
+        const cell = sheet.getRange(rowIndex + 1, mS.DETALLE_JSON + 1);
+        const jsonRaw = cell.getValue();
+        let json = {};
+        try { json = JSON.parse(jsonRaw); } catch (e) { }
+
+        // Aplicar updates
+        Object.assign(json, updates);
+
+        cell.setValue(JSON.stringify(json));
+    } catch (e) {
+        console.error("Error actualizando JSON Blogger: " + e.message);
     }
 }

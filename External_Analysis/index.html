@@ -3582,6 +3582,21 @@
 
         function cargar_detalle_pedido(operacion, detalle) {
             var pedido = JSON.parse(detalle);
+
+            // ── Lógica de Visibilidad de Botones (Refinamiento Mejora 4) ─────
+            const estadoNorm = (pedido.estado || "").toUpperCase();
+            if (["PAGADO", "REVISION_MANUAL", "CANCELADO"].includes(estadoNorm)) {
+                $('#btn_editar').addClass('d-none').removeAttr("href");
+                $('#btn_cancelar').addClass('d-none');
+                $('#btn_pagar').addClass('d-none');
+
+                // Si está pagado, mostrar indicador visual claro
+                if (estadoNorm === "PAGADO") {
+                    $('#pago_notificado').removeClass('d-none').text('✅ Pago verificado');
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             var detalle_pedido = `
     <div class="cliente-info border rounded p-4 bg-white shadow-sm mb-4">
       <h5 class="text-primary fw-bold mb-3">
