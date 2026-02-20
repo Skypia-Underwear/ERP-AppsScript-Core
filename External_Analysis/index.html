@@ -3081,6 +3081,7 @@
         //<![CDATA[
         var operacion = "";
         var idpedido = "";
+        var currentFormaPago = ""; // Variable global para controlar flujo según pago
 
         // Leer parámetros de la URL
         try {
@@ -3158,6 +3159,39 @@
 
 
             $('#btn_pagar').click(function () {
+                // ── Nueva Lógica para Confirmar Visita (Pagos Presenciales) ──
+                if (currentFormaPago && currentFormaPago !== "Transferencia") {
+                    Swal.fire({
+                        title: "¿Confirmar Visita?",
+                        text: "Esto notificará que el cliente está realizando el pago presencial.",
+                        icon: "question", showCancelButton: true,
+                        confirmButtonText: "Sí, notificar"
+                    }).then(result => {
+                        if (!result.isConfirmed) return;
+                        makeAjaxCall(
+                            `${url_final_venta}exec`,
+                            { op: "confirmar_pago_presencial", idpedido },
+                            function (respuesta) {
+                                Swal.fire("Éxito!", respuesta.message, "success");
+                                if (respuesta.status === "0") {
+                                    $('#btn_pagar').addClass('d-none');
+                                    $('#pago_notificado').removeClass('d-none').text('✅ Visita Confirmada');
+                                    $('#btn_cancelar').addClass('d-none');
+
+                                    // Cambiar URL a ?o=d
+                                    const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?o=d&id=${idpedido}`;
+                                    window.history.replaceState({ path: newUrl }, '', newUrl);
+
+                                    // Recargar para actualizar vista
+                                    setTimeout(() => location.reload(), 1500);
+                                }
+                            }
+                        );
+                    });
+                    return;
+                }
+
+                // ── Lógica Original (Fallback / Otros casos) ──
                 makeAjaxCall(
                     `${url_final_venta}exec`,
                     { op: "pagar", idpedido },
@@ -3580,19 +3614,30 @@
         });
 
 
+        var currentFormaPago;
         function cargar_detalle_pedido(operacion, detalle) {
             var pedido = JSON.parse(detalle);
 
             // ── Lógica de Visibilidad de Botones (Refinamiento Mejora 4) ─────
             const estadoNorm = (pedido.estado || "").toUpperCase();
+
+            // Actualizar variable global
+            currentFormaPago = pedido.forma_pago;
+
             if (["PAGADO", "REVISION_MANUAL", "CANCELADO"].includes(estadoNorm)) {
                 $('#btn_editar').addClass('d-none').removeAttr("href");
                 $('#btn_cancelar').addClass('d-none');
                 $('#btn_pagar').addClass('d-none');
 
-                // Si está pagado, mostrar indicador visual claro
                 if (estadoNorm === "PAGADO") {
                     $('#pago_notificado').removeClass('d-none').text('✅ Pago verificado');
+                }
+            } else if (operacion === "p") {
+                // Configurar botón principal según forma de pago
+                if (currentFormaPago === "Transferencia") {
+                    $('#btn_pagar').addClass('d-none'); // Se usa subida de comprobante
+                } else {
+                    $('#btn_pagar').removeClass('d-none').text("Confirmar Visita");
                 }
             }
             // ─────────────────────────────────────────────────────────────────
