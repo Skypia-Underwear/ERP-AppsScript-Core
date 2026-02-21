@@ -626,6 +626,10 @@ function blogger_registrar_venta(informacion) {
         const fechaStr = Utilities.formatDate(fecha, "GMT-3", "yyyy-MM-dd");
         const horaStr = Utilities.formatDate(fecha, "GMT-3", "HH:mm:ss");
 
+        // CORRECCIÓN AUDITORÍA: Inyectar fecha y hora en el JSON para consistencia en Frontend
+        venta.fecha = fechaStr;
+        venta.hora = horaStr;
+
         // Guardar Venta (Usando indices del mapeo, asumiendo estructura estándar para appendRow si es posible, o reconstruyendo)
         // Por simplicidad en appendRow manteniendo el orden del ERP:
         sheetVentas.appendRow([
@@ -839,6 +843,7 @@ function blogger_pagar_venta_con_comprobante(payload) {
     const jo = {};
     try {
         const { idpedido, fileData } = payload;
+        const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME;
 
         if (!idpedido || !fileData || !fileData.content) {
             return { status: "-1", message: "Faltan datos: idpedido o fileData" };
@@ -914,18 +919,26 @@ function blogger_pagar_venta_con_comprobante(payload) {
         }
 
         // ── 6. NOTIFICAR TELEGRAM ─────────────────────────────────────────────
+        // ── 6. NOTIFICAR TELEGRAM ─────────────────────────────────────────────
         const iconEstado = resultado.verified ? "✅" : "⚠️";
         const etiquetaEstado = resultado.verified ? "APROBADO" : "REVISIÓN MANUAL";
-        notificarTelegramSalud(
+
+        const mensajeTelegram =
             `🧾 <b>Comprobante Blogger</b>\n` +
+            `━━━━━━━━━━━━━━━━━━\n` +
+            `💻 Sistema: ${appName}\n` +
+            `🌐 Entorno: CLIENT\n` +
+            `📅 Fecha: ${new Date().toLocaleString("es-AR")}\n` +
+            `━━━━━━━━━━━━━━━━━━\n\n` +
+            `📝 <b>Reporte de Verificación IA:</b>\n` +
             `Pedido: <code>${idpedido}</code>\n` +
-            `IA: ${iconEstado} ${etiquetaEstado}\n` +
+            `IA: ${iconEstado} <b>${etiquetaEstado}</b>\n` +
             `Motivo: ${resultado.reason || "-"}\n` +
             `Monto detectado: ${resultado.extracted_amount || "-"}\n` +
-            `Receptor detectado: ${resultado.extracted_receiver || "-"}\n` +
-            `Estado → <b>${nuevoEstado}</b>`,
-            resultado.verified ? "EXITO" : "ERROR"
-        );
+            `Receptor detectado: ${resultado.extracted_receiver || "-"}\n\n` +
+            `Estado Final → <b>${nuevoEstado}</b>`;
+
+        notificarTelegramSalud(mensajeTelegram, resultado.verified ? "EXITO" : "ADVERTENCIA");
 
         jo.status = "0";
         jo.verified = resultado.verified;
@@ -960,7 +973,7 @@ function blogger_confirmar_pago_presencial(contents) {
         const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("BLOGGER_VENTAS"); // Usar nombre hardcoded o del schema
         const data = sheet.getDataRange().getValues();
         const headers = data[0];
-        const mS = HeaderManager.mapHeaders(headers); // Mapeo dinámico
+        const mS = HeaderManager.getMapping("BLOGGER_SALES"); // Fix: Usar getMapping existente
 
         // Buscar pedido
         let rowIndex = -1;
@@ -979,7 +992,7 @@ function blogger_confirmar_pago_presencial(contents) {
             return { status: "-1", message: "El pedido ya figura como PAGADO." };
         }
 
-        const nuevoEstado = "REVISION_MANUAL";
+        const nuevoEstado = contents.nuevoEstado || "REVISION_MANUAL";
         sheet.getRange(rowIndex + 1, mS.ESTADO + 1).setValue(nuevoEstado);
 
         // Actualizar DETALLE_JSON

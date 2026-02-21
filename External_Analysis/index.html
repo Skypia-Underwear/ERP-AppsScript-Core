@@ -3255,6 +3255,8 @@
             };
 
             // ── HANDLER: Confirmar Pago Presencial (Delegado) ────────────────
+            // ── HANDLER: Confirmar Pago Presencial (Delegado) ────────────────
+            // ── HANDLER: Confirmar Pago Presencial (Delegado) ────────────────
             $(document).on("click", "#btn_confirmar_efectivo", function () {
                 Swal.fire({
                     title: "¿Confirmar pago?",
@@ -3266,6 +3268,9 @@
 
                     const btn = $(this);
                     btn.prop("disabled", true).text("⏳ Procesando...");
+
+                    // Ocultar acciones globales inmediatamente
+                    $("#btn_pagar, #btn_cancelar, #btn_editar").addClass("d-none");
 
                     fetch(GAS_BASE_URL + "exec", {
                         method: "POST",
@@ -3280,20 +3285,24 @@
                                 const newUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?o=d&id=${idpedido}`;
                                 window.history.replaceState({ path: newUrl }, '', newUrl);
 
+                                // Actualizar UI visualmente
                                 btn.text("✓ Confirmado");
-                                $("#btn_pagar, #btn_cancelar").addClass("d-none");
+                                $("#btn_pagar, #btn_cancelar, #btn_editar").addClass("d-none");
+                                $("#pago_notificado").removeClass("d-none").text("✅ Pago en revisión");
+                                // Asegurar que botones del footer también se oculten
+                                $('#btn_pagar, #btn_cancelar, #btn_editar').addClass('d-none');
 
-                                // Recargar página tras breve pausa para ver cambios
-                                setTimeout(() => location.reload(), 1500);
                             } else {
                                 Swal.fire("Error", resp.message, "error");
                                 btn.prop("disabled", false).text("✅ Confirmar recepción de pago");
+                                $("#btn_pagar, #btn_cancelar, #btn_editar").removeClass("d-none");
                             }
                         })
                         .catch(e => {
                             console.error(e);
                             Swal.fire("Error", "Error de conexión", "error");
                             btn.prop("disabled", false).text("✅ Confirmar recepción de pago");
+                            $("#btn_pagar, #btn_cancelar, #btn_editar").removeClass("d-none");
                         });
                 });
             });
@@ -3359,8 +3368,9 @@
 
                             if (verificado) {
                                 // 🔒 Ocultar botón de pago manual si ya fue verificado
-                                // 🔒 Ocultar botón de pago manual si ya fue verificado
+                                // 🔒 Ocultar botones de acción si ya fue verificado
                                 $('#btn_pagar').addClass('d-none');
+                                $('#btn_editar').addClass('d-none'); // Ocultar botón editar inmediatamente
                                 $('#pago_notificado').removeClass('d-none').text('✅ Pago verificado por IA');
 
                                 // Cambio de URL ?o=p -> ?o=d sin recargar
@@ -3616,12 +3626,14 @@
 
         var currentFormaPago;
         function cargar_detalle_pedido(operacion, detalle) {
+            // Ocultar botones preventivamente al cargar
+            $('#btn_pagar, #btn_cancelar, #btn_editar').addClass('d-none');
+            $('#pago_notificado').addClass('d-none');
+
             var pedido = JSON.parse(detalle);
 
-            // ── Lógica de Visibilidad de Botones (Refinamiento Mejora 4) ─────
+            // ── Lógica de Visibilidad de Botones ─────
             const estadoNorm = (pedido.estado || "").toUpperCase();
-
-            // Actualizar variable global
             currentFormaPago = pedido.forma_pago;
 
             if (["PAGADO", "REVISION_MANUAL", "CANCELADO"].includes(estadoNorm)) {
@@ -3631,29 +3643,105 @@
 
                 if (estadoNorm === "PAGADO") {
                     $('#pago_notificado').removeClass('d-none').text('✅ Pago verificado');
+                } else if (estadoNorm === "REVISION_MANUAL") {
+                    $('#pago_notificado').removeClass('d-none').text('✅ Pago en revisión');
                 }
-            } else if (operacion === "p") {
-                // Configurar botón principal según forma de pago
-                if (currentFormaPago === "Transferencia") {
-                    $('#btn_pagar').addClass('d-none'); // Se usa subida de comprobante
-                } else {
-                    $('#btn_pagar').removeClass('d-none').text("Confirmar Visita");
+            } else {
+                if (operacion === "p") {
+                    $('#btn_editar').removeClass('d-none');
+                    $('#btn_cancelar').removeClass('d-none');
+
+                    if (currentFormaPago === "Transferencia") {
+                        $('#btn_pagar').addClass('d-none');
+                    } else {
+                        $('#btn_pagar').removeClass('d-none').text("Confirmar Visita");
+                    }
                 }
             }
-            // ─────────────────────────────────────────────────────────────────
 
+            // ── HELPER: Formatear Fechas en Español ──
+            const formatearFechaEspanol = (dateObj) => {
+                const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+                const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+                const diaSemana = dias[dateObj.getDay()];
+                const dia = dateObj.getDate();
+                const mes = meses[dateObj.getMonth()];
+                const hora = dateObj.getHours().toString().padStart(2, '0');
+                const min = dateObj.getMinutes().toString().padStart(2, '0');
+                // Capitalizar
+                const diaCap = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+                return `${diaCap} ${dia} de ${mes} a las ${hora}:${min} hs`;
+            };
+
+            // ── LÓGICA DE HORARIOS (Portado de Blogger/Ventas.js) ──
+            let fechaPedidoTexto = "";
+            let horaLimiteTexto = "No especificada";
+            let etiquetaHora = "HORA ENTREGA";
+
+            try {
+                // 1. Fecha Pedido
+                if (pedido.fecha && pedido.hora) {
+                    const [y, m, d] = pedido.fecha.split("-").map(Number);
+                    // pedido.hora suele ser HH:mm:ss
+                    const [h, min_] = pedido.hora.split(":").map(Number);
+                    const fechaObj = new Date(y, m - 1, d, h, min_);
+                    fechaPedidoTexto = formatearFechaEspanol(fechaObj);
+                } else {
+                    fechaPedidoTexto = pedido.fecha || "";
+                }
+
+                // 2. Hora Límite / Entrega
+                const agencia = (pedido.agencia_entrega || "").toUpperCase();
+                const esRetiroTienda = agencia === "RETIRO TIENDA";
+                etiquetaHora = esRetiroTienda ? 'HORA LIMITE DE RETIRO' : 'HORA ENTREGA';
+
+                // tiempo_entrega en JSON a veces es "13:00" o fecha completa
+                // En Ventas.js map: venta.hora_entrega_agencia -> tiempo_entrega
+                const tiempoAgencia = pedido.tiempo_entrega || pedido.hora_entrega_agencia;
+
+                if (tiempoAgencia) {
+                    let horaStr = "";
+                    if (tiempoAgencia.match(/^\d{1,2}:\d{2}/)) {
+                        horaStr = tiempoAgencia.substring(0, 5);
+                    } else if (tiempoAgencia.includes("T")) {
+                        const dt = new Date(tiempoAgencia);
+                        horaStr = dt.getHours().toString().padStart(2, '0') + ":" + dt.getMinutes().toString().padStart(2, '0');
+                    }
+
+                    if (horaStr) {
+                        const [hh, mm] = horaStr.split(":").map(Number);
+                        const ahora = new Date();
+                        // Usamos fecha del pedido o fecha actual?
+                        // La lógica original comparaba con AHORA.
+                        let fechaLimite = new Date();
+                        fechaLimite.setHours(hh, mm, 0, 0);
+
+                        if (fechaLimite < ahora) {
+                            fechaLimite.setDate(fechaLimite.getDate() + 1); // Si ya pasó, es mañana
+                        }
+                        horaLimiteTexto = formatearFechaEspanol(fechaLimite);
+                    }
+                }
+            } catch (e) { console.error("Error fecha:", e); }
+
+
+            // ── CONSTRUIR HTML DETALLE ──
             var detalle_pedido = `
     <div class="cliente-info border rounded p-4 bg-white shadow-sm mb-4">
+      <div class="alert alert-secondary border-0 shadow-sm mb-3">
+          <p class="mb-1">📅 <strong>FECHA DEL PEDIDO:</strong> ${fechaPedidoTexto}</p>
+          <p class="mb-1">👤 <strong>CLIENTE:</strong> ${pedido.nombre_entrega_mostrado || pedido.nombre_entrega || "Público General"}</p>
+          <p class="mb-1">🚚 <strong>FORMA DE ENVIO:</strong> ${pedido.agencia_entrega || "-"}</p>
+          <p class="mb-0">⏳ <strong>${etiquetaHora}:</strong> ${horaLimiteTexto}</p>
+      </div>
+
       <h5 class="text-primary fw-bold mb-3">
-        <i class="fa fa-shopping-cart me-2"></i>DETALLES DE LA VENTA
+        <i class="fa fa-shopping-cart me-2"></i>DETALLES DE LA VENTA (ID: ${pedido.idpedido || pedido.id})
       </h5>
   `;
 
-            const esClienteGeneral = pedido.nombre_entrega === "CLI001";
-            const esRetiro = pedido.agencia_entrega === "RETIRO TIENDA";
-            const nombreMostrar = esClienteGeneral ? "PÚBLICO GENERAL" : (pedido.nombre_entrega_mostrado || pedido.nombre_entrega);
-
-            detalle_pedido += `<p><strong class="text-primary">👤 Nombre y Apellidos:</strong> ${nombreMostrar}</p>`;
+            const esClienteGeneral = pedido.nombre_entrega === "CLI001" || !pedido.nombre_entrega;
+            const esRetiro = (pedido.agencia_entrega || "").toUpperCase() === "RETIRO TIENDA";
 
             if (!esClienteGeneral) {
                 detalle_pedido += `<p><strong class="text-primary">🆔 RUT:</strong> ${pedido.rut_entrega || "N/A"}</p>`;
@@ -3664,15 +3752,10 @@
                 }
             }
 
-            detalle_pedido += `<p><strong class="text-primary">🏬 Agencia:</strong> ${pedido.agencia_entrega || "N/A"}</p>`;
+            // Agencia y Hora ya están arriba, pero mantenemos Agencia simple si se desea
+            // (Omitimos repeticion para limpiar UI, ya está en el header nuevo)
 
-            if (pedido.hora_entrega_agencia) {
-                const hora = new Date(pedido.hora_entrega_agencia);
-                const horaFormateada = hora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-                const etiquetaHora = esRetiro ? "⏰ Hora Límite de Retiro" : "⏰ Hora de Entrega";
-                detalle_pedido += `<p><strong class="text-primary">${etiquetaHora}:</strong> ${horaFormateada}</p>`;
-            }
-
+            // ── BLOQUE TRANSFERENCIA (Datos Bancarios) ──────────────────────────
             if (pedido.forma_pago === "Transferencia") {
                 detalle_pedido += `
       <div class="cuenta-info border rounded bg-light p-3 my-3 shadow-sm">
@@ -3686,37 +3769,49 @@
         <p><strong>👤 Titular:</strong> ${pedido.cuenta_transferencia_nombre}</p>
       </div>
     `;
-                // ── CARD DE COMPROBANTE CON IA ──────────────────────────────
+            }
+
+            // ── COMPROBANTE: HISTORIAL vs SUBIDA ──────────────────────────────
+            if (estadoNorm === "PAGADO" && pedido.comprobante_url) {
+                // CASO 1: YA PAGADO Y VERIFICADO -> MOSTRAR HISTORIAL
+                const fechaPago = pedido.fecha_pago ? new Date(pedido.fecha_pago).toLocaleString() : "";
                 detalle_pedido += `
-      <div class="comprobante-upload-card border rounded p-3 my-3 shadow-sm bg-white" id="comprobante_card">
-        <h6 class="text-primary fw-bold mb-2">
-          <i class="fa fa-upload me-2"></i>📎 Subir Comprobante de Pago
-        </h6>
-        <p class="small text-muted mb-2">
-          Nuestra IA verificará tu comprobante automáticamente y actualizará el estado del pedido.
-        </p>
-
-        <!-- Preview de la imagen seleccionada -->
-        <div id="comprobante_preview_wrapper" style="display:none; margin-bottom:10px; text-align:center;">
-          <img id="comprobante_preview" alt="Vista previa"
-               style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid #dee2e6; box-shadow:0 1px 4px rgba(0,0,0,.1);" />
-        </div>
-
-        <div class="input-group mb-2">
-          <input type="file" class="form-control form-control-sm" id="comprobante_file"
-                 accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
-                 onchange="previsualizarComprobante(event)" />
-          <button class="btn btn-sm btn-primary" id="btn_subir_comprobante"
-                  onclick="subirComprobante('${idpedido}')" type="button">
-            <i class="fa fa-magic"></i> Verificar con IA
-          </button>
-        </div>
-
-        <div id="comprobante_resultado" style="display:none;"></div>
-      </div>
-    `;
-            } else if (operacion === "p" && pedido.forma_pago) {
-                // ── CARD: Confirmación para Efectivo / Tarjetas / Otros ─────────────
+                 <div class="comprobante-historico border rounded p-3 my-3 shadow-sm bg-white">
+                    <h6 class="text-secondary fw-bold mb-2">📄 Historial de Pago</h6>
+                    <div class="alert alert-success small py-1 px-2 mb-2 d-inline-block">
+                        <i class="fa fa-check-circle"></i> Verificado el ${fechaPago}
+                    </div>
+                    <div class="text-center mt-2">
+                        <a href="${pedido.comprobante_url}" target="_blank">
+                            <img src="${pedido.comprobante_url}" class="img-fluid rounded border" style="max-height: 200px;" alt="Comprobante">
+                        </a>
+                        <br>
+                        <small class="text-muted">Clic para ver original</small>
+                    </div>
+                 </div>`;
+            } else if (pedido.forma_pago === "Transferencia" && estadoNorm !== "PAGADO" && estadoNorm !== "REVISION_MANUAL") {
+                // CASO 2: TRANSFERENCIA PENDIENTE -> MOSTRAR FORMULARIO SUBIDA
+                detalle_pedido += `
+                <div id="comprobante_card" class="comprobante-upload-card border rounded p-3 my-3 shadow-sm bg-white">
+                  <h6 class="text-primary fw-bold mb-3">
+                    <i class="fa fa-upload me-2"></i>Subir Comprobante de Pago
+                  </h6>
+                  <p class="small text-muted mb-2">
+                    Nuestra IA verificará tu comprobante automáticamente.
+                  </p>
+                  
+                  <form id="form_subir_comprobante" onsubmit="event.preventDefault(); window.subirComprobante('${pedido.idpedido || pedido.id || ""}');">
+                      <div class="mb-3">
+                          <input class="form-control form-control-sm" type="file" id="comprobante_file" accept="image/*,application/pdf" capture="environment">
+                      </div>
+                      <div id="comprobante_resultado" style="display:none;" class="mb-2"></div>
+                      <button type="submit" id="btn_subir_comprobante" class="btn btn-primary btn-sm w-100">
+                          <i class="fa fa-magic"></i> Verificar con IA
+                      </button>
+                  </form>
+                </div>`;
+            } else if (operacion === "d" && pedido.forma_pago && pedido.forma_pago !== "Transferencia") {
+                // CASO 3: CONFIRMACION PAGO PRESENCIAL (Efectivo/Tarjeta)
                 detalle_pedido += `
       <div class="comprobante-upload-card border rounded p-3 my-3 shadow-sm bg-white">
         <h6 class="text-dark fw-bold mb-2">
@@ -3724,10 +3819,10 @@
         </h6>
         <p class="mb-1">Método seleccionado: <strong class="text-primary">${pedido.forma_pago}</strong></p>
         <p class="small text-muted mb-3">
-          Si ya realizaste el pago por este medio, confirmalo aquí para que el vendedor lo verifique.
+          Si ya realizaste el pago o coordinaste la visita, notifíquelo aquí para agilizar la verificación.
         </p>
         <button id="btn_confirmar_efectivo" class="btn btn-warning w-100 fw-bold">
-          ✅ Confirmar recepción de pago
+          ✅ Notificar Pago Realizado
         </button>
         <div id="resultado_efectivo" style="display:none"></div>
       </div>
@@ -10271,6 +10366,52 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
             // Actualizamos el localStorage con el nuevo estado de las subvariedades
             localStorage.setItem('subvariedades_seleccionadas', JSON.stringify(subvariedadesSeleccionadas));
+        }
+
+        // ── MANEJADORES DE PAGO PRESENCIAL (CLIENTE / VENDEDOR) ──
+        $(document).on('click', '#btn_pagar', function (e) {
+            e.preventDefault();
+            const text = $(this).text();
+            if (text.includes("Confirmar Visita")) {
+                confirmarPagoPresencial("REVISION_MANUAL", "Visita Confirmada", "El vendedor ha sido notificado de tu visita.");
+            } else {
+                // Lógica existente o redirección
+            }
+        });
+
+        $(document).on('click', '#btn_confirmar_efectivo', function (e) {
+            e.preventDefault();
+            confirmarPagoPresencial("PAGADO", "Pago Registrado", "El pedido ha pasado a estado PAGADO.");
+        });
+
+        function confirmarPagoPresencial(nuevoEstado, tituloExito, mensajeExito) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const idPedido = urlParams.get('id');
+
+            if (!idPedido) {
+                Swal.fire("Error", "No se identificó el pedido.", "error");
+                return;
+            }
+
+            toggleLoader(true);
+            makeAjaxCall(
+                `${url_final_venta}exec`,
+                {
+                    op: "confirmar_pago_presencial",
+                    idpedido: idPedido,
+                    nuevoEstado: nuevoEstado
+                },
+                function (respuesta) {
+                    toggleLoader(false);
+                    Swal.fire(tituloExito, mensajeExito, "success").then(() => {
+                        location.reload();
+                    });
+                },
+                function (err) {
+                    toggleLoader(false);
+                    Swal.fire("Error", err.message || "Error al procesar", "error");
+                }
+            );
         }
 
         //]]>
