@@ -111,7 +111,37 @@
     }
 
     /* Ajustes adicionales de padding/margin */
+    /* Estilos de Enlaces de Sidebar */
+    .sidebar-link {
+      color: #94a3b8 !important;
+      /* slate-400 */
+      transition: all 0.2s ease;
+      border-right: 3px solid transparent;
+    }
+
+    .sidebar-link:hover {
+      color: #ffffff !important;
+      background-color: #1e293b !important;
+      /* slate-800 */
+    }
+
+    .sidebar-link.active {
+      color: #818cf8 !important;
+      /* indigo-400 */
+      background-color: rgba(99, 102, 241, 0.1) !important;
+      /* indigo-500/10 */
+      border-right-color: #6366f1;
+      /* indigo-500 */
+    }
+
+    .sidebar-link i {
+      color: inherit;
+      transition: color 0.2s;
+    }
+
     .nav-section-title {
+      color: #64748b !important;
+      /* slate-500 */
       transition: all 0.2s;
     }
 
@@ -160,6 +190,9 @@
       gap: 4px;
       width: 20%;
       height: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
     }
 
     .nav-item-mobile i {
@@ -467,14 +500,10 @@
             newScript.src = oldScript.src;
           } else {
             // Envolver script inline en try-catch local para que un fallo no rompa el inyector
-            newScript.textContent = `
-              try {
-                ${content}
-              } catch(e) {
-                console.error("❌ [Module Script Error] En script #${index}:", e);
-                google.script.run.logErrorFromFrontend("Injected Script #${index} Error: " + e.message);
-              }
-            `;
+            newScript.textContent = "try {\n" + content + "\n} catch(e) {\n" +
+              "  console.error('❌ [Module Script Error] En script #" + index + ":', e);\n" +
+              "  google.script.run.logErrorFromFrontend('Injected Script #" + index + " Error: ' + e.message);\n" +
+              "}";
           }
 
           const parent = oldScript.parentNode;
@@ -500,10 +529,10 @@
       const badge = document.getElementById('shell-status');
       const textEl = document.getElementById('shell-status-text');
       if (isLoading) {
-        textEl.innerText = text;
-        badge.classList.remove('hidden');
+        if (textEl) textEl.innerText = text;
+        if (badge) badge.classList.remove('hidden');
       } else {
-        badge.classList.add('hidden');
+        if (badge) badge.classList.add('hidden');
       }
     }
 
@@ -545,8 +574,10 @@
       document.getElementById('main-content').classList.remove('m-0', 'rounded-none');
 
       // Actualizar UI con datos del usuario
-      document.getElementById('user-name').innerText = user.name;
-      document.getElementById('user-avatar').innerText = (user.name || "U").substring(0, 2).toUpperCase();
+      const userNameEl = document.getElementById('user-name');
+      const userAvatarEl = document.getElementById('user-avatar');
+      if (userNameEl) userNameEl.innerText = user.name;
+      if (userAvatarEl) userAvatarEl.innerText = (user.name || "U").substring(0, 2).toUpperCase();
 
       if (INITIAL_PARAMS.accion) {
         const accion = INITIAL_PARAMS.accion;
