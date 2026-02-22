@@ -1044,15 +1044,25 @@
         CATALOG_LOADING = true;
         log("Cargando catálogo dinámico...", "info");
 
-        try {
-            let resp = await fetch(CATALOG_URL, { cache: 'no-store' });
+        let resp = null;
+        let usedFallback = false;
 
-            if (!resp.ok && CATALOG_URL_FALLBACK) {
-                log("⚠️ Fallo Donweb, intentando respaldo GitHub...", "warning");
-                resp = await fetch(CATALOG_URL_FALLBACK, { cache: 'no-store' });
+        try {
+            // Intento 1: Donweb (CORS/Network sensitive)
+            try {
+                resp = await fetch(CATALOG_URL, { cache: 'no-store' });
+                if (!resp.ok) throw new Error("HTTP " + resp.status);
+            } catch (err) {
+                if (CATALOG_URL_FALLBACK) {
+                    log("⚠️ Fallo servidor Donweb (CORS/404), activando respaldo GitHub...", "warning");
+                    resp = await fetch(CATALOG_URL_FALLBACK, { cache: 'no-store' });
+                    if (!resp.ok) throw new Error("GitHub Fallback HTTP " + resp.status);
+                    usedFallback = true;
+                } else {
+                    throw err;
+                }
             }
 
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
             const data = await resp.json();
 
             if (data && data.products) {
@@ -1071,7 +1081,8 @@
                 CATEGORY_SVGS = data.categorySvgs || {};
                 renderizarCategorias();
 
-                log(`Catálogo cargado: ${PRODUCT_CATALOG.length} productos.`, "success");
+                const source = usedFallback ? "GitHub (Respaldo)" : "Donweb (Principal)";
+                log(`Catálogo cargado vía ${source}: ${PRODUCT_CATALOG.length} productos.`, "success");
                 const val = document.getElementById('searchInput').value;
                 if (val) debounceSearch(val);
             }
