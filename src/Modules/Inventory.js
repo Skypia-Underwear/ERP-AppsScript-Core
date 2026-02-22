@@ -14,6 +14,67 @@ function procesarAccionInventario(accion, codigo, fecha) {
 }
 
 /**
+ * Procesa ajustes de stock masivos desde la matriz del Dashboard.
+ * @param {Array} cambios Lista de objetos { sku, color, talle, store, oldStock, newStock }
+ * @param {string} storeId La tienda donde se realizaron los cambios.
+ * @param {Array} logArray Array para registro de logs.
+ */
+function procesarAjusteMasivoStock(cambios, storeId, logArray = null) {
+  const log = logArray ? (msg) => logArray.push(msg) : (msg) => Logger.log(msg);
+  log(`⚖️ Procesando ${cambios.length} ajustes manuales en Tienda: ${storeId}...`);
+
+  const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+  const sheetMov = ss.getSheetByName(SHEETS.INVENTORY_MOVEMENTS);
+  const movMapping = HeaderManager.getMapping("INVENTORY_MOVEMENTS");
+
+  if (!movMapping) throw new Error("No se pudo obtener el mapeo de movimientos.");
+
+  const fecha = new Date();
+  const skusAAuditar = new Set();
+  const nuevasFilas = [];
+
+  cambios.forEach(c => {
+    const diff = c.newStock - c.oldStock;
+    if (diff === 0) return;
+
+    const tipo = diff > 0 ? "ENTRADA" : "SALIDA";
+    const cantAbs = Math.abs(diff);
+    const invId = `${c.sku}-${c.color}-${c.talle}-${c.store}`;
+
+    // Preparar fila para BD_MOVIMIENTOS_INVENTARIO
+    // Estructura esperada (ejemplo): FECHA, TIENDA_ID, MOVIMIENTO, CANTIDAD, INVENTARIO_ID, COMENTARIO
+    nuevasFilas.push([
+      fecha,
+      c.store,
+      tipo,
+      cantAbs,
+      invId,
+      "Ajuste Manual desde Dashboard Matrix"
+    ]);
+
+    skusAAuditar.add(c.sku);
+  });
+
+  if (nuevasFilas.length > 0) {
+    sheetMov.getRange(sheetMov.getLastRow() + 1, 1, nuevasFilas.length, nuevasFilas[0].length).setValues(nuevasFilas);
+    log(`✅ Se registraron ${nuevasFilas.length} movimientos de ajuste.`);
+
+    // Recalcular productos afectados para que el stock se refleje inmediatamente
+    skusAAuditar.forEach(sku => {
+      recalcularStockDeProducto(sku, logArray);
+    });
+
+    // Sincronizar catálogo
+    publicarCatalogo();
+    log(`🔄 Catálogo sincronizado.`);
+
+    return { success: true, message: `Se procesaron ${nuevasFilas.length} ajustes exitosamente.`, logs: logArray };
+  }
+
+  return { success: true, message: "No hubo cambios significativos.", logs: logArray };
+}
+
+/**
  * Manejador para APPSHEET (POST). Llama a la función núcleo en Main.gs y formatea la respuesta.
  */
 function handleInventoryRequest(params) {
@@ -1222,5 +1283,52 @@ function gestionarAccionEnriquecimiento(sku) {
   } catch (e) {
     debugLog(`❌ [Webhook] Error crítico: ${e.message}`);
     return { error: e.message };
+  }
+}
+
+/**
+ * Obtiene un resumen de movimientos y stock actual para todas las variaciones.
+ * Optimizado para hidratar el dashboard rápidamente con datos en tiempo real.
+ */
+function getInventoryHydrationData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEETS.INVENTORY);
+    const mapping = HeaderManager.getMapping("INVENTORY");
+
+    if (!sheet || !mapping) throw new Error("Hoja de inventario no encontrada.");
+
+    const data = sheet.getDataRange().getValues();
+    data.shift(); // Quitar headers
+
+    const idxId = mapping["INVENTARIO_ID"];
+
+    // Soporte para múltiples variantes de nombres de columnas
+    const idxStock = mapping["STOCK_ACTUAL"] !== undefined ? mapping["STOCK_ACTUAL"] : mapping["CURRENT_STOCK"];
+    const idxEntradas = mapping["ENTRADAS"] !== undefined ? mapping["ENTRADAS"] : mapping["REPLACEMENT"];
+    const idxSalidas = mapping["SALIDAS"] !== undefined ? mapping["SALIDAS"] : mapping["DEPARTURES"];
+    const idxVWeb = mapping["VENTAS_WEB"] !== undefined ? mapping["VENTAS_WEB"] : mapping["WEB_SALES"];
+    const idxVLocal = mapping["VENTAS_LOCAL"] !== undefined ? mapping["VENTAS_LOCAL"] : mapping["LOCAL_SALES"];
+
+    if (idxId === undefined || idxStock === undefined) throw new Error("Hydration: Faltan columnas ID o Stock en Inventario.");
+
+    const hydrationMap = {};
+    data.forEach(row => {
+      const id = String(row[idxId]).trim();
+      if (!id) return;
+
+      hydrationMap[id] = {
+        s: parseInt(row[idxStock]) || 0, // Stock Actual
+        e: parseInt(row[idxEntradas]) || 0, // Entradas
+        sa: parseInt(row[idxSalidas]) || 0, // Salidas
+        vw: parseInt(row[idxVWeb]) || 0,    // Ventas Web
+        vl: parseInt(row[idxVLocal]) || 0   // Ventas Local
+      };
+    });
+
+    return { success: true, map: hydrationMap };
+  } catch (e) {
+    debugLog("❌ Error en getInventoryHydrationData: " + e.message);
+    return { success: false, message: e.message };
   }
 }

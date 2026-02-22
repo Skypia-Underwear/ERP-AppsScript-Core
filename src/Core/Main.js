@@ -227,7 +227,7 @@ const GLOBAL_CONFIG = {
 const SHEET_SCHEMA = {
   STORES: ["TIENDA_ID", "MODO_VENTA", "RECARGO_MENOR", "IP_IMPRESORA_LOCAL"],
   PRODUCTS: ["CODIGO_ID", "MODELO", "PRECIO_COSTO", "RECARGO_MENOR", "CATEGORIA", "COLORES", "TALLES", "WOO_ID"],
-  INVENTORY: ["INVENTARIO_ID", "TIENDA_ID", "PRODUCTO_ID", "COLOR", "TALLE", "STOCK_ACTUAL", "VENTAS_LOCAL", "VENTAS_WEB", "WOO_ID"],
+  INVENTORY: ["INVENTARIO_ID", "TIENDA_ID", "PRODUCTO_ID", "COLOR", "TALLE", "STOCK_ACTUAL", "ENTRADAS", "SALIDAS", "VENTAS_LOCAL", "VENTAS_WEB"],
   CATEGORIES: ["CATEGORIA_ID", "CATEGORIA_GENERAL", "HTML", "ICONO"], // ICONO suele ser el ID del SVG
   SVG_GALLERY: ["NOMBRE", "CODE"],
   COLORS: ["COLOR_ID", "HEXADECIMAL", "TEXTO"],
@@ -987,6 +987,12 @@ function ejecutarAccionDeInventario(accion, codigo, fecha) {
         return guardarCsvEditado(dataEditada, logArray);
       case "probarNotificaciones":
         return probarNotificacionActual();
+      case "guardarMatrizStock":
+        if (!codigo) throw new Error("No se recibieron datos de la matriz.");
+        const cambios = JSON.parse(codigo);
+        return procesarAjusteMasivoStock(cambios, fecha, logArray);
+      case "getHydration":
+        return getInventoryHydrationData();
       default:
         throw new Error(`Acción desconocida: ${accion}`);
     }
