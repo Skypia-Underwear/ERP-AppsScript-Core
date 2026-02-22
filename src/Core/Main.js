@@ -642,7 +642,7 @@ function getCatalogJsonUrl() {
 
   if (readUrl) {
     // Si hay URL de lectura específica, la usamos con el parámetro de archivo
-    return `${readUrl}?f=${fileName}`;
+    return `${readUrl}?file=${fileName}`;
   }
 
   // Fallback hardcodeado si no hay configuración (Legacy)
