@@ -940,6 +940,7 @@
         lastUpdate: null
       };
       const CATALOG_URL = "<?!= CATALOG_URL ?>";
+      const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
 
       let selectedMinPurchase = 1;
       let currentTpvFilters = {
@@ -1177,7 +1178,13 @@
 
           // B. Catálogo
           try {
-            var resp = await fetch(CATALOG_URL, { cache: 'no-store' });
+            let resp = await fetch(CATALOG_URL, { cache: 'no-store' });
+
+            if (!resp.ok && CATALOG_URL_FALLBACK) {
+              console.warn("⚠️ Fallo Donweb, intentando respaldo GitHub...");
+              resp = await fetch(CATALOG_URL_FALLBACK, { cache: 'no-store' });
+            }
+
             if (!resp.ok) throw new Error("HTTP " + resp.status);
             catalog = await resp.json();
 

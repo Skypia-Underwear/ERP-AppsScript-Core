@@ -198,7 +198,7 @@ const GLOBAL_CONFIG = {
     get EMAIL() { return GLOBAL_CONFIG.SCRIPT_CONFIG["NOTIFICATION_EMAIL"] || ""; }
   },
 
-  get PUBLICATION_TARGET() { return GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "DONWEB"; },
+  get PUBLICATION_TARGET() { return GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "AMBOS"; },
 
   GITHUB: {
     get USER() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GITHUB_USER"] || ""; },
@@ -637,16 +637,30 @@ function getGeneralId(ss) {
  * Determina la URL del catálogo JSON basado en el target de publicación.
  */
 function getCatalogJsonUrl() {
-  const target = (GLOBAL_CONFIG.PUBLICATION_TARGET || "DONWEB").toUpperCase();
-  if (target === "GITHUB") {
-    const user = GLOBAL_CONFIG.GITHUB.USER;
-    const repo = GLOBAL_CONFIG.GITHUB.REPO;
-    const path = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalogo.json";
-    // URL Raw de GitHub para consumo directo
+  const readUrl = GLOBAL_CONFIG.DONWEB.READ_URL;
+  const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalogo.json";
+
+  if (readUrl) {
+    // Si hay URL de lectura específica, la usamos con el parámetro de archivo
+    return `${readUrl}?f=${fileName}`;
+  }
+
+  // Fallback hardcodeado si no hay configuración (Legacy)
+  return "https://castfer.com.ar/leer_json_hostingshop.php";
+}
+
+/**
+ * Retorna la URL de respaldo (GitHub Raw) para el catálogo.
+ */
+function getCatalogFallbackUrl() {
+  const user = GLOBAL_CONFIG.GITHUB.USER;
+  const repo = GLOBAL_CONFIG.GITHUB.REPO;
+  const path = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalogo.json";
+
+  if (user && repo) {
     return `https://raw.githubusercontent.com/${user}/${repo}/refs/heads/main/${path}`;
   }
-  // Default: Donweb
-  return "https://castfer.com.ar/leer_json_hostingshop.php";
+  return "";
 }
 
 function doGet(e) {
@@ -716,10 +730,10 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
 
-  // --- Dashboard de Imágenes (NUEVO) ---
   if (view === 'imagenes_manager') {
     const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
     template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
     return template.evaluate()
       .setTitle('Gestor de Imágenes')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -792,6 +806,7 @@ function getPageContent(view, accion, codigo, fecha) {
   if (view === 'imagenes_manager') {
     const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
     template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
     return template.evaluate().getContent();
   }
 
@@ -799,6 +814,7 @@ function getPageContent(view, accion, codigo, fecha) {
   if (view === 'pos_manager') {
     const template = HtmlService.createTemplateFromFile('Web/pos_view');
     template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
     return template.evaluate().getContent();
   }
 
