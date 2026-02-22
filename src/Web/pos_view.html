@@ -1178,16 +1178,23 @@
 
           // B. Catálogo
           try {
-            let resp = await fetch(CATALOG_URL, { cache: 'no-store' });
-
-            if (!resp.ok && CATALOG_URL_FALLBACK) {
-              console.warn("⚠️ Fallo Donweb, intentando respaldo GitHub...");
-              resp = await fetch(CATALOG_URL_FALLBACK, { cache: 'no-store' });
+            let primaryResp = null;
+            let resp = null; // Declare resp here
+            try {
+              primaryResp = await fetch(CATALOG_URL, { cache: 'no-store' });
+              if (!primaryResp.ok) throw new Error("Status " + primaryResp.status);
+              resp = primaryResp;
+            } catch (err) {
+              if (CATALOG_URL_FALLBACK) {
+                console.warn("⚠️ Fallo servidor Donweb (CORS/404), activando respaldo GitHub...");
+                resp = await fetch(CATALOG_URL_FALLBACK, { cache: 'no-store' });
+                if (!resp.ok) throw new Error("Fallback Status " + resp.status);
+              } else {
+                throw err;
+              }
             }
 
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
             catalog = await resp.json();
-
             const userRole = (user ? user.role : '').toUpperCase();
 
             // Solo filtramos si NO es ADMIN y tiene una tienda asignada (Que no sea "TODAS")
