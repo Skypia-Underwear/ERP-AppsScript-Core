@@ -1,433 +1,403 @@
 <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 
+<!-- DataTables & jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link href="https://cdn.datatables.net/v/dt/dt-2.0.3/rg-1.5.0/datatables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/v/dt/dt-2.0.3/rg-1.5.0/datatables.min.js"></script>
+
 <style>
-  /* Estilos específicos de Inventario */
-
-  #console-output {
-    background-color: #1e293b;
-    /* Slate 800 */
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--bg-main);
     color: #e2e8f0;
-    font-family: 'Consolas', monospace;
+  }
+
+  /* Tema DataTables Premium ERP */
+  .dataTables_wrapper {
+    color: #cbd5e1 !important;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  table.dataTable {
+    border-collapse: collapse !important;
+    width: 100% !important;
     font-size: 0.85rem;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  table.dataTable thead th {
+    border-bottom: 1px solid #334155 !important;
+    background-color: var(--bg-main) !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-top: none !important;
+  }
+
+  table.dataTable tbody tr {
+    background-color: var(--bg-secondary) !important;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5) !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  table.dataTable tbody tr:hover {
+    background-color: #334155 !important;
+  }
+
+  table.dataTable tbody tr.selected {
+    background-color: rgba(99, 102, 241, 0.1) !important;
+    border-left: 3px solid var(--accent) !important;
+  }
+
+  /* Agrupador de DataTables (RowGroup) */
+  table.dataTable tr.dtrg-group td {
+    background-color: var(--bg-main) !important;
+    color: #e2e8f0 !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px solid #334155 !important;
+    border-top: 1px solid #334155 !important;
+  }
+
+  .dt-info {
+    color: #94a3b8 !important;
+    font-size: 0.8rem;
+  }
+
+  .dt-paging {
+    padding-top: 0.5rem;
+  }
+
+  .dt-paging button {
+    color: #cbd5e1 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.3rem 0.6rem !important;
+    margin: 0 2px;
+  }
+
+  .dt-paging button:hover,
+  .dt-paging button.current {
+    background: #334155 !important;
+    border-color: transparent !important;
+    color: #fff !important;
+  }
+
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Estilos Tarjetas Categorías y Productos */
+  .category-card {
+    transition: all 0.2s ease;
+  }
+
+  .category-card.active {
+    border-color: var(--accent) !important;
+    background-color: rgba(99, 102, 241, 0.1);
+    color: #fff;
+    box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.2);
+  }
+
+  .category-svg-container svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.4));
+    transition: transform 0.2s ease;
+  }
+
+  .category-card:hover .category-svg-container svg {
+    transform: scale(1.1);
+  }
+
+  .product-card {
+    transition: all 0.2s ease;
+  }
+
+  .product-card.active {
+    border-color: var(--accent);
+    background-color: rgba(99, 102, 241, 0.1);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  /* Ocultar definitivamente controles nativos de DataTables */
+  .dt-layout-row:first-child,
+  .dataTables_length,
+  .dataTables_filter,
+  .dt-length,
+  .dt-search {
+    display: none !important;
+  }
+
+  /* Terminal Logs */
+  #console-output {
+    background-color: rgba(2, 6, 23, 0.5);
+    font-family: 'Consolas', monospace;
+    font-size: 0.75rem;
     line-height: 1.6;
-    overflow-y: auto;
-    flex-grow: 1;
-  }
-
-  /* Scrollbar Dark */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
   }
 
   .log-line {
-    border-bottom: 1px solid #334155;
-    padding: 4px 0;
+    border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+    padding: 6px 0;
+  }
+
+  .log-error {
+    color: #f87171;
   }
 
   .log-success {
     color: #4ade80;
   }
 
-  .log-error {
-    color: #f87171;
-    font-weight: bold;
-  }
-
   .log-info {
     color: #60a5fa;
   }
+
+  .custom-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+  }
 </style>
 
-<div class="text-slate-200 h-full flex flex-col overflow-hidden bg-slate-950">
+<div class="h-full flex flex-col overflow-hidden text-slate-200 relative bg-slate-950">
 
-  <div class="w-full h-full flex flex-col space-y-6 max-w-[1400px] mx-auto overflow-hidden p-6 md:p-8">
+  <!-- 1. HEADER & BUSCADOR GLOBAL -->
+  <header class="border-b border-slate-800 px-6 py-3 flex justify-between items-center flex-shrink-0 z-20"
+    style="background-color: var(--bg-secondary);">
 
-    <!-- MAIN GRID: Columnas -->
-    <div class="flex-grow grid grid-cols-1 lg:grid-cols-5 gap-6 overflow-hidden">
-
-      <!-- COLUMNA IZQUIERDA: Tarjetas de Acción -->
-      <div class="lg:col-span-2 flex flex-col gap-4 overflow-y-auto pr-2 custom-scroll">
-
-        <!-- 1. AUDITORÍA GLOBAL -->
-        <div
-          class="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors flex flex-col group flex-shrink-0">
-          <div class="flex items-center gap-3 mb-3 text-blue-400">
-            <div class="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition"><i
-                class="ph-fill ph-globe text-xl"></i></div>
-            <h3 class="font-bold text-base text-white">Auditoría Global</h3>
-          </div>
-          <p class="text-xs text-slate-400 mb-4">
-            Escanea todo el catálogo. Elimina duplicados y crea combinaciones faltantes.
-          </p>
-          <button onclick="runGlobalAudit()" id="btn-global"
-            class="w-full py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20">
-            <i class="ph-bold ph-play"></i> Iniciar Proceso
-          </button>
-        </div>
-
-        <!-- 2. POR PRODUCTO -->
-        <div
-          class="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-emerald-500/50 transition-colors border-t-4 border-t-emerald-500 flex flex-col group flex-shrink-0">
-          <div class="flex items-center gap-3 mb-3 text-emerald-400">
-            <div class="p-2 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition"><i
-                class="ph-fill ph-crosshair text-xl"></i></div>
-            <h3 class="font-bold text-base text-white">Por Producto</h3>
-          </div>
-          <p class="text-xs text-slate-400 mb-3">
-            Regenera variaciones y stock para un solo SKU.
-          </p>
-          <div class="flex gap-2">
-            <input type="text" id="sku-input" placeholder="SKU (ej: BOXE2481)"
-              class="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-mono uppercase text-white placeholder-slate-500"
-              onkeypress="handleEnter(event)">
-            <button onclick="runProductAudit()" id="btn-single"
-              class="px-3 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 transition shadow-lg shadow-emerald-500/20">
-              <i class="ph-bold ph-check"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- 3. BARTENDER -->
-        <div
-          class="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-colors border-t-4 border-t-purple-500 flex flex-col group flex-shrink-0">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3 text-purple-400">
-              <div class="p-2 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20 transition"><i
-                  class="ph-fill ph-barcode text-xl"></i></div>
-              <h3 class="font-bold text-base text-white">Bartender CSV</h3>
-            </div>
-            <!-- Indicador de Estado -->
-            <div id="bartender-status-badge"
-              class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-400 flex items-center gap-1.5 border border-slate-600">
-              <div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div> PENDIENTE
-            </div>
-          </div>
-          <p class="text-xs text-slate-400 mb-3">
-            Genera archivo de etiquetas para la fecha seleccionada.
-          </p>
-          <div class="flex gap-2 mb-4">
-            <input type="date" id="bartender-date" onchange="checkDateStatus()"
-              class="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-xs text-slate-300">
-            <button onclick="runBartender()" id="btn-bartender" title="Generar CSV y Notificar"
-              class="px-3 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition shadow-lg shadow-purple-500/20">
-              <i class="ph-bold ph-export"></i>
-            </button>
-            <button onclick="runTestNotification()" id="btn-test-notif" title="Probar Notificación Actual"
-              class="px-3 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition border border-slate-600">
-              <i class="ph-bold ph-bell-ringing"></i>
-            </button>
-          </div>
-
-          <!-- Mini Log de Historial -->
-          <div class="bg-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
-            <div
-              class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700/50 text-[10px] font-bold text-slate-500 uppercase flex justify-between">
-              <span>Últimos Procesos</span>
-              <i class="ph-bold ph-clock-counter-clockwise"></i>
-            </div>
-            <div id="bartender-mini-history"
-              class="p-2 space-y-1.5 max-h-[120px] overflow-y-auto custom-scroll text-[11px]">
-              <p class="text-slate-600 italic text-center py-2">Cargando historial...</p>
-            </div>
-          </div>
-        </div>
-
+    <!-- Logo y Status -->
+    <div class="flex items-center gap-4 w-1/4">
+      <div class="p-2 rounded-lg text-white flex items-center justify-center"
+        style="background-color: var(--accent); box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);">
+        <i class="ph-bold ph-stack text-xl"></i>
       </div>
-
-      <!-- COLUMNA DERECHA: Terminal de Logs -->
-      <div
-        class="lg:col-span-3 bg-slate-800 rounded-xl shadow-sm border border-slate-700 flex flex-col overflow-hidden">
-        <div
-          class="px-6 py-3 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center flex-shrink-0">
-          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-            <i class="ph-bold ph-terminal-window"></i> Terminal de Logs
-          </span>
-          <button onclick="clearConsole()"
-            class="text-slate-500 hover:text-white text-xs font-medium hover:underline transition">Limpiar</button>
-        </div>
-        <div id="console-output" class="p-6 custom-scroll bg-slate-900/10">
-          <p class="text-slate-600 italic opacity-50 text-sm italic">Esperando instrucciones...</p>
-        </div>
+      <div class="hidden md:block">
+        <h1 class="text-base font-bold text-white tracking-wide whitespace-nowrap">Inventario ERP</h1>
+        <p class="text-[10px] text-slate-400 flex items-center gap-1">
+          <span class="relative flex h-1.5 w-1.5"><span
+              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span
+              class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span></span>
+          <span id="last-sync-label">Sincronizando...</span>
+        </p>
       </div>
-
     </div>
 
+    <!-- Buscador Central -->
+    <div class="flex-grow max-w-2xl mx-4">
+      <div
+        class="bg-slate-900 rounded-xl border border-slate-700 p-1.5 flex items-center shadow-inner focus-within:border-[var(--accent)] transition-colors">
+        <i class="ph-bold ph-magnifying-glass text-slate-500 ml-3 text-lg"></i>
+        <input type="text" id="custom-sku-search" placeholder="Buscar categoría, producto, temporada..."
+          class="w-full bg-transparent border-none text-white px-3 py-1 outline-none text-sm font-medium placeholder-slate-500">
+        <div
+          class="px-2 py-0.5 bg-slate-800 rounded border border-slate-600 text-[10px] text-slate-400 font-mono mr-1 hidden sm:block shadow-sm">
+          Ctrl+K</div>
+      </div>
+    </div>
+
+    <!-- Acciones Mantenimiento -->
+    <div class="flex items-center justify-end gap-2 w-auto min-w-[25%]">
+
+      <button id="btn-sync-product" onclick="runProductAudit()" title="Sincronizar Producto Seleccionado"
+        class="hidden p-2 border border-blue-500/50 hover:bg-blue-600 text-blue-400 hover:text-white rounded-lg transition bg-blue-900/20 shadow-[0_0_10px_rgba(59,130,246,0.2)] flex items-center gap-2">
+        <i class="ph-bold ph-arrows-clockwise text-lg"></i>
+        <span class="text-xs font-bold hidden xl:block">Sincronizar</span>
+      </button>
+      <div id="divider-sync" class="hidden w-px h-6 bg-slate-700 mx-1"></div>
+
+      <button onclick="runGlobalAudit()" title="Auditoría Global (Proceso Pesado)"
+        class="p-2 border border-red-500/50 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition bg-red-900/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+        <i class="ph-bold ph-globe-hemisphere-east text-lg"></i>
+      </button>
+
+      <button onclick="openBartenderModal()" title="Generar Etiquetas Bartender"
+        class="p-2 border border-slate-700 hover:bg-slate-700 text-slate-300 rounded-lg transition bg-slate-800 shadow-sm hover:border-purple-500/50">
+        <i class="ph-bold ph-barcode text-lg text-purple-400"></i>
+      </button>
+
+      <div class="w-px h-6 bg-slate-700 mx-1"></div>
+
+      <button onclick="toggleLogs()" id="btn-toggle-logs"
+        class="px-3 py-1.5 border border-slate-700 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition flex items-center gap-2 bg-slate-800">
+        <i class="ph-bold ph-terminal-window"></i> <span class="hidden xl:block">Logs</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. ESPACIO DE TRABAJO PRINCIPAL -->
+  <div class="flex-grow flex overflow-hidden p-4 gap-4">
+
+    <!-- PANEL IZQUIERDO: Carruseles y Catálogo (60%) -->
+    <div class="w-3/5 flex flex-col rounded-xl border border-slate-700 shadow-xl overflow-hidden relative"
+      style="background-color: var(--bg-secondary);">
+
+      <!-- 2.1 HEADER DE CATEGORÍAS (Horizontal) -->
+      <div class="flex flex-col border-b border-slate-700 bg-slate-900/50 z-10 flex-shrink-0">
+        <div class="px-5 py-2.5 flex justify-between items-center border-b border-slate-800/50">
+          <h3 class="font-bold text-white text-sm flex items-center gap-2 uppercase tracking-wide">
+            <i class="ph-fill ph-squares-four text-blue-400"></i> Filtros de Catálogo
+          </h3>
+        </div>
+
+        <div class="px-4 py-2 flex items-center gap-2">
+          <button onclick="document.getElementById('category-carousel').scrollBy({left:-200, behavior:'smooth'})"
+            class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 text-slate-400 transition hidden md:block">
+            <i class="ph-bold ph-caret-left"></i>
+          </button>
+
+          <div id="category-carousel" class="flex-grow overflow-x-auto no-scrollbar flex gap-3 snap-x scroll-smooth">
+            <p class="text-xs text-slate-500 italic p-2">Cargando categorías...</p>
+          </div>
+
+          <button onclick="document.getElementById('category-carousel').scrollBy({left:200, behavior:'smooth'})"
+            class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 text-slate-400 transition hidden md:block">
+            <i class="ph-bold ph-caret-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2.2 ÁREA DE DATOS -->
+      <div class="flex-grow flex overflow-hidden">
+
+        <!-- Grid de Productos (Vertical) -->
+        <div class="w-[110px] flex-shrink-0 border-r border-slate-700/80 bg-slate-900/20 flex flex-col z-0">
+          <div class="p-2 border-b border-slate-700/50 flex justify-center items-center bg-slate-800/50">
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Modelos</span>
+          </div>
+          <div id="product-carousel" class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-2">
+            <p class="text-[10px] text-slate-500 italic text-center py-4">Cargando...</p>
+          </div>
+        </div>
+
+        <!-- Tabla e KPIs -->
+        <div class="flex-grow flex flex-col overflow-hidden bg-slate-800/10">
+
+          <div class="p-3 border-b border-slate-700/50 bg-slate-800/30 flex justify-between items-center flex-shrink-0">
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2">
+                <i class="ph-fill ph-table text-blue-400 text-sm"></i> Tabla Catálogo
+              </span>
+              <div class="flex gap-1 bg-slate-900 rounded-lg p-1 border border-slate-700" id="table-store-filters">
+                <button
+                  class="store-filter-btn active px-3 py-1 text-[10px] font-bold rounded-md transition-colors bg-slate-700 text-white shadow-sm"
+                  data-store="">Todas</button>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex items-center gap-2">
+                <span class="text-[9px] text-slate-500 uppercase font-bold">Variaciones:</span>
+                <span class="text-[11px] font-black text-white bg-slate-700 px-2 py-0.5 rounded shadow-sm"
+                  id="kpi-variations">0</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[9px] text-red-500 uppercase font-bold">Agotados:</span>
+                <span
+                  class="text-[11px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded shadow-sm"
+                  id="kpi-alerts">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-grow p-4 overflow-auto custom-scroll">
+            <table id="catalogTable" class="w-full text-left">
+              <thead>
+                <tr>
+                  <th>Cat</th>
+                  <th>SKU</th>
+                  <th>Store</th>
+                  <th>Brand</th>
+                  <th>Season</th>
+                  <th>Gender</th>
+                  <th>Style</th>
+                  <th>Material</th>
+                  <th>Variación</th>
+                  <th>Entradas</th>
+                  <th>Salidas</th>
+                  <th>V. Web</th>
+                  <th>V. Local</th>
+                  <th>Stock</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL DERECHO: Matriz de Edición (40%) -->
+    <div class="w-2/5 flex flex-col gap-4">
+      <div class="flex-grow flex flex-col rounded-xl border border-slate-700 shadow-xl overflow-hidden relative"
+        style="background-color: var(--bg-secondary);">
+
+        <div class="px-5 py-4 border-b border-slate-700/60 flex flex-col gap-4 z-10 bg-slate-900/30">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-white text-sm flex items-center gap-2 uppercase tracking-wide">
+                <i class="ph-fill ph-grid-four text-emerald-400"></i> Matriz de Stock
+              </h3>
+              <span id="active-sku-badge"
+                class="hidden text-[10px] px-2 py-0.5 rounded text-white font-mono font-bold shadow-sm"
+                style="background-color: var(--accent);"></span>
+            </div>
+            <button id="btn-save-matrix" onclick="saveMatrixChanges()"
+              class="px-4 py-2 text-white text-xs rounded-lg font-bold transition shadow-lg flex items-center gap-2 opacity-50 cursor-not-allowed"
+              style="background-color: var(--accent);" disabled>
+              <i class="ph-bold ph-floppy-disk text-sm"></i> Guardar Cambios
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-2.5 rounded-xl w-full">
+            <i class="ph-fill ph-storefront text-slate-400 text-lg"></i>
+            <select id="filter-store" onchange="refreshMatrixFromStore()"
+              class="bg-transparent text-sm text-white outline-none cursor-pointer font-medium flex-grow">
+              <option value="ALL">🏢 Todas (Solo Lectura)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex-grow p-4 overflow-auto custom-scroll relative" id="matrix-container">
+          <div id="matrix-empty-state"
+            class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 space-y-4 animate-fade-in">
+            <div class="p-6 rounded-full border border-slate-700/50" style="background-color: var(--bg-main);">
+              <i class="ph-thin ph-hand-tap text-5xl text-slate-400"></i>
+            </div>
+            <p class="text-sm font-medium tracking-wide text-center px-6">Selecciona un producto <br>para editar el
+              stock.</p>
+          </div>
+          <div id="matrix-content" class="hidden w-full animate-fade-in"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script>
-    // Inicializar fecha de hoy para Bartender
-    document.getElementById('bartender-date').valueAsDate = new Date();
-
-    let processedDatesList = [];
-
-    function loadBartenderHistory() {
-      console.log("Iniciando carga de historial Bartender...");
-      google.script.run
-        .withSuccessHandler(data => {
-          console.log("Historial recibido:", data);
-          processedDatesList = data;
-          updateMiniHistoryUI(data);
-          checkDateStatus();
-        })
-        .withFailureHandler(err => {
-          console.error("Error cargando historial Bartender:", err);
-          document.getElementById('bartender-mini-history').innerHTML =
-            `<p class="text-red-400 text-center py-2">Error de conexión: ${err.message}</p>`;
-        })
-        .getBartenderFullHistory();
-    }
-
-    // Ejecución inicial con un pequeño retardo para asegurar que el DOM esté listo
-    setTimeout(loadBartenderHistory, 500);
-
-    function checkDateStatus() {
-      const selectedDate = document.getElementById('bartender-date').value; // YYYY-MM-DD
-      const badge = document.getElementById('bartender-status-badge');
-
-      if (!selectedDate) return;
-
-      const isProcessed = processedDatesList.some(item => item.fecha_iso === selectedDate);
-
-      if (isProcessed) {
-        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 flex items-center gap-1.5 border border-emerald-500/30 animate-pulse';
-        badge.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div> GENERADO';
-      } else {
-        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-400 flex items-center gap-1.5 border border-slate-600';
-        badge.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div> PENDIENTE';
-      }
-    }
-
-    function updateMiniHistoryUI(data) {
-      const container = document.getElementById('bartender-mini-history');
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-slate-600 italic text-center py-2">Sin registros recientes.</p>';
-        return;
-      }
-
-      container.innerHTML = data.slice(0, 5).map(item => `
-        <div class="flex items-center justify-between group/item hover:bg-slate-700/30 p-1 rounded transition-colors">
-          <div class="flex items-center gap-2">
-            <i class="ph-bold ph-check-circle text-emerald-500"></i>
-            <span class="text-slate-300 font-medium">${item.fecha_format}</span>
-          </div>
-          <span class="text-[9px] text-slate-500 group-hover/item:text-slate-400">${item.hora}</span>
-        </div>
-      `).join('');
-    }
-
-    function handleEnter(e) {
-      if (e.key === 'Enter') runProductAudit();
-    }
-
-    function toggleLoading(isLoading) {
-      const buttons = document.querySelectorAll('button');
-      const inputs = document.querySelectorAll('input');
-
-      // Usar el status del shell (definido en systemContainer.html)
-      if (typeof setGlobalStatus === 'function') {
-        setGlobalStatus(isLoading);
-      }
-
-      if (isLoading) {
-        buttons.forEach(b => { b.disabled = true; b.classList.add('opacity-50', 'cursor-not-allowed'); });
-        inputs.forEach(i => i.disabled = true);
-      } else {
-        buttons.forEach(b => { b.disabled = false; b.classList.remove('opacity-50', 'cursor-not-allowed'); });
-        inputs.forEach(i => i.disabled = false);
-      }
-    }
-
-    function log(message, type = 'info') {
-      const consoleDiv = document.getElementById('console-output');
-      if (consoleDiv.innerHTML.includes('Esperando instrucciones...')) consoleDiv.innerHTML = '';
-
-      const line = document.createElement('div');
-      line.className = 'log-line';
-
-      if (type === 'error' || message.includes('❌') || message.includes('Error')) line.className += ' log-error';
-      else if (type === 'success' || message.includes('✅')) line.className += ' log-success';
-      else line.className += ' log-info';
-
-      line.textContent = `> ${message}`;
-      consoleDiv.appendChild(line);
-      consoleDiv.scrollTop = consoleDiv.scrollHeight;
-    }
-
-    function clearConsole() {
-      document.getElementById('console-output').innerHTML = '<p class="text-slate-600 italic opacity-50">Esperando instrucciones...</p>';
-    }
-
-    // --- ACCIONES ---
-
-    function runGlobalAudit() {
-      toggleLoading(true);
-      clearConsole();
-      log('Iniciando Auditoría Global...', 'info');
-      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
-        .procesarAccionInventario('generarInventarioInicial', '', '');
-    }
-
-    function runProductAudit() {
-      const sku = document.getElementById('sku-input').value.trim().toUpperCase();
-      if (!sku) return alert("Ingresa un SKU");
-      toggleLoading(true);
-      clearConsole();
-      log(`Auditando SKU: ${sku}...`, 'info');
-      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
-        .procesarAccionInventario('generarInventarioProducto', sku, '');
-    }
-
-    function runBartender() {
-      const fecha = document.getElementById('bartender-date').value;
-      if (!fecha) return alert("Selecciona una fecha");
-      toggleLoading(true);
-      clearConsole();
-      log(`Generando CSV Bartender para: ${fecha}...`, 'info');
-
-      // IMPORTANTE: Llamamos al wrapperBartender que creamos en Main.gs
-      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
-        .procesarAccionInventario('generarCsvBartender', '', fecha);
-    }
-
-    function runTestNotification() {
-      toggleLoading(true);
-      log('🧪 Iniciando prueba de canal de notificación...', 'info');
-      google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
-        .procesarAccionInventario('probarNotificaciones', '', '');
-    }
-
-
-    function processResponse(response) {
-      toggleLoading(false);
-      log('----------------------------------------');
-      if (response.logs && response.logs.length) response.logs.forEach(l => log(l));
-
-      if (response.success) {
-        log(response.message, 'success');
-
-        // Si hay datos (Bartender), mostrar modal de vista previa
-        if (response.data && response.data.length > 0) {
-          showBartenderPreview(response.data);
-        }
-
-        // Si hay URL de archivo (Bartender), mostrar link
-        if (response.fileUrl) {
-          const link = document.createElement('a');
-          link.href = response.fileUrl;
-          link.target = '_blank';
-          link.className = 'text-blue-400 underline hover:text-blue-300 ml-4 block mt-2';
-          link.innerHTML = '<i class="ph-bold ph-file-csv"></i> Abrir Archivo Generado';
-          document.getElementById('console-output').appendChild(link);
-        }
-      } else {
-        log(response.message, 'error');
-      }
-    }
-
-    // --- MANEJO DEL MODAL BARTENDER ---
-    let currentCsvData = [];
-
-    function showBartenderPreview(data) {
-      currentCsvData = data;
-      const modal = document.getElementById('modal-bartender');
-      const container = document.getElementById('bartender-table-container');
-
-      // Limpiar y renderizar tabla
-      container.innerHTML = '';
-      const table = document.createElement('table');
-      table.className = 'w-full text-xs text-left border-collapse';
-
-      const headers = data[0];
-      const rows = data.slice(1);
-
-      // Header
-      const thead = document.createElement('thead');
-      thead.className = 'bg-slate-900 sticky top-0';
-      const hRow = document.createElement('tr');
-      headers.forEach(h => {
-        const th = document.createElement('th');
-        th.className = 'px-3 py-2 border border-slate-700 text-slate-400 uppercase font-bold';
-        th.textContent = h;
-        hRow.appendChild(th);
-      });
-      thead.appendChild(hRow);
-      table.appendChild(thead);
-
-      // Body
-      const tbody = document.createElement('tbody');
-      rows.forEach((row, rIdx) => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-700/50 transition-colors';
-        row.forEach((cell, cIdx) => {
-          const td = document.createElement('td');
-          td.className = 'px-3 py-2 border border-slate-700 text-slate-300';
-
-          const input = document.createElement('input');
-          input.value = cell;
-          input.className = 'w-full bg-transparent border-none outline-none focus:ring-1 focus:ring-purple-500 rounded px-1 -ml-1';
-          input.onchange = (e) => {
-            currentCsvData[rIdx + 1][cIdx] = e.target.value;
-          };
-
-          td.appendChild(input);
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      container.appendChild(table);
-
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeModal() {
-      const modal = document.getElementById('modal-bartender');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function saveEditedCsv() {
-      if (confirm('¿Deseas guardar los cambios realizados en esta vista previa?')) {
-        toggleLoading(true);
-        closeModal();
-        log('Guardando cambios en el CSV...', 'info');
-        google.script.run.withSuccessHandler(processResponse).withFailureHandler(processError)
-          .procesarAccionInventario('guardarCsvBartender', JSON.stringify(currentCsvData), '');
-      }
-    }
-
-    function processError(error) {
-      toggleLoading(false);
-      log('Error Crítico: ' + error.message, 'error');
-    }
-  </script>
-  <!-- MODAL BARTENDER -->
-  <div id="modal-bartender"
-    class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+  <!-- 3. MODAL BARTENDER -->
+  <div id="bartender-modal"
+    class="fixed inset-0 bg-slate-950/80 z-[100] hidden flex-col items-center justify-center backdrop-blur-sm p-4">
     <div
-      class="bg-slate-800 w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden">
-      <!-- Modal Header -->
+      class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
       <div class="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
         <div>
           <h2 class="text-xl font-bold text-white flex items-center gap-2">
-            <i class="ph-bold ph-table text-purple-400"></i> Vista Previa Bartender CSV
+            <i class="ph-bold ph-barcode text-purple-400"></i> Generador Bartender
           </h2>
-          <p class="text-slate-400 text-xs">Puedes editar directamente las celdas antes de guardar el archivo final.</p>
+          <p class="text-slate-400 text-xs" id="bartender-modal-subtitle">Configura los parámetros de extracción.</p>
         </div>
         <button onclick="closeModal()"
           class="p-2 hover:bg-slate-700 rounded-full transition text-slate-400 hover:text-white">
@@ -435,21 +405,664 @@
         </button>
       </div>
 
-      <!-- Modal Body (Table Container) -->
-      <div id="bartender-table-container" class="flex-grow overflow-auto p-4 custom-scroll bg-slate-900/30">
-        <!-- La tabla se generará aquí -->
+      <!-- Paso 1: Origen -->
+      <div id="bartender-setup-container" class="p-6 flex flex-col gap-6 bg-slate-800">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Columna 1: Opciones Manuales -->
+          <div class="bg-slate-900/50 border border-slate-700 p-5 rounded-xl shadow-inner">
+            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <i class="ph-bold ph-hand-pointing text-blue-400"></i> Extracción Manual
+            </h3>
+            <div class="flex flex-col gap-4">
+              <label
+                class="flex items-center gap-3 text-sm text-slate-300 cursor-pointer p-2 hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-700">
+                <input type="radio" name="bt_source" value="selected" id="bt_source_selected"
+                  class="w-4 h-4 accent-purple-500">
+                <span>Producto seleccionado: <span id="bt-selected-sku-label"
+                    class="font-mono text-blue-400 font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-700 shadow-sm">Ninguno</span></span>
+              </label>
+              <label
+                class="flex items-center gap-3 text-sm text-slate-300 cursor-pointer p-2 hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-700">
+                <input type="radio" name="bt_source" value="filtered" id="bt_source_filtered"
+                  class="w-4 h-4 accent-purple-500" checked>
+                <span>Productos visibles en tabla (filtros actuales)</span>
+              </label>
+              <label
+                class="flex items-center gap-3 text-sm text-slate-300 cursor-pointer p-2 hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-700">
+                <input type="radio" name="bt_source" value="all" id="bt_source_all" class="w-4 h-4 accent-purple-500">
+                <span>Cátalogo completo (Todo el stock)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Columna 2: Automatización -->
+          <div class="bg-slate-900/50 border border-slate-700 p-5 rounded-xl shadow-inner flex flex-col">
+            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <i class="ph-bold ph-lightning text-yellow-400"></i> Automatización (Movimientos)
+            </h3>
+            <div class="flex flex-col gap-4 flex-grow">
+              <label
+                class="flex items-center gap-3 text-sm text-slate-300 cursor-pointer p-2 hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-700">
+                <input type="radio" name="bt_source" value="date" id="bt_source_date" class="w-4 h-4 accent-purple-500">
+                <span>Movimientos por Fecha (Legacy)</span>
+              </label>
+
+              <div id="bt-date-options"
+                class="ml-7 flex flex-col gap-3 opacity-50 pointer-events-none transition-opacity">
+                <input type="date" id="bartender-date"
+                  class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none text-xs focus:border-purple-500">
+                <div id="bartender-status-block" class="flex items-center gap-2 text-[10px] font-bold">
+                  <span id="bt-status-badge" class="px-2 py-1 rounded bg-slate-700 text-slate-400">CARGANDO...</span>
+                </div>
+              </div>
+
+              <div class="mt-auto pt-4 border-t border-slate-700/50">
+                <p class="text-[10px] text-slate-500 mb-2 uppercase font-bold">Últimos Generados:</p>
+                <div id="bartender-history-list"
+                  class="space-y-1.5 max-h-[100px] overflow-y-auto custom-scroll text-[11px]">
+                  <p class="text-slate-600 italic">Cargando historial...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-2">
+          <button onclick="processBartenderData()"
+            class="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-500 transition shadow-lg shadow-blue-500/30 flex items-center gap-2">
+            <i class="ph-bold ph-gear"></i> Procesar y Ver Tabla
+          </button>
+        </div>
       </div>
 
-      <!-- Modal Footer -->
-      <div class="px-6 py-4 border-t border-slate-700 bg-slate-900/50 flex justify-end items-center gap-3">
+      <!-- Paso 2: Edición Tabla -->
+      <div id="bartender-table-container"
+        class="hidden flex-grow overflow-auto p-4 custom-scroll bg-slate-900/30 text-sm relative"></div>
+
+      <div id="bartender-footer"
+        class="hidden px-6 py-4 border-t border-slate-700 bg-slate-900/50 flex justify-end items-center gap-3">
         <button onclick="closeModal()"
-          class="px-6 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-600 transition">
-          Descartar
-        </button>
-        <button onclick="saveEditedCsv()"
-          class="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition shadow-lg shadow-purple-500/20 flex items-center gap-2">
-          <i class="ph-bold ph-floppy-disk"></i> Guardar Cambios
+          class="px-6 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-600 transition">Descartar</button>
+        <button onclick="finalizeBartenderProcess()"
+          class="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition shadow-lg flex items-center gap-2">
+          <i class="ph-bold ph-floppy-disk text-lg"></i> Confirmar y Guardar CSV
         </button>
       </div>
     </div>
   </div>
+
+  <!-- TERMINAL DE LOGS -->
+  <div id="logs-panel"
+    class="fixed bottom-0 left-0 right-0 h-48 border-t border-slate-700 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transform translate-y-full transition-transform duration-300 z-50 flex flex-col"
+    style="background-color: var(--bg-secondary);">
+    <div class="px-4 py-2 border-b border-slate-800 flex justify-between items-center"
+      style="background-color: var(--bg-main);">
+      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><i
+          class="ph-bold ph-terminal-window"></i> Terminal ERP</span>
+      <div class="flex gap-4">
+        <button onclick="clearConsole()"
+          class="text-[10px] font-medium text-slate-500 hover:text-white transition">Limpiar</button>
+        <button onclick="toggleLogs()" class="text-[10px] font-medium text-slate-500 hover:text-white transition"><i
+            class="ph-bold ph-x text-sm"></i></button>
+      </div>
+    </div>
+    <div id="console-output" class="p-4 flex-grow custom-scroll overflow-y-auto">
+      <p class="text-slate-600 italic font-medium">Esperando instrucciones...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  /** CONSTANTES DINÁMICAS INYECTADAS DESDE EL SERVIDOR **/
+  const CATALOG_READ_URL = '<?= getCatalogJsonUrl() ?>';
+  const CATALOG_FALLBACK_URL = '<?= getCatalogFallbackUrl() ?>';
+
+  let tableInstance = null;
+  let catalogData = [];
+  let currentSelectedSKU = null;
+  let originalMatrixData = {};
+  let globalJsonCache = null;
+  let currentCategoryFilter = '';
+  let bartenderHistory = [];
+
+  $(document).ready(function () {
+    initApp();
+
+    // Atajo teclado Ctrl+K
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); $('#custom-sku-search').focus(); }
+    });
+
+    $('#custom-sku-search').on('keyup', function () {
+      const val = this.value.toLowerCase();
+      if (tableInstance) {
+        // Al buscar manualmente, limpiamos el filtro por columna de SKU para permitir búsqueda libre
+        tableInstance.column(1).search('').search(val).draw();
+      }
+      buildProductCarousel(currentCategoryFilter, val);
+      filterCategoryCarouselVisuals(val);
+    });
+
+    // Manejar visibilidad de opciones de fecha en modal bartender
+    $('input[name="bt_source"]').on('change', function () {
+      if (this.value === 'date') {
+        $('#bt-date-options').removeClass('opacity-50 pointer-events-none');
+      } else {
+        $('#bt-date-options').addClass('opacity-50 pointer-events-none');
+      }
+    });
+  });
+
+  async function initApp() {
+    log("🛰️ Sincronizando catálogo con Servidor Primario...", "info");
+    document.getElementById('last-sync-label').innerText = "Cargando JSON...";
+
+    try {
+      let data = null;
+      try {
+        const response = await fetch(CATALOG_READ_URL);
+        if (!response.ok) throw new Error("Donweb 404/CORS");
+        data = await response.json();
+        log("✅ Conexión establecida con Donweb.", "success");
+      } catch (e) {
+        log("⚠️ Fallo servidor Donweb, activando respaldo GitHub...", "error");
+        const resp = await fetch(CATALOG_FALLBACK_URL);
+        data = await resp.json();
+        log("✅ Catálogo cargado desde Respaldo GitHub.", "success");
+      }
+
+      globalJsonCache = data;
+
+      populateSelectors(data.stores);
+      buildCategoryCarousel(data.categories);
+      buildProductCarousel('');
+
+      catalogData = flattenCatalog(data.products);
+      initDataTables(catalogData);
+      updateKPIs(catalogData);
+
+      document.getElementById('last-sync-label').innerText = `Sincronizado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+      // Hidratar datos en tiempo real (Stock, Entradas, Salidas, Ventas)
+      hydrateInventoryData();
+
+      // Cargar historial bartender
+      loadBartenderHistory();
+
+    } catch (error) {
+      log("❌ Error crítico: " + error.message, "error");
+      document.getElementById('last-sync-label').innerText = "ERROR SYNC";
+    }
+  }
+
+  /**
+   * Obtiene datos en tiempo real del servidor para enriquecer el catálogo estático.
+   * Esto evita latencias de red al cargar el catálogo pesado y permite ver movimientos vivos.
+   */
+  async function hydrateInventoryData() {
+    log("💧 Hidratando datos de inventario en tiempo real...", "info");
+    const label = document.getElementById('last-sync-label');
+    const oldLabel = label.innerText;
+    label.innerHTML = '<i class="ph-bold ph-drop animate-bounce"></i> Hidratando...';
+
+    google.script.run
+      .withSuccessHandler(function (response) {
+        if (response.success && response.map) {
+          log("✅ Inventario hidratado con éxito.", "success");
+
+          // Actualizar catalogData global con datos frescos
+          catalogData.forEach(item => {
+            const live = response.map[item.variation_id];
+            if (live) {
+              item.stock = live.s;
+              item.entradas = live.e;
+              item.salidas = live.sa;
+              item.ventas_web = live.vw;
+              item.ventas_local = live.vl;
+            }
+          });
+
+          // Refrescar el Grid de DataTables sin resetear paginación
+          if (tableInstance) {
+            tableInstance.clear().rows.add(catalogData).draw(false);
+          }
+
+          updateKPIs(catalogData);
+          label.innerText = `Refrescado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        } else {
+          log("⚠️ Error en hidratación: " + (response.message || "Respuesta inválida"), "error");
+          label.innerText = oldLabel;
+        }
+      })
+      .withFailureHandler(function (err) {
+        log("❌ Error fatal en hidratación: " + err.message, "error");
+        label.innerText = oldLabel;
+      })
+      .procesarAccionInventario('getHydration'); // Acción registrada en Main.js
+  }
+
+  function flattenCatalog(products) {
+    let flat = [];
+    products.forEach(p => {
+      if (p.variations) p.variations.forEach(v => {
+        flat.push({
+          sku: p.id, name: p.model, store: v.store_id, category: p.categoryName || '',
+          brand: p.brand || '', season: p.season || '', gender: p.gender || '',
+          style: p.style || '', material: p.material || '', color: v.color, talle: v.size,
+          variation_id: v.variation_id,
+          stock: parseInt(v.stock) || 0,
+          entradas: 0, salidas: 0, ventas_web: 0, ventas_local: 0 // Simplificado para dashboard
+        });
+      });
+    });
+    return flat;
+  }
+
+  /* --- UI BUILDERS --- */
+  function populateSelectors(stores) {
+    const sel = document.getElementById('filter-store');
+    const btns = document.getElementById('table-store-filters');
+
+    sel.innerHTML = '<option value="ALL">🏢 Todas (Solo Lectura)</option>';
+    btns.innerHTML = '<button class="store-filter-btn active px-3 py-1 text-[10px] font-bold rounded-md transition-colors bg-slate-700 text-white shadow-sm" data-store="">Todas</button>';
+
+    Object.keys(stores).forEach(k => {
+      const name = stores[k].name;
+      sel.innerHTML += `<option value="${name}">📍 ${name} (Editable)</option>`;
+      btns.innerHTML += `<button class="store-filter-btn px-3 py-1 text-[10px] font-bold rounded-md transition-colors text-slate-400 hover:text-white border border-transparent" data-store="${name}">${name}</button>`;
+    });
+
+    $('.store-filter-btn').on('click', function () {
+      $('.store-filter-btn').removeClass('bg-slate-700 text-white border-slate-500').addClass('text-slate-400 border-transparent');
+      $(this).addClass('bg-slate-700 text-white border-slate-500').removeClass('border-transparent');
+      const s = $(this).data('store');
+      if (tableInstance) tableInstance.column(2).search(s ? `^${s}$` : '', true, false).draw();
+      $('#filter-store').val(s || 'ALL');
+      refreshMatrixFromStore();
+    });
+  }
+
+  function buildCategoryCarousel(cats) {
+    const container = document.getElementById('category-carousel');
+    let html = `<div onclick="filterCategory('', this)" data-category="" class="category-card active snap-start flex-shrink-0 flex flex-col items-center justify-center w-[70px] h-[70px] rounded-xl border border-accent bg-slate-800 cursor-pointer overflow-hidden p-1 shadow-sm">
+            <i class="ph-bold ph-squares-four text-xl text-slate-400 mb-1"></i><span class="text-[8px] font-bold text-white uppercase truncate w-full text-center">Todas</span></div>`;
+
+    cats.forEach(c => {
+      html += `<div onclick="filterCategory('${c.name}', this)" data-category="${c.name}" class="category-card snap-start flex-shrink-0 flex flex-col items-center justify-center w-[70px] h-[70px] rounded-xl border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden p-1 shadow-sm">
+                <div class="w-6 h-6 mb-1 category-svg-container">${c.svg}</div><span class="text-[8px] font-bold text-slate-400 uppercase truncate w-full text-center">${c.name}</span></div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function filterCategory(cat, el) {
+    currentCategoryFilter = cat;
+    $('.category-card').removeClass('active border-accent').addClass('border-slate-700').find('span').removeClass('text-white').addClass('text-slate-400');
+    if (el) { $(el).addClass('active border-accent').removeClass('border-slate-700').find('span').addClass('text-white'); }
+
+    if (tableInstance) {
+      // Al filtrar por categoría, limpiamos cualquier selección previa de producto (Deep Dive)
+      tableInstance.column(1).search('');
+      $('.product-card').removeClass('active border-accent');
+      currentSelectedSKU = null;
+
+      tableInstance.column(0).search(cat ? `^${cat}$` : '', true, false).draw();
+    }
+    buildProductCarousel(cat, $('#custom-sku-search').val());
+  }
+
+  function buildProductCarousel(cat, search = '') {
+    const container = document.getElementById('product-carousel');
+    let filtered = globalJsonCache.products;
+    if (cat) filtered = filtered.filter(p => p.categoryName === cat);
+    if (search) filtered = filtered.filter(p => `${p.id} ${p.model}`.toLowerCase().includes(search));
+
+    if (!filtered.length) { container.innerHTML = '<span class="text-[8px] italic text-slate-600 text-center py-4">No hay modelos</span>'; return; }
+
+    container.innerHTML = filtered.map(p => `
+            <div onclick="selectProduct('${p.id}', this)" class="product-card flex-shrink-0 w-full h-[110px] rounded-lg border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden relative group">
+                <div class="h-[75px] bg-slate-900 overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-cover opacity-80" onerror="this.src='https://placehold.co/100x120/1e293b/94a3b8?text=X'"></div>
+                <div class="p-1 text-center bg-slate-800 border-t border-slate-700 flex flex-col items-center justify-center">
+                    <span class="text-[9px] font-bold text-white truncate w-full">${p.model}</span>
+                    <span class="text-[8px] text-slate-400 font-mono">${p.id}</span>
+                </div>
+            </div>
+        `).join('');
+  }
+
+  function selectProduct(sku, el) {
+    $('.product-card').removeClass('active border-accent');
+    if (el) $(el).addClass('active border-accent');
+
+    if (tableInstance) {
+      // 1. Limpiamos la búsqueda global
+      $('#custom-sku-search').val('');
+      tableInstance.search('');
+
+      // 2. Reseteamos el visual de categorías a "Todas" para evitar conflictos
+      $('.category-card').removeClass('active border-accent').addClass('border-slate-700').find('span').removeClass('text-white').addClass('text-slate-400');
+      $('.category-card[data-category=""]').addClass('active border-accent').removeClass('border-slate-700').find('span').addClass('text-white');
+
+      // 3. Limpiamos el filtro por columna de categoría
+      tableInstance.column(0).search('');
+
+      // 4. Aplicamos el filtro por SKU
+      tableInstance.column(1).search(`^${sku}$`, true, false).draw();
+    }
+
+    currentSelectedSKU = sku;
+    $('#btn-sync-product, #divider-sync').removeClass('hidden');
+    renderMatrix();
+  }
+
+  function filterCategoryCarouselVisuals(term) {
+    const matched = new Set(globalJsonCache.products.filter(p => `${p.id} ${p.model} ${p.brand}`.toLowerCase().includes(term)).map(p => p.categoryName));
+    $('.category-card').each(function () {
+      const c = $(this).data('category');
+      if (c === '' || c.toLowerCase().includes(term) || matched.has(c)) $(this).show(); else $(this).hide();
+    });
+  }
+
+  /* --- DATATABLES --- */
+  function initDataTables(data) {
+    if (tableInstance) tableInstance.destroy();
+    tableInstance = $('#catalogTable').DataTable({
+      data: data, dom: 'rt', layout: null,
+      columns: [
+        { data: 'category', visible: false }, { data: 'sku', visible: false }, { data: 'store', visible: false },
+        { data: 'brand', visible: false }, { data: 'season', visible: false }, { data: 'gender', visible: false },
+        { data: 'style', visible: false }, { data: 'material', visible: false },
+        { data: null, render: (d, t, r) => `<div class="flex gap-2 items-center"><span class="px-2 py-0.5 rounded text-[10px] font-medium border border-slate-700 truncate max-w-[80px]" style="${getBadgeStyle(r.color)}">${r.color}</span> <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-white min-w-[24px] text-center">${r.talle}</span></div>` },
+        { data: 'entradas', render: d => `<span class="text-[11px] text-blue-400 font-mono">+${d}</span>` },
+        { data: 'salidas', render: d => `<span class="text-[11px] text-orange-400 font-mono">-${d}</span>` },
+        { data: 'ventas_web', render: d => `<span class="text-[11px] text-purple-400 font-mono"><i class="ph-fill ph-globe"></i> ${d}</span>` },
+        { data: 'ventas_local', render: d => `<span class="text-[11px] text-teal-400 font-mono"><i class="ph-fill ph-storefront"></i> ${d}</span>` },
+        { data: 'stock', render: d => d <= 0 ? `<span class="text-red-400 font-bold text-[10px]">Agotado</span>` : `<span class="text-emerald-400 font-bold text-[10px]">${d} u.</span>` }
+      ],
+      order: [[1, 'asc']], pageLength: 100,
+      rowGroup: {
+        dataSrc: (r) => {
+          const store = $('.store-filter-btn.active').data('store');
+          const variations = catalogData.filter(i => i.sku === r.sku && (!store || i.store === store));
+          const total = variations.reduce((a, c) => a + c.stock, 0);
+          const tag = total <= 0 ? `<span class="text-red-400 text-[11px] ml-auto font-bold">Agotado</span>` : `<span class="text-emerald-400 text-[11px] ml-auto font-bold">Stock: ${total} u.</span>`;
+          return `<div class="flex items-center gap-2 w-full pr-4 py-0.5"><i class="ph-fill ph-package text-blue-400 text-lg"></i> <span class="text-white font-bold text-xs uppercase">${r.brand} ${r.name}</span> <span class="text-[10px] text-slate-500 ml-2 font-mono">${r.sku}</span> ${tag}</div>`;
+        }
+      },
+      createdRow: (row, d) => { $(row).attr('data-sku', d.sku); }
+    });
+
+    $('#catalogTable tbody').on('click', 'tr', function () {
+      if ($(this).hasClass('dtrg-group')) return;
+      const sku = $(this).attr('data-sku');
+      const card = $(`.product-card:contains("${sku}")`);
+      if (card.length) { selectProduct(sku, card[0]); card[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    });
+  }
+
+  function updateKPIs(data) {
+    $('#kpi-variations').text(data.length);
+    $('#kpi-alerts').text(data.filter(i => i.stock <= 0).length);
+  }
+
+  function getBadgeStyle(c) {
+    const config = globalJsonCache.colors[c];
+    if (!config) return `background-color: #334155; color: #fff;`;
+    if (config.hex.includes('-')) {
+      const p = config.hex.split('-');
+      return `background: linear-gradient(135deg, #${p[0]} 0%, #${p[1]} 100%); color: ${config.textEdge}; border:none;`;
+    }
+    return `background-color: #${config.hex}; color: ${config.textEdge};`;
+  }
+
+  /* --- MATRIX LOGIC --- */
+  function refreshMatrixFromStore() { if (currentSelectedSKU) renderMatrix(); }
+
+  function renderMatrix() {
+    const store = $('#filter-store').val();
+    const empty = $('#matrix-empty-state');
+    const content = $('#matrix-content');
+    const badge = $('#active-sku-badge').text(currentSelectedSKU).removeClass('hidden');
+    const btnSave = $('#btn-save-matrix');
+
+    empty.addClass('hidden');
+    content.removeClass('hidden animate-fade-in').addClass('animate-fade-in');
+
+    if (store === 'ALL') { btnSave.attr('disabled', true).addClass('opacity-50 cursor-not-allowed').html('<i class="ph-bold ph-lock-key"></i> Lectura'); }
+    else { btnSave.attr('disabled', false).removeClass('opacity-50 cursor-not-allowed').html('<i class="ph-bold ph-floppy-disk"></i> Guardar'); }
+
+    const raw = catalogData.filter(i => i.sku === currentSelectedSKU);
+    let processed = [];
+    if (store === 'ALL') {
+      const map = new Map();
+      raw.forEach(i => { const k = `${i.color}|${i.talle}`; if (map.has(k)) map.get(k).stock += i.stock; else map.set(k, { ...i }); });
+      processed = Array.from(map.values());
+    } else {
+      processed = raw.filter(i => i.store === store);
+    }
+
+    const talles = [...new Set(raw.map(i => i.talle))].sort((a, b) => {
+      const order = ["Surtido", "XXS", "XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
+      let idxA = order.indexOf(a), idxB = order.indexOf(b);
+      return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+    });
+    const colores = [...new Set(raw.map(i => i.color))].sort();
+
+    originalMatrixData = {};
+    let html = `<div class="rounded-xl border border-slate-700 overflow-hidden bg-slate-900 shadow-inner"><table class="w-full text-[11px]">
+            <thead class="bg-black/20"><tr><th class="p-3 border-r border-slate-700 text-slate-500 uppercase font-bold text-[9px]">Variación</th>`;
+    talles.forEach(t => { html += `<th class="p-3 text-center text-slate-400 font-bold uppercase">${t}</th>`; });
+    html += `</tr></thead><tbody class="divide-y divide-slate-800">`;
+
+    colores.forEach(c => {
+      html += `<tr class="hover:bg-slate-800/50"><td class="p-2 border-r border-slate-700"><div class="px-2 py-0.5 rounded w-fit border border-slate-700" style="${getBadgeStyle(c)}">${c}</div></td>`;
+      talles.forEach(t => {
+        const item = processed.find(i => i.color === c && i.talle === t);
+        if (item) {
+          const id = `mat-${c}-${t}`;
+          originalMatrixData[id] = item.stock;
+          const rOnly = store === 'ALL' ? 'readonly' : '';
+          const colorCls = item.stock <= 0 ? 'text-red-400' : 'text-white';
+          html += `<td class="p-1 px-2"><input type="number" id="${id}" value="${item.stock}" ${rOnly} onchange="handleMatrixChange('${id}', ${item.stock})" class="w-full bg-transparent border-none text-center font-bold h-8 outline-none rounded focus:bg-slate-800 ${colorCls}"></td>`;
+        } else { html += `<td class="p-1 text-center text-slate-700">-</td>`; }
+      });
+      html += `</tr>`;
+    });
+    content.html(html + `</tbody></table></div>`);
+  }
+
+  function handleMatrixChange(id, oldV) {
+    const input = document.getElementById(id);
+    const newV = parseInt(input.value) || 0;
+    $(input).removeClass('text-emerald-400 text-red-400 text-white');
+    if (newV !== oldV) $(input).addClass('text-emerald-400');
+    else if (oldV <= 0) $(input).addClass('text-red-400');
+    else $(input).addClass('text-white');
+  }
+
+  function saveMatrixChanges() {
+    const store = $('#filter-store').val();
+    if (store === 'ALL') return;
+
+    let payload = [];
+    for (let id in originalMatrixData) {
+      const v = parseInt(document.getElementById(id).value) || 0;
+      if (v !== originalMatrixData[id]) {
+        const parts = id.split('-');
+        payload.push({ sku: currentSelectedSKU, color: parts[1], talle: parts[2], store: store, oldStock: originalMatrixData[id], newStock: v });
+      }
+    }
+
+    if (!payload.length) return Swal.fire({ icon: 'info', title: 'Sin cambios', background: 'var(--bg-secondary)', color: '#fff' });
+
+    openLogsPanel();
+    log(`💾 Guardando ajustes de stock masivos...`, "info");
+    $('#btn-save-matrix').html('<i class="ph-bold ph-spinner animate-spin"></i> Guardando...').attr('disabled', true);
+
+    google.script.run
+      .withSuccessHandler(res => {
+        log(res.message, res.success ? "success" : "error");
+        $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar').attr('disabled', false);
+        if (res.success) {
+          Swal.fire({ icon: 'success', title: 'Guardado', timer: 1500, showConfirmButton: false, background: 'var(--bg-secondary)', color: '#fff' });
+          initApp(); // Recargar todo para ver cambios reales
+        }
+      })
+      .withFailureHandler(err => {
+        log("❌ Error fatal: " + err.message, "error");
+        $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar').attr('disabled', false);
+      })
+      .procesarAccionInventario('guardarMatrizStock', JSON.stringify(payload), store);
+  }
+
+  /* --- MANTENIMIENTO --- */
+  function runGlobalAudit() {
+    Swal.fire({ title: '¿Auditoría Global?', text: 'Esto reestaura todo el catálogo basándose en los productos maestros. Proceso Pesado.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', background: 'var(--bg-secondary)', color: '#fff' })
+      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("🏁 Iniciando auditoría global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
+  }
+
+  function runProductAudit() {
+    if (!currentSelectedSKU) return;
+    openLogsPanel(); log(`🏷️ Sincronizando SKU: ${currentSelectedSKU}...`, "info");
+    callBackend('generarInventarioProducto', currentSelectedSKU, '');
+  }
+
+  function callBackend(accion, codigo, fecha) {
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.logs) res.logs.forEach(l => log(l));
+        log(res.message, res.success ? "success" : "error");
+      })
+      .withFailureHandler(err => log("❌ Error RPC: " + err.message, "error"))
+      .procesarAccionInventario(accion, codigo, fecha);
+  }
+
+  /* --- BARTENDER LOGIC (EXTENDED) --- */
+  function openBartenderModal() {
+    $('#bartender-modal').removeClass('hidden').addClass('flex');
+    $('#bartender-setup-container').removeClass('hidden');
+    $('#bartender-table-container, #bartender-footer').addClass('hidden');
+    $('#bartender-modal-subtitle').text('Paso 1: Configura los parámetros de extracción.');
+
+    if (currentSelectedSKU) { $('#bt-selected-sku-label').text(currentSelectedSKU); $('#bt_source_selected').attr('disabled', false).prop('checked', true); }
+    else { $('#bt-selected-sku-label').text('Ninguno'); $('#bt_source_selected').attr('disabled', true); $('#bt_source_filtered').prop('checked', true); }
+
+    document.getElementById('bartender-date').valueAsDate = new Date();
+    checkBartenderDate();
+  }
+
+  function closeModal() { $('#bartender-modal').addClass('hidden').removeClass('flex'); }
+
+  function loadBartenderHistory() {
+    google.script.run
+      .withSuccessHandler(data => {
+        bartenderHistory = data;
+        updateHistoryUI(data);
+        checkBartenderDate();
+      })
+      .getBartenderFullHistory();
+  }
+
+  function updateHistoryUI(data) {
+    const list = $('#bartender-history-list');
+    if (!data.length) { list.html('<p class="text-slate-600 italic">Sin registros</p>'); return; }
+    list.html(data.slice(0, 5).map(i => `<div class="flex justify-between items-center p-1 hover:bg-slate-700/30 rounded"><span class="text-emerald-400 font-bold">${i.fecha_format}</span><span class="text-[9px] text-slate-500">${i.hora}</span></div>`).join(''));
+  }
+
+  function checkBartenderDate() {
+    const date = $('#bartender-date').val();
+    const badge = $('#bt-status-badge');
+    const isProcessed = bartenderHistory.some(i => i.fecha_iso === date);
+    if (isProcessed) badge.removeClass('bg-slate-700 text-slate-400').addClass('bg-emerald-500/10 text-emerald-400').text('GENERADO');
+    else badge.removeClass('bg-emerald-500/10 text-emerald-400').addClass('bg-slate-700 text-slate-400').text('PENDIENTE');
+  }
+
+  $('#bartender-date').on('change', checkBartenderDate);
+
+  async function processBartenderData() {
+    const source = $('input[name="bt_source"]:checked').val();
+    const table = $('#bartender-table-container');
+
+    if (source === 'date') {
+      const fecha = $('#bartender-date').val();
+      log(`📅 Generando Bartender por Fecha: ${fecha}...`, "info");
+      openLogsPanel();
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.success && res.data) showBartenderPreviewTable(res.data);
+          else { log(res.message, "error"); closeModal(); }
+        })
+        .procesarAccionInventario('generarCsvBartender', '', fecha);
+
+      table.removeClass('hidden').html('<div class="flex items-center justify-center p-12"><i class="ph-bold ph-spinner animate-spin text-4xl text-purple-500"></i><span class="ml-4 font-bold text-slate-300">Consultando movimientos...</span></div>');
+      $('#bartender-setup-container').addClass('hidden');
+      return;
+    }
+
+    // Casos manuales (Selected, Filtered, All)
+    log(`🛠️ Extrayendo datos según modo: ${source}`, "info");
+    let dataToRender = [];
+    if (source === 'selected') dataToRender = catalogData.filter(i => i.sku === currentSelectedSKU);
+    else if (source === 'filtered') dataToRender = tableInstance.rows({ search: 'applied' }).data().toArray();
+    else dataToRender = catalogData;
+
+    // Formatear al estilo esperado por el backend CSV
+    const header = ['QR_CODE', 'PRODUCTO_ID', 'DESCRIPCION', 'COLOR', 'TALLE', 'TIENDA_ID', 'CANTIDAD'];
+    const rows = dataToRender.map(i => [
+      `${i.sku}-${i.color}-${i.talle}-${i.store}`, i.sku, i.name, i.color, i.talle, i.store, i.stock
+    ]);
+    showBartenderPreviewTable([header, ...rows]);
+  }
+
+  let currentBartenderMatrix = [];
+  function showBartenderPreviewTable(data) {
+    currentBartenderMatrix = data;
+    const container = $('#bartender-table-container').removeClass('hidden');
+    $('#bartender-setup-container').addClass('hidden');
+    $('#bartender-footer').removeClass('hidden').addClass('flex');
+    $('#bartender-modal-subtitle').text('Paso 2: Edita las cantidades a imprimir.');
+
+    let html = `<table class="w-full text-left border-collapse border border-slate-700"><thead class="sticky top-0 bg-slate-800 z-10"><tr>`;
+    data[0].forEach(h => html += `<th class="p-2 border border-slate-700 bg-slate-900 text-slate-500 text-[10px] uppercase font-bold">${h}</th>`);
+    html += `</tr></thead><tbody class="divide-y divide-slate-700">`;
+
+    data.slice(1).forEach((row, ri) => {
+      html += `<tr class="hover:bg-slate-800/50">`;
+      row.forEach((cell, ci) => {
+        const isQty = ci === row.length - 1;
+        const inner = isQty ? `<input type="number" value="${cell}" onchange="currentBartenderMatrix[${ri + 1}][${ci}]=this.value" class="w-20 bg-slate-950 border border-slate-700 rounded text-center text-white font-bold h-7 outline-none focus:border-purple-500">` : `<span class="text-slate-400">${cell}</span>`;
+        html += `<td class="p-1 px-3 border border-slate-700/50">${inner}</td>`;
+      });
+      html += `</tr>`;
+    });
+    container.html(html + `</tbody></table>`);
+  }
+
+  function finalizeBartenderProcess() {
+    log("📤 Finalizando exportación a Bartender...", "info");
+    openLogsPanel();
+    closeModal();
+    google.script.run
+      .withSuccessHandler(res => {
+        log(res.message, res.success ? "success" : "error");
+        if (res.fileUrl) {
+          const l = document.createElement('a'); l.href = res.fileUrl; l.target = '_blank'; l.className = 'text-blue-400 font-bold block mt-2 ml-4'; l.innerHTML = '<i class="ph-bold ph-download"></i> Descargar CSV Bartender';
+          document.getElementById('console-output').appendChild(l);
+          Swal.fire({ icon: 'success', title: 'CSV Generado', text: 'El archivo se ha guardado en Drive.', background: 'var(--bg-secondary)', color: '#fff' });
+        }
+        loadBartenderHistory();
+      })
+      .procesarAccionInventario('guardarCsvBartender', JSON.stringify(currentBartenderMatrix), '');
+  }
+
+  /* --- TERMINAL & LOGS --- */
+  function openLogsPanel() { $('#logs-panel').removeClass('translate-y-full'); $('#btn-toggle-logs').addClass('bg-accent text-white border-accent'); }
+  function toggleLogs() { if ($('#logs-panel').hasClass('translate-y-full')) openLogsPanel(); else { $('#logs-panel').addClass('translate-y-full'); $('#btn-toggle-logs').removeClass('bg-accent text-white border-accent'); } }
+  function log(msg, type = 'info') {
+    const out = $('#console-output');
+    if (out.html().includes('Esperando')) out.html('');
+    const cls = type === 'error' ? 'log-error' : (type === 'success' ? 'log-success' : 'log-info');
+    out.append(`<div class="log-line ${cls}"><span class="opacity-50">[${new Date().toLocaleTimeString([], { hour12: false })}]</span> > ${msg}</div>`);
+    out.scrollTop(out[0].scrollHeight);
+  }
+  function clearConsole() { $('#console-output').html('<p class="text-slate-600 italic font-medium">Esperando instrucciones...</p>'); }
+
+</script>
