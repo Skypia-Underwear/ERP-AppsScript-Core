@@ -964,6 +964,7 @@
 
 <script>
     const CATALOG_URL = "<?!= CATALOG_URL ?>";
+    const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
     // --- VARIABLES GLOBALES ---
     var CURRENT_IMAGES = []; // --- NUEVO: Almacena las imágenes cargadas ---
     var currentImageIndex = -1; // --- NUEVO: Índice actual en el modal ---
@@ -1044,7 +1045,13 @@
         log("Cargando catálogo dinámico...", "info");
 
         try {
-            const resp = await fetch(CATALOG_URL, { cache: 'no-store' });
+            let resp = await fetch(CATALOG_URL, { cache: 'no-store' });
+
+            if (!resp.ok && CATALOG_URL_FALLBACK) {
+                log("⚠️ Fallo Donweb, intentando respaldo GitHub...", "warning");
+                resp = await fetch(CATALOG_URL_FALLBACK, { cache: 'no-store' });
+            }
+
             if (!resp.ok) throw new Error("HTTP " + resp.status);
             const data = await resp.json();
 
@@ -1070,7 +1077,8 @@
             }
             CATALOG_LOADING = false;
         } catch (e) {
-            log("Error cargando catálogo: " + e.message, "error");
+            log("Error crítico: No se pudo cargar el catálogo.", "error");
+            console.error("Error cargando catálogo:", e);
             CATALOG_LOADING = false;
         }
     }
