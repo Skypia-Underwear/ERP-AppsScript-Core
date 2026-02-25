@@ -182,17 +182,50 @@
       gap: 8px;
     }
 
-    /* Ocultar logo/título y botones no esenciales */
-    header .hidden.md\:block,
-    header .w-auto.min-w-\[25\%\] {
+    /* Ocultar solo logo/título texto */
+    header .hidden.md\:block {
       display: none !important;
     }
 
-    /* Buscador ocupa todo el ancho */
+    /* Logo: sin ancho mínimo */
+    header>.flex.items-center.gap-4.w-1\/4 {
+      width: auto !important;
+      flex-shrink: 0;
+    }
+
+    /* Buscador: compacto, pegado a la izquierda */
     header .flex-grow.max-w-2xl {
-      margin: 0 !important;
-      max-width: 100% !important;
-      flex: 1;
+      margin: 0 4px 0 0 !important;
+      max-width: none !important;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    header .flex-grow.max-w-2xl input {
+      font-size: 11px;
+      padding: 4px 8px 4px 32px;
+    }
+
+    /* Botones de acción: visibles y compactos */
+    header>.flex.items-center.justify-end {
+      min-width: auto !important;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Ocultar textos de botones, solo iconos */
+    header>.flex.items-center.justify-end span.hidden.xl\:block {
+      display: none !important;
+    }
+
+    /* Botones más pequeños en móvil */
+    header>.flex.items-center.justify-end button {
+      padding: 6px;
+    }
+
+    /* Ocultar divisores en móvil */
+    header>.flex.items-center.justify-end>.w-px {
+      display: none;
     }
 
     /* Workspace: flujo vertical */
@@ -282,9 +315,10 @@
 
     /* Área de datos (Tabla): visible y scrollable en móvil */
     .flex-grow.flex.overflow-hidden>.flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 {
-      min-height: 250px;
+      min-height: 350px;
+      max-height: 50vh;
       flex: none;
-      overflow: hidden;
+      overflow: auto;
     }
 
     /* Tabla: scroll horizontal para que quepa */
