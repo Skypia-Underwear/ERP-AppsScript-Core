@@ -5503,11 +5503,17 @@
             const esAndroid = /Android/i.test(navigator.userAgent);
 
             const imagenesOrdenadas = Array.isArray(producto.imagen) && producto.imagen.length > 0
-                ? (() => {
-                    const portada = producto.imagen.find(img => img.portada);
-                    const resto = producto.imagen.filter(img => img !== portada);
-                    return portada ? [portada, ...resto] : [...producto.imagen];
-                })()
+                ? [...producto.imagen].sort((a, b) => {
+                    // 1° Portada siempre primero
+                    if (a.portada && !b.portada) return -1;
+                    if (!a.portada && b.portada) return 1;
+                    // 2° Orden numérico ascendente
+                    const ordenA = parseInt(a.orden) || 999;
+                    const ordenB = parseInt(b.orden) || 999;
+                    if (ordenA !== ordenB) return ordenA - ordenB;
+                    // 3° Fecha de carga descendente (más recientes primero)
+                    return new Date(b.fecha_carga || 0) - new Date(a.fecha_carga || 0);
+                })
                 : [];
 
             const textoBotonCompra = producto.variedad.length > 1 ? "Elegir Variedad" : "🛒 Añadir al carrito";
@@ -5870,11 +5876,17 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const esAndroid = /Android/i.test(navigator.userAgent);
 
             const imagenesOrdenadas = Array.isArray(producto.imagen) && producto.imagen.length > 0
-                ? (() => {
-                    const portada = producto.imagen.find(img => img.portada);
-                    const resto = producto.imagen.filter(img => img !== portada);
-                    return portada ? [portada, ...resto] : [...producto.imagen];
-                })()
+                ? [...producto.imagen].sort((a, b) => {
+                    // 1° Portada siempre primero
+                    if (a.portada && !b.portada) return -1;
+                    if (!a.portada && b.portada) return 1;
+                    // 2° Orden numérico ascendente
+                    const ordenA = parseInt(a.orden) || 999;
+                    const ordenB = parseInt(b.orden) || 999;
+                    if (ordenA !== ordenB) return ordenA - ordenB;
+                    // 3° Fecha de carga descendente (más recientes primero)
+                    return new Date(b.fecha_carga || 0) - new Date(a.fecha_carga || 0);
+                })
                 : [];
 
             const textoBotonCompra = producto.variedad.length > 1 ? "Elegir Variedad" : "🛒 Añadir al carrito";

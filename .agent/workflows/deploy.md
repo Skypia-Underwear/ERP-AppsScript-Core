@@ -12,7 +12,7 @@ Este documento sirve como recordatorio y guía para asegurar que todos los cambi
 // turbo
 1. Añadir cambios al área de preparación:
    `git add .`
-2. Crear un commit con un mensaje descriptivo:
+2. Crear un commit con un mensaje descriptivo siempre en español:
    `git commit -m "Refactor: Limpieza de lógica legacy de WhatsApp y Chatbot"`
 3. Enviar los cambios al repositorio remoto:
    `git push`
