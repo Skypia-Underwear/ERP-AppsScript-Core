@@ -1,4 +1,5 @@
 <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
 <style>
     /* Estilos específicos del módulo */
@@ -19,39 +20,57 @@
 
     #img-manager-root {
         display: flex;
+        flex-direction: column;
         width: 100%;
         height: 100%;
         overflow: hidden;
         background: #0f172a;
     }
 
-    /* --- SIDEBAR INTERNO DARK --- */
+    /* Workspace body (sidebar + main) — Estilo Inventario */
+    #workspace-body {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        padding: 16px;
+        gap: 16px;
+    }
+
+    /* --- SIDEBAR CARD --- */
     aside {
-        width: 260px;
+        width: 300px;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
-        border-right: 1px solid #334155;
+        border: 1px solid rgba(51, 65, 85, 0.5);
+        border-radius: 12px;
         background: #1e293b;
-        /* Slate 800 */
         z-index: 40;
-        height: 100%;
-        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s, opacity 0.3s;
     }
 
     #internalSidebar.collapsed {
-        margin-left: -260px;
+        width: 0;
+        min-width: 0;
+        margin-left: -16px;
+        opacity: 0;
+        border: none;
+        overflow: hidden;
     }
 
-    /* --- MAIN CONTENT DARK --- */
+    /* --- MAIN CONTENT CARD --- */
     main {
         flex: 1;
         display: flex;
         flex-direction: column;
-        height: 100%;
         overflow: hidden;
         position: relative;
-        background: #0f172a;
+        background: #1e293b;
+        border: 1px solid rgba(51, 65, 85, 0.5);
+        border-radius: 12px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
 
     /* Header Interno Dark */
@@ -64,7 +83,7 @@
         padding: 0 20px;
         justify-content: space-between;
         flex-shrink: 0;
-        z-index: 30;
+        z-index: 50;
     }
 
     /* Area de Contenido */
@@ -77,17 +96,28 @@
 
     /* --- SCROLL SECTIONS DARK --- */
     .gallery-section {
-        margin-bottom: 1.5rem;
-        padding: 0 1.5rem;
+        margin-bottom: 0;
+        padding: 0 1rem;
     }
 
-    .horizontal-scroll-container {
-        display: flex;
-        gap: 1rem;
-        overflow-x: auto;
-        padding-bottom: 0.75rem;
-        padding-top: 0.25rem;
-        scroll-behavior: smooth;
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(var(--card-size, 150px), 1fr));
+        gap: 12px;
+        padding: 12px 0;
+        min-height: 140px;
+    }
+
+    @media (min-width: 768px) {
+        .gallery-grid {
+            grid-template-columns: repeat(auto-fill, minmax(var(--card-size, 170px), 1fr));
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .gallery-grid {
+            grid-template-columns: repeat(auto-fill, minmax(var(--card-size, 185px), 1fr));
+        }
     }
 
     /* Scrollbar Dark */
@@ -109,47 +139,50 @@
         background-color: #475569;
     }
 
-    /* --- TARJETAS DARK --- */
+    /* --- TARJETAS DARK (GRID + ASPECT RATIO) --- */
     .img-card {
-        width: 140px;
-        flex-shrink: 0;
-        background: #1e293b;
-        /* Slate 800 */
-        border: 1px solid #334155;
-        border-radius: 8px;
-        overflow: hidden;
-        transition: all 0.2s ease;
-        display: flex;
-        flex-direction: column;
-        cursor: pointer;
         position: relative;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        aspect-ratio: 3/4;
     }
 
     .img-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-        border-color: #64748b;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px -5px rgba(99, 102, 241, 0.15);
+        border-color: #6366f1;
     }
 
     .img-card.selected {
         border: 2px solid #6366f1;
-        /* Indigo 500 */
         background-color: rgba(99, 102, 241, 0.1);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
 
     .img-thumb {
-        height: 100px;
         width: 100%;
+        height: 100%;
         object-fit: cover;
         background: #0f172a;
     }
 
     .img-body {
-        padding: 8px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 10px;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .img-card:hover .img-body {
+        transform: translateY(0);
     }
 
     /* --- ZOOM MODAL --- */
@@ -195,56 +228,47 @@
         color: white;
     }
 
-    /* --- CONSOLE PANEL DARK --- */
+    /* --- CONSOLE PANEL (FIXED FULL-WIDTH) --- */
     #console-panel-wrapper {
-        position: absolute;
+        position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        background: #0f172a;
-        color: #94a3b8;
+        height: 200px;
         border-top: 1px solid #334155;
-        z-index: 50;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #1e293b;
+        color: #94a3b8;
+        z-index: 60;
         display: flex;
         flex-direction: column;
-        height: 250px;
-        transform: translateY(calc(100% - 32px));
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
     }
 
     #console-panel-wrapper.expanded {
         transform: translateY(0);
     }
 
-    @media (max-width: 768px) {
-        #console-panel-wrapper {
-            bottom: 64px;
-        }
-    }
-
     #console-header {
-        height: 32px;
         padding: 0 16px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: #1e293b;
-        cursor: pointer;
-        user-select: none;
-        border-bottom: 1px solid #334155;
-    }
-
-    #console-header:hover {
-        background: #334155;
+        background: #0f172a;
+        border-bottom: 1px solid #1e293b;
+        flex-shrink: 0;
     }
 
     #console-content {
         flex: 1;
         overflow-y: auto;
-        padding: 12px;
+        padding: 12px 16px;
         font-family: 'Consolas', monospace;
-        font-size: 11px;
-        background: #0f172a;
+        font-size: 0.75rem;
+        line-height: 1.6;
+        background: rgba(2, 6, 23, 0.5);
     }
 
     /* Sidebar Items Dark */
@@ -308,29 +332,229 @@
         color: #facc15;
     }
 
+    /* ============ MOBILE RESPONSIVE ============ */
     @media (max-width: 768px) {
-        aside {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            margin-left: -260px;
-            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5);
-            z-index: 100 !important;
-        }
 
-        aside.open {
-            margin-left: 0;
-        }
-
-        main {
-            /* Evitar doble margen/padding si está en shell */
+        /* Workspace: vertical flow */
+        #workspace-body {
+            flex-direction: column;
             padding: 0;
+            gap: 0;
+        }
+
+        /* Sidebar: inline horizontal strips, not a drawer */
+        aside {
+            width: 100% !important;
+            min-width: 100% !important;
+            flex-shrink: 0;
+            border-radius: 0;
+            border: none;
+            border-bottom: 1px solid #334155;
+            position: relative;
+            transform: none !important;
+            opacity: 1 !important;
+            z-index: auto;
+            box-shadow: none;
+        }
+
+        /* Override collapsed state on mobile */
+        #internalSidebar.collapsed {
+            width: 100% !important;
+            min-width: 100% !important;
+            margin-left: 0;
+            opacity: 1;
+            border: none;
+            border-bottom: 1px solid #334155;
+            overflow: visible;
+        }
+
+        /* Hide sidebar header (CATEGORÍAS) on mobile — save space */
+        aside>.px-5.py-2\.5:first-child {
+            display: none;
+        }
+
+        /* Categories strip: compact */
+        aside>.p-3 {
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        /* Hide "Modelos" title on mobile */
+        aside>.p-2.border-b {
+            display: none;
+        }
+
+        /* Product list: horizontal scroll carousel */
+        #productList {
+            display: flex !important;
+            flex-direction: row !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            gap: 6px !important;
+            padding: 6px 8px !important;
+            flex: none !important;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #productList::-webkit-scrollbar {
+            display: none;
+        }
+
+        #productList .sidebar-item {
+            flex-shrink: 0;
+            flex-direction: column !important;
+            width: 60px !important;
+            min-width: 60px !important;
+            padding: 4px !important;
+            border-radius: 8px;
+            align-items: center;
+            text-align: center;
+        }
+
+        #productList .sidebar-item .item-img-container {
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 8px !important;
+            margin-bottom: 2px;
+        }
+
+        #productList .sidebar-item .item-info {
+            width: 100%;
+        }
+
+        #productList .sidebar-item h4 {
+            font-size: 7px !important;
+            line-height: 1.1 !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 56px;
+        }
+
+        #productList .sidebar-item .sku {
+            display: none !important;
+        }
+
+        /* Main: full width, no card border on mobile */
+        main {
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
+        }
+
+        /* Header: compact on mobile */
+        header {
+            height: auto;
+            min-height: 48px;
+            padding: 8px 12px;
+            gap: 8px;
+        }
+
+        /* Hide non-essential header items on mobile */
+        .hide-mobile {
+            display: none !important;
+        }
+
+        /* Product header: icon-only sync buttons */
+        .btn-text-mobile {
+            display: none !important;
         }
 
         #img-manager-root {
             border-radius: 0;
         }
+
+        /* Backdrop: hidden on mobile (sidebar is inline now) */
+        #sidebarBackdrop {
+            display: none !important;
+        }
+
+        /* Fix #2: Ocultar título del producto en el product header para que los botones de acción no se desplacen */
+        #currentProductTitle {
+            display: none !important;
+        }
+
+        #currentProductSku {
+            display: none !important;
+        }
+
+        /* Product header: más compacto */
+        #contentArea>.px-5.py-3 {
+            padding: 8px 10px;
+            gap: 6px;
+        }
+
+        /* Icono de producto más pequeño en móvil */
+        #contentArea .w-9.h-9 {
+            width: 28px !important;
+            height: 28px !important;
+        }
+
+        /* Botones de acción: no hacer wrap */
+        #contentArea .flex.items-center.gap-2 {
+            gap: 4px;
+            flex-wrap: nowrap;
+        }
+
+        /* Tab bar compacto */
+        .tab-btn {
+            padding: 8px 10px;
+            font-size: 10px;
+        }
+
+        /* FABs móviles */
+        .mobile-fabs {
+            display: flex !important;
+        }
+
+        .tab-actions {
+            gap: 4px;
+            padding-right: 8px;
+        }
+    }
+
+    /* ============ SETTINGS POPOVER ============ */
+    #settingsPopover {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 8px;
+        width: 240px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        z-index: 100;
+        padding: 16px;
+        display: none;
+    }
+
+    #settingsPopover.open {
+        display: block;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    /* Slider custom styling */
+    input[type=range].card-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 4px;
+        border-radius: 4px;
+        background: #334155;
+        outline: none;
+    }
+
+    input[type=range].card-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #6366f1;
+        cursor: pointer;
+        box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
     }
 
     /* Ajuste para cuando se carga dentro del shell */
@@ -446,74 +670,78 @@
         background: #475569;
     }
 
-    /* DISEÑO GRID SIDEBAR (Optimizado) */
-    #productList {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
-        padding: 8px !important;
+    /* DISEÑO GRID SIDEBAR (Solo Desktop) */
+    @media (min-width: 769px) {
+        #productList {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            padding: 8px !important;
+        }
+
+        #productList .sidebar-item {
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 6px !important;
+            text-align: center;
+            align-items: center;
+            background: #1e293b;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            overflow: hidden;
+            height: auto;
+            min-height: 120px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #productList .sidebar-item:hover {
+            border-color: #475569;
+            background: #232f42;
+        }
+
+        #productList .sidebar-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 1px #6366f1;
+        }
+
+        #productList .sidebar-item .item-img-container {
+            width: 100% !important;
+            height: 64px !important;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        #productList .sidebar-item .item-info {
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #productList .sidebar-item h4 {
+            font-size: 10px !important;
+            line-height: 1.1;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal !important;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        #productList .sidebar-item .sku {
+            font-size: 9px !important;
+            color: #64748b;
+            font-family: monospace;
+        }
     }
 
-    #productList .sidebar-item {
-        display: flex !important;
-        flex-direction: column !important;
-        padding: 6px !important;
-        text-align: center;
-        align-items: center;
-        background: #1e293b;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        overflow: hidden;
-        height: auto;
-        min-height: 120px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    #productList .sidebar-item:hover {
-        border-color: #475569;
-        background: #232f42;
-    }
-
-    #productList .sidebar-item.active {
-        background: rgba(99, 102, 241, 0.15);
-        border-color: #6366f1;
-        box-shadow: 0 0 0 1px #6366f1;
-    }
-
-    #productList .sidebar-item .item-img-container {
-        width: 100% !important;
-        height: 64px !important;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-bottom: 6px;
-    }
-
-    #productList .sidebar-item .item-info {
-        width: 100%;
-        overflow: hidden;
-    }
-
-    #productList .sidebar-item h4 {
-        font-size: 10px !important;
-        line-height: 1.1;
-        font-weight: 700;
-        color: #cbd5e1;
-        margin-bottom: 2px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: normal !important;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-    }
-
-    #productList .sidebar-item .sku {
-        font-size: 9px !important;
-        color: #64748b;
-        font-family: monospace;
-    }
+    /* /min-width: 769px */
 
     /* BOTONES RESPONSIVOS (Iconos solo en móvil) */
     @media (max-width: 768px) {
@@ -531,23 +759,22 @@
 
     /* CATEGORY NAV ARROWS */
     .category-nav-wrapper {
-        position: relative;
         display: flex;
         align-items: center;
+        gap: 6px;
         margin-top: 0.5rem;
         padding-top: 0.5rem;
         border-top: 1px solid rgba(30, 41, 59, 0.5);
     }
 
     .category-arrow {
-        position: absolute;
-        z-index: 10;
+        flex-shrink: 0;
         background: rgba(15, 23, 42, 0.8);
         color: #94a3b8;
         border: 1px solid #334155;
         border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -562,16 +789,144 @@
         border-color: #6366f1;
     }
 
-    .category-arrow-left {
-        left: -4px;
-    }
-
-    .category-arrow-right {
-        right: -4px;
-    }
-
     #categoryFilterContainer {
         scroll-behavior: smooth;
+    }
+
+    /* --- TAB BAR --- */
+    .tab-bar {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border-bottom: 1px solid #334155;
+        background: #1e293b;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+
+    .tab-btn {
+        padding: 10px 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: none;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        color: #64748b;
+        cursor: pointer;
+        background: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .tab-btn:hover {
+        color: #94a3b8;
+        background: rgba(99, 102, 241, 0.05);
+    }
+
+    .tab-btn.active {
+        color: #818cf8;
+        border-bottom-color: #6366f1;
+    }
+
+    .tab-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-right: 12px;
+    }
+
+    /* --- INDEX BADGE --- */
+    .index-badge {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        background: rgba(15, 23, 42, 0.85);
+        color: #94a3b8;
+        font-size: 9px;
+        font-family: monospace;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .img-card:hover .index-badge {
+        opacity: 1;
+    }
+
+    /* --- LOADER OVERLAY --- */
+    .loader-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 60;
+    }
+
+    .loader-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(99, 102, 241, 0.2);
+        border-top-color: #6366f1;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* ============ MOBILE FABs ============ */
+    .mobile-fabs {
+        display: none;
+        position: fixed;
+        bottom: 80px;
+        /* arriba del bottom nav */
+        right: 16px;
+        flex-direction: column;
+        gap: 12px;
+        z-index: 90;
+    }
+
+    .fab {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .fab:active {
+        transform: scale(0.92);
+    }
+
+    .fab-gallery {
+        background: linear-gradient(135deg, #6366f1, #7c3aed);
+    }
+
+    .fab-camera {
+        background: linear-gradient(135deg, #2563eb, #06b6d4);
+    }
+
+    .fab .material-icons {
+        font-size: 24px;
     }
 </style>
 <div id="img-manager-root">
@@ -583,248 +938,347 @@
     <input type="file" id="cameraInput" class="hidden" accept="image/*" capture="environment"
         onchange="procesarArchivos(this.files)">
 
-    <!-- SIDEBAR INTERNO -->
-    <aside id="internalSidebar">
-        <div class="p-3 border-b border-slate-700 flex justify-between items-center shrink-0 h-[56px]">
-            <h1 class="font-bold text-slate-200 flex items-center gap-2 text-sm">
-                <span class="material-icons text-indigo-500 text-lg">folder_open</span> Explorador
-            </h1>
-            <button onclick="toggleInternalSidebar()" class="md:hidden text-slate-400">
-                <span class="material-icons">close</span>
-            </button>
-        </div>
+    <!-- HEADER GLOBAL (Full Width) -->
+    <header
+        class="flex items-center gap-3 px-3 sm:px-4 h-[56px] border-b border-slate-700 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
 
-        <!-- Buscador -->
-        <div class="p-2 shrink-0 bg-slate-900/50 border-b border-slate-700">
-            <div class="relative flex items-center gap-1">
-                <div class="relative flex-1">
-                    <span class="material-icons absolute left-2 top-2 text-slate-500 text-sm">search</span>
-                    <input type="text" id="searchInput" oninput="debounceSearch(this.value)"
-                        placeholder="SKU / Nombre..."
-                        class="w-full pl-7 pr-2 py-1.5 bg-slate-800 border border-slate-600 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
-                </div>
-                <button onclick="debounceSearch('')"
-                    class="p-1.5 text-slate-400 hover:text-indigo-400 bg-slate-800 rounded border border-slate-600 hover:border-indigo-500 transition"
-                    title="Recargar">
-                    <span class="material-icons text-sm">refresh</span>
-                </button>
+        <!-- Left: Logo + Branding -->
+        <div class="flex items-center gap-4 shrink-0">
+            <div class="p-2 rounded-lg text-white flex items-center justify-center"
+                style="background: linear-gradient(135deg, #6366f1, #7c3aed); box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);">
+                <span class="material-icons text-xl">auto_awesome</span>
             </div>
-
-            <!-- Chips de Categoría (Optimizado con navegación) -->
-            <div class="category-nav-wrapper">
-                <button class="category-arrow category-arrow-left" onclick="scrollCategories(-150)">
-                    <span class="material-icons text-sm">chevron_left</span>
-                </button>
-                <div id="categoryFilterContainer"
-                    class="flex gap-2 p-1 overflow-x-auto custom-scrollbar no-scrollbar flex-1">
-                    <!-- Se llena dinámicamente con SVGs -->
-                </div>
-                <button class="category-arrow category-arrow-right" onclick="scrollCategories(150)">
-                    <span class="material-icons text-sm">chevron_right</span>
-                </button>
+            <div class="hidden md:block">
+                <h1 class="text-base font-bold text-white tracking-wide whitespace-nowrap">IA Studio & Media</h1>
+                <p class="text-[10px] text-slate-400 flex items-center gap-1">
+                    <span class="relative flex h-1.5 w-1.5">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                    </span>
+                    <span id="sync-status-label">Sincronizado con Drive</span>
+                </p>
             </div>
         </div>
 
-        <!-- Lista de Productos -->
-        <div id="productList" class="flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
-            <!-- Se llena dinámicamente -->
+        <!-- Center: Búsqueda (visible en móvil) -->
+        <div class="flex-1 max-w-lg mx-2">
+            <div class="relative">
+                <span
+                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">search</span>
+                <input type="text" id="searchInput" oninput="debounceSearch(this.value)"
+                    placeholder="Buscar producto, SKU..."
+                    class="w-full pl-9 pr-4 md:pr-16 py-2 bg-slate-800/80 border border-slate-600 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition">
+                <span
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-500 bg-slate-700 px-1.5 py-0.5 rounded font-mono border border-slate-600 hidden md:inline">Ctrl+K</span>
+            </div>
         </div>
 
-        <!-- Botones de Sync -->
-        <div class="p-2 border-t border-slate-700 bg-slate-900/50 shrink-0 mt-auto">
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <button onclick="sincronizarProductoActual()" id="btnSyncProd" disabled
-                    class="w-full py-2 bg-blue-900/40 border border-blue-500/30 text-blue-400 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all duration-300 disabled:opacity-50 hover:bg-blue-800 hover:text-white hover:border-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                    <span class="material-icons text-sm">sync</span>Sync Drive
-                </button>
-                <button onclick="sincronizarConWC()" id="btnSyncWC" disabled
-                    class="w-full py-2 bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all duration-300 disabled:opacity-50 hover:bg-emerald-800 hover:text-white hover:border-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                    <span class="material-icons text-sm">cloud_upload</span>WP Sync
-                </button>
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2 shrink-0">
+
+            <!-- PAID MODE TOGGLE (visible en móvil como icono) -->
+            <div
+                class="flex items-center gap-2 bg-slate-800 px-2 md:px-3 py-1.5 rounded-lg border border-slate-700 shadow-sm">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <span class="material-icons text-amber-500 text-sm">payments</span>
+                    <span class="text-[9px] uppercase font-bold text-slate-400 hidden lg:inline">Modo Pago</span>
+                    <div class="relative inline-block w-8 h-4 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" id="paid-mode-switch" onchange="handlePaidToggle(this.checked)"
+                            class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-slate-600 appearance-none cursor-pointer checked:right-0 checked:bg-amber-500 transition-all duration-200" />
+                        <label for="paid-mode-switch"
+                            class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-700 cursor-pointer"></label>
+                    </div>
+                </label>
             </div>
+
+            <!-- SYNC GLOBAL -->
             <button onclick="sincronizarGlobalManual()"
-                class="w-full py-2 bg-indigo-600 text-white rounded text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-1 shadow-sm shadow-indigo-500/20">
-                <span class="material-icons text-sm">cloud_sync</span>Sync Global
+                class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg text-white text-[10px] font-bold transition shadow-sm shadow-indigo-500/20 border border-indigo-500/30">
+                <span class="material-icons text-sm">cloud_sync</span>
+                <span class="hidden md:inline">Sync Global</span>
             </button>
-        </div>
-    </aside>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main>
-        <header
-            class="flex items-center justify-between px-2 sm:px-4 h-[56px] border-b border-slate-700 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
-            <div class="flex items-center gap-3">
-                <button onclick="toggleInternalSidebar()"
-                    class="p-1.5 text-slate-400 hover:bg-slate-700 rounded-md transition">
-                    <span class="material-icons text-xl">menu_open</span>
+            <!-- AUDITORÍA DE GASTOS -->
+            <button onclick="mostrarAuditoriaGastosIA()"
+                class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 shadow-sm transition hover:border-emerald-500 group hide-mobile"
+                title="Ver Auditoría de Gastos">
+                <span
+                    class="material-icons text-emerald-500 group-hover:scale-110 transition text-lg">account_balance_wallet</span>
+            </button>
+
+            <!-- BOTÓN SUBIR -->
+            <button id="btnHeaderUpload" onclick="abrirSelectorArchivos()"
+                class="hidden p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition shadow-sm animate-fade-in"
+                title="Subir Archivos">
+                <span class="material-icons text-lg">cloud_upload</span>
+            </button>
+
+            <!-- LOGS TOGGLE -->
+            <button onclick="toggleConsole()"
+                class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 shadow-sm transition relative group hide-mobile"
+                title="Ver Logs del Sistema">
+                <span
+                    class="material-icons text-slate-400 group-hover:text-emerald-400 transition text-lg">terminal</span>
+                <span id="logsBadge"
+                    class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(52,211,153,0.6)] hidden"></span>
+            </button>
+
+            <div class="w-px h-6 bg-slate-700 hide-mobile"></div>
+
+            <!-- SETTINGS -->
+            <div class="relative">
+                <button
+                    class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 shadow-sm transition"
+                    title="Configuración" onclick="toggleSettings()">
+                    <span class="material-icons text-slate-400 text-lg">settings</span>
                 </button>
-                <div>
-                    <h2 id="currentProductTitle"
-                        class="font-bold text-slate-200 text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px] md:max-w-xs">
-                        Selecciona
-                        Producto</h2>
-                    <span id="currentProductSku"
-                        class="text-[10px] font-mono text-slate-500 hidden md:inline-block">---</span>
+                <div id="settingsPopover">
+                    <div class="flex items-center justify-between mb-3">
+                        <span
+                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Configuración</span>
+                        <button onclick="toggleSettings()" class="text-slate-500 hover:text-white transition">
+                            <span class="material-icons text-sm">close</span>
+                        </button>
+                    </div>
+                    <div>
+                        <label
+                            class="text-[10px] font-bold text-slate-300 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+                            <span class="material-icons text-indigo-400 text-sm">grid_view</span>
+                            Tamaño de Cards
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <span class="material-icons text-slate-500 text-sm">photo_size_select_small</span>
+                            <input type="range" class="card-slider flex-1" min="100" max="250" value="150"
+                                id="cardSizeSlider" oninput="updateCardSize(this.value)">
+                            <span class="material-icons text-slate-500 text-sm">photo_size_select_large</span>
+                        </div>
+                        <div class="text-center mt-1">
+                            <span id="cardSizeLabel" class="text-[9px] text-slate-500 font-mono">150px</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    </header>
 
-            <div class="flex items-center gap-3 flex-1 justify-end">
+    <!-- WORKSPACE BODY (Sidebar + Main) -->
+    <div id="workspace-body">
 
-                <!-- BARRA DE ACCIONES MASIVAS (Contextual) -->
-                <div id="bulk-toolbar"
-                    class="bg-indigo-900/80 text-white pl-3 pr-1 py-1 rounded-full shadow-lg border border-indigo-500/30">
-                    <span class="font-bold text-[10px] bg-indigo-700 px-1.5 rounded-full mr-2"
-                        id="selectedCount">0</span>
-
-                    <!-- Contenedor dinámico de botones -->
-                    <div class="flex items-center gap-1" id="toolbar-actions"></div>
-
-                    <div class="h-3 w-px bg-indigo-500/50 mx-1"></div>
-                    <button onclick="limpiarSeleccion()"
-                        class="p-1 hover:bg-indigo-800 rounded-full text-indigo-300 hover:text-white transition">
-                        <span class="material-icons text-sm">close</span>
+        <!-- SIDEBAR INTERNO -->
+        <aside id="internalSidebar">
+            <div
+                class="px-5 py-2.5 border-b border-slate-700 flex justify-between items-center shrink-0 bg-slate-900/50">
+                <h3 class="font-bold text-white text-sm flex items-center gap-2 uppercase tracking-wide">
+                    <span class="material-icons text-indigo-400 text-lg">apps</span> Categorías
+                </h3>
+                <div class="flex items-center gap-1">
+                    <button onclick="debounceSearch('')"
+                        class="p-1 text-slate-400 hover:text-indigo-400 transition rounded" title="Refrescar">
+                        <span class="material-icons text-sm">sync</span>
+                    </button>
+                    <button onclick="toggleInternalSidebar()" class="md:hidden p-1 text-slate-400">
+                        <span class="material-icons">close</span>
                     </button>
                 </div>
+            </div>
 
-                <!-- PAID MODE TOGGLE (GLOBAL) -->
-                <div
-                    class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 shadow-sm">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <span class="material-icons text-amber-500 text-sm">payments</span>
-                        <span class="text-[9px] uppercase font-bold text-slate-400 hidden lg:inline">Modo
-                            Pago</span>
-                        <div
-                            class="relative inline-block w-8 h-4 align-middle select-none transition duration-200 ease-in">
-                            <input type="checkbox" id="paid-mode-switch" onchange="handlePaidToggle(this.checked)"
-                                class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-slate-600 appearance-none cursor-pointer checked:right-0 checked:bg-amber-500 transition-all duration-200" />
-                            <label for="paid-mode-switch"
-                                class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-700 cursor-pointer"></label>
+            <!-- Chips de Categoría -->
+            <div class="p-3 shrink-0 bg-slate-900/50 border-b border-slate-700">
+                <div class="category-nav-wrapper" style="margin-top:0; padding-top:0; border-top:none;">
+                    <button class="category-arrow" onclick="scrollCategories(-150)">
+                        <span class="material-icons text-sm">chevron_left</span>
+                    </button>
+                    <div id="categoryFilterContainer"
+                        class="flex gap-2 p-1 overflow-x-auto custom-scrollbar no-scrollbar flex-1">
+                        <!-- Se llena dinámicamente con SVGs -->
+                    </div>
+                    <button class="category-arrow" onclick="scrollCategories(150)">
+                        <span class="material-icons text-sm">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Título Modelos -->
+            <div class="p-2 border-b border-slate-700/50 flex justify-center items-center bg-slate-800/50">
+                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Modelos</span>
+            </div>
+
+            <!-- Lista de Productos -->
+            <div id="productList" class="flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="flex-1 overflow-y-auto">
+
+            <div id="contentAreaWrapper">
+
+                <!-- ESTADO VACÍO -->
+                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-slate-500 mt-10">
+                    <div class="bg-slate-800 p-6 rounded-full mb-4 border border-slate-700">
+                        <span class="material-icons text-5xl opacity-20 text-slate-400">collections</span>
+                    </div>
+                    <p class="text-sm font-medium text-slate-400">Selecciona un producto del menú lateral</p>
+                    <p class="text-xs opacity-60 mt-1">para gestionar su galería</p>
+                </div>
+
+                <!-- ÁREA DE GALERÍA -->
+                <div id="contentArea" class="hidden">
+
+                    <!-- PRODUCT HEADER -->
+                    <div class="px-5 py-3 border-b border-slate-700/60 flex flex-col gap-3 z-10 bg-slate-900/30">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <button onclick="toggleInternalSidebar()"
+                                    class="p-1.5 text-slate-400 hover:bg-slate-700 rounded-md transition border border-slate-700 hide-mobile"
+                                    title="Toggle sidebar">
+                                    <span class="material-icons text-xl">menu_open</span>
+                                </button>
+                                <div
+                                    class="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700">
+                                    <span class="material-icons text-indigo-400">inventory_2</span>
+                                </div>
+                                <div>
+                                    <h2 id="currentProductTitle"
+                                        class="font-bold text-white text-sm uppercase tracking-wide flex items-center gap-2">
+                                        Selecciona un
+                                        Producto
+                                    </h2>
+                                    <span id="currentProductSku" class="text-[10px] font-mono text-slate-500">---</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <!-- BULK TOOLBAR (Contextual) -->
+                                <div id="bulk-toolbar"
+                                    class="bg-indigo-900/80 text-white pl-3 pr-1 py-1 rounded-full shadow-lg border border-indigo-500/30">
+                                    <span class="font-bold text-[10px] bg-indigo-700 px-1.5 rounded-full mr-2"
+                                        id="selectedCount">0</span>
+                                    <div class="flex items-center gap-1" id="toolbar-actions"></div>
+                                    <div class="h-3 w-px bg-indigo-500/50 mx-1"></div>
+                                    <button onclick="limpiarSeleccion()"
+                                        class="p-1 hover:bg-indigo-800 rounded-full text-indigo-300 hover:text-white transition">
+                                        <span class="material-icons text-sm">close</span>
+                                    </button>
+                                </div>
+
+                                <button onclick="sincronizarProductoActual()" id="btnSyncProd" disabled
+                                    class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 rounded-lg text-[10px] font-bold transition-all duration-300 disabled:opacity-40 hover:bg-blue-900/40 hover:text-blue-400 hover:border-blue-500/30">
+                                    <span class="material-icons text-sm">sync</span><span class="btn-text-mobile">Sync
+                                        Drive</span>
+                                </button>
+                                <button onclick="sincronizarConWC()" id="btnSyncWC" disabled
+                                    class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 rounded-lg text-[10px] font-bold transition-all duration-300 disabled:opacity-40 hover:bg-emerald-900/40 hover:text-emerald-400 hover:border-emerald-500/30">
+                                    <span class="material-icons text-sm">cloud_upload</span><span
+                                        class="btn-text-mobile">WP Sync</span>
+                                </button>
+                            </div>
                         </div>
-                    </label>
-                </div>
+                    </div>
 
-                <!-- AUDITORÍA DE GASTOS (Billetera) -->
-                <button onclick="mostrarAuditoriaGastosIA()"
-                    class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 p-2 rounded-lg border border-slate-700 shadow-sm transition hover:border-emerald-500 group"
-                    title="Ver Auditoría de Gastos">
-                    <span
-                        class="material-icons text-emerald-500 group-hover:scale-110 transition">account_balance_wallet</span>
-                    <span class="text-[9px] uppercase font-bold text-slate-400 hidden xl:inline">Auditar
-                        Gastos</span>
-                </button>
-
-                <!-- BOTÓN SUBIR (Oculto por defecto) -->
-                <button id="btnHeaderUpload" onclick="abrirSelectorArchivos()"
-                    class="hidden flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 transition shadow-sm animate-fade-in">
-                    <span class="material-icons text-sm">cloud_upload</span>
-                    <span class="hidden md:inline">Subir Archivos</span>
-                </button>
-            </div>
-        </header>
-
-        <div id="contentAreaWrapper">
-
-            <!-- ESTADO VACÍO -->
-            <div id="emptyState" class="h-full flex flex-col items-center justify-center text-slate-500 mt-10">
-                <div class="bg-slate-800 p-6 rounded-full mb-4 border border-slate-700">
-                    <span class="material-icons text-5xl opacity-20 text-slate-400">collections</span>
-                </div>
-                <p class="text-sm font-medium text-slate-400">Selecciona un producto del menú lateral</p>
-                <p class="text-xs opacity-60 mt-1">para gestionar su galería</p>
-            </div>
-
-            <!-- ÁREA DE GALERÍA -->
-            <div id="contentArea" class="hidden py-6">
-
-                <div id="gallery-container" class="space-y-4">
-
-                    <!-- 1. VISIBLES -->
-                    <div class="gallery-section">
-                        <div class="flex items-center justify-between mb-2 px-1">
-                            <h3
-                                class="text-xs font-bold text-emerald-400 uppercase flex items-center gap-1 tracking-wider">
-                                <span class="material-icons text-sm">visibility</span> Activas en Catálogo
-                            </h3>
-                            <div>
+                    <div id="gallery-container">
+                        <div class="tab-bar px-4">
+                            <button class="tab-btn active" id="tabActivas" onclick="switchTab('activas')">
+                                <span class="material-icons text-sm">visibility</span>
+                                Activas
+                                <span id="countActivas"
+                                    class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-mono">0</span>
+                            </button>
+                            <button class="tab-btn" id="tabOcultas" onclick="switchTab('ocultas')">
+                                <span class="material-icons text-sm">visibility_off</span>
+                                Ocultas
+                                <span id="countOcultas"
+                                    class="text-[9px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded-full font-mono">0</span>
+                            </button>
+                            <div class="tab-actions">
                                 <button id="btnToggleReorder" onclick="toggleReorderMode()"
-                                    class="btn-responsive mr-4 text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide border border-indigo-500/30 px-2 py-0.5 rounded transition flex items-center gap-1 inline-flex">
+                                    class="btn-responsive text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide border border-indigo-500/30 px-2 py-1 rounded transition flex items-center gap-1">
                                     <span class="material-icons text-[10px]">sort</span>
-                                    <span class="btn-responsive-text">Modo Reordenar</span>
+                                    <span class="btn-responsive-text">Reordenar</span>
                                 </button>
                                 <button id="btnSaveOrder" onclick="guardarNuevoOrden()"
-                                    class="hidden mr-4 text-[10px] text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-wide border border-emerald-500/30 px-2 py-0.5 rounded transition">
+                                    class="hidden text-[10px] text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-wide border border-emerald-500/30 px-2 py-1 rounded transition">
                                     Guardar Orden
                                 </button>
-                                <button onclick="seleccionarTodos(true)"
-                                    class="btn-responsive text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-wide border border-blue-500/30 px-2 py-0.5 rounded transition flex items-center gap-1 inline-flex">
+                                <button onclick="seleccionarTodos(currentTabState)" id="btnSelectAll"
+                                    class="btn-responsive text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-wide border border-blue-500/30 px-2 py-1 rounded transition flex items-center gap-1">
                                     <span class="material-icons text-[10px]">done_all</span>
-                                    <span class="btn-responsive-text">Seleccionar Todo</span>
+                                    <span class="btn-responsive-text">Sel. Todo</span>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="horizontal-scroll-container bg-slate-800 border border-emerald-500/20 rounded-xl p-3 shadow-sm min-h-[140px]"
-                            id="imageGridActive">
-                            <!-- JS Injects items here -->
+                        <!-- GRID ACTIVAS -->
+                        <div class="gallery-section" id="sectionActivas">
+                            <div class="gallery-grid" id="imageGridActive">
+                                <!-- JS Injects items here -->
+                            </div>
                         </div>
+
+                        <!-- GRID OCULTAS (hidden by default) -->
+                        <div class="gallery-section" id="sectionOcultas" style="display:none;">
+                            <div class="gallery-grid" id="imageGridHidden">
+                                <!-- JS Injects items here -->
+                            </div>
+                        </div>
+
                     </div>
 
-                    <!-- 2. OCULTAS -->
-                    <div class="gallery-section">
-                        <div class="flex items-center justify-between mb-2 px-1">
-                            <h3
-                                class="text-xs font-bold text-slate-500 uppercase flex items-center gap-1 tracking-wider">
-                                <span class="material-icons text-sm">visibility_off</span> Ocultas / Papelera
-                            </h3>
-                            <button onclick="seleccionarTodos(false)"
-                                class="btn-responsive text-[10px] text-slate-400 hover:text-slate-300 font-bold uppercase tracking-wide border border-slate-500/30 px-2 py-0.5 rounded transition flex items-center gap-1 inline-flex">
-                                <span class="material-icons text-[10px]">done_all</span>
-                                <span class="btn-responsive-text">Seleccionar Todo</span>
-                            </button>
+                    <!-- Drop Overlay -->
+                    <div id="dropBlocker"
+                        class="hidden absolute inset-0 bg-blue-900/80 backdrop-blur-[2px] z-30 flex items-center justify-center border-2 border-blue-400 border-dashed m-4 rounded-xl pointer-events-none">
+                        <div
+                            class="bg-slate-800 px-6 py-4 rounded-xl shadow-xl flex flex-col items-center animate-bounce border border-slate-700">
+                            <span class="material-icons text-4xl text-blue-400">cloud_upload</span>
+                            <span class="font-bold text-slate-200 mt-2 text-sm">Suelta para subir</span>
                         </div>
-
-                        <div class="horizontal-scroll-container bg-slate-900 border border-slate-700 rounded-xl p-3 min-h-[140px]"
-                            id="imageGridHidden">
-                            <!-- JS Injects items here -->
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Drop Overlay -->
-                <div id="dropBlocker"
-                    class="hidden absolute inset-0 bg-blue-900/80 backdrop-blur-[2px] z-30 flex items-center justify-center border-2 border-blue-400 border-dashed m-4 rounded-xl pointer-events-none">
-                    <div
-                        class="bg-slate-800 px-6 py-4 rounded-xl shadow-xl flex flex-col items-center animate-bounce border border-slate-700">
-                        <span class="material-icons text-4xl text-blue-400">cloud_upload</span>
-                        <span class="font-bold text-slate-200 mt-2 text-sm">Suelta para subir</span>
                     </div>
                 </div>
             </div>
+
+
+        </main>
+
+    </div> <!-- /workspace-body -->
+
+    <!-- SIDEBAR BACKDROP (Mobile) -->
+    <div id="sidebarBackdrop" onclick="toggleInternalSidebar()"></div>
+
+    <!-- FABs MÓVILES: Subir Galería / Cámara (solo móvil, solo cuando hay producto seleccionado) -->
+    <div id="mobileFabs" class="mobile-fabs hidden">
+        <button onclick="document.getElementById('fileInput').click()" class="fab fab-gallery"
+            title="Subir desde Galería">
+            <span class="material-icons">photo_library</span>
+        </button>
+        <button onclick="document.getElementById('cameraInput').click()" class="fab fab-camera" title="Tomar Foto">
+            <span class="material-icons">photo_camera</span>
+        </button>
+    </div>
+
+</div> <!-- /img-manager-root -->
+
+<!-- CONSOLE PANEL (Fixed Full-Width) -->
+<div id="console-panel-wrapper">
+    <div id="console-header">
+        <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logs del Sistema</span>
         </div>
-
-        <!-- CONSOLA -->
-        <div id="console-panel-wrapper">
-            <div id="console-header" onclick="toggleConsole()">
-                <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logs del
-                        Sistema</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="event.stopPropagation(); document.getElementById('console-content').innerHTML=''"
-                        class="text-[10px] text-slate-500 hover:text-red-400 uppercase font-bold transition">
-                        Limpiar
-                    </button>
-                    <span class="material-icons text-slate-500 transition-transform duration-300 text-sm"
-                        id="console-chevron">expand_less</span>
-                </div>
-            </div>
-            <div id="console-content">
-                <p class="text-slate-600 italic opacity-50">> Sistema listo. Esperando acciones...</p>
-            </div>
+        <div class="flex items-center gap-3">
+            <button
+                onclick="event.stopPropagation(); document.getElementById('console-content').innerHTML='<p class=text-slate-600>Logs limpiados.</p>'"
+                class="text-[10px] text-slate-500 hover:text-red-400 uppercase font-bold transition cursor-pointer">
+                Limpiar
+            </button>
+            <button onclick="toggleConsole()" class="text-slate-500 hover:text-white transition cursor-pointer">
+                <span class="material-icons text-sm">close</span>
+            </button>
         </div>
-    </main>
+    </div>
+    <div id="console-content">
+        <p class="text-slate-600 italic opacity-50">> Sistema listo. Esperando acciones...</p>
+    </div>
 </div>
 
 <div id="sidebarBackdrop" onclick="toggleInternalSidebar()"
@@ -986,6 +1440,7 @@
     var CATALOG_LOADING = false;
     var autoOpenId = null; // --- NUEVO: Corregir ReferenceError ---
     var isConsoleExpanded = false; // --- NUEVO: Corregir ReferenceError ---
+    var currentTabState = true; // true = Activas tab, false = Ocultas tab
 
 
 
@@ -1001,32 +1456,91 @@
         box.appendChild(line);
         box.scrollTop = box.scrollHeight;
 
+        // Show badge notification if panel is closed
+        if (!isConsoleExpanded) {
+            const badge = document.getElementById('logsBadge');
+            if (badge) badge.classList.remove('hidden');
+        }
+
+        // Auto-expand on errors
         if (type === 'error' && !isConsoleExpanded) toggleConsole();
     }
 
     function toggleConsole() {
         const panel = document.getElementById('console-panel-wrapper');
-        const icon = document.getElementById('console-chevron');
         isConsoleExpanded = !isConsoleExpanded;
         panel.classList.toggle('expanded', isConsoleExpanded);
-        icon.innerText = isConsoleExpanded ? 'expand_more' : 'expand_less';
+        // Clear badge when opening
+        if (isConsoleExpanded) {
+            const badge = document.getElementById('logsBadge');
+            if (badge) badge.classList.add('hidden');
+        }
+    }
+
+    // --- TAB SWITCHING ---
+    function switchTab(tabId) {
+        const isActivas = tabId === 'activas';
+        currentTabState = isActivas;
+        document.getElementById('sectionActivas').style.display = isActivas ? '' : 'none';
+        document.getElementById('sectionOcultas').style.display = isActivas ? 'none' : '';
+        document.getElementById('tabActivas').classList.toggle('active', isActivas);
+        document.getElementById('tabOcultas').classList.toggle('active', !isActivas);
+        // Show reorder only in Activas tab
+        const btnReorder = document.getElementById('btnToggleReorder');
+        if (btnReorder) btnReorder.style.display = isActivas ? '' : 'none';
     }
 
     function toggleInternalSidebar() {
         const sidebar = document.getElementById('internalSidebar');
         const backdrop = document.getElementById('sidebarBackdrop');
-        const icon = document.querySelector('header button span.material-icons');
 
         if (window.innerWidth <= 768) {
-            sidebar.classList.toggle('open');
-            backdrop.classList.toggle('hidden');
+            // Mobile: drawer mode
+            const isOpen = sidebar.classList.contains('open');
+            sidebar.classList.toggle('open', !isOpen);
+            sidebar.classList.remove('collapsed');
+            if (backdrop) backdrop.classList.toggle('active', !isOpen);
         } else {
+            // Desktop: collapse mode
             sidebar.classList.toggle('collapsed');
-            if (icon) {
-                icon.innerText = sidebar.classList.contains('collapsed') ? 'menu' : 'menu_open';
-            }
+            sidebar.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('active');
         }
     }
+
+    // --- SETTINGS POPOVER ---
+    function toggleSettings() {
+        const pop = document.getElementById('settingsPopover');
+        if (pop) pop.classList.toggle('open');
+    }
+
+    // Close settings when clicking outside
+    document.addEventListener('click', function (e) {
+        const pop = document.getElementById('settingsPopover');
+        if (pop && pop.classList.contains('open') && !e.target.closest('.relative')) {
+            pop.classList.remove('open');
+        }
+    });
+
+    // --- CARD SIZE ---
+    function updateCardSize(val) {
+        document.documentElement.style.setProperty('--card-size', val + 'px');
+        const label = document.getElementById('cardSizeLabel');
+        if (label) label.textContent = val + 'px';
+        localStorage.setItem('imgDashCardSize', val);
+    }
+
+    // Restore saved card size on load
+    (function () {
+        const saved = localStorage.getItem('imgDashCardSize');
+        if (saved) {
+            document.documentElement.style.setProperty('--card-size', saved + 'px');
+            const slider = document.getElementById('cardSizeSlider');
+            const label = document.getElementById('cardSizeLabel');
+            if (slider) slider.value = saved;
+            if (label) label.textContent = saved + 'px';
+        }
+    })();
 
     // --- INIT REFACTORIZADO PARA SYSTEM CONTAINER ---
     function initImagesDashboard() {
@@ -1338,6 +1852,11 @@
         if (el) el.classList.add('active', 'bg-indigo-500/10', 'border-indigo-500');
 
         currentProduct = { sku: p.sku, carpeta_id: p.carpeta_id, woo_id: p.woo_id };
+
+        // Mostrar FABs móviles cuando hay producto seleccionado
+        const fabs = document.getElementById('mobileFabs');
+        if (fabs) fabs.classList.remove('hidden');
+
         document.querySelectorAll('.product-card').forEach(c => {
             c.classList.remove('active', 'border-indigo-500', 'ring-2', 'ring-indigo-500/20');
             if (c.getAttribute('onclick').includes(`'${p.sku}'`)) { // Changed 'sku' to 'p.sku'
@@ -1431,6 +1950,13 @@
         if (cA === 0) ga.innerHTML = noImg("Sin imágenes visibles");
         if (cH === 0) gh.innerHTML = noImg("Papelera vacía");
 
+        // --- NUEVO: Actualizar contadores de tabs ---
+        const elCountA = document.getElementById('countActivas');
+        const elCountH = document.getElementById('countOcultas');
+        if (elCountA) elCountA.innerText = cA;
+        if (elCountH) elCountH.innerText = cH;
+        switchTab('activas');
+
         // --- NUEVO: Inicializar Sortable SOLO si está en modo reordenar ---
         if (cA > 1 && isReorderMode) {
             initSortable();
@@ -1486,18 +2012,16 @@
                 <div class="card-checkbox" onclick="event.stopPropagation(); toggleSelection('${img.IMAGEN_ID}', this.parentElement, ${img.ESTADO})">
                     <span class="material-icons check-icon text-sm text-white font-bold">${isSelected ? 'check' : ''}</span>
                 </div>
-                <div onclick="abrirModal(${jsonSafe})">
-                    <div class="relative">
-                        ${imgHTML}
-                        ${img.PORTADA ? '<span class="absolute top-1 left-1 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5"><span class="material-icons text-[10px]">star</span></span>' : ''}
-                        ${img.SYNC_WC ? '<span class="absolute top-9 left-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Sincronizado con WP"><span class="material-icons text-[10px]">cloud_done</span></span>' : ''}
-                        <span class="absolute bottom-1 right-1 bg-slate-900/80 text-white text-[8px] font-mono px-1 rounded z-10 border border-white/10 opacity-60 group-hover:opacity-100">${index + 1}</span>
-                        ${img.PROMPT ? '<span class="absolute top-1 right-8 bg-indigo-600 text-white text-[9px] font-bold px-1 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Tiene Prompt"><span class="material-icons text-[10px]">auto_awesome</span></span>' : ''}
-                    </div>
+                <div onclick="abrirModal(${jsonSafe})" class="w-full h-full relative">
+                    ${imgHTML}
+                    ${img.PORTADA ? '<span class="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5"><span class="material-icons text-[10px]">star</span></span>' : ''}
+                    ${img.SYNC_WC ? '<span class="absolute top-8 left-1.5 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Sincronizado con Drive con WP"><span class="material-icons text-[10px]">cloud_done</span></span>' : ''}
+                    <span class="index-badge">${index + 1}</span>
+                    ${img.PROMPT ? '<span class="absolute top-1.5 right-8 bg-indigo-600 text-white text-[9px] font-bold px-1 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Tiene Prompt"><span class="material-icons text-[10px]">auto_awesome</span></span>' : ''}
                     <div class="img-body">
-                        <p class="text-[9px] font-bold text-slate-400 truncate mb-1" title="${nombre}">${nombre}</p>
-                        <div class="flex justify-between items-center">
-                            <span class="status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${img.ESTADO ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700 text-slate-500'}">
+                        <p class="text-[9px] font-bold text-white truncate" title="${nombre}">${nombre}</p>
+                        <div class="flex items-center gap-1 mt-0.5">
+                            <span class="status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${img.ESTADO ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/80 text-slate-400'}">
                                 ${img.ESTADO ? 'ACTIVA' : 'OCULTA'}
                             </span>
                              ${isVideo ? '<span class="text-[8px] font-bold text-indigo-400 bg-indigo-500/10 px-1 rounded border border-indigo-500/20">VIDEO</span>' : ''}
@@ -1805,7 +2329,7 @@
         const targetGrid = nuevoEstado ? document.getElementById('imageGridActive') : document.getElementById('imageGridHidden');
         if (currentImgObj && currentImgObj.IMAGEN_ID === id) currentImgObj.ESTADO = nuevoEstado;
         card.style.transform = 'scale(0.9)'; card.style.opacity = '0';
-        setTimeout(() => { targetGrid.appendChild(card); const badge = card.querySelector('.status-badge'); if (badge) { badge.className = `status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${nuevoEstado ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700 text-slate-500'}`; badge.innerText = nuevoEstado ? 'ACTIVA' : 'OCULTA'; } card.style.transform = 'scale(1)'; card.style.opacity = '1'; }, 200);
+        setTimeout(() => { targetGrid.appendChild(card); const badge = card.querySelector('.status-badge'); if (badge) { badge.className = `status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${nuevoEstado ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/80 text-slate-400'}`; badge.innerText = nuevoEstado ? 'ACTIVA' : 'OCULTA'; } card.style.transform = 'scale(1)'; card.style.opacity = '1'; }, 200);
     }
 
     function cambiarEstadoModalToggle() {
@@ -2496,7 +3020,7 @@
     function reenumerarTarjetas() {
         const cards = document.querySelectorAll('#imageGridActive .img-card');
         cards.forEach((card, index) => {
-            const badge = card.querySelector('.bottom-1.right-1');
+            const badge = card.querySelector('.index-badge');
             if (badge) badge.innerText = index + 1;
         });
     }
@@ -2590,4 +3114,13 @@
             }
         }).obtenerResumenGastosIA();
     }
+
+    // --- Ctrl+K Shortcut ---
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.focus();
+        }
+    });
 </script>

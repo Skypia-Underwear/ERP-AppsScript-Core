@@ -30,13 +30,47 @@ function procesarSincronizacion(codigo) {
 function ejecutarSincronizacionGlobal() {
   const logArray = [];
   try {
+    // Limpiar triggers residuales de ejecuciones previas
+    ScriptApp.getProjectTriggers().forEach(t => {
+      if (t.getHandlerFunction() === 'continuarSincronizacionGlobal') ScriptApp.deleteTrigger(t);
+    });
+    // Resetear indice de progreso
+    PropertiesService.getScriptProperties().deleteProperty('SYNC_GLOBAL_INDEX');
+
     sincronizarImagenes(null, logArray);
-    const ui = getUiSafe();
-    if (ui) ui.alert(`✅ Sincronización global finalizada.\nRevisa los logs.`);
-    return { success: true, message: "Global Sync Completa", logs: logArray };
+
+    // Si completo todo sin pausar, notificar
+    const pending = PropertiesService.getScriptProperties().getProperty('SYNC_GLOBAL_INDEX');
+    if (!pending) {
+      const ui = getUiSafe();
+      if (ui) ui.alert('Sincronizacion global finalizada.\nRevisa los logs.');
+    }
+    return { success: true, message: pending ? "Batch parcial, continuara automaticamente..." : "Global Sync Completa", logs: logArray };
   } catch (e) {
-    if (getUiSafe()) getUiSafe().alert(`âŒ Error: ${e.message}`);
+    if (getUiSafe()) getUiSafe().alert('Error: ' + e.message);
     return { success: false, message: e.message, logs: logArray };
+  }
+}
+
+function continuarSincronizacionGlobal() {
+  // Auto-limpiar el trigger que nos invoco
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'continuarSincronizacionGlobal') ScriptApp.deleteTrigger(t);
+  });
+
+  const logArray = [];
+  try {
+    sincronizarImagenes(null, logArray);
+
+    // Verificar si termino o necesita otro batch
+    const pending = PropertiesService.getScriptProperties().getProperty('SYNC_GLOBAL_INDEX');
+    if (!pending) {
+      console.log('Sincronizacion global completada tras multiples batches.');
+    } else {
+      console.log('Batch parcial completado. Indice actual: ' + pending + '. Esperando siguiente trigger...');
+    }
+  } catch (e) {
+    console.error('Error en continuarSincronizacionGlobal: ' + e.message);
   }
 }
 
@@ -133,6 +167,8 @@ function obtenerOCrearCarpetaProducto(sku) {
 
 function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
   const log = logArray ? (msg) => logArray.push(msg) : (msg) => console.log(msg);
+  const startTime = Date.now();
+  const MAX_EXECUTION_MS = 2 * 60 * 1000; // 2 minutos — margen de seguridad vs los 6 min de Apps Script
   const lock = LockService.getScriptLock();
   try { lock.waitLock(30000); } catch (e) { log('⚠️ Servidor ocupado.'); return; }
 
@@ -170,6 +206,16 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         .map(r => ({ sku: String(r[idxProdSku]), folderId: r[idxProdFolder] }));
     }
 
+    // BATCH PROCESSING: Recuperar índice de progreso en modo global
+    let startIndex = 0;
+    if (!productoIdFiltro) {
+      const savedIndex = PropertiesService.getScriptProperties().getProperty('SYNC_GLOBAL_INDEX');
+      if (savedIndex) {
+        startIndex = parseInt(savedIndex) || 0;
+        log(`🔄 Retomando sincronización desde índice ${startIndex}/${productosAProcesar.length}`);
+      }
+    }
+
     const nuevasFilas = [];
     const actualizaciones = []; // Array { rowIndex, rowData }
     const filasBorrar = [];
@@ -179,7 +225,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
     for (let i = 1; i < dataImg.length; i++) {
       const fId = String(dataImg[i][col['ARCHIVO_ID']]);
-      const pId = String(dataImg[i][col['PRODUCTO_ID']]);
+      const pId = String(dataImg[i][col['PRODUCTO_ID']]).trim();
       const ruta = String(dataImg[i][col['IMAGEN_RUTA']]);
 
       if (productoIdFiltro && pId !== String(productoIdFiltro)) continue;
@@ -190,7 +236,45 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
     const archivosVistosEnDrive = new Set();
 
-    productosAProcesar.forEach(prod => {
+    for (let pIdx = startIndex; pIdx < productosAProcesar.length; pIdx++) {
+      const prod = productosAProcesar[pIdx];
+
+      // VERIFICAR TIMEOUT (solo en modo global)
+      if (!productoIdFiltro && (Date.now() - startTime) > MAX_EXECUTION_MS) {
+        log(`⏸️ Timeout preventivo. Procesados ${pIdx}/${productosAProcesar.length}. Guardando progreso...`);
+
+        // Guardar cambios parciales - Inserciones
+        if (nuevasFilas.length > 0) {
+          sheetImg.getRange(sheetImg.getLastRow() + 1, 1, nuevasFilas.length, headersImg.length).setValues(nuevasFilas);
+          log(`✅ +${nuevasFilas.length} nuevas guardadas en batch parcial.`);
+        }
+        // Guardar cambios parciales - Actualizaciones
+        if (actualizaciones.length > 0) {
+          actualizaciones.forEach(u => {
+            const originalRowData = dataImg[u.rowIndex - 1];
+            const setValU = (c, v) => { if (col[c] !== undefined) u.rowData[col[c]] = v; };
+            setValU('IMAGEN_ID', originalRowData[col['IMAGEN_ID']]);
+            setValU('ESTADO', originalRowData[col['ESTADO']]);
+            const oldPrompt = originalRowData[col['PROMPT']];
+            const oldCosto = originalRowData[col['COSTO']];
+            const oldFuente = originalRowData[col['FUENTE']];
+            if (oldPrompt && !u.rowData[col['PROMPT']]) setValU('PROMPT', oldPrompt);
+            if (oldCosto && !u.rowData[col['COSTO']]) setValU('COSTO', oldCosto);
+            if (oldFuente && (oldFuente.includes('AI') || oldFuente.includes('Gemini'))) setValU('FUENTE', oldFuente);
+            sheetImg.getRange(u.rowIndex, 1, 1, headersImg.length).setValues([u.rowData]);
+          });
+          log(`🔄 ${actualizaciones.length} actualizadas en batch parcial.`);
+        }
+        SpreadsheetApp.flush();
+
+        // Persistir índice y programar continuación
+        PropertiesService.getScriptProperties().setProperty('SYNC_GLOBAL_INDEX', String(pIdx));
+        ScriptApp.newTrigger('continuarSincronizacionGlobal')
+          .timeBased().after(60 * 1000).create();
+        log(`⏰ Trigger programado para continuar en 1 minuto desde índice ${pIdx}.`);
+        return; // Salir limpiamente — el finally liberará el lock
+      }
+
       try {
         const folder = DriveApp.getFolderById(prod.folderId);
         const files = folder.getFiles();
@@ -341,11 +425,20 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           contadorImagenes++;
         });
       } catch (err) { log(`⚠️ Error carpeta ${prod.sku}: ${err.message}`); }
-    });
+    }
 
-    dbFilesMap.forEach((rowIndex, fileId) => {
-      if (rowIndex !== -1 && !archivosVistosEnDrive.has(fileId)) filasBorrar.push(rowIndex);
-    });
+    // Si llegamos aquí en modo global, terminamos TODO — limpiar estado
+    if (!productoIdFiltro) {
+      PropertiesService.getScriptProperties().deleteProperty('SYNC_GLOBAL_INDEX');
+    }
+
+    // SEPARACIÓN DE CONCERNS: Solo auditar y borrar huérfanos en modo unitario (1 SKU)
+    // En modo global, omitimos el borrado para maximizar velocidad con +7000 archivos
+    if (productoIdFiltro) {
+      dbFilesMap.forEach((rowIndex, fileId) => {
+        if (rowIndex !== -1 && !archivosVistosEnDrive.has(fileId)) filasBorrar.push(rowIndex);
+      });
+    }
 
     if (nuevasFilas.length > 0) {
       sheetImg.getRange(sheetImg.getLastRow() + 1, 1, nuevasFilas.length, headersImg.length).setValues(nuevasFilas);

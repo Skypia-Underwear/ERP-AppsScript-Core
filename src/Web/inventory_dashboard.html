@@ -172,6 +172,123 @@
     background: #475569;
     border-radius: 3px;
   }
+
+  /* ============ MOBILE RESPONSIVE ============ */
+  @media (max-width: 768px) {
+
+    /* Header: compacto en móvil */
+    header {
+      padding: 8px 12px !important;
+      gap: 8px;
+    }
+
+    /* Ocultar logo/título y botones no esenciales */
+    header .hidden.md\:block,
+    header .w-auto.min-w-\[25\%\] {
+      display: none !important;
+    }
+
+    /* Buscador ocupa todo el ancho */
+    header .flex-grow.max-w-2xl {
+      margin: 0 !important;
+      max-width: 100% !important;
+      flex: 1;
+    }
+
+    /* Workspace: flujo vertical */
+    .flex-grow.flex.overflow-hidden.p-4.gap-4 {
+      flex-direction: column;
+      padding: 0;
+      gap: 0;
+    }
+
+    /* Panel izquierdo: ancho completo */
+    .w-3\/5 {
+      width: 100% !important;
+      border-radius: 0;
+      border: none !important;
+      box-shadow: none;
+    }
+
+    /* Título "Filtros de Catálogo": ocultar en móvil */
+    .w-3\/5 .px-5.py-2\.5.flex.justify-between {
+      display: none;
+    }
+
+    /* Categorías: compacto */
+    .w-3\/5 .px-4.py-2.flex.items-center.gap-2 {
+      padding: 6px 8px;
+    }
+
+    /* Grid de Productos: convertir a carrusel horizontal */
+    .w-\[110px\] {
+      width: 100% !important;
+      height: auto !important;
+      flex-direction: row !important;
+      border-right: none !important;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    }
+
+    /* Ocultar título "Modelos" en móvil */
+    .w-\[110px\]>.p-2.border-b {
+      display: none;
+    }
+
+    /* Carrusel de productos horizontal */
+    #product-carousel {
+      display: flex !important;
+      flex-direction: row !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      gap: 8px !important;
+      padding: 8px !important;
+      flex-wrap: nowrap !important;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    #product-carousel::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Tarjetas de producto compactas en carrusel */
+    #product-carousel .product-card {
+      flex-shrink: 0;
+      width: 80px !important;
+      height: 100px !important;
+    }
+
+    #product-carousel .product-card .h-\[75px\] {
+      height: 60px !important;
+    }
+
+    #product-carousel .product-card .text-\[9px\] {
+      font-size: 7px !important;
+      line-height: 1.1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #product-carousel .product-card .text-\[8px\] {
+      font-size: 6px !important;
+    }
+
+    /* Área de datos: ocultar tabla pesada en móvil */
+    .flex-grow.flex.overflow-hidden>.flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 {
+      display: none;
+    }
+
+    /* Panel Derecho (Matriz): ocultar en móvil */
+    .w-2\/5 {
+      display: none !important;
+    }
+
+    /* Terminal de Logs: ajustar para no solapar bottom nav */
+    #logs-panel {
+      bottom: 64px;
+    }
+  }
 </style>
 
 <div class="h-full flex flex-col overflow-hidden text-slate-200 relative bg-slate-950">
