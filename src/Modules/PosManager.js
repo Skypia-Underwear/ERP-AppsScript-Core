@@ -452,6 +452,9 @@ function publicarCatalogo() {
  * @returns {{ success: boolean, message: string }}
  */
 function subirArchivoAGitHub(jsonData, filePath) {
+    const MAX_RETRIES = 2;
+    const RETRYABLE_CODES = [500, 502, 503];
+
     try {
         const user = GLOBAL_CONFIG.GITHUB.USER;
         const repo = GLOBAL_CONFIG.GITHUB.REPO;
@@ -482,21 +485,38 @@ function subirArchivoAGitHub(jsonData, filePath) {
         };
         if (sha) payload.sha = sha;
 
-        const response = UrlFetchApp.fetch(url, {
-            method: "put",
-            contentType: "application/json",
-            headers: { "Authorization": "token " + token },
-            payload: JSON.stringify(payload),
-            muteHttpExceptions: true
-        });
+        // Intentar PUT con retry en errores transitorios (500/502/503)
+        let lastCode = 0;
+        let lastBody = "";
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            if (attempt > 0) {
+                const waitMs = 2000 * attempt; // 2s, 4s
+                debugLog(`⏳ GitHub retry ${attempt}/${MAX_RETRIES} en ${waitMs / 1000}s...`);
+                Utilities.sleep(waitMs);
+            }
 
-        const code = response.getResponseCode();
-        if (code === 200 || code === 201) {
-            debugLog(`✅ GitHub: '${filePath}' subido correctamente.`);
-            return { success: true, message: `GitHub '${filePath}' actualizado.` };
-        } else {
-            throw new Error(`GitHub API Error (${code}): ${response.getContentText()}`);
+            const response = UrlFetchApp.fetch(url, {
+                method: "put",
+                contentType: "application/json",
+                headers: { "Authorization": "token " + token },
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true
+            });
+
+            lastCode = response.getResponseCode();
+            lastBody = response.getContentText();
+
+            if (lastCode === 200 || lastCode === 201) {
+                if (attempt > 0) debugLog(`✅ GitHub: éxito en retry ${attempt}.`);
+                debugLog(`✅ GitHub: '${filePath}' subido correctamente.`);
+                return { success: true, message: `GitHub '${filePath}' actualizado.` };
+            }
+
+            // Solo reintentar en errores transitorios del servidor
+            if (!RETRYABLE_CODES.includes(lastCode)) break;
         }
+
+        throw new Error(`GitHub API Error (${lastCode}): ${lastBody}`);
     } catch (e) {
         debugLog("❌ Error GitHub: " + e.message);
         return { success: false, message: e.message };
@@ -575,10 +595,10 @@ function setupTpvUpdateTrigger() {
     // Crear nuevo disparador (cada 5 min)
     ScriptApp.newTrigger("publicarCatalogo")
         .timeBased()
-        .everyMinutes(5)
+        .everyMinutes(15)
         .create();
 
-    debugLog("⏰ Activador de actualización TPV (5 min) configurado.");
+    debugLog("⏰ Activador de actualización TPV (15 min) configurado.");
     return "Activador configurado cada 5 minutos.";
 }
 
