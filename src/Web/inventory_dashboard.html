@@ -274,19 +274,99 @@
       font-size: 6px !important;
     }
 
-    /* Área de datos: ocultar tabla pesada en móvil */
+    /* Área de datos (Tabla): visible y scrollable en móvil */
     .flex-grow.flex.overflow-hidden>.flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 {
-      display: none;
+      min-height: 250px;
+      flex: none;
+      overflow: hidden;
     }
 
-    /* Panel Derecho (Matriz): ocultar en móvil */
+    /* Tabla: scroll horizontal para que quepa */
+    .flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 .flex-grow.p-4.overflow-auto {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 table {
+      min-width: 600px;
+      font-size: 10px;
+    }
+
+    /* Header de tabla compacto */
+    .flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10>.p-3.border-b {
+      padding: 6px 8px;
+    }
+
+    .flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 .flex.gap-4 {
+      display: none;
+      /* Ocultar KPIs en móvil del header de tabla */
+    }
+
+    /* Panel Derecho (Matriz): ancho completo debajo */
     .w-2\/5 {
-      display: none !important;
+      width: 100% !important;
+      min-height: 280px;
+    }
+
+    .w-2\/5>div {
+      border-radius: 0;
+      border: none !important;
+      border-top: 1px solid #334155 !important;
+      box-shadow: none;
+    }
+
+    /* Header de Matrix: compacto */
+    .w-2\/5 .px-5.py-4 {
+      padding: 8px 10px;
+      gap: 8px;
+    }
+
+    .w-2\/5 .px-5.py-4 .text-sm {
+      font-size: 11px;
+    }
+
+    /* Matrix container: scroll horizontal */
+    #matrix-container {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #matrix-content {
+      min-width: 400px;
     }
 
     /* Terminal de Logs: ajustar para no solapar bottom nav */
     #logs-panel {
       bottom: 64px;
+    }
+  }
+
+  /* ============ TABLET (iPad) ============ */
+  @media (min-width: 769px) and (max-width: 1024px) {
+
+    /* Paneles 50/50 en tablet */
+    .w-3\/5 {
+      width: 50% !important;
+    }
+
+    .w-2\/5 {
+      width: 50% !important;
+    }
+
+    /* Header: compacto en tablet */
+    header .w-auto.min-w-\[25\%\] {
+      min-width: auto !important;
+    }
+
+    /* Tabla de catálogo: scroll horizontal */
+    .flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 table {
+      min-width: 500px;
+      font-size: 11px;
+    }
+
+    /* Matrix: scroll si hace falta */
+    #matrix-container {
+      overflow-x: auto !important;
     }
   }
 </style>
