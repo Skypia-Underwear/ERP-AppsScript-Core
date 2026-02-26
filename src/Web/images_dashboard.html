@@ -1615,9 +1615,10 @@
     function startDeltaPolling() {
         if (_pollingInterval) clearInterval(_pollingInterval);
 
-        // Polling cada 15 segundos
+        // Polling cada 45 segundos para no saturar los registros (antes esperaba 15 min)
         _pollingInterval = setInterval(() => {
-            if (CATALOG_LOADING) return; // No interrumpir carga inicial
+            // No interrumpir carga inicial, y NO hacer ping si el usuario está en otra pestaña
+            if (CATALOG_LOADING || document.visibilityState !== 'visible') return;
 
             const currentSkus = PRODUCT_CATALOG.map(p => p.sku);
 
@@ -1645,7 +1646,7 @@
                 }
             }).checkNewProductsFlag(currentSkus);
 
-        }, 15000);
+        }, 45000); // 45 segundos
     }
 
     initImagesDashboard();
