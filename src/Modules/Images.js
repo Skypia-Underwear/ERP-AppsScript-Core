@@ -1826,8 +1826,10 @@ function consultarIA(promptPersonalizado) {
  * 🛠️ PASARELA DE EJECUCIÓN: IMAGEN 3 (Oficial)
  * Recibe el prompt ya cocinado y lanza el renderizado.
  */
-function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = null) {
+function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = null, cachedDataImg = null) {
   const logPrefix = `🎨 [Render-Gateway]`;
+  const execStartTime = Date.now();
+  const MAX_EXEC_MS = 300000; // 5 min (1 min de margen para Apps Script)
 
   // 1. VALIDACIÓN DE SEGURIDAD (PIN)
   if (!pin || String(pin) !== String(GLOBAL_CONFIG.GEMINI.PAID_PIN)) {
@@ -1850,21 +1852,37 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
 
     const ss = getImagesSpreadsheet();
     const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
-    const dataImg = convertirRangoAObjetos(SHEETS.PRODUCT_IMAGES);
+    // Cambio 5: Reutilizar datos ya cargados si están disponibles
+    const dataImg = cachedDataImg || convertirRangoAObjetos(SHEETS.PRODUCT_IMAGES);
     const colMapping = HeaderManager.getMapping("PRODUCT_IMAGES");
 
     let partsReferencia = [];
 
-    // 1. CARGAR REFERENCIAS ORIGINALES
+    // 1. CARGAR REFERENCIAS ORIGINALES (con compresión de blobs grandes)
     ids.forEach(id => {
       const row = dataImg.find(r => String(r.IMAGEN_ID).trim() === String(id).trim());
       if (row && row.ARCHIVO_ID) {
         try {
           const file = DriveApp.getFileById(row.ARCHIVO_ID);
+          let blob = file.getBlob();
+          const blobBytes = blob.getBytes();
+          // Cambio 2: Si el blob > 2MB, usar thumbnail de Drive (1600px)
+          if (blobBytes.length > 2 * 1024 * 1024) {
+            console.log(`${logPrefix} ⚡ Comprimiendo ref ${id} (${(blobBytes.length / 1024 / 1024).toFixed(1)}MB)...`);
+            try {
+              const thumbUrl = `https://drive.google.com/thumbnail?id=${row.ARCHIVO_ID}&sz=w1600`;
+              const thumbResp = UrlFetchApp.fetch(thumbUrl, { headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+              if (thumbResp.getResponseCode() === 200) {
+                blob = thumbResp.getBlob();
+              }
+            } catch (thumbErr) {
+              console.warn(`${logPrefix} Thumb fallback falló, usando original: ${thumbErr.message}`);
+            }
+          }
           partsReferencia.push({
             "inlineData": {
-              "mimeType": file.getMimeType(),
-              "data": Utilities.base64Encode(file.getBlob().getBytes())
+              "mimeType": blob.getContentType(),
+              "data": Utilities.base64Encode(blob.getBytes())
             }
           });
         } catch (e) { console.warn(`Error ref ${id}: ${e.message}`); }
@@ -1897,15 +1915,22 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
     const targetRow = dataImg.find(r => rowMatchesSku_IMAGENES(r, skuDestino) || ids.includes(r.IMAGEN_ID));
     if (!targetRow) throw new Error("No se pudo determinar el producto destino.");
 
+    // Cambio 3: flash-image primero (pro-image-preview consumía ~6 min solo)
     const variantes = [
-      "gemini-3-pro-image-preview",
       "gemini-2.5-flash-image",
+      "gemini-3-pro-image-preview",
       "imagen-4.0-generate-001",
       "imagen-3.0-generate-001"
     ];
     let detallesErrores = [];
 
     for (const modelo of variantes) {
+      // Cambio 4: Time guard — abortar si queda < 1 min
+      const elapsed = Date.now() - execStartTime;
+      if (elapsed > MAX_EXEC_MS) {
+        console.warn(`${logPrefix} ⏱️ Tiempo agotado (${(elapsed / 1000).toFixed(0)}s). Abortando modelos restantes.`);
+        break;
+      }
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
         console.log(`${logPrefix} Probando ${modelo} con ${partsReferencia.length} refs...`);
@@ -2043,12 +2068,16 @@ function ejecutarRefinamientoDesdeDashboard(imagenIdPrev, feedback, pin) {
     const sku = prevRow.PRODUCTO_ID;
     const promptOriginal = prevRow.PROMPT || "Imagen de catálogo ecommerce";
 
-    // 2. Obtener las referencias originales (las que NO son IA y son Portada u otras del producto)
-    // Para simplificar, usamos todas las imágenes de ese producto que NO sean de sistema web o que sean PORTADA manual.
-    const refsIds = dataImg
-      .filter(r => r.PRODUCTO_ID === sku && r.FUENTE !== 'Sistema Web' && r.ARCHIVO_ID)
-      .slice(0, 10)
-      .map(r => r.IMAGEN_ID);
+    // 2. Obtener las referencias originales (max 3, priorizando PORTADA)
+    const refsRaw = dataImg
+      .filter(r => r.PRODUCTO_ID === sku && r.FUENTE !== 'Sistema Web' && r.ARCHIVO_ID);
+    // Priorizar: Portada primero, luego por orden original
+    refsRaw.sort((a, b) => {
+      const aPort = String(a.PORTADA).toUpperCase() === 'TRUE' ? 1 : 0;
+      const bPort = String(b.PORTADA).toUpperCase() === 'TRUE' ? 1 : 0;
+      return bPort - aPort;
+    });
+    const refsIds = refsRaw.slice(0, 3).map(r => r.IMAGEN_ID);
 
     if (refsIds.length === 0) refsIds.push(imagenIdPrev); // Fallback si no hay otras
 
@@ -2057,7 +2086,7 @@ function ejecutarRefinamientoDesdeDashboard(imagenIdPrev, feedback, pin) {
       prevFileId: prevRow.ARCHIVO_ID
     };
 
-    return JSON.stringify(generarImagenDesdePrompt(refsIds, promptOriginal, pin, refineData));
+    return JSON.stringify(generarImagenDesdePrompt(refsIds, promptOriginal, pin, refineData, dataImg));
 
   } catch (e) {
     return JSON.stringify({ success: false, error: e.message });
