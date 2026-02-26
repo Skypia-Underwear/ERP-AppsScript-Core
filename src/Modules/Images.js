@@ -841,6 +841,141 @@ function DIAGNOSTICO_IA() {
   }
 }
 
+// -----------------------------------------------------------------
+// --- FILE API DE GEMINI + CONSTANTES DE OPTIMIZACIÓN (V1.0)
+// -----------------------------------------------------------------
+
+/**
+ * Configuración de seguridad para catálogo de indumentaria.
+ * BLOCK_ONLY_HIGH: Permite prendas ajustadas (boxer, vedetinas) sin bloqueo.
+ */
+const GEMINI_SAFETY_SETTINGS = [
+  { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" },
+  { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" }
+];
+
+/**
+ * Sube un archivo a la File API de Gemini y retorna la URI.
+ * Los archivos duran 48hs y no tienen costo de almacenamiento.
+ * Reduce el payload JSON de megabytes a kilobytes.
+ * @param {Blob} blob El blob del archivo.
+ * @param {string} displayName Nombre para identificación.
+ * @returns {{uri: string, mimeType: string}} URI del archivo en Gemini.
+ */
+function subirArchivoGeminiFileAPI(blob, displayName) {
+  const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
+  const mimeType = blob.getContentType();
+  const blobBytes = blob.getBytes();
+  const numBytes = blobBytes.length;
+
+  // Paso 1: Iniciar upload resumable
+  const initUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
+  const initResp = UrlFetchApp.fetch(initUrl, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      'X-Goog-Upload-Protocol': 'resumable',
+      'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': String(numBytes),
+      'X-Goog-Upload-Header-Content-Type': mimeType,
+    },
+    payload: JSON.stringify({
+      file: { displayName: displayName }
+    }),
+    muteHttpExceptions: true
+  });
+
+  // La URL de upload viene en los headers (case-insensitive)
+  const respHeaders = initResp.getAllHeaders();
+  let uploadUrl = null;
+  for (const key in respHeaders) {
+    if (key.toLowerCase() === 'x-goog-upload-url') {
+      uploadUrl = respHeaders[key];
+      break;
+    }
+  }
+  if (!uploadUrl) {
+    console.error('File API Init Response: ' + initResp.getContentText());
+    throw new Error('File API: No se obtuvo URL de upload.');
+  }
+
+  // Paso 2: Subir bytes
+  const uploadResp = UrlFetchApp.fetch(uploadUrl, {
+    method: 'put',
+    headers: {
+      'Content-Length': String(numBytes),
+      'X-Goog-Upload-Offset': '0',
+      'X-Goog-Upload-Command': 'upload, finalize',
+    },
+    payload: blobBytes,
+    muteHttpExceptions: true
+  });
+
+  const uploadResult = JSON.parse(uploadResp.getContentText());
+  const fileInfo = uploadResult.file;
+  if (!fileInfo || !fileInfo.uri) {
+    console.error('File API Upload Response: ' + uploadResp.getContentText());
+    throw new Error('File API: Upload falló - sin URI.');
+  }
+
+  // Paso 3: Polling hasta ACTIVE (máx ~15s)
+  const fileName = fileInfo.name;
+  const checkUrl = `https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`;
+  for (let i = 0; i < 5; i++) {
+    Utilities.sleep(3000);
+    const checkResp = UrlFetchApp.fetch(checkUrl, { muteHttpExceptions: true });
+    const status = JSON.parse(checkResp.getContentText());
+    if (status.file && status.file.state === 'ACTIVE') {
+      console.log(`📁 [File API] ${displayName} → ACTIVE (${(numBytes / 1024).toFixed(0)}KB)`);
+      return { uri: status.file.uri, mimeType: mimeType };
+    }
+  }
+
+  // Si no se activa tras polling, intentar usar la URI igualmente
+  console.warn(`📁 [File API] ${displayName} → No confirmó ACTIVE, usando URI disponible.`);
+  return { uri: fileInfo.uri, mimeType: mimeType };
+}
+
+/**
+ * Optimiza un blob de Drive para subida a Gemini.
+ * Si el archivo > 2MB, obtiene el thumbnail de 1536px de Drive (sweet spot de mosaicos).
+ * Luego sube a la File API y retorna la referencia fileData.
+ * @param {string} archivoId ID del archivo en Drive.
+ * @param {string} displayName Nombre descriptivo.
+ * @returns {{ fileData: { mimeType: string, fileUri: string } }}
+ */
+function prepararBlobOptimizado(archivoId, displayName) {
+  const file = DriveApp.getFileById(archivoId);
+  let blob = file.getBlob();
+  const originalSize = blob.getBytes().length;
+
+  // Optimización: si > 2MB, usar thumbnail 1536px de Drive (4 mosaicos exactos)
+  if (originalSize > 2 * 1024 * 1024) {
+    try {
+      const thumbUrl = `https://drive.google.com/thumbnail?id=${archivoId}&sz=w1536`;
+      const thumbResp = UrlFetchApp.fetch(thumbUrl, {
+        headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
+        muteHttpExceptions: true
+      });
+      if (thumbResp.getResponseCode() === 200) {
+        blob = thumbResp.getBlob();
+        console.log(`⚡ [Optimize] ${displayName}: ${(originalSize / 1024 / 1024).toFixed(1)}MB → ${(blob.getBytes().length / 1024).toFixed(0)}KB`);
+      }
+    } catch (e) {
+      console.warn(`⚡ [Optimize] Thumb fallback falló para ${displayName}: ${e.message}`);
+    }
+  }
+
+  // Subir a File API
+  const gemFile = subirArchivoGeminiFileAPI(blob, displayName);
+  return {
+    "fileData": {
+      "mimeType": gemFile.mimeType,
+      "fileUri": gemFile.uri
+    }
+  };
+}
+
 function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpecs = {}, pin = null) {
   // --- PUENTE HACIA VIDEO ---
   if (modo === 'video') {
@@ -882,9 +1017,8 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         `;
     }
 
-    const file = DriveApp.getFileById(imgRow.ARCHIVO_ID);
-    const blob = file.getBlob();
-    const base64 = Utilities.base64Encode(blob.getBytes());
+    // Subir imagen a File API (desacople de carga)
+    const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `prompt_${imagenId}`);
     const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
 
     if (!apiKey) throw new Error("Falta API Key.");
@@ -1000,21 +1134,28 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         [Directiva narrativa fotográfica definitiva, iniciando con el ángulo de vista detectado].
     `;
 
-    const payload = {
-      "contents": [{
-        "parts": [
-          { "text": promptSystem },
-          { "inline_data": { "mime_type": blob.getContentType(), "data": base64 } }
-        ]
-      }]
-    };
-
     const modelos = ["gemma-3-27b-it", "gemma-3-12b-it", "gemini-2.5-flash"];
     let erroresAcumulados = [];
 
     for (let i = 0; i < modelos.length; i++) {
       const modelo = modelos[i];
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+
+      // Payload condicional: Gemini soporta systemInstruction, Gemma no
+      let payload;
+      if (modelo.startsWith('gemini')) {
+        payload = {
+          "systemInstruction": { "parts": [{ "text": promptSystem }] },
+          "contents": [{ "parts": [{ "text": contextoTecnico + (extraSpecsPrompt || "") }, fileDataRef] }],
+          "safetySettings": GEMINI_SAFETY_SETTINGS
+        };
+      } else {
+        payload = {
+          "contents": [{ "parts": [{ "text": promptSystem }, fileDataRef] }],
+          "safetySettings": GEMINI_SAFETY_SETTINGS
+        };
+      }
+
       const options = {
         "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true
       };
@@ -1266,26 +1407,19 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
         ${isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".' : '[Directiva narrativa fotográfica definitiva, iniciando con el ángulo de vista detectado].'}
     `;
 
-    partsArray.push({ "text": promptSystem });
+    // Separamos system prompt de las partes de imagen para control condicional
+    const imagePartsArray = [];
 
     // Parte 2: Las Imágenes
     let imagenesProcesadas = 0;
     for (const row of selectedRows) {
       try {
         if (!row.ARCHIVO_ID) continue;
-        const file = DriveApp.getFileById(row.ARCHIVO_ID);
-        const blob = file.getBlob();
-        const base64 = Utilities.base64Encode(blob.getBytes());
-
-        partsArray.push({
-          "inline_data": {
-            "mime_type": blob.getContentType(),
-            "data": base64
-          }
-        });
+        const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `masivo_${row.IMAGEN_ID}`);
+        imagePartsArray.push(fileDataPart);
         imagenesProcesadas++;
       } catch (errImg) {
-        console.warn(`${logPrefix} Error leyendo imagen ${row.IMAGEN_ID}: ${errImg.message} `);
+        console.warn(`${logPrefix} Error subiendo imagen ${row.IMAGEN_ID}: ${errImg.message} `);
       }
     }
 
@@ -1310,8 +1444,21 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
       const modelo = modelos[i];
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
 
-      // Construir payload
-      const payload = { "contents": [{ "parts": partsArray }] };
+      // Payload condicional: Gemini soporta systemInstruction, Gemma no
+      let payload;
+      if (modelo.startsWith('gemini')) {
+        payload = {
+          "systemInstruction": { "parts": [{ "text": promptSystem }] },
+          "contents": [{ "parts": [{ "text": contextoTecnico + (extraSpecsPrompt || "") }, ...imagePartsArray] }],
+          "safetySettings": GEMINI_SAFETY_SETTINGS
+        };
+      } else {
+        payload = {
+          "contents": [{ "parts": [{ "text": promptSystem }, ...imagePartsArray] }],
+          "safetySettings": GEMINI_SAFETY_SETTINGS
+        };
+      }
+
       const options = {
         "method": "post",
         "contentType": "application/json",
@@ -1591,28 +1738,21 @@ function generarVideoPrompt(imageIds, estiloSolicitado, opciones = {}) {
       `;
     }
 
-    contentsParts.push({ "text": systemPrompt });
+    // Separamos system prompt de las partes de imagen
+    const imageVideoParts = [];
 
     // Añadir las imágenes seleccionadas en el orden de PIVOTE
     orderedRows.forEach(row => {
       try {
-        const file = DriveApp.getFileById(row.ARCHIVO_ID);
-        const blob = file.getBlob();
-        const base64 = Utilities.base64Encode(blob.getBytes());
-        contentsParts.push({
-          "inline_data": {
-            "mime_type": blob.getContentType(),
-            "data": base64
-          }
-        });
+        const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `video_${row.IMAGEN_ID}`);
+        imageVideoParts.push(fileDataPart);
       } catch (err) {
-        console.warn(`Error leyendo imagen ID ${row.IMAGEN_ID}: ${err.message}`);
+        console.warn(`Error subiendo imagen ID ${row.IMAGEN_ID}: ${err.message}`);
       }
     });
 
-    if (contentsParts.length < 2) throw new Error("No se pudieron cargar las imágenes del Drive.");
+    if (imageVideoParts.length === 0) throw new Error("No se pudieron cargar las imágenes del Drive.");
 
-    const payload = { "contents": [{ "parts": contentsParts }] };
     const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
 
     // 4. LISTA DE MODELOS (Respetando orden usuario y excluyendo 1.5-flash)
@@ -1628,6 +1768,21 @@ function generarVideoPrompt(imageIds, estiloSolicitado, opciones = {}) {
     for (let i = 0; i < modelos.length; i++) {
       const modelo = modelos[i];
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+
+      // Payload condicional: Gemini soporta systemInstruction, Gemma no
+      let payload;
+      if (modelo.startsWith('gemini')) {
+        payload = {
+          "systemInstruction": { "parts": [{ "text": systemPrompt }] },
+          "contents": [{ "parts": [{ "text": contextoTecnico }, ...imageVideoParts] }],
+          "safetySettings": GEMINI_SAFETY_SETTINGS
+        };
+      } else {
+        payload = {
+          "contents": [{ "parts": [{ "text": systemPrompt }, ...imageVideoParts] }],
+          "safetySettings": GEMINI_SAFETY_SETTINGS
+        };
+      }
 
       const options = {
         "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true
@@ -1858,33 +2013,13 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
 
     let partsReferencia = [];
 
-    // 1. CARGAR REFERENCIAS ORIGINALES (con compresión de blobs grandes)
+    // 1. CARGAR REFERENCIAS ORIGINALES (File API - desacople de carga)
     ids.forEach(id => {
       const row = dataImg.find(r => String(r.IMAGEN_ID).trim() === String(id).trim());
       if (row && row.ARCHIVO_ID) {
         try {
-          const file = DriveApp.getFileById(row.ARCHIVO_ID);
-          let blob = file.getBlob();
-          const blobBytes = blob.getBytes();
-          // Cambio 2: Si el blob > 2MB, usar thumbnail de Drive (1600px)
-          if (blobBytes.length > 2 * 1024 * 1024) {
-            console.log(`${logPrefix} ⚡ Comprimiendo ref ${id} (${(blobBytes.length / 1024 / 1024).toFixed(1)}MB)...`);
-            try {
-              const thumbUrl = `https://drive.google.com/thumbnail?id=${row.ARCHIVO_ID}&sz=w1600`;
-              const thumbResp = UrlFetchApp.fetch(thumbUrl, { headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
-              if (thumbResp.getResponseCode() === 200) {
-                blob = thumbResp.getBlob();
-              }
-            } catch (thumbErr) {
-              console.warn(`${logPrefix} Thumb fallback falló, usando original: ${thumbErr.message}`);
-            }
-          }
-          partsReferencia.push({
-            "inlineData": {
-              "mimeType": blob.getContentType(),
-              "data": Utilities.base64Encode(blob.getBytes())
-            }
-          });
+          const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `render_ref_${id}`);
+          partsReferencia.push(fileDataPart);
         } catch (e) { console.warn(`Error ref ${id}: ${e.message}`); }
       }
     });
@@ -1893,13 +2028,8 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
     if (refineData && refineData.prevFileId) {
       console.log(`${logPrefix} Refinando con feedback: ${refineData.feedback}`);
       try {
-        const prevFile = DriveApp.getFileById(refineData.prevFileId);
-        partsReferencia.push({
-          "inlineData": {
-            "mimeType": prevFile.getMimeType(),
-            "data": Utilities.base64Encode(prevFile.getBlob().getBytes())
-          }
-        });
+        const refineDataPart = prepararBlobOptimizado(refineData.prevFileId, `refine_prev`);
+        partsReferencia.push(refineDataPart);
 
         // Inyectar instrucción de corrección al prompt
         cleanPromptText = `INSTRUCCIÓN DE CORRECCIÓN: El usuario no está conforme con la imagen generada anteriormente (la última imagen adjunta). 
@@ -1943,7 +2073,8 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
               ...partsReferencia
             ]
           }],
-          "generationConfig": { "response_modalities": ["IMAGE"] }
+          "generationConfig": { "response_modalities": ["IMAGE"] },
+          "safetySettings": GEMINI_SAFETY_SETTINGS
         };
 
         const response = UrlFetchApp.fetch(url, {
