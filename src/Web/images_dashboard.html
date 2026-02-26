@@ -1630,6 +1630,76 @@
         };
     }
 
+    /**
+     * Comprime una imagen usando Canvas HTML5.
+     * Redimensiona a maxPx en su lado más largo y convierte a JPEG quality%.
+     * @param {File} file Archivo de imagen del input.
+     * @param {number} maxPx Máximo de píxeles en lado largo (default: 1536).
+     * @param {number} quality Calidad JPEG 0-1 (default: 0.9).
+     * @returns {Promise<{base64: string, mimeType: string, name: string}>}
+     */
+    function compressImage(file, maxPx = 1536, quality = 0.9) {
+        return new Promise((resolve, reject) => {
+            // Si no es imagen, devolver sin comprimir
+            if (!file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = e => resolve({
+                    base64: e.target.result.split(',')[1],
+                    mimeType: file.type,
+                    name: file.name
+                });
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                let { width, height } = img;
+                const originalMax = Math.max(width, height);
+
+                // Solo redimensionar si supera maxPx
+                if (originalMax > maxPx) {
+                    const ratio = maxPx / originalMax;
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                    log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px`, 'info');
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                const compressedSize = Math.round(dataUrl.length * 3 / 4 / 1024);
+                log(`⚡ ${file.name}: Comprimido a ~${compressedSize}KB (JPEG ${Math.round(quality*100)}%)`, 'info');
+
+                resolve({
+                    base64: dataUrl.split(',')[1],
+                    mimeType: 'image/jpeg',
+                    name: file.name.replace(/\.[^.]+$/, '.jpg')
+                });
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                // Fallback: enviar sin comprimir
+                const reader = new FileReader();
+                reader.onload = e => resolve({
+                    base64: e.target.result.split(',')[1],
+                    mimeType: file.type,
+                    name: file.name
+                });
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            };
+            img.src = url;
+        });
+    }
+
     function procesarArchivos(files) {
         if (!files || !files.length) return;
         if (!currentProduct) { alert("Selecciona un producto primero."); return; }
@@ -1644,21 +1714,20 @@
         let processedCount = 0;
         let errorCount = 0;
 
-        Array.from(files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const base64 = e.target.result.split(',')[1];
-                // Enviamos 'true' (noSync) para que no sincronice 1 por 1, excepto si es solo 1 archivo
-                // AUNQUE, para consistencia, subimos todo sin sync y hacemos sync explícito al final.
+        Array.from(files).forEach(async file => {
+            try {
+                // Comprimir imagen a 1536px JPEG 90% antes de enviar
+                const compressed = await compressImage(file, 1536, 0.9);
+                const base64 = compressed.base64;
                 const noSync = true;
 
                 google.script.run.withSuccessHandler(res => {
                     processedCount++;
                     if (res.success) {
-                        log(`✅ ${file.name}: Subida OK.`, 'success');
+                        log(`✅ ${compressed.name}: Subida OK.`, 'success');
                     } else {
                         errorCount++;
-                        log(`⚠️ ${file.name}: ${res.message}`, 'warning');
+                        log(`⚠️ ${compressed.name}: ${res.message}`, 'warning');
                     }
 
                     chequearFinProceso();
@@ -1666,12 +1735,16 @@
                 }).withFailureHandler(err => {
                     processedCount++;
                     errorCount++;
-                    log(`❌ Error crítico ${file.name}: ${err.message}`, 'error');
+                    log(`❌ Error crítico ${compressed.name}: ${err.message}`, 'error');
                     chequearFinProceso();
                 })
-                    .procesarSubidaDesdeDashboard(currentProduct.sku, base64, file.name, file.type, currentProduct.carpeta_id, noSync);
-            };
-            reader.readAsDataURL(file);
+                    .procesarSubidaDesdeDashboard(currentProduct.sku, base64, compressed.name, compressed.mimeType, currentProduct.carpeta_id, noSync);
+            } catch (compErr) {
+                processedCount++;
+                errorCount++;
+                log(`❌ Error comprimiendo ${file.name}: ${compErr.message}`, 'error');
+                chequearFinProceso();
+            }
         });
 
         function chequearFinProceso() {
