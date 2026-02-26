@@ -1612,13 +1612,27 @@
     }
 
     let _pollingInterval = null;
+    let _lastUserActivity = Date.now();
+
+    // Rastrear actividad del usuario (mouse, teclado, touch)
+    ['mousemove', 'keydown', 'touchstart', 'click'].forEach(evt => {
+        document.addEventListener(evt, () => _lastUserActivity = Date.now(), { passive: true });
+    });
+
     function startDeltaPolling() {
         if (_pollingInterval) clearInterval(_pollingInterval);
 
         // Polling cada 45 segundos para no saturar los registros (antes esperaba 15 min)
         _pollingInterval = setInterval(() => {
-            // No interrumpir carga inicial, y NO hacer ping si el usuario está en otra pestaña
-            if (CATALOG_LOADING || document.visibilityState !== 'visible') return;
+            const now = Date.now();
+            const timeSinceLastActivity = now - _lastUserActivity;
+
+            // 1. No hacer ping si el usuario está en otra pestaña
+            // 2. No hacer ping si estuvo inactivo más de 5 minutos (300,000 ms)
+            // 3. No interrumpir carga inicial
+            if (CATALOG_LOADING || document.visibilityState !== 'visible' || timeSinceLastActivity > 300000) {
+                return;
+            }
 
             const currentSkus = PRODUCT_CATALOG.map(p => p.sku);
 
