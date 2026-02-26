@@ -2153,7 +2153,42 @@
     function recargar() { limpiarSeleccion(); if (currentProduct) cargarGaleria(currentProduct.sku, currentProduct.carpeta_id); }
 
     // --- ACTIONS ---
-    function sincronizarProductoActual() { if (!currentProduct) return; log(`Sync Drive ${currentProduct.sku}...`, 'info'); google.script.run.withSuccessHandler(res => { log(res.message, res.success ? 'success' : 'error'); if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info')); if (res.success) recargar(); }).procesarSincronizacion(currentProduct.sku); }
+    let _syncRunning = false;
+    let _syncPending = false;
+    function sincronizarProductoActual() {
+        if (!currentProduct) return;
+
+        // Si ya hay un sync corriendo, marcar pendiente y esperar
+        if (_syncRunning) {
+            _syncPending = true;
+            log(`⏳ Sync encolado (anterior aún en progreso)...`, 'info');
+            return;
+        }
+
+        _syncRunning = true;
+        _syncPending = false;
+        log(`Sync Drive ${currentProduct.sku}...`, 'info');
+
+        google.script.run.withSuccessHandler(res => {
+            _syncRunning = false;
+            log(res.message, res.success ? 'success' : 'error');
+            if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info'));
+            if (res.success) recargar();
+
+            // Si hubo subidas mientras corría, ejecutar sync pendiente
+            if (_syncPending) {
+                log(`🔄 Ejecutando sync pendiente...`, 'info');
+                sincronizarProductoActual();
+            }
+        }).withFailureHandler(err => {
+            _syncRunning = false;
+            log(`❌ Error sync: ${err.message}`, 'error');
+
+            if (_syncPending) {
+                sincronizarProductoActual();
+            }
+        }).procesarSincronizacion(currentProduct.sku);
+    }
     function sincronizarConWC() {
         if (!currentProduct) return;
         if (!currentProduct.woo_id) {
