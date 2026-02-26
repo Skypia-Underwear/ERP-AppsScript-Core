@@ -1676,7 +1676,8 @@
 
                 const dataUrl = canvas.toDataURL('image/jpeg', quality);
                 const compressedSize = Math.round(dataUrl.length * 3 / 4 / 1024);
-                log(`⚡ ${file.name}: Comprimido a ~${compressedSize}KB (JPEG ${Math.round(quality*100)}%)`, 'info');
+                const originalSize = Math.round(file.size / 1024);
+                log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px | ${originalSize}KB → ${compressedSize}KB (JPEG ${Math.round(quality * 100)}%)`, 'info');
 
                 resolve({
                     base64: dataUrl.split(',')[1],
@@ -2712,6 +2713,7 @@
 
         document.getElementById('aiResultBox').classList.remove('hidden');
         const txt = document.getElementById('aiPromptText'); txt.value = "Generando... espera...";
+        const _aiStartTime = Date.now();
 
         const onSuccess = (res) => {
             Swal.close();
@@ -2726,7 +2728,8 @@
                     const isJson = d.text && (d.text.trim().startsWith('{') || d.text.trim().startsWith('```json'));
                     const finalContent = (formato === 'video' || isJson) ? formatVideoScript(d.text) : d.text;
                     txt.value = finalContent;
-                    log(`Generado OK (${d.modelUsed || d.model}).`, 'success');
+                    const _elapsed = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
+                    log(`✅ Generado OK (${d.modelUsed || d.model}) en ${_elapsed}s.`, 'success');
 
                     // MOSTRAR ALERTA CON RESULTADO
                     let htmlContent = `<div class="text-left mb-2 text-xs text-slate-400 font-bold uppercase text-indigo-400">Análisis y Directiva IA (Auditable):</div>`;
@@ -2803,8 +2806,10 @@
                         else if (currentImageId) autoOpenId = currentImageId;
                     }
                 } else {
+                    const _elapsedErr = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
                     Swal.fire({ icon: 'error', title: 'Error de IA', text: d.error, background: '#1e293b', color: '#f1f5f9' });
                     txt.value = "Error: " + d.error;
+                    log(`❌ Error IA (${_elapsedErr}s): ${d.error}`, 'error');
                 }
             } catch (e) {
                 Swal.fire({ icon: 'error', title: 'Error de Respuesta', text: 'La IA devolvió un formato inesperado.', background: '#1e293b', color: '#f1f5f9' });

@@ -918,21 +918,31 @@ function subirArchivoGeminiFileAPI(blob, displayName) {
     throw new Error('File API: Upload falló - sin URI.');
   }
 
-  // Paso 3: Polling hasta ACTIVE (máx ~15s)
+  // Paso 3: Verificar estado — muchos archivos ya están ACTIVE tras el upload
+  if (fileInfo.state === 'ACTIVE') {
+    console.log(`📁 [File API] ${displayName} → ACTIVE inmediato (${(numBytes / 1024).toFixed(0)}KB)`);
+    return { uri: fileInfo.uri, mimeType: mimeType };
+  }
+
+  // Si no está ACTIVE aún (archivos grandes), polling rápido (máx ~8s)
   const fileName = fileInfo.name;
   const checkUrl = `https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`;
-  for (let i = 0; i < 5; i++) {
-    Utilities.sleep(3000);
-    const checkResp = UrlFetchApp.fetch(checkUrl, { muteHttpExceptions: true });
-    const status = JSON.parse(checkResp.getContentText());
-    if (status.file && status.file.state === 'ACTIVE') {
-      console.log(`📁 [File API] ${displayName} → ACTIVE (${(numBytes / 1024).toFixed(0)}KB)`);
-      return { uri: status.file.uri, mimeType: mimeType };
+  for (let i = 0; i < 3; i++) {
+    Utilities.sleep(i === 0 ? 2000 : 3000); // Primera espera más corta
+    try {
+      const checkResp = UrlFetchApp.fetch(checkUrl, { muteHttpExceptions: true });
+      const status = JSON.parse(checkResp.getContentText());
+      if (status.file && status.file.state === 'ACTIVE') {
+        console.log(`📁 [File API] ${displayName} → ACTIVE tras ${i === 0 ? '2' : (2 + i * 3)}s (${(numBytes / 1024).toFixed(0)}KB)`);
+        return { uri: status.file.uri, mimeType: mimeType };
+      }
+    } catch (pollErr) {
+      console.warn(`📁 [File API] Error en polling: ${pollErr.message}`);
     }
   }
 
-  // Si no se activa tras polling, intentar usar la URI igualmente
-  console.warn(`📁 [File API] ${displayName} → No confirmó ACTIVE, usando URI disponible.`);
+  // Si no se activa tras polling, usar la URI igualmente (funciona en la mayoría de casos)
+  console.warn(`📁 [File API] ${displayName} → Usando URI sin confirmar ACTIVE (${(numBytes / 1024).toFixed(0)}KB)`);
   return { uri: fileInfo.uri, mimeType: mimeType };
 }
 
