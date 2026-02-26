@@ -1033,6 +1033,10 @@ function ejecutarAccionDeImagen(params) {
           if (!codigo) throw new Error("Se requiere código de producto.");
           obtenerOCrearCarpetaProducto(codigo);
           generarInventarioPorProducto(codigo);
+
+          // FASE 5: Avisar al frontend que hay nuevos productos
+          CacheService.getScriptCache().put("NEW_PRODUCTS_AVAILABLE", "true", 3600);
+
           return { success: true, message: `✅ Carpeta y variaciones generadas para '${codigo}'.` };
         default:
           throw new Error(`Acción desconocida: '${accion}'`);

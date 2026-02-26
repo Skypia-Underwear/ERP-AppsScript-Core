@@ -1599,6 +1599,9 @@
                 log(`Catálogo cargado vía ${source}: ${PRODUCT_CATALOG.length} productos.`, "success");
                 const val = document.getElementById('searchInput').value;
                 if (val) debounceSearch(val);
+
+                // --- FASE 5: Iniciar polling de delta ---
+                startDeltaPolling();
             }
             CATALOG_LOADING = false;
         } catch (e) {
@@ -1606,6 +1609,43 @@
             console.error("Error cargando catálogo:", e);
             CATALOG_LOADING = false;
         }
+    }
+
+    let _pollingInterval = null;
+    function startDeltaPolling() {
+        if (_pollingInterval) clearInterval(_pollingInterval);
+
+        // Polling cada 15 segundos
+        _pollingInterval = setInterval(() => {
+            if (CATALOG_LOADING) return; // No interrumpir carga inicial
+
+            const currentSkus = PRODUCT_CATALOG.map(p => p.sku);
+
+            google.script.run.withSuccessHandler(res => {
+                if (res && res.success && res.hasNew && res.products && res.products.length > 0) {
+
+                    log(`🆕 ¡Detectados ${res.products.length} productos nuevos en tiempo real!`, 'success');
+
+                    // Asegurar que category_ids coincidan para que renderizarCategorias() funcione
+                    res.products.forEach(p => {
+                        if (p.category && !CATEGORY_LIST.some(c => c.id === p.category)) {
+                            // Agregar categoría provisional si no existe en el JSON aún
+                            CATEGORY_LIST.push({ id: p.category, name: p.category, svg: "" });
+                        }
+                    });
+
+                    // Merge al principio del catálogo
+                    PRODUCT_CATALOG = [...res.products, ...PRODUCT_CATALOG];
+
+                    // Re-render
+                    renderizarCategorias();
+                    const val = document.getElementById('searchInput').value;
+                    debounceSearch(val);
+
+                }
+            }).checkNewProductsFlag(currentSkus);
+
+        }, 15000);
     }
 
     initImagesDashboard();
