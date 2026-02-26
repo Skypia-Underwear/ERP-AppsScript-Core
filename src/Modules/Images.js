@@ -305,10 +305,16 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         });
 
         // 2. RENOMBRADO ESTABLE (Evita cambios al reordenar)
-        // Fase A: Nombres temporales para evitar conflictos
+        // Fase A: Nombres temporales SOLO para archivos que necesitan renombrarse
         archivosEnCarpeta.forEach(file => {
           if (!file.getMimeType().includes('video') && !file.getName().toLowerCase().includes('_thumb.jpg')) {
-            try { file.setName("TMP_" + file.getId().substring(0, 8)); } catch (e) { }
+            const currentName = file.getName();
+            const shortId = file.getId().substring(0, 5);
+            const expectedPrefix = `${prod.sku}-${shortId}`;
+            // Solo renombrar a TMP si el nombre va a cambiar (no ya es estable)
+            if (!currentName.startsWith(expectedPrefix)) {
+              try { file.setName("TMP_" + file.getId().substring(0, 8)); } catch (e) { }
+            }
           }
         });
 
