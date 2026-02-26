@@ -2674,3 +2674,64 @@ function _ejecutarSincronizacionAuto(sku, logArray) {
     logArray.push(`❌ Error en _ejecutarSincronizacionAuto: ${e.message}`);
   }
 }
+
+/**
+ * FASE 5: Verifica si hay productos nuevos en la caché y retorna el delta
+ * @param {string[]} skusExistentes Arreglo de SKUs que el frontend ya tiene cargados
+ * @returns { success: boolean, hasNew: boolean, products: [] }
+ */
+function checkNewProductsFlag(skusExistentes) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const flag = cache.get("NEW_PRODUCTS_AVAILABLE");
+
+    // Si no hay flag, salida ultra rápida (10ms)
+    if (!flag) return { success: true, hasNew: false };
+
+    // Si hay flag, leemos la hoja de productos
+    const ss = getImagesSpreadsheet();
+    const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+    const mapping = HeaderManager.getMapping("PRODUCTS");
+
+    if (!sheetProd || !mapping) throw new Error("Falta hoja o mapeo de productos");
+
+    const data = sheetProd.getDataRange().getValues();
+    const idxSku = mapping["CODIGO_ID"];
+    const idxNombre = mapping["MODELO"];
+    const idxCarpeta = mapping["CARPETA_ID"];
+    const idxCategoria = mapping["CATEGORIA"];
+    const idxCatPadre = mapping["CATEGORIA_GENERAL"];
+    const idxWoo = mapping["WOO_ID"];
+
+    const nuevosProductos = [];
+    const setExistentes = new Set(skusExistentes || []);
+
+    for (let i = 1; i < data.length; i++) {
+      const sku = String(data[i][idxSku]).trim();
+      if (sku && !setExistentes.has(sku)) {
+        nuevosProductos.push({
+          sku: sku,
+          nombre: String(data[i][idxNombre] || "Sin Nombre").trim(),
+          carpeta_id: String(data[i][idxCarpeta] || "").trim(),
+          category: String(data[i][idxCategoria] || "").trim(),
+          parentCategory: String(data[i][idxCatPadre] || "").trim(),
+          woo_id: String(data[i][idxWoo] || "").trim(),
+          thumbnail: "" // No tiene fotos aún
+        });
+      }
+    }
+
+    // Si encontramos y enviamos los nuevos, apagamos el flag
+    if (nuevosProductos.length > 0) {
+      cache.remove("NEW_PRODUCTS_AVAILABLE");
+      return { success: true, hasNew: true, products: nuevosProductos };
+    } else {
+      // Falsa alarma (tal vez se borró iterando cabeceras)
+      cache.remove("NEW_PRODUCTS_AVAILABLE");
+      return { success: true, hasNew: false };
+    }
+
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
