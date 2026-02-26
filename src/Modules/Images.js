@@ -899,11 +899,11 @@ function subirArchivoGeminiFileAPI(blob, displayName) {
     throw new Error('File API: No se obtuvo URL de upload.');
   }
 
-  // Paso 2: Subir bytes
+  // Paso 2: Subir bytes (Content-Length es auto-calculado por UrlFetchApp)
   const uploadResp = UrlFetchApp.fetch(uploadUrl, {
     method: 'put',
+    contentType: mimeType,
     headers: {
-      'Content-Length': String(numBytes),
       'X-Goog-Upload-Offset': '0',
       'X-Goog-Upload-Command': 'upload, finalize',
     },
