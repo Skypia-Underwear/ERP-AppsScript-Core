@@ -1915,10 +1915,11 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
     const targetRow = dataImg.find(r => rowMatchesSku_IMAGENES(r, skuDestino) || ids.includes(r.IMAGEN_ID));
     if (!targetRow) throw new Error("No se pudo determinar el producto destino.");
 
-    // Cambio 3: flash-image primero (pro-image-preview consumía ~6 min solo)
+    // pro-image-preview primero (más preciso). El timeout anterior era por 10+ refs, no por el modelo.
+    // Con max 3 refs + time guard, debería completar dentro del límite.
     const variantes = [
-      "gemini-2.5-flash-image",
       "gemini-3-pro-image-preview",
+      "gemini-2.5-flash-image",
       "imagen-4.0-generate-001",
       "imagen-3.0-generate-001"
     ];
