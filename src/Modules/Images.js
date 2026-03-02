@@ -497,6 +497,10 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
       log(`🗑️ -${filasBorrar.length} borradas.`);
     }
 
+    // FORZAR ESCRITURA INMEDIATA EN LA HOJA DE CÁLCULO
+    // Esto previene errores de "Imagen no encontrada" cuando se intenta generar IA inmediatamente después de sincronizar
+    SpreadsheetApp.flush();
+
   } catch (e) { log(`âŒ Error: ${e.message}`); }
   finally { SpreadsheetApp.flush(); lock.releaseLock(); }
 }
@@ -1004,7 +1008,7 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
     const dataImg = convertirRangoAObjetos_IMAGENES(sheetImg);
     const imgRow = dataImg.find(r => String(r.IMAGEN_ID).trim() === String(imagenId).trim());
 
-    if (!imgRow) throw new Error("Imagen no encontrada.");
+    if (!imgRow) throw new Error(`Imagen no encontrada (ID buscado: ${imagenId}). Puede requerir recargar la página si la imagen acaba de ser subida y la galería no se actualizó.`);
     if (!imgRow.ARCHIVO_ID) throw new Error("Falta ID de archivo.");
 
     const sku = imgRow.PRODUCTO_ID;
@@ -1372,8 +1376,15 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     }
 
     const esMultiVista = selectedRows.length > 1;
-    // Nueva lógica: Solo hacemos Split si el usuario NO pidió un ángulo específico (Auto) o si pidió Split explícitamente.
-    const isSplitRequested = forcedAngle.toLowerCase().includes("split") || (esMultiVista && !forcedAngle);
+
+    // Nueva lógica: Detectar si pidió Hero + Colores
+    const isHeroColorsRequested = forcedAngle.toLowerCase().includes("hero") || forcedAngle.toLowerCase().includes("colores");
+
+    // Nueva lógica: Detectar si pidió Collage específicamente (y no es Hero)
+    const isCollageRequested = !isHeroColorsRequested && (forcedAngle.toLowerCase().includes("collage") || forcedAngle.toLowerCase().includes("catálogo"));
+
+    // Lógica original: Solo hacemos Split si el usuario NO pidió Collage ni Hero, y (NO pidió un ángulo específico o pidió Split explícitamente).
+    const isSplitRequested = !isHeroColorsRequested && !isCollageRequested && (forcedAngle.toLowerCase().includes("split") || (esMultiVista && !forcedAngle));
 
     const promptSystem = `
         Usted es un Director de Arte experto en catálogos de moda. Su misión es crear una DIRECTIVA DE ARTE maestra para generar una imagen publicitaria de alta fidelidad.
@@ -1399,12 +1410,26 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
            - GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.`}
         6. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
         
-        ${isSplitRequested ?
-        `MODO COMPOSICIÓN (OBLIGATORIO):
+        ${isHeroColorsRequested ?
+        `MODO COMPOSICIÓN HERO + COLORES (OBLIGATORIO):
+          - Las imágenes de referencia incluyen una vista principal del producto (Hero) y una imagen con múltiples colores/variantes.
+          - Usted DEBE describir una disposición comercial donde la vista "Hero" ocupe la mayor parte del lienzo.
+          - Las variantes de color DEBEN estar dispuestas limpia y ordenadamente en la parte inferior o lateral (como catálogos de e-commerce).
+          - REGLA DE SEPARACIÓN ESTRICTA: Separe la vista principal de las variantes secundarias usando espacio negativo limpio, sin fusionar. PROHIBIDO el "Ghosting".
+          - REGLA DE FIDELIDAD DE COLOR: Las variantes secundarias DEBEN coincidir exactamente con los colores y texturas visibles en las referencias. NO invente colores.
+          - El prompt DEBE mencionar explícitamente: "Composición comercial con vista principal Hero destacada y opciones de color ordenadas inferior/lateralmente".` :
+        isCollageRequested ?
+          `MODO COMPOSICIÓN COLLAGE MULTI-VISTA (OBLIGATORIO):
+          - Usted DEBE describir una cuadrícula o disposición lado-a-lado limpia ("clean multi-shot catalog spread") que incluya TODAS las perspectivas.
+          - REGLA DE SEPARACIÓN ESTRICTA: Las diferentes vistas NO deben tocarse, superponerse, ni fusionarse. 
+          - PROHIBIDO EL "GHOSTING": No use opacidad baja, bordes difuminados, ni fondos desvanecidos entre las prendas. Use espacio negativo limpio para separar cada ángulo.
+          - El prompt DEBE mencionar explícitamente: "Composición de catálogo fotográfico multipantalla limpio, prendas enteras separadas sin superposición".` :
+          isSplitRequested ?
+            `MODO COMPOSICIÓN SPLIT-VIEW (OBLIGATORIO):
           - Usted DEBE describir una vista dividida (SPLIT-VIEW) sincronizada.
           - El prompt DEBE mencionar explícitamente: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".
           - Asegure que la escala de los detalles sea idéntica en ambas vistas.` :
-        `MODO VISTA ÚNICA (PREDOMINANTE):
+            `MODO VISTA ÚNICA (PREDOMINANTE):
           - Describa exclusivamente un ÚNICO ángulo de vista.
           - Use las imágenes de referencia únicamente para extraer detalles técnicos (color, tela, logos).
           - Ignore cualquier pose de las referencias que no coincida con el ángulo solicitado.`
@@ -1420,7 +1445,7 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
         AUDITORÍA VISUAL: [TIPO DE PRENDA]. [Desglose técnico de detalles reales detectados por cada foto, especificando ORIENTACIÓN (FRENTE/ESPALDA)].
         
         PROMPT MAESTRO (PARA IMAGEN 4 ULTRA): 
-        ${isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".' : '[Directiva narrativa fotográfica definitiva, iniciando con el ángulo de vista detectado].'}
+        ${isHeroColorsRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía publicitaria mostrando el producto principal destacado (Hero) junto a una disposición ordenada de las variantes de color."' : isCollageRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo, sin superposiciones ni desvanecimientos."' : isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".' : '[Directiva narrativa fotográfica definitiva, iniciando con el ángulo de vista detectado].'}
     `;
 
     // Separamos system prompt de las partes de imagen para control condicional
@@ -1512,7 +1537,7 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
               if (modo === 'image' && imageIds.length > 0 && pin) {
                 try {
                   console.log(`🎨 [Core-Flow-Masivo] Renderizando maestra con ${imageIds.length} referencias...`);
-                  const resImg = generarImagenDesdePrompt(imageIds, promptGenerado, pin);
+                  const resImg = generarImagenDesdePrompt(imageIds, promptGenerado, pin, null, null, extraSpecs);
                   if (resImg.success) {
                     resObj.imageSuccess = true;
                     resObj.imageFileId = resImg.fileId;
@@ -1997,7 +2022,7 @@ function consultarIA(promptPersonalizado) {
  * 🛠️ PASARELA DE EJECUCIÓN: IMAGEN 3 (Oficial)
  * Recibe el prompt ya cocinado y lanza el renderizado.
  */
-function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = null, cachedDataImg = null) {
+function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = null, cachedDataImg = null, extraSpecs = {}) {
   const logPrefix = `🎨 [Render-Gateway]`;
   const execStartTime = Date.now();
   const MAX_EXEC_MS = 300000; // 5 min (1 min de margen para Apps Script)
@@ -2063,12 +2088,25 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
 
     // pro-image-preview primero (más preciso). El timeout anterior era por 10+ refs, no por el modelo.
     // Con max 3 refs + time guard, debería completar dentro del límite.
-    const variantes = [
+    let variantes = [
       "gemini-3-pro-image-preview",
+      "gemini-3.1-flash-image-preview",
       "gemini-2.5-flash-image",
       "imagen-4.0-generate-001",
       "imagen-3.0-generate-001"
     ];
+
+    // Override de modelo si el usuario lo solicita explícitamente vía UI
+    if (extraSpecs && extraSpecs.model) {
+      if (extraSpecs.model === "gemini-3.1-flash-image-preview") {
+        variantes = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"];
+        console.log(`${logPrefix} Override de modelo aplicado: Prioridad a ${variantes[0]}`);
+      } else if (extraSpecs.model === "gemini-3-pro-image-preview") {
+        variantes = ["gemini-3-pro-image-preview", "gemini-3.1-flash-image-preview", "gemini-2.5-flash-image"];
+        console.log(`${logPrefix} Override de modelo aplicado: Prioridad a ${variantes[0]}`);
+      }
+    }
+
     let detallesErrores = [];
 
     for (const modelo of variantes) {
@@ -2082,6 +2120,13 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
         console.log(`${logPrefix} Probando ${modelo} con ${partsReferencia.length} refs...`);
 
+        // Extraer aspectRatio si viene de frontend
+        let ratioToUse = "3:4"; // Default
+        if (extraSpecs && extraSpecs.aspectRatio) {
+          ratioToUse = extraSpecs.aspectRatio;
+          console.log(`${logPrefix} Injectando Relación de Aspecto en config: ${ratioToUse}`);
+        }
+
         const payload = {
           "contents": [{
             "parts": [
@@ -2089,7 +2134,12 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
               ...partsReferencia
             ]
           }],
-          "generationConfig": { "response_modalities": ["IMAGE"] },
+          "generationConfig": {
+            "response_modalities": ["IMAGE"],
+            "imageConfig": {
+              "aspectRatio": ratioToUse
+            }
+          },
           "safetySettings": GEMINI_SAFETY_SETTINGS
         };
 

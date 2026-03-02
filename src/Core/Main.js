@@ -228,6 +228,7 @@ const SHEET_SCHEMA = {
   STORES: ["TIENDA_ID", "MODO_VENTA", "RECARGO_MENOR", "IP_IMPRESORA_LOCAL"],
   PRODUCTS: ["CODIGO_ID", "MODELO", "PRECIO_COSTO", "RECARGO_MENOR", "CATEGORIA", "COLORES", "TALLES", "WOO_ID"],
   INVENTORY: ["INVENTARIO_ID", "TIENDA_ID", "PRODUCTO_ID", "COLOR", "TALLE", "STOCK_ACTUAL", "ENTRADAS", "SALIDAS", "VENTAS_LOCAL", "VENTAS_WEB"],
+  INVENTORY_MOVEMENTS: ["REGISTRO_ID", "USER_ID", "FECHA", "INVENTARIO_ID", "MOVIMIENTO", "ORIGEN", "DESTINO", "PRODUCTO_ID", "CANTIDAD", "REFERENCIA"],
   CATEGORIES: ["CATEGORIA_ID", "CATEGORIA_GENERAL", "HTML", "ICONO"], // ICONO suele ser el ID del SVG
   SVG_GALLERY: ["NOMBRE", "CODE"],
   COLORS: ["COLOR_ID", "HEXADECIMAL", "TEXTO"],
@@ -989,8 +990,13 @@ function ejecutarAccionDeInventario(accion, codigo, fecha) {
         return probarNotificacionActual();
       case "guardarMatrizStock":
         if (!codigo) throw new Error("No se recibieron datos de la matriz.");
-        const cambios = JSON.parse(codigo);
-        return procesarAjusteMasivoStock(cambios, fecha, logArray);
+        const payloadObj = JSON.parse(codigo);
+        if (Array.isArray(payloadObj)) {
+          // Fallback legacy (si por casualidad se envía el array directo)
+          return procesarAjusteMasivoStock(payloadObj, fecha, null, null, logArray);
+        } else {
+          return procesarAjusteMasivoStock(payloadObj.cambios, payloadObj.storeId, payloadObj.userId, payloadObj.opcionesMovimiento, logArray);
+        }
       case "getHydration":
         return getInventoryHydrationData();
       default:
