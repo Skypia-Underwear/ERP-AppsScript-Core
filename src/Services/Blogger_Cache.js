@@ -39,6 +39,62 @@ function blogger_regenerarCacheConfiguracion() {
             console.log("✅ [Blogger Cache] Drive: JSON creado de cero.");
         }
 
+        // --- NUEVO: FASE 2 DIFERIDA (Subir a Donweb y GitHub en nuevo contexto) ---
+        blogger_programarSubidaRemota();
+
+    } catch (e) {
+        console.error("❌ [Blogger Cache] Error: " + e.message);
+        notificarTelegramSalud("🚨 Error al regenerar caché de Blogger: " + e.message, "ERROR");
+    }
+}
+
+/**
+ * Programa la fase secundaria asincrónica para subir a redes (Donweb/GitHub).
+ * Esto evita el límite de los 6 minutos de Google Apps Script.
+ */
+function blogger_programarSubidaRemota() {
+    const handler = "blogger_procesarSubidasRemotas";
+    const triggers = ScriptApp.getProjectTriggers();
+    for (let i = 0; i < triggers.length; i++) {
+        if (triggers[i].getHandlerFunction() === handler) ScriptApp.deleteTrigger(triggers[i]);
+    }
+
+    // Instanciar gatillo 1 minuto en el futuro
+    ScriptApp.newTrigger(handler)
+        .timeBased()
+        .after(1 * 60 * 1000)
+        .create();
+
+    console.log("⏳ [Blogger Cache] Fase 2 (Subida Red) programada en 1 minuto.");
+}
+
+/**
+ * Función secundaria asincrónica: Extrae el JSON local y lo publica.
+ */
+function blogger_procesarSubidasRemotas() {
+    console.log("🚀 [Blogger Cache] Fase 2: Subida remota asincrónica...");
+
+    // Auto-destruir este trigger
+    const handler = "blogger_procesarSubidasRemotas";
+    const triggers = ScriptApp.getProjectTriggers();
+    for (let i = 0; i < triggers.length; i++) {
+        if (triggers[i].getHandlerFunction() === handler) ScriptApp.deleteTrigger(triggers[i]);
+    }
+
+    try {
+        const folderId = GLOBAL_CONFIG.BLOGGER.CACHE_FOLDER_ID;
+        if (!folderId) throw new Error("Falta BLOGGER_CACHE_FOLDER_ID");
+
+        const fileName = "configuracion_sitio.json";
+        const folder = DriveApp.getFolderById(folderId);
+        const files = folder.getFilesByName(fileName);
+
+        if (!files.hasNext()) throw new Error("JSON local no encontrado. Drive vacío.");
+
+        const file = files.next();
+        const contenidoStr = file.getContentAsString();
+        const jo = JSON.parse(contenidoStr);
+
         // --- PASO 2: Donweb (respaldo 1, mismo hosting que el frontend) ---
         const resDonweb = blogger_subirCacheADonweb(jo);
         if (resDonweb.success) {
@@ -58,8 +114,8 @@ function blogger_regenerarCacheConfiguracion() {
         }
 
     } catch (e) {
-        console.error("❌ [Blogger Cache] Error: " + e.message);
-        notificarTelegramSalud("🚨 Error al regenerar caché de Blogger: " + e.message, "ERROR");
+        console.error("❌ [Blogger Cache] Error subida remota: " + e.message);
+        notificarTelegramSalud("🚨 Error interno en Subidor Remoto Blogger: " + e.message, "ERROR");
     }
 }
 

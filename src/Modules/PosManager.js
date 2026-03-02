@@ -386,62 +386,119 @@ function publicarCatalogo() {
     const useDonweb = target === "DONWEB" || target === "AMBOS";
     const useGitHub = target === "GITHUB" || target === "AMBOS";
 
-    debugLog("🚀 Iniciando publicación TPV [PUBLICATION_TARGET=" + target + "] Donweb=" + useDonweb + " GitHub=" + useGitHub);
+    debugLog("🚀 Iniciando publicación TPV (Fase 1 Local) [PUBLICATION_TARGET=" + target + "] Donweb=" + useDonweb + " GitHub=" + useGitHub);
 
-    // 1. PASO 1: Persistencia Local (Obligatorio — Drive siempre)
+    // 1. PASO 1: Persistencia Local e Intensiva (Obligatorio — Drive siempre)
+    // Dentro de guardarRespaldoEnDrive() se llama a generarCatalogoJsonTPV() calculando todo.
     const respaldo = guardarRespaldoEnDrive();
     if (!respaldo.success) {
         return { success: false, message: "Fallo el respaldo obligatorio: " + respaldo.message };
     }
 
-    // 2. PASO 2: Generar catálogo UNA SOLA VEZ y reutilizarlo en los destinos activos
-    const catalogo = generarCatalogoJsonTPV();
-
-    const OMITIDO = { success: false, message: "Omitido por PUBLICATION_TARGET=" + target };
-
-    // -- Destino Donweb --
-    let resDonweb = OMITIDO;
-    if (useDonweb) {
-        resDonweb = subirCatalogoADonweb(catalogo);
-        if (resDonweb.success) {
-            debugLog("✅ Donweb: catálogo sincronizado.");
-        } else {
-            debugLog("⚠️ Donweb falló: " + resDonweb.message);
-            notificarTelegramSalud("⚠️ TPV Donweb: " + resDonweb.message, "ERROR");
-        }
-    }
-
-    // -- Destino GitHub --
-    let resGitHub = OMITIDO;
-    if (useGitHub) {
-        resGitHub = subirCatalogoAGitHub(catalogo);
-        if (resGitHub.success) {
-            debugLog("✅ GitHub: catálogo sincronizado.");
-        } else {
-            debugLog("⚠️ GitHub falló: " + resGitHub.message);
-            notificarTelegramSalud("⚠️ TPV GitHub: " + resGitHub.message, "ERROR");
-        }
-    }
-
-    // 3. PASO 3: Ecosistema Blogger (caché propio + su publicación)
+    // 2. PASO 2: Ecosistema Blogger (caché propio + su publicación en su propio thread)
     try {
         if (typeof blogger_regenerarCacheConfiguracion === 'function') {
             blogger_regenerarCacheConfiguracion();
         }
     } catch (e) {
-        debugLog("⚠️ Error en caché Blogger (No crítico para TPV): " + e.message);
+        debugLog("⚠️ Error al desatar caché Blogger (No crítico para TPV): " + e.message);
     }
 
-    const exito = resDonweb.success || resGitHub.success;
-    if (exito) {
-        notificarTelegramSalud(
-            "📡 Catálogo TPV publicado [" + target + "] " +
-            (useDonweb ? "Donweb=" + (resDonweb.success ? "✅" : "❌") + " " : "") +
-            (useGitHub ? "GitHub=" + (resGitHub.success ? "✅" : "❌") : ""),
-            "EXITO"
-        );
+    // 3. PASO 3: Programar Despacho Remoto asíncronico para saltar el límite de 6 mins
+    tpv_programarSubidaRemota();
+
+    return { success: true, message: "Catálogo guardado localmente. Tareas de red despachadas asincrónicamente." };
+}
+
+/**
+ * Programa la fase secundaria asincrónica para subir a redes (Donweb/GitHub).
+ * Esto evita el límite de los 6 minutos de Google Apps Script.
+ */
+function tpv_programarSubidaRemota() {
+    const handler = "tpv_procesarSubidasRemotas";
+    const triggers = ScriptApp.getProjectTriggers();
+    for (let i = 0; i < triggers.length; i++) {
+        if (triggers[i].getHandlerFunction() === handler) ScriptApp.deleteTrigger(triggers[i]);
     }
-    return { success: exito, target: target, donweb: resDonweb, github: resGitHub };
+
+    // Instanciar gatillo 1 minuto en el futuro
+    ScriptApp.newTrigger(handler)
+        .timeBased()
+        .after(1 * 60 * 1000)
+        .create();
+
+    debugLog("⏳ [TPV Cache] Fase 2 (Subida Red) programada en 1 minuto.");
+}
+
+/**
+ * Función secundaria asincrónica: Extrae el JSON local de TPV y lo publica.
+ */
+function tpv_procesarSubidasRemotas() {
+    debugLog("🚀 [TPV Cache] Fase 2: Subida remota asincrónica...");
+
+    // Auto-destruir este trigger
+    const handler = "tpv_procesarSubidasRemotas";
+    const triggers = ScriptApp.getProjectTriggers();
+    for (let i = 0; i < triggers.length; i++) {
+        if (triggers[i].getHandlerFunction() === handler) ScriptApp.deleteTrigger(triggers[i]);
+    }
+
+    try {
+        const target = (GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "AMBOS").toUpperCase();
+        const useDonweb = target === "DONWEB" || target === "AMBOS";
+        const useGitHub = target === "GITHUB" || target === "AMBOS";
+
+        const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
+        if (!folderId) throw new Error("Falta DRIVE_JSON_CONFIG_FOLDER_ID en la BD");
+
+        const fileName = "hostingshop.json";
+        const folder = DriveApp.getFolderById(folderId);
+        const files = folder.getFilesByName(fileName);
+
+        if (!files.hasNext()) throw new Error("JSON local TPV no encontrado. Drive vacío.");
+
+        const file = files.next();
+        const contenidoStr = file.getContentAsString();
+        const catalogo = JSON.parse(contenidoStr);
+
+        // -- Destino Donweb --
+        let resDonweb = { success: false };
+        if (useDonweb) {
+            resDonweb = subirCatalogoADonweb(catalogo);
+            if (resDonweb.success) {
+                debugLog("✅ Donweb: catálogo sincronizado.");
+            } else {
+                debugLog("⚠️ Donweb falló: " + resDonweb.message);
+                notificarTelegramSalud("⚠️ TPV Donweb: " + resDonweb.message, "ERROR");
+            }
+        }
+
+        // -- Destino GitHub --
+        let resGitHub = { success: false };
+        if (useGitHub) {
+            resGitHub = subirCatalogoAGitHub(catalogo);
+            if (resGitHub.success) {
+                debugLog("✅ GitHub: catálogo sincronizado.");
+            } else {
+                debugLog("⚠️ GitHub falló: " + resGitHub.message);
+                notificarTelegramSalud("⚠️ TPV GitHub: " + resGitHub.message, "ERROR");
+            }
+        }
+
+        const exito = resDonweb.success || resGitHub.success;
+        if (exito) {
+            notificarTelegramSalud(
+                "📡 Catálogo TPV publicado [" + target + "] " +
+                (useDonweb ? "Donweb=" + (resDonweb.success ? "✅" : "❌") + " " : "") +
+                (useGitHub ? "GitHub=" + (resGitHub.success ? "✅" : "❌") : ""),
+                "EXITO"
+            );
+        }
+
+    } catch (e) {
+        debugLog("❌ [TPV Cache] Error subida remota: " + e.message);
+        notificarTelegramSalud("🚨 Error interno en Subidor Remoto TPV: " + e.message, "ERROR");
+    }
 }
 
 /**
