@@ -456,10 +456,6 @@
 </div>
 
 <script>
-  // --- CHART DEFAULTS FOR DARK MODE ---
-  Chart.defaults.color = '#94a3b8';
-  Chart.defaults.scale.grid.color = '#334155';
-
   // --- VARIABLES ---
   var allSalesData = [], productImageMap = {}, chartInstances = { daily: null, origin: null, payment: null };
   var tableBody = document.getElementById('sales-body'), modalElement = document.getElementById('detail-modal'), modalBody = document.getElementById('modal-body-content'), loadingSpinner = document.getElementById('loading-spinner');
@@ -739,7 +735,19 @@
   }
 
   [searchInput, filterStatus, filterOrigen, filterMetodoPago, filterCaja].forEach(el => el.addEventListener('input', () => renderTable(allSalesData)));
-  loadSalesData();
+
+  // --- INICIALIZACION ASINCRONA ---
+  function initDashboard() {
+    if (typeof Chart === 'undefined') {
+      setTimeout(initDashboard, 100);
+      return;
+    }
+    // --- CHART DEFAULTS FOR DARK MODE ---
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.scale.grid.color = '#334155';
+    loadSalesData();
+  }
+  initDashboard();
 </script>
 </body>
 
