@@ -1,0 +1,12 @@
+Columna,Tipo,Es_Key,Es_Label,Obligatorio
+_RowNumber,Number,No,No,No
+REGISTRO_ID,Text,Yes,Yes,No
+USER_ID,Email,No,No,No
+FECHA,Date,No,No,No
+INVENTARIO_ID,Ref,No,No,No
+MOVIMIENTO,Enum,No,No,No
+ORIGEN,Enum,No,No,No
+DESTINO,Enum,No,No,No
+PRODUCTO_ID,Enum,No,No,No
+CANTIDAD,Number,No,No,No
+REFERENCIA,Text,No,No,No

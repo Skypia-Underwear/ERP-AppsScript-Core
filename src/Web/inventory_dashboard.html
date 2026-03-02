@@ -551,7 +551,17 @@
             </div>
           </div>
 
-          <div class="flex-grow p-4 overflow-auto custom-scroll">
+          <div class="flex-grow p-4 overflow-auto custom-scroll relative">
+            <style>
+              #catalogTable thead th {
+                position: sticky;
+                top: 0;
+                background-color: #0f172a;
+                /* matches bg-slate-900 */
+                z-index: 20;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+              }
+            </style>
             <table id="catalogTable" class="w-full text-left">
               <thead>
                 <tr>
@@ -563,12 +573,13 @@
                   <th>Gender</th>
                   <th>Style</th>
                   <th>Material</th>
-                  <th>Variación</th>
-                  <th>Entradas</th>
-                  <th>Salidas</th>
-                  <th>V. Web</th>
-                  <th>V. Local</th>
-                  <th>Stock</th>
+                  <th>Color</th>
+                  <th class="text-center">Talle</th>
+                  <th class="text-center">Entradas</th>
+                  <th class="text-center">Salidas</th>
+                  <th class="text-center">V. Web</th>
+                  <th class="text-center">V. Local</th>
+                  <th class="text-center">Stock</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -600,12 +611,37 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-2.5 rounded-xl w-full">
-            <i class="ph-fill ph-storefront text-slate-400 text-lg"></i>
-            <select id="filter-store" onchange="refreshMatrixFromStore()"
-              class="bg-transparent text-sm text-white outline-none cursor-pointer font-medium flex-grow">
-              <option value="ALL">🏢 Todas (Solo Lectura)</option>
-            </select>
+          <div class="flex items-center justify-between gap-4 w-full">
+            <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-2.5 rounded-xl w-3/5">
+              <i class="ph-fill ph-storefront text-slate-400 text-lg"></i>
+              <select id="filter-store" onchange="refreshMatrixFromStore()"
+                class="bg-transparent text-sm text-white outline-none cursor-pointer font-medium flex-grow">
+                <option value="ALL">🏢 Todas (Solo Lectura)</option>
+              </select>
+            </div>
+
+            <label class="flex items-center cursor-pointer gap-2 w-2/5 justify-end">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Transferencia</span>
+              <div class="relative">
+                <input type="checkbox" id="toggle-transfer-mode" class="sr-only">
+                <div
+                  class="block bg-slate-700 w-10 h-6 rounded-full border border-slate-600 transition-colors duration-300">
+                </div>
+                <div
+                  class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 ease-in-out">
+                </div>
+              </div>
+            </label>
+            <style>
+              #toggle-transfer-mode:checked~.block {
+                background-color: #6366f1;
+                border-color: #4f46e5;
+              }
+
+              #toggle-transfer-mode:checked~.dot {
+                transform: translateX(100%);
+              }
+            </style>
           </div>
         </div>
 
@@ -899,12 +935,12 @@
     const sel = document.getElementById('filter-store');
     const btns = document.getElementById('table-store-filters');
 
-    sel.innerHTML = '<option value="ALL">🏢 Todas (Solo Lectura)</option>';
+    sel.innerHTML = '<option value="ALL">Todas (Solo Lectura)</option>';
     btns.innerHTML = '<button class="store-filter-btn active px-3 py-1 text-[10px] font-bold rounded-md transition-colors bg-slate-700 text-white shadow-sm" data-store="">Todas</button>';
 
     Object.keys(stores).forEach(k => {
       const name = stores[k].name;
-      sel.innerHTML += `<option value="${name}">📍 ${name} (Editable)</option>`;
+      sel.innerHTML += `<option value="${name}">${name} (Editable)</option>`;
       btns.innerHTML += `<button class="store-filter-btn px-3 py-1 text-[10px] font-bold rounded-md transition-colors text-slate-400 hover:text-white border border-transparent" data-store="${name}">${name}</button>`;
     });
 
@@ -956,7 +992,7 @@
 
     container.innerHTML = filtered.map(p => `
             <div onclick="selectProduct('${p.id}', this)" class="product-card flex-shrink-0 w-full h-[110px] rounded-lg border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden relative group">
-                <div class="h-[75px] bg-slate-900 overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-cover opacity-80" onerror="this.src='https://placehold.co/100x120/1e293b/94a3b8?text=X'"></div>
+                <div class="h-[75px] bg-slate-900 overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-cover opacity-80" onerror="this.src='https://placehold.co/100x120/1e293b/94a3b8?text=X'" loading="lazy"></div>
                 <div class="p-1 text-center bg-slate-800 border-t border-slate-700 flex flex-col items-center justify-center">
                     <span class="text-[9px] font-bold text-white truncate w-full">${p.model}</span>
                     <span class="text-[8px] text-slate-400 font-mono">${p.id}</span>
@@ -1002,17 +1038,18 @@
   function initDataTables(data) {
     if (tableInstance) tableInstance.destroy();
     tableInstance = $('#catalogTable').DataTable({
-      data: data, dom: 'rt', layout: null,
+      data: data, dom: 'rt', layout: null, deferRender: true,
       columns: [
         { data: 'category', visible: false }, { data: 'sku', visible: false }, { data: 'store', visible: false },
         { data: 'brand', visible: false }, { data: 'season', visible: false }, { data: 'gender', visible: false },
         { data: 'style', visible: false }, { data: 'material', visible: false },
-        { data: null, render: (d, t, r) => `<div class="flex gap-2 items-center"><span class="px-2 py-0.5 rounded text-[10px] font-medium border border-slate-700 truncate max-w-[80px]" style="${getBadgeStyle(r.color)}">${r.color}</span> <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-white min-w-[24px] text-center">${r.talle}</span></div>` },
-        { data: 'entradas', render: d => `<span class="text-[11px] text-blue-400 font-mono">+${d}</span>` },
-        { data: 'salidas', render: d => `<span class="text-[11px] text-orange-400 font-mono">-${d}</span>` },
-        { data: 'ventas_web', render: d => `<span class="text-[11px] text-purple-400 font-mono"><i class="ph-fill ph-globe"></i> ${d}</span>` },
-        { data: 'ventas_local', render: d => `<span class="text-[11px] text-teal-400 font-mono"><i class="ph-fill ph-storefront"></i> ${d}</span>` },
-        { data: 'stock', render: d => d <= 0 ? `<span class="text-red-400 font-bold text-[10px]">Agotado</span>` : `<span class="text-emerald-400 font-bold text-[10px]">${d} u.</span>` }
+        { data: 'color', render: (d) => `<span class="px-2 py-0.5 rounded text-[10px] font-medium border border-slate-700 truncate max-w-[80px]" style="${getBadgeStyle(d)}">${d}</span>` },
+        { data: 'talle', className: 'text-center align-middle', render: (d) => `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-white min-w-[24px] inline-block text-center">${d}</span>` },
+        { data: 'entradas', className: 'text-center align-middle', render: d => `<span class="text-[11px] text-blue-400 font-mono">+${d}</span>` },
+        { data: 'salidas', className: 'text-center align-middle', render: d => `<span class="text-[11px] text-orange-400 font-mono">-${d}</span>` },
+        { data: 'ventas_web', className: 'text-center align-middle', render: d => `<span class="text-[11px] text-purple-400 font-mono"><i class="ph-fill ph-globe"></i> ${d}</span>` },
+        { data: 'ventas_local', className: 'text-center align-middle', render: d => `<span class="text-[11px] text-teal-400 font-mono"><i class="ph-fill ph-storefront"></i> ${d}</span>` },
+        { data: 'stock', className: 'text-center align-middle', render: d => d <= 0 ? `<span class="text-red-400 font-bold text-[10px]">Agotado</span>` : `<span class="text-emerald-400 font-bold text-[10px]">${d} u.</span>` }
       ],
       order: [[1, 'asc']], pageLength: 100,
       rowGroup: {
@@ -1130,14 +1167,69 @@
 
     if (!payload.length) return Swal.fire({ icon: 'info', title: 'Sin cambios', background: 'var(--bg-secondary)', color: '#fff' });
 
+    const isTransferMode = $('#toggle-transfer-mode').is(':checked');
+
+    if (isTransferMode) {
+      // Preguntar Origen / Destino de la Transferencia
+
+      const storeOptions = [];
+      $('#filter-store option').each(function () {
+        const val = $(this).val();
+        if (val !== 'ALL' && val !== store) {
+          storeOptions.push(`<option value="${val}">${val}</option>`);
+        }
+      });
+      storeOptions.push(`<option value="DEPOSITO">🏢 DEPOSITO</option>`);
+      storeOptions.push(`<option value="PROVEEDOR">📦 PROVEEDOR</option>`);
+
+      Swal.fire({
+        title: 'Modo Transferencia',
+        html: `
+          <p class="text-sm text-slate-300 mb-3">Selecciona la contraparte de este movimiento.</p>
+          <div class="flex flex-col gap-2 text-left">
+            <label class="text-xs text-slate-400 uppercase font-bold">Tienda Origen / Destino</label>
+            <select id="swal-transfer-target" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white outline-none">
+              <option value="" disabled selected>Seleccione...</option>
+              ${storeOptions.join('')}
+            </select>
+          </div>
+        `,
+        background: 'var(--bg-secondary)',
+        color: '#fff',
+        showCancelButton: true,
+        confirmButtonText: 'Confirmar Transferencia',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#6366f1',
+        preConfirm: () => {
+          const target = document.getElementById('swal-transfer-target').value;
+          if (!target) {
+            Swal.showValidationMessage('Debes seleccionar un origen/destino válido');
+          }
+          return target;
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          executeSaveMatrix(payload, store, { isTransfer: true, target: result.value });
+        }
+      });
+    } else {
+      // Modo rápido (Directo, sin preguntar)
+      executeSaveMatrix(payload, store, { isTransfer: false });
+    }
+  }
+
+  function executeSaveMatrix(payload, store, opcionesMovimiento) {
     openLogsPanel();
     log(`💾 Guardando ajustes de stock masivos...`, "info");
     $('#btn-save-matrix').html('<i class="ph-bold ph-spinner animate-spin"></i> Guardando...').attr('disabled', true);
 
+    const userStr = sessionStorage.getItem('loggedInUser');
+    const userEmail = typeof userStr === 'string' && userStr.length > 0 ? (JSON.parse(userStr).email || JSON.parse(userStr).name) : "desconocido";
+
     google.script.run
       .withSuccessHandler(res => {
         log(res.message, res.success ? "success" : "error");
-        $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar').attr('disabled', false);
+        $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar Cambios').attr('disabled', false);
         if (res.success) {
           Swal.fire({ icon: 'success', title: 'Guardado', timer: 1500, showConfirmButton: false, background: 'var(--bg-secondary)', color: '#fff' });
           initApp(); // Recargar todo para ver cambios reales
@@ -1145,9 +1237,14 @@
       })
       .withFailureHandler(err => {
         log("❌ Error fatal: " + err.message, "error");
-        $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar').attr('disabled', false);
+        $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar Cambios').attr('disabled', false);
       })
-      .procesarAccionInventario('guardarMatrizStock', JSON.stringify(payload), store);
+      .procesarAccionInventario('guardarMatrizStock', JSON.stringify({
+        cambios: payload,
+        storeId: store,
+        userId: userEmail,
+        opcionesMovimiento: opcionesMovimiento
+      }), '');
   }
 
   /* --- MANTENIMIENTO --- */
