@@ -433,6 +433,15 @@ function debugLog(msg, forceSheet = false) {
 
 
 /**
+ * Recibe y registra los errores emitidos por las plantillas HTML (window.onerror)
+ * para evitar crashes frontend y dar seguimiento.
+ */
+function logErrorFromFrontend(msg, url, line, col, errorObj) {
+  const detalle = `FRONTEND ERROR: ${msg} | URL: ${url} | L: ${line} | C: ${col}`;
+  debugLog(detalle, true);
+}
+
+/**
  * Función auxiliar para enviar un mensaje simple de Telegram.
  */
 function enviarTelegramRespuestaSimple(chatId, text) {
