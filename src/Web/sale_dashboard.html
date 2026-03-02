@@ -625,7 +625,8 @@
     });
 
     // Grupos de Macro Filtros
-    const pendingStatuses = ['SOLICITADO', 'EDITADO', 'PAGADO', 'EN CAMINO'];
+    // El usuario define "Pendiente" explícitamente como "SOLICITADO" (el primer estado de una venta)
+    const pendingStatuses = ['SOLICITADO'];
     const completeStatuses = ['COMPLETADA', 'ENTREGADO'];
 
     preFiltered.forEach(s => {
