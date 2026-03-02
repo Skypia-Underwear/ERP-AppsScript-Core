@@ -2,8 +2,6 @@
 
 <!-- Chart.js se mantiene para los dashboards de ventas -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-<script
-  src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
 <style>
   /* Estilos específicos de Dashboard de Ventas */
@@ -478,7 +476,7 @@
   var formatMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }), parseMonto = (val) => (typeof val === 'number' && !isNaN(val)) ? val : 0;
 
   // --- LOGICA DE BOTONES DE ESTADO (FILTROS) ---
-  window.filterByStatusButton = function (statusToSet, btnElement) {
+  function filterByStatusButton(statusToSet, btnElement) {
     if (btnElement.classList.contains('disabled')) return;
     if (filterStatus.value === statusToSet) { filterStatus.value = ""; renderTable(allSalesData); return; }
     filterStatus.value = statusToSet; renderTable(allSalesData);
@@ -603,7 +601,7 @@
     modalBody.innerHTML = h; modalElement.classList.add('active');
   }
   function closeModal() { modalElement.classList.remove('active'); }
-  window.updateSaleStatusInModal = (id, est, ori) => window.updateSaleStatus(id, est, ori);
+  function updateSaleStatusInModal(id, est, ori) { window.updateSaleStatus(id, est, ori); }
 
   // --- RENDER TABLE ---
   function renderTable(data) {
@@ -703,7 +701,7 @@
   }
 
   function populateFilters(o) { const fill = (el, a) => { const c = el.value; el.innerHTML = `<option value="">${el.options[0].text}</option>` + a.map(x => `<option value="${x}">${x}</option>`).join(''); el.value = c; }; fill(filterOrigen, o.origenes); fill(filterMetodoPago, o.metodosPago); fill(filterCaja, o.cajas); }
-  window.setDateRange = (v) => {
+  function setDateRange(v) {
     const n = new Date(), fmt = d => d.toISOString().split('T')[0];
     if (v === 'today') { filterDateStart.value = fmt(n); filterDateEnd.value = fmt(n); }
     else if (v === 'yesterday') { const p = new Date(n); p.setDate(n.getDate() - 1); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(p); }
@@ -711,11 +709,11 @@
     else if (v === 'month') { const f = new Date(n.getFullYear(), n.getMonth(), 1); filterDateStart.value = fmt(f); filterDateEnd.value = fmt(n); }
     else { filterDateStart.value = ''; filterDateEnd.value = ''; }
     renderTable(allSalesData);
-  };
+  }
   filterDateStart.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
   filterDateEnd.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
 
-  window.updateSaleStatus = (id, st, ori) => {
+  window.updateSaleStatus = function (id, st, ori) {
     loadingSpinner.classList.remove('hidden');
     google.script.run.withSuccessHandler(r => {
       loadingSpinner.classList.add('hidden');
@@ -724,7 +722,7 @@
     }).actualizarEstadoVenta(id, st, ori);
   };
 
-  window.clearAllFilters = () => { searchInput.value = ''; filterStatus.value = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); };
+  function clearAllFilters() { searchInput.value = ''; filterStatus.value = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); }
   function showStatus(m, t) { const e = document.getElementById('status-message'); e.innerHTML = t === 'success' ? `<span class="material-icons">check_circle</span> ${m}` : `<span class="material-icons">error</span> ${m}`; e.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 z-[110] flex items-center gap-2 ${t === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 3000); }
 
   // --- CHART LOGIC ---
