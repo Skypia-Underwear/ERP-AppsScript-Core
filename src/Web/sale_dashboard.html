@@ -679,8 +679,16 @@
   function loadSalesData(force) {
     if (allSalesData.length && !force) { renderTable(allSalesData); return; }
     loadingSpinner.classList.remove('hidden');
-    google.script.run.withSuccessHandler(res => {
+    google.script.run.withSuccessHandler(resRaw => {
       loadingSpinner.classList.add('hidden');
+      if (!resRaw) { showStatus('Error: Payload vacío o corrupto enviado por el servidor.', 'error'); return; }
+
+      let res = resRaw;
+      if (typeof resRaw === 'string') {
+        try { res = JSON.parse(resRaw); }
+        catch (e) { showStatus('Error parsing datos del servidor', 'error'); return; }
+      }
+
       if (res.success) {
         allSalesData = res.data.map(s => {
           s.total = parseMonto(s.total); s.costoEnvio = parseMonto(s.costoEnvio); s.recargoTransferencia = parseMonto(s.recargoTransferencia); s.recargoMenor = parseMonto(s.recargoMenor);
