@@ -472,7 +472,7 @@
   var formatMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }), parseMonto = (val) => (typeof val === 'number' && !isNaN(val)) ? val : 0;
 
   // --- LOGICA DE BOTONES DE ESTADO (FILTROS) ---
-  function filterByStatusButton(statusToSet, btnElement) {
+  window.filterByStatusButton = function (statusToSet, btnElement) {
     if (btnElement.classList.contains('disabled')) return;
     if (filterStatus.value === statusToSet) { filterStatus.value = ""; renderTable(allSalesData); return; }
     filterStatus.value = statusToSet; renderTable(allSalesData);
@@ -597,7 +597,7 @@
     modalBody.innerHTML = h; modalElement.classList.add('active');
   }
   function closeModal() { modalElement.classList.remove('active'); }
-  function updateSaleStatusInModal(id, est, ori) { window.updateSaleStatus(id, est, ori); }
+  window.updateSaleStatusInModal = function (id, est, ori) { window.updateSaleStatus(id, est, ori); }
 
   // --- RENDER TABLE ---
   function renderTable(data) {
@@ -697,7 +697,7 @@
   }
 
   function populateFilters(o) { const fill = (el, a) => { const c = el.value; el.innerHTML = `<option value="">${el.options[0].text}</option>` + a.map(x => `<option value="${x}">${x}</option>`).join(''); el.value = c; }; fill(filterOrigen, o.origenes); fill(filterMetodoPago, o.metodosPago); fill(filterCaja, o.cajas); }
-  function setDateRange(v) {
+  window.setDateRange = function (v) {
     const n = new Date(), fmt = d => d.toISOString().split('T')[0];
     if (v === 'today') { filterDateStart.value = fmt(n); filterDateEnd.value = fmt(n); }
     else if (v === 'yesterday') { const p = new Date(n); p.setDate(n.getDate() - 1); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(p); }
@@ -718,7 +718,7 @@
     }).actualizarEstadoVenta(id, st, ori);
   };
 
-  function clearAllFilters() { searchInput.value = ''; filterStatus.value = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); }
+  window.clearAllFilters = function () { searchInput.value = ''; filterStatus.value = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); }
   function showStatus(m, t) { const e = document.getElementById('status-message'); e.innerHTML = t === 'success' ? `<span class="material-icons">check_circle</span> ${m}` : `<span class="material-icons">error</span> ${m}`; e.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 z-[110] flex items-center gap-2 ${t === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 3000); }
 
   // --- CHART LOGIC ---
