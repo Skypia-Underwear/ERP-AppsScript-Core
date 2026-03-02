@@ -26,13 +26,13 @@ function cargarDashboardVentas() {
 
         // Verificación rápida
         if (!ventasBlogger.length && !ventasPedidos.length) {
-            return {
+            return JSON.stringify({
                 success: true,
                 message: "⚠️ No se encontraron datos.",
                 data: [],
                 filterOptions: { cajas: [], origenes: [], metodosPago: [] },
                 productImageMap: {}
-            };
+            });
         }
 
         const generalId = getGeneralId(ss); // Necesitas la funcion auxiliar getGeneralId del paso anterior
@@ -236,7 +236,7 @@ function cargarDashboardVentas() {
         // Ordenar por fecha descendente
         ventasConsolidadas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-        return {
+        return JSON.stringify({
             success: true,
             data: ventasConsolidadas,
             filterOptions: {
@@ -245,11 +245,11 @@ function cargarDashboardVentas() {
                 metodosPago: Array.from(uniquePagos).filter(x => x !== 'N/A').sort()
             },
             productImageMap: productImageMap
-        };
+        });
 
     } catch (error) {
         logArray.push(error.toString());
-        return { success: false, message: error.toString(), logs: logArray };
+        return JSON.stringify({ success: false, message: error.toString(), logs: logArray });
     }
 }
 
