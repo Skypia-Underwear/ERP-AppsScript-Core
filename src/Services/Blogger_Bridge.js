@@ -59,21 +59,60 @@ function blogger_listar_configuracion_sinCache() {
     const mapSvg = Object.fromEntries(rowsSvg.map(r => [r[mS.NOMBRE], r[mS.CODE]]));
     const mapCategoriaAPadre = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.PADRE] || "GENERAL"]));
 
-    // Imágenes
+    // --- PRE-INDEXACIÓN OPTIMIZADA O(1) ---
+    const productosMap = {};
+    for (const p of rowsProductos) {
+        if (p[mP.CODIGO_ID]) productosMap[p[mP.CODIGO_ID]] = p;
+    }
+
+    const mapColoresParaDesc = Object.fromEntries(rowsColores.map(r => [r[mCol.ID], r[mCol.HEXADECIMAL] || "cccccc"]));
+
+    // Imágenes y Videos pre-filtradas
     const imagenesPorProducto = {};
+    const videosPorProducto = {};
     for (const r of rowsImagenes) {
         const pId = r[mI.PRODUCTO_ID];
-        if (blogger_esVerdadero(r[mI.ESTADO]) && r[mI.URL] && r[mI.TIPO_ARCHIVO] !== 'video') {
-            if (!imagenesPorProducto[pId]) imagenesPorProducto[pId] = [];
-            imagenesPorProducto[pId].push({
-                url: r[mI.URL],
-                thumbnail_url: r[mI.THUMBNAIL_URL] || "",
-                archivo_id: r[mI.ARCHIVO_ID],
-                portada: blogger_esVerdadero(r[mI.PORTADA]),
-                orden: (mI.ORDEN !== undefined) ? (parseInt(r[mI.ORDEN]) || 999) : 999,
-                fecha_carga: r[mI.FECHA_CARGA]
-            });
+        if (blogger_esVerdadero(r[mI.ESTADO]) && r[mI.URL]) {
+            if (r[mI.TIPO_ARCHIVO] === 'video') {
+                videosPorProducto[pId] = r;
+            } else {
+                if (!imagenesPorProducto[pId]) imagenesPorProducto[pId] = [];
+                imagenesPorProducto[pId].push({
+                    url: r[mI.URL],
+                    thumbnail_url: r[mI.THUMBNAIL_URL] || "",
+                    archivo_id: r[mI.ARCHIVO_ID],
+                    portada: blogger_esVerdadero(r[mI.PORTADA]),
+                    orden: (mI.ORDEN !== undefined) ? (parseInt(r[mI.ORDEN]) || 999) : 999,
+                    fecha_carga: r[mI.FECHA_CARGA]
+                });
+            }
         }
+    }
+
+    // Pre-procesar ordenamiento de imágenes para O(1) en el bucle principal
+    for (const pId in imagenesPorProducto) {
+        let imgs = imagenesPorProducto[pId]
+            .filter(img => img.url && !img.url.toLowerCase().includes('_thumb.'))
+            .sort((a, b) => {
+                if (a.orden !== b.orden) return a.orden - b.orden;
+                return new Date(b.fecha_carga) - new Date(a.fecha_carga);
+            });
+
+        const tieneWebp = imgs.some(img => img.url.toLowerCase().endsWith('.webp'));
+        const tieneJpg = imgs.some(img => img.url.toLowerCase().endsWith('.jpg'));
+        if (tieneWebp && tieneJpg) imgs = imgs.filter(img => img.url.toLowerCase().endsWith('.webp'));
+
+        if (limiteImagenesPorProducto > 0 && imgs.length > limiteImagenesPorProducto) {
+            const p = imgs.find(img => img.portada) || imgs[0];
+            imgs = [p, ...imgs.filter(img => img !== p).slice(0, limiteImagenesPorProducto - 1)];
+        }
+
+        if (imgs.length === 0) {
+            imgs = [{ url: urlImagenSinImagen, portada: true }];
+        } else if (!imgs.some(img => img.portada)) {
+            imgs[0].portada = true;
+        }
+        imagenesPorProducto[pId] = imgs;
     }
 
     // --- LOOP LÓGICO ORIGINAL ---
@@ -135,39 +174,15 @@ function blogger_listar_configuracion_sinCache() {
         const variedad = { moneda, precio, variedad: variedadNombre, minima, sub_variedad };
 
         if (productoActual !== productoId) {
-            // PROCESAR IMÁGENES — ordenadas por campo ORDEN (ascendente)
-            let imagenes = (imagenesPorProducto[productoId] || [])
-                .filter(img => img.url && !img.url.toLowerCase().includes('_thumb.'))
-                .sort((a, b) => {
-                    // 1° criterio: ORDEN numérico ascendente
-                    if (a.orden !== b.orden) return a.orden - b.orden;
-                    // 2° fallback: fecha_carga descendente (comportamiento anterior)
-                    return new Date(b.fecha_carga) - new Date(a.fecha_carga);
-                });
-
-            const tieneWebp = imagenes.some(img => img.url.toLowerCase().endsWith('.webp'));
-            const tieneJpg = imagenes.some(img => img.url.toLowerCase().endsWith('.jpg'));
-            if (tieneWebp && tieneJpg) imagenes = imagenes.filter(img => img.url.toLowerCase().endsWith('.webp'));
-
-            if (limiteImagenesPorProducto > 0 && imagenes.length > limiteImagenesPorProducto) {
-                const p = imagenes.find(img => img.portada) || imagenes[0];
-                imagenes = [p, ...imagenes.filter(img => img !== p).slice(0, limiteImagenesPorProducto - 1)];
-            }
-
-            if (imagenes.length === 0) {
-                imagenes = [{ url: urlImagenSinImagen, portada: true }];
-            } else if (!imagenes.some(img => img.portada)) {
-                imagenes[0].portada = true;
-            }
+            let imagenes = imagenesPorProducto[productoId] || [{ url: urlImagenSinImagen, portada: true }];
 
             const desc = blogger_generarDescripcionProductoCompleta({
                 pId: productoId,
                 tipoRegistroProducto,
-                rowsProductos,
-                rowsInventario,
-                rowsImagenes,
-                rowsColores,
-                tiendaId,
+                productoRow: productosMap[productoId],
+                inventarioProducto: inventarioIndex[tiendaId]?.[productoId] || [],
+                videoRow: videosPorProducto[productoId],
+                mapColores: mapColoresParaDesc,
                 celularTienda
             });
 
@@ -282,15 +297,15 @@ function blogger_construirSubVariedadCompleta({ pId, nombreVar, inventarioIndex,
     return res;
 }
 
-function blogger_generarDescripcionProductoCompleta({ pId, tipoRegistroProducto, rowsProductos, rowsInventario, rowsImagenes, rowsColores, tiendaId, celularTienda }) {
+function blogger_generarDescripcionProductoCompleta({ pId, tipoRegistroProducto, productoRow, inventarioProducto, videoRow, mapColores, celularTienda }) {
     const mP = HeaderManager.getMapping("PRODUCTS");
     const mInv = HeaderManager.getMapping("INVENTORY");
     const mI = HeaderManager.getMapping("PRODUCT_IMAGES");
 
-    const p = rowsProductos.find(r => r[mP.CODIGO_ID] === pId);
+    const p = productoRow;
     if (!p) return null;
     const esSimple = tipoRegistroProducto === "PRODUCTO SIMPLE";
-    const inv = rowsInventario.filter(r => r[mInv.PRODUCTO_ID] === pId && r[mInv.TIENDA_ID] === tiendaId && (esSimple ? true : Number(r[mInv.STOCK_ACTUAL]) > 0));
+    const inv = inventarioProducto.filter(r => (esSimple ? true : Number(r[mInv.STOCK_ACTUAL]) > 0));
     const colores = new Set(), talles = new Set(); let stockTotal = 0;
     if (esSimple) {
         (p[mP.COLORES] || "").split(",").map(c => c.trim()).filter(Boolean).forEach(c => colores.add(c));
@@ -303,10 +318,7 @@ function blogger_generarDescripcionProductoCompleta({ pId, tipoRegistroProducto,
             stockTotal += Number(r[mInv.STOCK_ACTUAL]);
         });
     }
-    const mCol = HeaderManager.getMapping("COLORS");
-    const mapColores = Object.fromEntries(rowsColores.map(r => [r[mCol.ID], r[mCol.HEXADECIMAL] || "cccccc"]));
     const listColores = [...colores].map(c => ({ nombre: c, hex: mapColores[c] || "#cccccc" }));
-    const videoRow = rowsImagenes.find(r => r[mI.PRODUCTO_ID] === pId && r[mI.TIPO_ARCHIVO] === 'video');
     const video = videoRow ? { label: "Video", url: videoRow[mI.URL], thumbnail: videoRow[mI.THUMBNAIL_URL] } : undefined;
     const msgWA = `¡Hola! Interesado en:\n🔹 Código: ${pId}\n🔹 Modelo: ${p[mP.MODELO] || '-'}\n🔹 Marca: ${p[mP.MARCA] || '-'}\n🔹 Género: ${p[mP.GENERO] || '-'}\n🔹 Talles: ${[...talles].join(', ')}`;
 
