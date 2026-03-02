@@ -471,11 +471,16 @@
 
   var formatMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }), parseMonto = (val) => (typeof val === 'number' && !isNaN(val)) ? val : 0;
 
-  // --- LOGICA DE BOTONES DE ESTADO (FILTROS) ---
-  window.filterByStatusButton = function (statusToSet, btnElement) {
+  // --- LOGICA DE BOTONES DE ESTADO (FILTROS MACRO) ---
+  window.filterByStatusButton = function (statusGroup, btnElement) {
     if (btnElement.classList.contains('disabled')) return;
-    if (filterStatus.value === statusToSet) { filterStatus.value = ""; renderTable(allSalesData); return; }
-    filterStatus.value = statusToSet; renderTable(allSalesData);
+    if (filterStatus.dataset.activeMacro === statusGroup) {
+      filterStatus.dataset.activeMacro = ""; filterStatus.value = "";
+      renderTable(allSalesData); return;
+    }
+    filterStatus.dataset.activeMacro = statusGroup;
+    filterStatus.value = ""; // Desactivar el select estricto cuando usamos macro
+    renderTable(allSalesData);
   }
 
   function updateStatusButtonsVisuals(counts) {
@@ -492,11 +497,10 @@
     if (counts.pending === 0) btnStatPending.classList.add('disabled');
     if (counts.canceled === 0) btnStatCanceled.classList.add('disabled');
 
-    const current = filterStatus.value;
-    // Using darker rings and offsets for dark mode
-    if (current === 'COMPLETADA') { btnStatComplete.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-teal-500'); }
-    if (current === 'SOLICITADO') { btnStatPending.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-amber-500'); }
-    if (current === 'CANCELADO') { btnStatCanceled.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-red-500'); }
+    const macro = filterStatus.dataset.activeMacro;
+    if (macro === 'COMPLETAS') { btnStatComplete.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-teal-500'); }
+    if (macro === 'PENDIENTES') { btnStatPending.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-amber-500'); }
+    if (macro === 'CANCELADO') { btnStatCanceled.classList.add('active-filter', 'ring-2', 'ring-offset-1', 'ring-offset-slate-900', 'ring-red-500'); }
   }
 
   // --- MODAL (Compactado y Adaptado a Dark Mode) ---
@@ -587,9 +591,12 @@
                 <span class="text-xs font-bold text-amber-500 uppercase">Estado Actual: ${s.estado}</span>
                 <select class="text-sm p-1.5 border border-amber-500/30 rounded bg-slate-900 text-white outline-none focus:ring-2 focus:ring-amber-500/50 cursor-pointer" onchange="updateSaleStatusInModal('${s.id}', this.value, '${s.origen}')">
                     <option value="" disabled selected>Cambiar estado...</option>
-                    <option value="COMPLETADA">Completada</option>
-                    <option value="ENTREGADO">Entregado</option>
                     <option value="SOLICITADO">Solicitado</option>
+                    <option value="EDITADO">Editado</option>
+                    <option value="PAGADO">Pagado</option>
+                    <option value="EN CAMINO">En Camino</option>
+                    <option value="ENTREGADO">Entregado</option>
+                    <option value="COMPLETADA">Completada (Legado)</option>
                     <option value="CANCELADO">Cancelado</option>
                 </select>
             </div>`;
@@ -606,6 +613,7 @@
     const dStart = filterDateStart.value ? new Date(filterDateStart.value + 'T00:00:00') : null, dEnd = filterDateEnd.value ? new Date(filterDateEnd.value + 'T23:59:59') : null;
 
     let total = 0, cComp = 0, cPend = 0, cCanc = 0;
+    const macroFilter = filterStatus.dataset.activeMacro;
 
     const preFiltered = data.filter(s => {
       if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
@@ -616,17 +624,28 @@
       return true;
     });
 
+    // Grupos de Macro Filtros
+    const pendingStatuses = ['SOLICITADO', 'EDITADO', 'PAGADO', 'EN CAMINO'];
+    const completeStatuses = ['COMPLETADA', 'ENTREGADO'];
+
     preFiltered.forEach(s => {
-      if (['COMPLETADA', 'ENTREGADO'].includes(s.estado)) cComp++;
-      else if (s.estado === 'SOLICITADO') cPend++;
+      if (completeStatuses.includes(s.estado)) cComp++;
+      else if (pendingStatuses.includes(s.estado)) cPend++;
       else if (s.estado === 'CANCELADO') cCanc++;
     });
 
     updateStatusButtonsVisuals({ complete: cComp, pending: cPend, canceled: cCanc });
 
     const finalFiltered = preFiltered.filter(s => {
+      // 1. Check strict dropdown "filterStatus" if active
       if (fStat && s.estado !== fStat) return false;
-      if (['COMPLETADA', 'ENTREGADO'].includes(s.estado)) total += s.total;
+      // 2. Check macro block if active
+      if (macroFilter === 'COMPLETAS' && !completeStatuses.includes(s.estado)) return false;
+      if (macroFilter === 'PENDIENTES' && !pendingStatuses.includes(s.estado)) return false;
+      if (macroFilter === 'CANCELADO' && s.estado !== 'CANCELADO') return false;
+
+      // Monto total solo de completas
+      if (completeStatuses.includes(s.estado)) total += s.total;
       return true;
     });
 
@@ -640,8 +659,14 @@
 
     finalFiltered.forEach(s => {
       const tr = document.createElement('tr'); tr.className = 'border-b border-slate-700 hover:bg-slate-800 transition';
-      // Status Text Colors Dark
-      let stCls = s.estado === 'SOLICITADO' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : (s.estado === 'CANCELADO' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-teal-500/10 text-teal-400 border border-teal-500/20');
+
+      // Status Text Colors Dark (Dynamic Logic)
+      let stCls = '';
+      if (['SOLICITADO', 'EDITADO'].includes(s.estado)) stCls = 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
+      else if (s.estado === 'PAGADO') stCls = 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+      else if (s.estado === 'EN CAMINO') stCls = 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
+      else if (s.estado === 'CANCELADO') stCls = 'bg-red-500/10 text-red-500 border border-red-500/20';
+      else stCls = 'bg-teal-500/10 text-teal-400 border border-teal-500/20'; // COMPLETADA / ENTREGADO
 
       // TABLE ROW HTML DARK
       tr.innerHTML = `<td class="px-6 py-4 text-center">
@@ -665,9 +690,12 @@
         <td class="px-6 py-4 text-center">
             <select class="bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded py-1 px-2 outline-none cursor-pointer hover:bg-slate-700" onchange="window.updateSaleStatus('${s.id}', this.value, '${s.origen}')">
                 <option value="" disabled selected>Cambiar</option>
-                <option value="COMPLETADA">Completada</option>
-                <option value="ENTREGADO">Entregado</option>
                 <option value="SOLICITADO">Solicitado</option>
+                <option value="EDITADO">Editado</option>
+                <option value="PAGADO">Pagado</option>
+                <option value="EN CAMINO">En Camino</option>
+                <option value="ENTREGADO">Entregado</option>
+                <option value="COMPLETADA">Completada (L)</option>
                 <option value="CANCELADO">Cancelado</option>
             </select>
         </td>`;
@@ -726,7 +754,7 @@
     }).actualizarEstadoVenta(id, st, ori);
   };
 
-  window.clearAllFilters = function () { searchInput.value = ''; filterStatus.value = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); }
+  window.clearAllFilters = function () { searchInput.value = ''; filterStatus.value = ''; filterStatus.dataset.activeMacro = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); }
   function showStatus(m, t) { const e = document.getElementById('status-message'); e.innerHTML = t === 'success' ? `<span class="material-icons">check_circle</span> ${m}` : `<span class="material-icons">error</span> ${m}`; e.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 z-[110] flex items-center gap-2 ${t === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 3000); }
 
   // --- CHART LOGIC ---
