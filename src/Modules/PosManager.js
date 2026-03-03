@@ -170,27 +170,29 @@ function generarCatalogoJsonTPV() {
                 });
             });
 
-            catalogo.products = productosData.map(p => {
-                const pid = p.CODIGO_ID;
-                return {
-                    id: pid,
-                    model: p.MODELO || "",
-                    price: parseFloat(p.PRECIO_COSTO || 0),
-                    minor_surcharge: parseFloat(p.RECARGO_MENOR || 0),
-                    category_id: p.CATEGORIA || "",
-                    categoryName: p.CATEGORIA || "",
-                    parentCategory: p.CATEGORIA_GENERAL || "",
-                    season: p.TEMPORADA || "",
-                    gender: p.GENERO || "",   // Nuevo filtro
-                    brand: p.MARCA || "",     // Nuevo filtro
-                    style: p.ESTILO || "",     // Nuevo filtro
-                    material: p.MATERIAL || "", // Nuevo filtro
-                    image: thumbMap.get(String(pid)) || "",
-                    carpeta_id: p.CARPETA_ID || "",
-                    woo_id: p.WOO_ID || "",    // --- NUEVO: ID de WooCommerce ---
-                    variations: variacionesPorProducto[pid] || []
-                };
-            });
+            catalogo.products = productosData
+                .filter(p => p.CODIGO_ID && String(p.CODIGO_ID).trim() !== "")
+                .map(p => {
+                    const pid = p.CODIGO_ID;
+                    return {
+                        id: pid,
+                        model: p.MODELO || "",
+                        price: parseFloat(p.PRECIO_COSTO || 0),
+                        minor_surcharge: parseFloat(p.RECARGO_MENOR || 0),
+                        category_id: p.CATEGORIA || "",
+                        categoryName: p.CATEGORIA || "",
+                        parentCategory: p.CATEGORIA_GENERAL || "",
+                        season: p.TEMPORADA || "",
+                        gender: p.GENERO || "",   // Nuevo filtro
+                        brand: p.MARCA || "",     // Nuevo filtro
+                        style: p.ESTILO || "",     // Nuevo filtro
+                        material: p.MATERIAL || "", // Nuevo filtro
+                        image: thumbMap.get(String(pid)) || "",
+                        carpeta_id: p.CARPETA_ID || "",
+                        woo_id: p.WOO_ID || "",    // --- NUEVO: ID de WooCommerce ---
+                        variations: variacionesPorProducto[pid] || []
+                    };
+                });
         }
 
         debugLog("✅ Catálogo JSON TPV generado con éxito (incluye imágenes).");
@@ -858,3 +860,49 @@ function processSale(saleData) {
     }
 }
 
+
+/**
+ * Limpia físicamente las filas vacías en medio de las hojas de Productos e Inventario.
+ * Esto corrige el desfase causado por AppSheet al "eliminar" registros.
+ */
+function tpv_limpiarFilasVaciasEstructural() {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const hojasCriticas = [SHEETS.PRODUCTS, SHEETS.INVENTORY, SHEETS.PRODUCT_VARIETIES, SHEETS.PRODUCT_IMAGES];
+    let totalEliminadas = 0;
+
+    hojasCriticas.forEach(nombreHoja => {
+        const sheet = ss.getSheetByName(nombreHoja);
+        if (!sheet) return;
+
+        const data = sheet.getDataRange().getValues();
+        const mapping = HeaderManager.getMapping(nombreHoja);
+
+        // Determinar columna de ID según la hoja
+        let colIdName = "CODIGO_ID";
+        if (nombreHoja === SHEETS.INVENTORY) colIdName = "INVENTARIO_ID";
+        if (nombreHoja === SHEETS.PRODUCT_VARIETIES) colIdName = "VARIATION_ID";
+        if (nombreHoja === SHEETS.PRODUCT_IMAGES) colIdName = "PRODUCTO_ID";
+
+        const colIndex = mapping[colIdName];
+        if (colIndex === undefined) return;
+
+        // Recorrer de abajo hacia arriba para no alterar índices al borrar
+        for (let i = data.length - 1; i >= 1; i--) { // i >= 1 para saltar header
+            const rowValue = String(data[i][colIndex] || "").trim();
+
+            // Si el ID está vacío, verificamos si toda la fila está vacía (por seguridad)
+            if (!rowValue) {
+                const isEntireRowEmpty = data[i].every(cell => String(cell || "").trim() === "");
+                if (isEntireRowEmpty) {
+                    sheet.deleteRow(i + 1);
+                    totalEliminadas++;
+                }
+            }
+        }
+    });
+
+    if (totalEliminadas > 0) {
+        debugLog(`🧹 [Limpieza Estructural] Se eliminaron ${totalEliminadas} filas vacías en el centro de las hojas.`);
+    }
+    return { success: true, eliminadas: totalEliminadas };
+}

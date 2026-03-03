@@ -240,6 +240,13 @@ function inicializarEntorno() {
       ScriptApp.newTrigger(handlerFn).timeBased().everyMinutes(minutosIntervalo).create();
     }
 
+    function reinstalarTriggerDiario(handlerFn, hora) {
+      ScriptApp.getProjectTriggers()
+        .filter(t => t.getHandlerFunction() === handlerFn)
+        .forEach(t => ScriptApp.deleteTrigger(t));
+      ScriptApp.newTrigger(handlerFn).timeBased().atHour(hora).everyDays(1).create();
+    }
+
     // -- TRIGGER TPV (publicarCatalogo, cada 5 min) --
     // Condiciones: al menos un destino externo configurado
     const cfg = GLOBAL_CONFIG.SCRIPT_CONFIG;
@@ -248,6 +255,7 @@ function inicializarEntorno() {
 
     if (donwebOk || githubOk) {
       reinstalarTrigger("publicarCatalogo", 5);
+      reinstalarTriggerDiario("tpv_limpiarFilasVaciasEstructural", 3); // A las 3 AM
       triggerLog.push("✅ TPV (cada 5 min): Donweb=" + (donwebOk ? "✅" : "⛔") + " GitHub=" + (githubOk ? "✅" : "⛔"));
     } else {
       triggerLog.push("⛔ TPV: Trigger NO instalado. Configurá DONWEB_WRITE_URL o GITHUB_USER/REPO/TOKEN.");
