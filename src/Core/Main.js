@@ -431,6 +431,28 @@ function debugLog(msg, forceSheet = false) {
   }
 }
 
+/**
+ * Actualiza el contenido de un archivo en Google Drive sin cambiar su ID.
+ * Requiere el Servicio Avanzado de Drive (v3).
+ * @param {string} fileId El ID del archivo a actualizar.
+ * @param {string} content El nuevo contenido del archivo.
+ * @param {string} [mimeType] Opcional. El tipo MIME del archivo.
+ */
+function drive_updateFileContent(fileId, content, mimeType = "application/json") {
+  try {
+    const blob = Utilities.newBlob(content, mimeType);
+    
+    // Usando Servicio Avanzado v3: Drive.Files.update(resource, fileId, mediaData)
+    // Nota: mediaData es el Blob.
+    Drive.Files.update({}, fileId, blob);
+    
+    return { success: true };
+  } catch (e) {
+    console.error(`Error actualizando archivo ${fileId}: ${e.message}`);
+    return { success: false, message: e.message };
+  }
+}
+
 
 /**
  * Recibe y registra los errores emitidos por las plantillas HTML (window.onerror)

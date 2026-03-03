@@ -27,7 +27,7 @@ function guardarRespaldoEnDrive() {
         if (fileId) {
             try {
                 file = DriveApp.getFileById(fileId);
-                file.setContent(content);
+                drive_updateFileContent(file.getId(), content, MimeType.PLAIN_TEXT);
                 debugLog("✅ Respaldo en Drive actualizado.");
             } catch (e) {
                 fileId = null;
@@ -458,7 +458,7 @@ function tpv_procesarSubidasRemotas() {
         if (!files.hasNext()) throw new Error("JSON local TPV no encontrado. Drive vacío.");
 
         const file = files.next();
-        const contenidoStr = file.getContentAsString();
+        const contenidoStr = file.getBlob().getDataAsString();
         const catalogo = JSON.parse(contenidoStr);
 
         // -- Destino Donweb --

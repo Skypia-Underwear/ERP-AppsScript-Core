@@ -727,7 +727,7 @@ function actualizarArchivoCSV(logArray = null, fechaExterna = null) {
       try {
         archivoSalida = DriveApp.getFileById(fileId);
         if (!archivoSalida.isTrashed()) {
-          archivoSalida.setContent(contenidoCSV);
+          drive_updateFileContent(archivoSalida.getId(), contenidoCSV, MimeType.CSV);
           log(`✅ Archivo CSV actualizado (ID existente).`);
         } else {
           archivoSalida = null;
