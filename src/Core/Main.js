@@ -217,6 +217,11 @@ const GLOBAL_CONFIG = {
     get READ_URL() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DONWEB_READ_URL"] || ""; }
   },
 
+  SYNC_WINDOW: {
+    get START_HOUR() { return parseInt(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_START_HOUR"] || "0"); },
+    get END_HOUR() { return parseInt(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_END_HOUR"] || "23"); }
+  },
+
   ENABLE_BIGQUERY: false
 };
 
@@ -403,6 +408,26 @@ let _cacheLogSheet = null;
 
 /**
  * Función de logging persistente optimizada (V6.2)
+ */
+/**
+ * Verifica si el sistema está en horario de trabajo para sincronización. (Modo Nocturno)
+ */
+function isSystemInWorkingHours() {
+  const now = new Date();
+  const hour = now.getHours();
+  const start = GLOBAL_CONFIG.SYNC_WINDOW.START_HOUR;
+  const end = GLOBAL_CONFIG.SYNC_WINDOW.END_HOUR;
+
+  if (start <= end) {
+    return hour >= start && hour <= end;
+  } else {
+    // Caso rango cruzado (ej: 22 a 05)
+    return hour >= start || hour <= end;
+  }
+}
+
+/**
+ * Función de registro unificada con marcas de tiempo.
  */
 function debugLog(msg, forceSheet = false) {
   console.log(msg); // Siempre rápido en consola

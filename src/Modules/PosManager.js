@@ -21,22 +21,17 @@ function guardarRespaldoEnDrive() {
         const folder = DriveApp.getFolderById(folderId);
         const catalogo = generarCatalogoJsonTPV();
         const content = JSON.stringify(catalogo, null, 2);
-        const fileName = "hostingshop.json";
+        const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "hostingshop.json";
 
+        const files = folder.getFilesByName(fileName);
         let file;
-        if (fileId) {
-            try {
-                file = DriveApp.getFileById(fileId);
-                drive_updateFileContent(file.getId(), content, MimeType.PLAIN_TEXT);
-                debugLog("✅ Respaldo en Drive actualizado.");
-            } catch (e) {
-                fileId = null;
-            }
-        }
-
-        if (!fileId) {
+        if (files.hasNext()) {
+            file = files.next();
+            drive_updateFileContent(file.getId(), content, MimeType.PLAIN_TEXT);
+            debugLog(`✅ Respaldo en Drive actualizado (${fileName}).`);
+        } else {
             file = folder.createFile(fileName, content, MimeType.PLAIN_TEXT);
-            debugLog("✅ Nuevo respaldo en Drive creado.");
+            debugLog(`✅ Nuevo respaldo en Drive creado (${fileName}).`);
         }
 
         return { success: true, fileId: file.getId() };
@@ -383,6 +378,10 @@ function manualRefreshStockCache() {
  * También dispara la regeneración del caché de Blogger.
  */
 function publicarCatalogo() {
+    if (!isSystemInWorkingHours()) {
+        console.log("💤 [Modo Nocturno] Sincronización suspendida por horario.");
+        return { success: true, message: "Suspendido por horario nocturno." };
+    }
     // Leer interruptor de destino (por defecto: AMBOS)
     const target = (GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "AMBOS").toUpperCase();
     const useDonweb = target === "DONWEB" || target === "AMBOS";
@@ -453,11 +452,11 @@ function tpv_procesarSubidasRemotas() {
         const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
         if (!folderId) throw new Error("Falta DRIVE_JSON_CONFIG_FOLDER_ID en la BD");
 
-        const fileName = "hostingshop.json";
+        const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "hostingshop.json";
         const folder = DriveApp.getFolderById(folderId);
         const files = folder.getFilesByName(fileName);
 
-        if (!files.hasNext()) throw new Error("JSON local TPV no encontrado. Drive vacío.");
+        if (!files.hasNext()) throw new Error(`JSON local TPV (${fileName}) no encontrado en Drive.`);
 
         const file = files.next();
         const contenidoStr = file.getBlob().getDataAsString();

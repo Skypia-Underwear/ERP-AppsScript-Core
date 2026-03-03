@@ -12,6 +12,10 @@
  * Se puede llamar manualmente o mediante un trigger (cada 10 min).
  */
 function blogger_regenerarCacheConfiguracion() {
+    if (!isSystemInWorkingHours()) {
+        console.log("💤 [Modo Nocturno Blogger] Suspendido por horario.");
+        return;
+    }
     console.log("🔄 [Blogger Cache] Iniciando regeneración...");
 
     try {
