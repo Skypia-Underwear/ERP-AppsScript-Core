@@ -1193,8 +1193,8 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
             // INTEGRACIÓN CORE: Renderizamos usando la imagen actual como referencia
             if (modo === 'image' && pin) {
               try {
-                console.log(`🎨 [Core-Flow] Renderizando imagen para ${imagenId}...`);
-                const resImgRaw = generarImagenDesdePrompt([imagenId], promptGenerado, pin);
+                console.log(`🎨 [Core-Flow] Renderizando imagen para ${imagenId} con especificaciones:`, extraSpecs);
+                const resImgRaw = generarImagenDesdePrompt([imagenId], promptGenerado, pin, null, null, extraSpecs);
                 const resImg = resImgRaw;
 
                 if (resImg.success) {
