@@ -111,7 +111,16 @@
   </div>
   <script>
     const funcionParaLlamar = '<?= funcionParaLlamar ?>';
-    const parametrosBase = <?!= JSON.stringify(parametros || []) ?>;
+    const rawParametros = <?!= JSON.stringify(parametros || "[]") ?>;
+    let parametrosBase = [];
+    try {
+      parametrosBase = typeof rawParametros === 'string' ? JSON.parse(rawParametros) : rawParametros;
+    } catch (e) {
+      console.warn("Parse error:", e);
+    }
+    if (!Array.isArray(parametrosBase)) {
+      parametrosBase = parametrosBase ? [parametrosBase] : [];
+    }
     const fechaInicial = '<?= fechaInicial || "" ?>';
     const mostrarBotonPrompt = <?= mostrarBotonPrompt ? 'true' : 'false' ?>;
 
