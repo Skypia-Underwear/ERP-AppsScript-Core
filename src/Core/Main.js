@@ -441,11 +441,11 @@ function debugLog(msg, forceSheet = false) {
 function drive_updateFileContent(fileId, content, mimeType = "application/json") {
   try {
     const blob = Utilities.newBlob(content, mimeType);
-    
+
     // Usando Servicio Avanzado v3: Drive.Files.update(resource, fileId, mediaData)
     // Nota: mediaData es el Blob.
     Drive.Files.update({}, fileId, blob);
-    
+
     return { success: true };
   } catch (e) {
     console.error(`Error actualizando archivo ${fileId}: ${e.message}`);
@@ -1071,10 +1071,23 @@ function ejecutarAccionDeImagen(params) {
           obtenerOCrearCarpetaProducto(codigo);
           generarInventarioPorProducto(codigo);
 
+          // INTEGRACIÓN WOOCOMMERCE: Sincronizar automáticamente tras creación
+          let msgWoo = "";
+          try {
+            const resWoo = enviarProductoWP(codigo);
+            if (resWoo.success) {
+              msgWoo = " | 📦 Sincronizado con WooCommerce ✅";
+            } else {
+              msgWoo = " | ⚠️ WooCommerce: " + resWoo.message;
+            }
+          } catch (eWoo) {
+            msgWoo = " | ❌ Error WooCommerce: " + eWoo.message;
+          }
+
           // FASE 5: Avisar al frontend que hay nuevos productos
           CacheService.getScriptCache().put("NEW_PRODUCTS_AVAILABLE", "true", 3600);
 
-          return { success: true, message: `✅ Carpeta y variaciones generadas para '${codigo}'.` };
+          return { success: true, message: `✅ Carpeta y variaciones generadas para '${codigo}'${msgWoo}.` };
         default:
           throw new Error(`Acción desconocida: '${accion}'`);
       }
