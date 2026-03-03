@@ -33,87 +33,87 @@
     </div>
     <div id="status-message" class="hidden p-4 rounded-lg font-medium mb-4"></div>
     <!-- DASHBOARD DE ESTADÍSTICAS (GENÉRICO) -->
-      <div id="stats-dashboard" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
-            class="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">Éxitos</span>
-          <div class="flex items-center gap-2"><span
-              class="material-icons text-emerald-500 text-sm">check_circle</span><span id="stat-success"
-              class="text-xl font-bold text-white">0</span></div>
-        </div>
-        <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
-            class="text-red-400 text-xs font-bold uppercase tracking-wider mb-1">Errores</span>
-          <div class="flex items-center gap-2"><span class="material-icons text-red-500 text-sm">error</span><span
-              id="stat-error" class="text-xl font-bold text-white">0</span></div>
-        </div>
-        <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
-            class="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">Avisos</span>
-          <div class="flex items-center gap-2"><span class="material-icons text-amber-500 text-sm">warning</span><span
-              id="stat-warning" class="text-xl font-bold text-white">0</span></div>
-        </div>
-        <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
-            class="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">Info</span>
-          <div class="flex items-center gap-2"><span class="material-icons text-blue-500 text-sm">info</span><span
-              id="stat-info" class="text-xl font-bold text-white">0</span></div>
-        </div>
+    <div id="stats-dashboard" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
+          class="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">Éxitos</span>
+        <div class="flex items-center gap-2"><span
+            class="material-icons text-emerald-500 text-sm">check_circle</span><span id="stat-success"
+            class="text-xl font-bold text-white">0</span></div>
       </div>
-      <!-- FILTROS DE LOG -->
-        <div id="log-filters" class="hidden flex flex-wrap gap-2 mb-3 items-center"><span
-            class="text-slate-400 text-xs font-bold uppercase mr-2">Filtrar logs:</span><button data-filter="all"
-            class="filter-chip active bg-blue-600 px-3 py-1 rounded-full text-xs font-bold transition">Todos</button><button
-            data-filter="error"
-            class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-red-900/40">Errores</button><button
-            data-filter="warning"
-            class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-amber-900/40">Avisos</button><button
-            data-filter="success"
-            class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-emerald-900/40">Éxitos</button>
-        </div>
-        <!-- VISTA PREVIA DE DATOS (TABLA) -->
-          <div id="data-preview-container"
-            class="hidden mt-8 border border-slate-700 rounded-lg overflow-hidden bg-slate-900">
-            <div class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
-              <div class="font-bold text-slate-200 flex items-center gap-2 text-lg"><span
-                  class="material-icons text-blue-400">table_view</span>Vista Previa de Datos </div><a
-                id="drive-link-btn" href="#" target="_blank"
-                class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded transition flex items-center gap-1"><span
-                  class="material-icons text-sm">open_in_new</span>Abrir CSV en Drive </a>
-            </div>
-            <div class="overflow-x-auto max-h-[400px]">
-              <table id="data-table" class="w-full text-sm text-left">
-                <!-- JS llenará esto -->
-              </table>
-            </div>
-          </div>
-          <!-- ACCIONES EXTRA -->
-            <div class="mt-6 flex gap-3 flex-wrap">
-              <? if (mostrarBotonPrompt) { ?>
-              <button id="copiar-btn"
-                class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded transition items-center gap-2">
-                <span class="material-icons text-sm">content_copy</span>Copiar Prompt
-              </button>
-              <? } ?>
+      <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
+          class="text-red-400 text-xs font-bold uppercase tracking-wider mb-1">Errores</span>
+        <div class="flex items-center gap-2"><span class="material-icons text-red-500 text-sm">error</span><span
+            id="stat-error" class="text-xl font-bold text-white">0</span></div>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
+          class="text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">Avisos</span>
+        <div class="flex items-center gap-2"><span class="material-icons text-amber-500 text-sm">warning</span><span
+            id="stat-warning" class="text-xl font-bold text-white">0</span></div>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
+          class="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">Info</span>
+        <div class="flex items-center gap-2"><span class="material-icons text-blue-500 text-sm">info</span><span
+            id="stat-info" class="text-xl font-bold text-white">0</span></div>
+      </div>
+    </div>
+    <!-- FILTROS DE LOG -->
+    <div id="log-filters" class="hidden flex flex-wrap gap-2 mb-3 items-center"><span
+        class="text-slate-400 text-xs font-bold uppercase mr-2">Filtrar logs:</span><button data-filter="all"
+        class="filter-chip active bg-blue-600 px-3 py-1 rounded-full text-xs font-bold transition">Todos</button><button
+        data-filter="error"
+        class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-red-900/40">Errores</button><button
+        data-filter="warning"
+        class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-amber-900/40">Avisos</button><button
+        data-filter="success"
+        class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-emerald-900/40">Éxitos</button>
+    </div>
+    <!-- VISTA PREVIA DE DATOS (TABLA) -->
+    <div id="data-preview-container"
+      class="hidden mt-8 border border-slate-700 rounded-lg overflow-hidden bg-slate-900">
+      <div class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
+        <div class="font-bold text-slate-200 flex items-center gap-2 text-lg"><span
+            class="material-icons text-blue-400">table_view</span>Vista Previa de Datos </div><a id="drive-link-btn"
+          href="#" target="_blank"
+          class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded transition flex items-center gap-1"><span
+            class="material-icons text-sm">open_in_new</span>Abrir CSV en Drive </a>
+      </div>
+      <div class="overflow-x-auto max-h-[400px]">
+        <table id="data-table" class="w-full text-sm text-left">
+          <!-- JS llenará esto -->
+        </table>
+      </div>
+    </div>
+    <!-- ACCIONES EXTRA -->
+    <div class="mt-6 flex gap-3 flex-wrap">
+      <? if (mostrarBotonPrompt) { ?>
+      <button id="copiar-btn"
+        class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded transition items-center gap-2">
+        <span class="material-icons text-sm">content_copy</span>Copiar Prompt
+      </button>
+      <? } ?>
 
-              <a id="openProductUrlButton" href="#" target="_blank"
-                class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition items-center gap-2"><span
-                  class="material-icons text-sm">open_in_new</span>Ver Producto </a><a id="syncManualButton" href="#"
-                target="_blank"
-                class="hidden bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded transition items-center gap-2"><span
-                  class="material-icons text-sm">sync</span>Sincronizar Galería </a>
-            </div>
-            <div id="prompt-container"
-              class="hidden mt-6 p-6 bg-slate-900 text-slate-300 rounded-lg border border-slate-700 max-h-[400px] overflow-y-auto font-mono text-sm leading-relaxed whitespace-pre-wrap word-break-break-word">
-            </div>
-            <div id="log-container"
-              class="hidden mt-6 p-6 bg-slate-900 text-slate-200 rounded-lg border border-slate-700 max-h-[400px] overflow-y-auto font-mono text-xs leading-relaxed">
-            </div>
-            <div class="mt-8 text-center"><button id="retry-btn" onclick="location.reload()"
-                class="hidden text-slate-500 hover:text-slate-300 transition text-sm flex items-center gap-1 mx-auto"><span
-                  class="material-icons text-sm">refresh</span>Reintentar Ejecución </button></div>
+      <a id="openProductUrlButton" href="#" target="_blank"
+        class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition items-center gap-2"><span
+          class="material-icons text-sm">open_in_new</span>Ver Producto </a><a id="syncManualButton" href="#"
+        target="_blank"
+        class="hidden bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded transition items-center gap-2"><span
+          class="material-icons text-sm">sync</span>Sincronizar Galería </a>
+    </div>
+    <div id="prompt-container"
+      class="hidden mt-6 p-6 bg-slate-900 text-slate-300 rounded-lg border border-slate-700 max-h-[400px] overflow-y-auto font-mono text-sm leading-relaxed whitespace-pre-wrap word-break-break-word">
+    </div>
+    <div id="log-container"
+      class="hidden mt-6 p-6 bg-slate-900 text-slate-200 rounded-lg border border-slate-700 max-h-[400px] overflow-y-auto font-mono text-xs leading-relaxed">
+    </div>
+    <div class="mt-8 text-center"><button id="retry-btn" onclick="location.reload()"
+        class="hidden text-slate-500 hover:text-slate-300 transition text-sm flex items-center gap-1 mx-auto"><span
+          class="material-icons text-sm">refresh</span>Reintentar Ejecución </button></div>
   </div>
   <script>
     const funcionParaLlamar = '<?= funcionParaLlamar ?>';
-    const parametrosBase = JSON.parse('<?!= JSON.stringify(parametros) ?>');
-    const fechaInicial = '<?= fechaInicial ?>';
-    const mostrarBotonPrompt = <?!= mostrarBotonPrompt ?>;
+    const parametrosBase = <?!= JSON.stringify(parametros || []) ?>;
+    const fechaInicial = '<?= fechaInicial || "" ?>';
+    const mostrarBotonPrompt = <?= mostrarBotonPrompt ? 'true' : 'false' ?>;
 
     const statusElement = document.getElementById('status-message');
     const spinner = document.querySelector('.spinner');
