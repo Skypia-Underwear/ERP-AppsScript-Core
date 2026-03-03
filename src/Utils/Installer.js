@@ -1,3 +1,4 @@
+// Versión: 10.0.1 (Limpieza Estructural Completada)
 // =================================================================
 // ===      INSTALADOR DE ENTORNO (NOMENCLATURA MAYÚSCULA)       ===
 // =================================================================
@@ -101,6 +102,10 @@ function inicializarEntorno() {
     let infoRoot = asegurarClave(sheet, "SYS_ROOT_FOLDER_ID", "", "");
     guardarDato(sheet, infoRoot.fila, rootFolder.getId(), "ID Carpeta Raíz del Sistema (Contenedora)");
 
+    // slug para nomenclatura dinámica
+    const appSlug = appNameFinal.toLowerCase().replace(/\s+/g, '-');
+    const catalogFileName = appSlug + "-catalog-tpv.json";
+
 
     // 4. CREAR SUB-CARPETAS (NOMENCLATURA MAYÚSCULA Y COMPLETA)
 
@@ -119,17 +124,17 @@ function inicializarEntorno() {
     let infoConfFolder = asegurarClave(sheet, "DRIVE_JSON_CONFIG_FOLDER_ID", "", "");
     guardarDato(sheet, infoConfFolder.fila, configFolder.getId(), "ID Carpeta de Archivos JSON");
 
-    // Archivo JSON
-    const jsonFiles = configFolder.getFilesByName("CONFIG.json");
+    // Archivo JSON dinámico
+    const jsonFiles = configFolder.getFilesByName(catalogFileName);
     let jsonFileId;
     if (jsonFiles.hasNext()) {
       jsonFileId = jsonFiles.next().getId();
     } else {
-      const newJson = configFolder.createFile("CONFIG.json", "{}", "application/json");
+      const newJson = configFolder.createFile(catalogFileName, "{}", "application/json");
       jsonFileId = newJson.getId();
     }
     let infoJsonFile = asegurarClave(sheet, "DRIVE_JSON_CONFIG_FILE_ID", "", "");
-    guardarDato(sheet, infoJsonFile.fila, jsonFileId, "ID Archivo CONFIG.json");
+    guardarDato(sheet, infoJsonFile.fila, jsonFileId, `ID Archivo ${catalogFileName}`);
 
     // D. Woocommerce
     const wooFolder = getOrCreateSubFolder(rootFolder, "WOOCOMMERCE_FILES");
@@ -158,8 +163,6 @@ function inicializarEntorno() {
 
 
     // 5. CONSTANTES RESTANTES
-    // Slug del app: lowercase con guiones (ej: "SKYPIA UNDERWEAR" -> "skypia-underwear")
-    const appSlug = appNameFinal.toLowerCase().replace(/\s+/g, '-');
 
     const otrasConstantes = [
       { clave: "GLOBAL_SCRIPT_ID", val: "", desc: "PEGA AQUÍ: ID WebApp (Este Script)" },
@@ -182,11 +185,13 @@ function inicializarEntorno() {
       { clave: "GITHUB_USER", val: "", desc: "Usuario GitHub" },
       { clave: "GITHUB_REPO", val: "api-tienda", desc: "Repositorio" },
       { clave: "GITHUB_TOKEN", val: "", desc: "Token (repo scope)" },
-      { clave: "GITHUB_FILE_PATH", val: appSlug + "-catalog-tpv.json", desc: "Ruta JSON del TPV en GitHub" },
+      { clave: "GITHUB_FILE_PATH", val: catalogFileName, desc: "Ruta JSON del TPV en GitHub" },
       { clave: "BLOGGER_GITHUB_FILE_PATH", val: appSlug + "-blogger-config.json", desc: "Ruta JSON de Blogger en GitHub" },
       { clave: "DONWEB_WRITE_URL", val: "https://tudominio.com/api_json_write.php", desc: "URL PHP de escritura JSON en Donweb" },
       { clave: "DONWEB_READ_URL", val: "https://tudominio.com/api_json_read.php", desc: "URL PHP de lectura JSON en Donweb" },
-      { clave: "GM_PAID_PIN", val: "1234", desc: "PIN de seguridad para activar IA de pago (Nano Banana Pro)" }
+      { clave: "GM_PAID_PIN", val: "1234", desc: "PIN de seguridad para activar IA de pago (Nano Banana Pro)" },
+      { clave: "SYNC_START_HOUR", val: "6", desc: "Hora de inicio de sincronización (0-23)" },
+      { clave: "SYNC_END_HOUR", val: "23", desc: "Hora de fin de sincronización (0-23)" }
     ];
 
     otrasConstantes.forEach(c => {
@@ -261,20 +266,9 @@ function inicializarEntorno() {
       triggerLog.push("⛔ TPV: Trigger NO instalado. Configurá DONWEB_WRITE_URL o GITHUB_USER/REPO/TOKEN.");
     }
 
-    // -- TRIGGER BLOGGER (blogger_regenerarCacheConfiguracion, cada 10 min) --
-    // Condiciones: CACHE_FOLDER_ID seteado (Drive disponible) + al menos un destino externo
-    const bloggerCacheOk = !!(cfg["BLOGGER_CACHE_FOLDER_ID"]);
-    const bloggerExtOk = donwebOk || githubOk; // reutiliza misma validación
-
-    if (bloggerCacheOk && bloggerExtOk) {
-      reinstalarTrigger("blogger_regenerarCacheConfiguracion", 10);
-      triggerLog.push("✅ Blogger (cada 10 min): Drive=" + (bloggerCacheOk ? "✅" : "⛔") + " Externo=" + (bloggerExtOk ? "✅" : "⛔"));
-    } else {
-      const motivo = !bloggerCacheOk
-        ? "Falta BLOGGER_CACHE_FOLDER_ID (ejecutá el Installer una vez para crearlo)."
-        : "Falta al menos un destino externo (Donweb o GitHub).";
-      triggerLog.push("⛔ Blogger: Trigger NO instalado. " + motivo);
-    }
+    // -- TRIGGER BLOGGER -- 
+    // NOTA: Se ha desactivado el trigger recurrente. Blogger se actualiza en cadena desde publicarCatalogo.
+    triggerLog.push("ℹ️ Blogger: Trigger automático desactivado (actualización en cadena activada).");
 
     console.log("[Installer] Triggers:\n" + triggerLog.join("\n"));
 

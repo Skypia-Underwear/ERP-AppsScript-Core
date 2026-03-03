@@ -1,7 +1,6 @@
 ---
 description: Sincronizar cambios con el proyecto Apps Script del cliente (Donweb/Castfer)
 ---
-
 # Deploy al Proyecto del Cliente
 
 Sincroniza el código local con el proyecto de Apps Script del cliente usando su Script ID.
@@ -13,7 +12,7 @@ Sincroniza el código local con el proyecto de Apps Script del cliente usando su
 
 // turbo
 1. Pushear al proyecto del cliente:
-   `clasp push --scriptId "1Te9svmz1gbbfj6Mep3U7dlTqVnYpMg6qU6TyUMIq6btC6CndjJnQTH_B"`
+   `clasp push --force`
 
 > [!TIP]
 > Para sincronizar **ambos proyectos** (tuyo + cliente), ejecutá primero `/deploy` y luego `/deploy-client`.
