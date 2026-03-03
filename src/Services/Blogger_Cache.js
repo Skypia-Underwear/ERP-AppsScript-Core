@@ -31,7 +31,7 @@ function blogger_regenerarCacheConfiguracion() {
 
         if (files.hasNext()) {
             file = files.next();
-            file.setContent(jsonFinal);
+            drive_updateFileContent(file.getId(), jsonFinal, "application/json");
             console.log("♻️ [Blogger Cache] Drive: JSON sobrescrito.");
         } else {
             file = folder.createFile(fileName, jsonFinal, "application/json");
@@ -92,7 +92,7 @@ function blogger_procesarSubidasRemotas() {
         if (!files.hasNext()) throw new Error("JSON local no encontrado. Drive vacío.");
 
         const file = files.next();
-        const contenidoStr = file.getContentAsString();
+        const contenidoStr = file.getBlob().getDataAsString();
         const jo = JSON.parse(contenidoStr);
 
         // --- PASO 2: Donweb (respaldo 1, mismo hosting que el frontend) ---
