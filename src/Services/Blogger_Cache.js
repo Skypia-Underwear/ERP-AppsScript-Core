@@ -28,7 +28,7 @@ function blogger_regenerarCacheConfiguracion() {
         const folderId = GLOBAL_CONFIG.BLOGGER.CACHE_FOLDER_ID;
         if (!folderId) throw new Error("Falta configurar BLOGGER_CACHE_FOLDER_ID en BD_APP_SCRIPT. Ejecutá el Instalador.");
 
-        const fileName = "configuracion_sitio.json";
+        const fileName = GLOBAL_CONFIG.BLOGGER.GITHUB_FILE_PATH || "configuracion_sitio.json";
         const folder = DriveApp.getFolderById(folderId);
         let file;
         const files = folder.getFilesByName(fileName);
@@ -89,17 +89,17 @@ function blogger_procesarSubidasRemotas() {
         const folderId = GLOBAL_CONFIG.BLOGGER.CACHE_FOLDER_ID;
         if (!folderId) throw new Error("Falta BLOGGER_CACHE_FOLDER_ID");
 
-        const fileName = "configuracion_sitio.json";
+        const fileName = GLOBAL_CONFIG.BLOGGER.GITHUB_FILE_PATH || "configuracion_sitio.json";
         const folder = DriveApp.getFolderById(folderId);
         const files = folder.getFilesByName(fileName);
 
-        if (!files.hasNext()) throw new Error("JSON local no encontrado. Drive vacío.");
+        if (!files.hasNext()) throw new Error(`JSON local Blogger (${fileName}) no encontrado en Drive.`);
 
         const file = files.next();
         const contenidoStr = file.getBlob().getDataAsString();
         const jo = JSON.parse(contenidoStr);
 
-        // --- PASO 2: Donweb (respaldo 1, mismo hosting que el frontend) ---
+        // --- PASO 2: Donweb ---
         const resDonweb = blogger_subirCacheADonweb(jo);
         if (resDonweb.success) {
             console.log("✅ [Blogger Cache] Donweb: JSON publicado.");
