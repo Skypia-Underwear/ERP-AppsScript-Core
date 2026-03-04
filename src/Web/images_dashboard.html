@@ -1693,7 +1693,7 @@
      * @param {number} quality Calidad JPEG 0-1 (default: 0.9).
      * @returns {Promise<{base64: string, mimeType: string, name: string}>}
      */
-    function compressImage(file, maxPx = 1536, quality = 0.9) {
+    function compressImage(file, maxPx = 2560, quality = 0.9) {
         return new Promise((resolve, reject) => {
             // Si no es imagen, devolver sin comprimir
             if (!file.type.startsWith('image/')) {
@@ -1772,8 +1772,8 @@
 
         Array.from(files).forEach(async file => {
             try {
-                // Comprimir imagen a 1536px JPEG 90% antes de enviar
-                const compressed = await compressImage(file, 1536, 0.9);
+                // Comprimir imagen a 2560px JPEG 90% antes de enviar (Mayor nitidez para IA)
+                const compressed = await compressImage(file, 2560, 0.9);
                 const base64 = compressed.base64;
                 const noSync = true;
 
