@@ -969,10 +969,10 @@ function prepararBlobOptimizado(archivoId, displayName) {
   let blob = file.getBlob();
   const originalSize = blob.getBytes().length;
 
-  // Optimización: si > 2MB, usar thumbnail 1536px de Drive (4 mosaicos exactos)
-  if (originalSize > 2 * 1024 * 1024) {
+  // Optimización: si > 5MB, usar thumbnail 2560px de Drive (Fidelidad superior para IA)
+  if (originalSize > 5 * 1024 * 1024) {
     try {
-      const thumbUrl = `https://drive.google.com/thumbnail?id=${archivoId}&sz=w1536`;
+      const thumbUrl = `https://drive.google.com/thumbnail?id=${archivoId}&sz=w2560`;
       const thumbResp = UrlFetchApp.fetch(thumbUrl, {
         headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
         muteHttpExceptions: true
