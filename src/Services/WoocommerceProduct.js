@@ -20,16 +20,18 @@ function guardarIdWoocommerce(sku, wooId) {
     throw new Error("No se pudo encontrar la columna WOO_ID o la hoja de productos.");
   }
 
-  const data = sheet.getDataRange().getValues();
-  const colId = mapping["CODIGO_ID"];
   const colWooId = mapping["WOO_ID"];
 
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][colId]).trim() === String(sku).trim()) {
-      sheet.getRange(i + 1, colWooId + 1).setValue(wooId);
-      debugLog(`✅ ID ${wooId} asignado a producto ${sku} en BD.`);
-      return true;
-    }
+  // Búsqueda optimizada con TextFinder (evita leer toda la hoja)
+  const finder = sheet.createTextFinder(String(sku).trim())
+    .matchEntireCell(true)
+    .matchCase(false);
+  const found = finder.findNext();
+
+  if (found) {
+    sheet.getRange(found.getRow(), colWooId + 1).setValue(wooId);
+    debugLog(`✅ ID ${wooId} asignado a producto ${sku} en BD.`);
+    return true;
   }
   throw new Error(` SKU ${sku} no encontrado en la base de datos.`);
 }
@@ -91,15 +93,22 @@ function guardarCSVEnDrive(encabezados, datos) {
   const csvContent = csvFilas.join('\n');
 
   try {
-    // 1. Buscar la carpeta de destino
+    // 1. Buscar la carpeta de destino (prioridad: ID configurado > nombre > raíz)
     let folder;
-    const folders = DriveApp.getFoldersByName(TARGET_FOLDER_NAME);
-    if (folders.hasNext()) {
-      folder = folders.next();
-      Logger.log(`Carpeta encontrada: "${TARGET_FOLDER_NAME}"`);
+    const folderId = GLOBAL_CONFIG.DRIVE.WOO_FOLDER_ID;
+    if (folderId) {
+      folder = DriveApp.getFolderById(folderId);
+      Logger.log(`Carpeta WooCommerce localizada por ID: ${folderId}`);
     } else {
-      folder = DriveApp.getRootFolder();
-      Logger.log(`Advertencia: Carpeta "${TARGET_FOLDER_NAME}" no encontrada. Usando raíz de Drive.`);
+      // Fallback legacy: búsqueda por nombre
+      const folders = DriveApp.getFoldersByName(TARGET_FOLDER_NAME);
+      if (folders.hasNext()) {
+        folder = folders.next();
+        Logger.log(`Carpeta encontrada por nombre: "${TARGET_FOLDER_NAME}"`);
+      } else {
+        folder = DriveApp.getRootFolder();
+        Logger.log(`⚠️ Advertencia: Carpeta WooCommerce no encontrada. Usando raíz de Drive.`);
+      }
     }
 
     // 2. Buscar o crear el archivo CON NOMBRE FIJO
@@ -300,98 +309,222 @@ function generarCSVSyncDiario() {
 }
 
 /**
- * Función de Google Apps Script (Versión 5.3)
- * - Coincide con el PHP V5.3
- * - Añade logs detallados de HTTP y respuesta.
- * - Captura 'server_logs' del PHP.
- * - Muestra la respuesta JSON completa y formateada.
+ * Construye el JSON completo para WooCommerce leyendo directamente de las hojas de cálculo.
+ * Elimina la dependencia del CSV maestro para sincronización individual.
+ * @param {string} sku - El SKU (CODIGO_ID) del producto a construir.
+ * @returns {{ wooId: string|null, payload: Object }} El JSON listo para enviar al proxy PHP.
  */
+function construirJSONProductoDesdeSheets(sku) {
+  const ss = getActiveSS();
+  const productosSheet = ss.getSheetByName(SHEETS.PRODUCTS);
+  const inventarioSheet = ss.getSheetByName(SHEETS.INVENTORY);
+  const variedadSheet = ss.getSheetByName(SHEETS.PRODUCT_VARIETIES);
+
+  if (!productosSheet || !inventarioSheet || !variedadSheet) {
+    throw new Error("Hojas BD_PRODUCTOS, BD_INVENTARIO o BD_VARIEDAD_PRODUCTOS no encontradas.");
+  }
+
+  const productosData = convertirRangoAObjetos(productosSheet);
+  const inventarioData = convertirRangoAObjetos(inventarioSheet);
+  const variedadData = convertirRangoAObjetos(variedadSheet);
+
+  const SKU_NORM = String(sku).trim().toUpperCase();
+  const producto = productosData.find(p => String(p.CODIGO_ID || '').trim().toUpperCase() === SKU_NORM);
+  if (!producto) throw new Error(`SKU ${SKU_NORM} no encontrado en BD_PRODUCTOS.`);
+
+  const skuPrincipal = producto.CODIGO_ID;
+  const inventarioProducto = inventarioData.filter(item => String(item.PRODUCTO_ID) === skuPrincipal);
+  const variedadesProducto = variedadData.filter(item => String(item.PRODUCTO_ID) === skuPrincipal);
+
+  // --- Obtener WOO_ID existente (null si es producto nuevo) ---
+  const wooIdExistente = producto.WOO_ID ? String(producto.WOO_ID).trim() : null;
+
+  // --- Construir datos del padre (misma lógica que generarCSVCompletoDesdeBD) ---
+  let defaultTipoPrecio = '', defaultColor = '', defaultTalle = '';
+  const tieneVariedadNoMenor = variedadesProducto.some(v => v.VARIEDAD && v.VARIEDAD.trim() !== 'Menor');
+  if (tieneVariedadNoMenor) {
+    const primeraVariedadNoMenor = variedadesProducto.find(v => v.VARIEDAD && v.VARIEDAD.trim() !== 'Menor');
+    if (primeraVariedadNoMenor) defaultTipoPrecio = primeraVariedadNoMenor.VARIEDAD;
+    defaultColor = 'Surtido';
+    defaultTalle = 'Surtido';
+  } else if (variedadesProducto.length > 0 && variedadesProducto[0].VARIEDAD) {
+    defaultTipoPrecio = variedadesProducto[0].VARIEDAD;
+  }
+
+  const categoriaPadre = producto.CATEGORIA_PADRE ? String(producto.CATEGORIA_PADRE).trim() : '';
+  const categoriaHijo = producto.CATEGORIA ? String(producto.CATEGORIA).trim() : '';
+  let categoriaCompleta = '';
+  if (categoriaPadre && categoriaHijo) categoriaCompleta = `${categoriaPadre}>${categoriaHijo}`;
+  else categoriaCompleta = categoriaPadre || categoriaHijo;
+
+  const opcionesTipoPrecio = [...new Set(variedadesProducto.map(v => v.VARIEDAD).filter(Boolean))].join(', ');
+  let coloresPadre = (producto.COLORES || '').split(',').map(s => s.trim()).filter(Boolean);
+  let tallesPadre = (producto.TALLES || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (tieneVariedadNoMenor && !coloresPadre.includes('Surtido')) coloresPadre.push('Surtido');
+  if (tieneVariedadNoMenor && !tallesPadre.includes('Surtido')) tallesPadre.push('Surtido');
+
+  const descripcionCorta = construirDescripcionCorta(producto, variedadesProducto);
+  const descripcionLargaHtml = construirDescripcionHtml(producto, producto.DESCRIPCION, producto.TABLA_TALLES);
+
+  const tagsCombinados = [producto.MATERIAL, producto.MARCA]
+    .map(s => s ? String(s).trim() : '')
+    .filter(Boolean)
+    .join(', ');
+
+  // --- Construir JSON del padre ---
+  const json = {
+    Type: 'variable',
+    SKU: skuPrincipal,
+    Name: producto.MODELO || '',
+    Published: '1',
+    'Is featured?': '0',
+    'Short description': descripcionCorta,
+    Description: descripcionLargaHtml,
+    'In stock?': '',
+    Stock: '',
+    'Regular price': '',
+    'Sale price': '',
+    Categories: categoriaCompleta,
+    Parent: '',
+    Position: '0',
+    Tags: tagsCombinados,
+    'tax:product_brand': producto.MARCA || '',
+    'Attribute 1 name': 'Precio',
+    'Attribute 1 value(s)': opcionesTipoPrecio,
+    'Attribute 1 visible': '1',
+    'Attribute 1 global': '1',
+    'Attribute 1 default': defaultTipoPrecio,
+    'Attribute 2 name': 'Color',
+    'Attribute 2 value(s)': coloresPadre.join(', '),
+    'Attribute 2 visible': '1',
+    'Attribute 2 global': '1',
+    'Attribute 2 default': defaultColor,
+    'Attribute 3 name': 'Talle',
+    'Attribute 3 value(s)': tallesPadre.join(', '),
+    'Attribute 3 visible': '1',
+    'Attribute 3 global': '1',
+    'Attribute 3 default': defaultTalle,
+    variations: []
+  };
+
+  // --- Construir variaciones ---
+  let posicionVariacion = 0;
+  for (const variedad of variedadesProducto) {
+    const variedadNombre = variedad.VARIEDAD ? variedad.VARIEDAD.trim() : '';
+    if (!variedadNombre) continue;
+
+    let skuVariacion = '', nombreVariacion = '', precio = '', enStock = '', stockQty = '';
+    let attr1Val = '', attr2Val = '', attr3Val = '';
+
+    if (variedadNombre === 'Menor') {
+      skuVariacion = variedad.VARIEDAD_ID || `${skuPrincipal}-MENOR`;
+      nombreVariacion = `${producto.MODELO || skuPrincipal} - ${variedadNombre} (por unidad)`;
+      precio = Number(variedad.PRECIO_UNITARIO || 0).toFixed(2);
+      enStock = '1'; stockQty = '';
+      attr1Val = variedadNombre; attr2Val = ''; attr3Val = '';
+    } else {
+      stockQty = Number(inventarioProducto.reduce((sum, item) => sum + Number(item.STOCK_ACTUAL || 0), 0)).toString();
+      precio = (Number(variedad.PRECIO_UNITARIO || 0) * Number(variedad.CANTIDAD_MINIMA || 1)).toFixed(2);
+      skuVariacion = variedad.VARIEDAD_ID ? `${variedad.VARIEDAD_ID}-SURTIDO` : `${skuPrincipal}-${variedadNombre.toUpperCase()}-SURTIDO`;
+      let nombrePaqueteDinamico = variedadNombre;
+      if (variedadNombre.toLowerCase() === 'docena') {
+        if (Number(variedad.CANTIDAD_MINIMA) === 6) nombrePaqueteDinamico = 'Media Docena';
+        else if (Number(variedad.CANTIDAD_MINIMA) === 12) nombrePaqueteDinamico = 'Docena Completa';
+      }
+      nombreVariacion = `${producto.MODELO || skuPrincipal} - ${nombrePaqueteDinamico} (Mín. ${variedad.CANTIDAD_MINIMA || 1}) - Surtido`;
+      enStock = stockQty > 0 ? '1' : '0';
+      attr1Val = variedadNombre; attr2Val = 'Surtido'; attr3Val = 'Surtido';
+    }
+
+    json.variations.push({
+      Type: 'variation',
+      SKU: skuVariacion,
+      Name: nombreVariacion,
+      'In stock?': enStock,
+      Stock: stockQty,
+      'Regular price': precio,
+      'Sale price': '',
+      Parent: skuPrincipal,
+      Position: String(posicionVariacion),
+      'Attribute 1 name': 'Precio',
+      'Attribute 1 value(s)': attr1Val,
+      'Attribute 1 visible': '1',
+      'Attribute 1 global': '1',
+      'Attribute 1 default': '',
+      'Attribute 2 name': 'Color',
+      'Attribute 2 value(s)': attr2Val,
+      'Attribute 2 visible': '1',
+      'Attribute 2 global': '1',
+      'Attribute 2 default': '',
+      'Attribute 3 name': 'Talle',
+      'Attribute 3 value(s)': attr3Val,
+      'Attribute 3 visible': '1',
+      'Attribute 3 global': '1',
+      'Attribute 3 default': ''
+    });
+    posicionVariacion++;
+  }
+
+  return { wooId: wooIdExistente, payload: json };
+}
+
 /**
- * Función de Google Apps Script (Versión 5.5 Refinada)
- * - Incluye API Key para validación en el proxy PHP.
- * - Soporta la lógica de "Sincronización Automática" mediante el proxy.
+ * Envía un producto a WooCommerce (Versión 6.0 - Lectura Directa).
+ * Lee los datos directamente de las hojas de cálculo en tiempo real.
+ * Soporta creación (sin WOO_ID) y actualización (con WOO_ID).
+ * @param {string} sku - El SKU del producto a sincronizar.
  */
 function enviarProductoWP(sku) {
   const logArray = [];
   try {
     if (!sku) throw new Error("Se requiere un SKU para enviar a WooCommerce.");
 
-    const SKU_NORM = sku.toUpperCase();
+    const SKU_NORM = String(sku).trim().toUpperCase();
     logArray.push(`ℹ️ Iniciando envío de SKU: ${SKU_NORM} a WooCommerce...`);
 
-    // 1️⃣ Obtener el CSV maestro dinámicamente
-    const TARGET_FOLDER_NAME = "WOOCOMMERCE_FILES";
-    const TARGET_FILE_NAME = "woocommerce_sync_data.csv";
-    let csvFile = null;
+    // 1️⃣ Construir JSON directamente desde las hojas de cálculo (sin CSV intermediario)
+    logArray.push(`📊 Leyendo datos en tiempo real desde las hojas de cálculo...`);
+    const { wooId, payload: wooJSON } = construirJSONProductoDesdeSheets(sku);
 
-    try {
-      // Intentar primero por el ID configurado en GLOBAL_CONFIG si existe
-      const configId = GLOBAL_CONFIG.DRIVE.WOO_CSV_FILE_ID;
-      if (configId) {
-        csvFile = DriveApp.getFileById(configId);
-      }
-    } catch (e) { }
-
-    if (!csvFile) {
-      // Si no hay ID en config o no es válido, buscar por nombre en la carpeta
-      const folders = DriveApp.getFoldersByName(TARGET_FOLDER_NAME);
-      if (folders.hasNext()) {
-        const folder = folders.next();
-        const files = folder.getFilesByName(TARGET_FILE_NAME);
-        if (files.hasNext()) csvFile = files.next();
-      }
-    }
-
-    if (!csvFile) throw new Error(`No se encontró el archivo ${TARGET_FILE_NAME} en la carpeta ${TARGET_FOLDER_NAME}. Genera el CSV primero.`);
-
-    logArray.push(`📂 Usando CSV Maestro: ${csvFile.getName()} (ID: ${csvFile.getId()})`);
-    const csvContent = csvFile.getBlob().getDataAsString();
-    const rows = Utilities.parseCsv(csvContent);
-    const encabezados = rows.shift();
-    const productos = rows.map(fila => {
-      const obj = {};
-      fila.forEach((valor, i) => obj[encabezados[i]] = valor);
-      return obj;
-    });
-
-    // 2️⃣ Filtrar filas que coincidan con SKU o Parent
-    const filasProducto = productos.filter(r =>
-      (r['SKU'] || '').toUpperCase() === SKU_NORM || (r['Parent'] || '').toUpperCase() === SKU_NORM
-    );
-    if (!filasProducto.length) throw new Error(`No se encontró el SKU ${SKU_NORM} en el CSV Maestro.`);
-    logArray.push(`✅ Datos recuperados (${filasProducto.length} variaciones).`);
-
-    // 3️⃣ Generar JSON exacto para WooCommerce
-    const wooJSON = buildWooJSONCSVExacto(filasProducto);
     if (!wooJSON) throw new Error("Error al construir el paquete de datos JSON.");
 
-    // 4️⃣ Enviar al Proxy PHP con API Key
-    const payload = {
+    const esActualizacion = !!wooId;
+    logArray.push(esActualizacion
+      ? `🔄 Modo ACTUALIZACIÓN — WOO_ID existente: ${wooId}`
+      : `🆕 Modo CREACIÓN — Producto nuevo en WooCommerce`);
+    logArray.push(`✅ Datos construidos (${wooJSON.variations ? wooJSON.variations.length : 0} variaciones).`);
+
+    // 2️⃣ Enviar al Proxy PHP con API Key
+    const payloadHTTP = {
       apiKey: GLOBAL_CONFIG.WORDPRESS.IMAGE_API_KEY || 'CASTFER2025',
       producto: JSON.stringify(wooJSON)
     };
+    // Incluir woo_id para que el proxy PHP haga PUT (update) en vez de POST (create)
+    if (esActualizacion) {
+      payloadHTTP.woo_id = wooId;
+    }
 
     const options = {
       method: "post",
-      payload: payload,
+      payload: payloadHTTP,
       muteHttpExceptions: true
     };
 
     const url = GLOBAL_CONFIG.WORDPRESS.PRODUCT_API_URL;
     logArray.push(`⏳ Sincronizando con WordPress...`);
 
-    // --- NUEVO: Resumen Técnico para Auditoría ---
+    // --- Resumen Técnico para Auditoría ---
     try {
       let resumenVariaciones = "Producto Simple (sin variaciones)";
       if (wooJSON.variations && wooJSON.variations.length > 0) {
         resumenVariaciones = wooJSON.variations.map(v => {
-          const attr = (v.attributes && v.attributes[0]) ? v.attributes[0].option : "Normal";
-          const price = v['Regular price'] || v.regular_price || "0.00";
-          const stock = v['Stock'] || v.stock_quantity || "N/A";
+          const attr = v['Attribute 1 value(s)'] || "Normal";
+          const price = v['Regular price'] || "0.00";
+          const stock = v['Stock'] || "N/A";
           return `- ${attr}: Stock ${stock}, Precio $${price}`;
         }).join("\n");
       }
-      logArray.push(`🛠️ RESUMEN TÉCNICO:\nProducto: ${wooJSON.name || sku}\nVariaciones:\n${resumenVariaciones}`);
+      logArray.push(`🛠️ RESUMEN TÉCNICO:\nProducto: ${wooJSON.Name || sku}\nCategoría: ${wooJSON.Categories || 'N/A'}\nMarca: ${wooJSON['tax:product_brand'] || 'N/A'}\nVariaciones:\n${resumenVariaciones}`);
     } catch (e) {
       logArray.push(`⚠️ No se pudo generar resumen técnico: ${e.message}`);
     }
