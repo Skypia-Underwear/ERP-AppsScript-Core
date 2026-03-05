@@ -90,14 +90,17 @@ function blogger_procesarSubidasRemotas() {
         if (!folderId) throw new Error("Falta BLOGGER_CACHE_FOLDER_ID");
 
         const fileName = GLOBAL_CONFIG.BLOGGER.GITHUB_FILE_PATH || "configuracion_sitio.json";
-        const folder = DriveApp.getFolderById(folderId);
-        const files = folder.getFilesByName(fileName);
+        // Usamos executeWithRetry para evitar errores transitorios de "Error de Servicio: Drive"
+        const jo = executeWithRetry(() => {
+            const folder = DriveApp.getFolderById(folderId);
+            const files = folder.getFilesByName(fileName);
 
-        if (!files.hasNext()) throw new Error(`JSON local Blogger (${fileName}) no encontrado en Drive.`);
+            if (!files.hasNext()) throw new Error(`JSON local Blogger (${fileName}) no encontrado en Drive.`);
 
-        const file = files.next();
-        const contenidoStr = file.getBlob().getDataAsString();
-        const jo = JSON.parse(contenidoStr);
+            const file = files.next();
+            const contenidoStr = file.getBlob().getDataAsString();
+            return JSON.parse(contenidoStr);
+        }, 3);
 
         // --- PASO 2: Donweb ---
         const resDonweb = blogger_subirCacheADonweb(jo);

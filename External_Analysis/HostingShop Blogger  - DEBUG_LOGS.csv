@@ -1,0 +1,6 @@
+FECHA,MENSAJE
+5/3/2026 6:22:26,❌ Error en respaldo Drive: Error de servicio: Drive
+5/3/2026 7:14:16,"❌ Error GitHub: GitHub API Error (409): {""message"":""is at d01aade3b76f66047edb65be356071e5c9088252 but expected e2c842379250f069d20896c972f22929320e2f0b"",""documentation_url"":""https://docs.github.com/rest/repos/contents#create-or-update-file-contents"",""status"":""409""}"
+5/3/2026 7:14:17,"⚠️ GitHub falló: GitHub API Error (409): {""message"":""is at d01aade3b76f66047edb65be356071e5c9088252 but expected e2c842379250f069d20896c972f22929320e2f0b"",""documentation_url"":""https://docs.github.com/rest/repos/contents#create-or-update-file-contents"",""status"":""409""}"
+5/3/2026 12:12:29,❌ Error en respaldo Drive: Error de servicio: Drive
+5/3/2026 13:59:48,❌ [TPV Cache] Error subida remota: Error de servicio: Drive
