@@ -246,7 +246,8 @@ function blogger_listar_configuracion_sinCache() {
         content: dataArray,
         formas_pago: configBloggerJSON.formas_pago || [],
         cuenta_transferencia_dia: configBloggerJSON.cuenta_transferencia_dia || {},
-        aplicar_marca_agua: aplicarMarcaDeAgua
+        aplicar_marca_agua: aplicarMarcaDeAgua,
+        timestamp_ms: Date.now()
     };
 }
 

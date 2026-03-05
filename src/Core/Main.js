@@ -95,7 +95,7 @@ function executeWithRetry(fn, maxRetries = 3) {
       return fn();
     } catch (e) {
       lastError = e;
-      if (e.message.includes("Service Spreadsheets failed") || e.message.includes("Timed out")) {
+      if (e.message.includes("Service Spreadsheets failed") || e.message.includes("Timed out") || e.message.includes("Drive")) {
         Utilities.sleep(Math.pow(2, i) * 1000); // Exponential backoff (1s, 2s, 4s)
         continue;
       }
@@ -1081,6 +1081,9 @@ function ejecutarAccionDeImagen(params) {
         case "sincronizar":
           if (!codigo) throw new Error("Se requiere código para 'sincronizar'.");
           return procesarSincronizacion(codigo);
+        case "sincronizar_woo":
+          if (!codigo) throw new Error("Se requiere código de producto.");
+          return enviarProductoWP(codigo);
         case "generarCarpetasGlobal": return procesarGeneracionCarpetas();
         case "sincronizarGlobal":
           ejecutarSincronizacionGlobal();

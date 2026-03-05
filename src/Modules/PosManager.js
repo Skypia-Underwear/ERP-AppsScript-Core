@@ -12,34 +12,39 @@
  * Guarda una copia del catálogo en Google Drive.
  */
 function guardarRespaldoEnDrive() {
-    try {
-        const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
-        let fileId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FILE_ID;
+    return executeWithRetry(() => {
+        try {
+            const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
+            let fileId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FILE_ID;
 
-        if (!folderId) throw new Error("ID de carpeta JSON no configurado.");
+            if (!folderId) throw new Error("ID de carpeta JSON no configurado.");
 
-        const folder = DriveApp.getFolderById(folderId);
-        const catalogo = generarCatalogoJsonTPV();
-        const content = JSON.stringify(catalogo, null, 2);
-        const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "hostingshop.json";
+            const folder = DriveApp.getFolderById(folderId);
+            const catalogo = generarCatalogoJsonTPV();
+            catalogo.timestamp_ms = Date.now(); // Inject timestamp_ms here
+            const content = JSON.stringify(catalogo, null, 2);
+            const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "hostingshop.json";
 
-        const files = folder.getFilesByName(fileName);
-        let file;
-        if (files.hasNext()) {
-            file = files.next();
-            drive_updateFileContent(file.getId(), content, MimeType.PLAIN_TEXT);
-            debugLog(`✅ Respaldo en Drive actualizado (${fileName}).`);
-        } else {
-            file = folder.createFile(fileName, content, MimeType.PLAIN_TEXT);
-            debugLog(`✅ Nuevo respaldo en Drive creado (${fileName}).`);
+            const files = folder.getFilesByName(fileName);
+            let file;
+            if (files.hasNext()) {
+                file = files.next();
+                drive_updateFileContent(file.getId(), content, MimeType.PLAIN_TEXT);
+                debugLog(`✅ Respaldo en Drive actualizado (${fileName}).`);
+            } else {
+                file = folder.createFile(fileName, content, MimeType.PLAIN_TEXT);
+                debugLog(`✅ Nuevo respaldo en Drive creado (${fileName}).`);
+            }
+
+            return { success: true, fileId: file.getId() };
+
+        } catch (e) {
+            debugLog("❌ Error en respaldo Drive: " + e.message);
+            // Re-lanzar error de DriveApp para que executeWithRetry lo detecte
+            if (e.message.includes("Drive")) throw e;
+            return { success: false, message: e.message };
         }
-
-        return { success: true, fileId: file.getId() };
-
-    } catch (e) {
-        debugLog("❌ Error en respaldo Drive: " + e.message);
-        return { success: false, message: e.message };
-    }
+    }, 3);
 }
 
 /**
@@ -243,7 +248,7 @@ function generateInventoryCache() {
         const keys = Object.keys(stockMap);
         if (keys.length > 0) {
             const sample = keys.slice(0, 2).map(k => `${k}: ${stockMap[k]}`).join(" | ");
-            debugLog("📦 [DEBUG] Inventario Cacheado: " + sample + " ... Total: " + keys.length, true);
+            debugLog("📦 [DEBUG] Inventario Cacheado: " + sample + " ... Total: " + keys.length, false);
         }
 
         return { success: true, stockMap: stockMap };
@@ -510,8 +515,8 @@ function tpv_procesarSubidasRemotas() {
  * @returns {{ success: boolean, message: string }}
  */
 function subirArchivoAGitHub(jsonData, filePath) {
-    const MAX_RETRIES = 2;
-    const RETRYABLE_CODES = [500, 502, 503];
+    const MAX_RETRIES = 3;
+    const RETRYABLE_CODES = [409, 500, 502, 503, 504];
 
     try {
         const user = GLOBAL_CONFIG.GITHUB.USER;
@@ -526,32 +531,32 @@ function subirArchivoAGitHub(jsonData, filePath) {
         const content = JSON.stringify(jsonData, null, 2);
         const contentBase64 = Utilities.base64Encode(content, Utilities.Charset.UTF_8);
 
-        // Obtener SHA para actualización (necesario si el archivo ya existe)
-        let sha = null;
-        const getResponse = UrlFetchApp.fetch(url, {
-            method: "get",
-            headers: { "Authorization": "token " + token },
-            muteHttpExceptions: true
-        });
-        if (getResponse.getResponseCode() === 200) {
-            sha = JSON.parse(getResponse.getContentText()).sha;
-        }
-
-        const payload = {
-            message: "ERP auto-update: " + filePath + " @ " + new Date().toISOString(),
-            content: contentBase64
-        };
-        if (sha) payload.sha = sha;
-
-        // Intentar PUT con retry en errores transitorios (500/502/503)
+        // Intentar PUT con retry en errores transitorios o de conflicto SHA
         let lastCode = 0;
         let lastBody = "";
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             if (attempt > 0) {
-                const waitMs = 2000 * attempt; // 2s, 4s
+                const waitMs = 2000 * attempt; // 2s, 4s, 6s
                 debugLog(`⏳ GitHub retry ${attempt}/${MAX_RETRIES} en ${waitMs / 1000}s...`);
                 Utilities.sleep(waitMs);
             }
+
+            // Obtener SHA para actualización dentro del loop para evitar el 409
+            let sha = null;
+            const getResponse = UrlFetchApp.fetch(url, {
+                method: "get",
+                headers: { "Authorization": "token " + token },
+                muteHttpExceptions: true
+            });
+            if (getResponse.getResponseCode() === 200) {
+                sha = JSON.parse(getResponse.getContentText()).sha;
+            }
+
+            const payload = {
+                message: "ERP auto-update: " + filePath + " @ " + new Date().toISOString(),
+                content: contentBase64
+            };
+            if (sha) payload.sha = sha;
 
             const response = UrlFetchApp.fetch(url, {
                 method: "put",
@@ -601,26 +606,64 @@ function subirCatalogoAGitHub(catalogoPreGenerado) {
  */
 function subirArchivoADonweb(jsonData, fileName) {
     try {
+        const cache = CacheService.getScriptCache();
+        const breakerKey = "DONWEB_CIRCUIT_BREAKER_" + fileName;
+
+        if (cache.get(breakerKey)) {
+            debugLog(`⚠️ Pausa preventiva: Envío a Donweb omitido para '${fileName}' (Circuit Breaker activo por fallos continuos).`);
+            return { success: false, message: `Envío omitido temporalmente por protección del servidor.` };
+        }
+
         const url = GLOBAL_CONFIG.DONWEB.WRITE_URL;
         if (!url) throw new Error("Falta configurar DONWEB_WRITE_URL en BD_APP_SCRIPT.");
 
         const payload = JSON.stringify({ fileName: fileName, data: jsonData });
-        const response = UrlFetchApp.fetch(url, {
-            method: "post",
-            contentType: "application/json",
-            payload: payload,
-            muteHttpExceptions: true
-        });
 
-        const code = response.getResponseCode();
-        if (code === 200) {
-            debugLog(`✅ Donweb: '${fileName}' guardado correctamente.`);
-            return { success: true, message: `Donweb '${fileName}' actualizado.` };
-        } else {
-            throw new Error(`HTTP Error (${code}): ${response.getContentText()}`);
+        const MAX_RETRIES = 3;
+        const RETRYABLE_CODES = [400, 403, 408, 429, 500, 502, 503, 504];
+        let lastCode = 0;
+        let lastBody = "";
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            if (attempt > 0) {
+                const waitMs = 2000 * attempt;
+                debugLog(`⏳ Donweb retry ${attempt}/${MAX_RETRIES} en ${waitMs / 1000}s...`);
+                Utilities.sleep(waitMs);
+            }
+
+            const response = UrlFetchApp.fetch(url, {
+                method: "post",
+                contentType: "application/json",
+                payload: payload,
+                muteHttpExceptions: true
+            });
+
+            lastCode = response.getResponseCode();
+            lastBody = response.getContentText();
+
+            if (lastCode === 200) {
+                if (attempt > 0) debugLog(`✅ Donweb: éxito en retry ${attempt}.`);
+                debugLog(`✅ Donweb: '${fileName}' guardado correctamente.`);
+                return { success: true, message: `Donweb '${fileName}' actualizado.` };
+            }
+
+            if (!RETRYABLE_CODES.includes(lastCode)) break;
         }
+
+        throw new Error(`HTTP Error (${lastCode}): ${lastBody}`);
     } catch (e) {
         debugLog("❌ Error Donweb: " + e.message);
+
+        // Activar el Circuit Breaker por 1 hora si falla consistentemente
+        try {
+            const cache = CacheService.getScriptCache();
+            const breakerKey = "DONWEB_CIRCUIT_BREAKER_" + fileName;
+            cache.put(breakerKey, "true", 3600); // 1 hora de bloqueo
+            debugLog(`🛑 Circuit Breaker activado para '${fileName}' durante 60 minutos.`);
+        } catch (cacheErr) {
+            // Ignorar errores de cache
+        }
+
         return { success: false, message: e.message };
     }
 }

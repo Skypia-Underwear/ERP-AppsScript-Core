@@ -1558,26 +1558,8 @@
         CATALOG_LOADING = true;
         log("Cargando catálogo dinámico...", "info");
 
-        let resp = null;
-        let usedFallback = false;
-
         try {
-            // Intento 1: Donweb (CORS/Network sensitive)
-            try {
-                resp = await fetch(CATALOG_URL, { cache: 'no-store' });
-                if (!resp.ok) throw new Error("HTTP " + resp.status);
-            } catch (err) {
-                if (CATALOG_URL_FALLBACK) {
-                    log("⚠️ Fallo servidor Donweb (CORS/404), activando respaldo GitHub...", "warning");
-                    resp = await fetch(CATALOG_URL_FALLBACK, { cache: 'no-store' });
-                    if (!resp.ok) throw new Error("GitHub Fallback HTTP " + resp.status);
-                    usedFallback = true;
-                } else {
-                    throw err;
-                }
-            }
-
-            const data = await resp.json();
+            const data = await window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
 
             if (data && data.products) {
                 PRODUCT_CATALOG = data.products.map(p => ({

@@ -53,6 +53,8 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 }
 
 $producto_json = $_POST["producto"] ?? "";
+$woo_id = $_POST["woo_id"] ?? null; // [NUEVO] Optimización de llave directa
+
 if (!$producto_json) {
     log_error("No product JSON received.");
     http_response_code(400);
@@ -274,19 +276,30 @@ try {
     $variationsData = $wcReadyData["variations_data"] ?? null;
     unset($wcReadyData["variations_data"]);
 
-    $check = wc_request("GET", "products?sku=" . urlencode($sku));
-    $checkData = json_decode($check["response"], true);
-
     $product_id = null;
     $status = "";
 
-    if (!empty($checkData) && isset($checkData[0]["id"])) {
-        $product_id = $checkData[0]["id"];
+    // ⚡ OPTIMIZACIÓN: Si Apps Script envió el woo_id, saltamos la búsqueda por SKU (ahorra 1 request)
+    if (!empty($woo_id)) {
+        $product_id = $woo_id;
         $result = wc_request("PUT", "products/$product_id", $wcReadyData);
         $status = "updated";
+        log_error("Optimized Update: Used woo_id=$woo_id for direct PUT.");
     } else {
-        $result = wc_request("POST", "products", $wcReadyData);
-        $status = "created";
+        // Fallback Clásico: Buscar por SKU
+        $check = wc_request("GET", "products?sku=" . urlencode($sku));
+        $checkData = json_decode($check["response"], true);
+
+        if (!empty($checkData) && isset($checkData[0]["id"])) {
+            $product_id = $checkData[0]["id"];
+            $result = wc_request("PUT", "products/$product_id", $wcReadyData);
+            $status = "updated";
+            log_error("Update: Found by SKU=$sku -> woo_id=$product_id");
+        } else {
+            $result = wc_request("POST", "products", $wcReadyData);
+            $status = "created";
+            log_error("Create: Product SKU=$sku");
+        }
     }
 
     $respData = json_decode($result["response"], true);
