@@ -1577,8 +1577,7 @@
                 CATEGORY_SVGS = data.categorySvgs || {};
                 renderizarCategorias();
 
-                const source = usedFallback ? "GitHub (Respaldo)" : "Donweb (Principal)";
-                log(`Catálogo cargado vía ${source}: ${PRODUCT_CATALOG.length} productos.`, "success");
+                log(`Catálogo global cargado: ${PRODUCT_CATALOG.length} productos.`, "success");
                 const val = document.getElementById('searchInput').value;
                 if (val) debounceSearch(val);
 
