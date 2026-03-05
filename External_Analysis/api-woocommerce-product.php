@@ -54,13 +54,45 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
 $action = $_POST["action"] ?? "sync";
 $woo_id = $_POST["woo_id"] ?? null;
+$sku = $_POST["sku"] ?? null; // CODIGO_ID from AppSheet
+
+// --- [NUEVO] MANEJO DE CONSULTA DE ID POR SKU (PARA AUDITORIA/SYNC MASIVO) ---
+if ($action === "get_id_by_sku") {
+    if (empty($sku)) {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "Missing sku parameter.", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
+        exit();
+    }
+    $result = wc_request("GET", "products?sku=" . urlencode($sku));
+    $data = json_decode($result["response"], true);
+
+    if (!empty($data) && isset($data[0]["id"])) {
+        echo json_encode(["status" => "success", "woo_id" => $data[0]["id"], "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
+    } else {
+        echo json_encode(["status" => "not_found", "message" => "No product found with that sku.", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
+    }
+    exit();
+}
+// --- FIN MANEJO DE CONSULTA DE ID POR SKU ---
 
 // --- [NUEVO] MANEJO DE ELIMINACIÓN ---
 if ($action === "delete") {
-    if (!$woo_id) {
-        log_error("DELETE requested but missing woo_id.");
+    // Si no hay woo_id, intentar buscar por SKU (CODIGO_ID)
+    if (empty($woo_id) && !empty($sku)) {
+        log_error("DELETE requested without woo_id. Falling back to search by SKU: $sku");
+        $check = wc_request("GET", "products?sku=" . urlencode($sku));
+        $checkData = json_decode($check["response"], true);
+
+        if (!empty($checkData) && isset($checkData[0]["id"])) {
+            $woo_id = $checkData[0]["id"];
+            log_error("Fallback successful: Found woo_id=$woo_id for SKU=$sku");
+        }
+    }
+
+    if (empty($woo_id)) {
+        log_error("DELETE requested but both woo_id and valid SKU/CODIGO_ID are missing or not found.");
         http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "Missing woo_id for deletion.", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
+        echo json_encode(["status" => "error", "message" => "Missing woo_id and unable to resolve via SKU.", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
         exit();
     }
 
