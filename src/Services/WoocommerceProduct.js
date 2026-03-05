@@ -596,19 +596,22 @@ function enviarProductoWP(sku) {
 /**
  * Envía una petición DELETE a WooCommerce para enviar un producto a la papelera.
  * Depende del nuevo soporte de action=delete en el proxy PHP de Donweb.
- * @param {string|number} wooId - El ID del producto en WooCommerce.
+ * @param {string|number} wooId - El ID del producto en WooCommerce (puede ser nulo si se provee sku).
+ * @param {string} sku - El SKU (CODIGO_ID) del producto para la búsqueda fallback.
  */
-function eliminarProductoWP(wooId) {
+function eliminarProductoWP(wooId, sku) {
   try {
-    if (!wooId) throw new Error("Se requiere un WOO_ID para eliminar en WooCommerce.");
+    if (!wooId && !sku) throw new Error("Se requiere al menos un WOO_ID o SKU para eliminar en WooCommerce.");
 
-    console.log(`🗑️ Solicitando eliminación en WooCommerce para wooId: ${wooId}...`);
+    console.log(`🗑️ Solicitando eliminación en WooCommerce para wooId: ${wooId || 'N/A'}, sku: ${sku || 'N/A'}...`);
 
     const payloadHTTP = {
       apiKey: GLOBAL_CONFIG.WORDPRESS.IMAGE_API_KEY || 'CASTFER2025',
-      action: "delete",
-      woo_id: wooId
+      action: "delete"
     };
+
+    if (wooId) payloadHTTP.woo_id = wooId;
+    if (sku) payloadHTTP.sku = sku;
 
     const options = {
       method: "post",
@@ -897,4 +900,84 @@ function testGenerarJSONWoo() {
   Logger.log(`✅ JSON generado para WooCommerce:`);
   Logger.log(JSON.stringify(jsonWoo, null, 2));
   Logger.log(`🏁 Se completó la ejecución de prueba`);
+}
+
+/**
+ * 🛠️ Herramienta Administrativa / Auditoría:
+ * Barre la hoja BD_PRODUCTOS, encuentra productos sin WOO_ID y los busca en WooCommerce
+ * utilizando su CODIGO_ID (SKU). Si los encuentra, los rellena mágicamente en la hoja.
+ */
+function herramienta_sincronizarIdsFaltantesWP() {
+  Logger.log("🚀 Iniciando Auditoría y Sync Masivo de WOO_IDs faltantes...");
+
+  const ss = getActiveSS();
+  const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
+  if (!sheet) throw new Error("No se encontró BD_PRODUCTOS");
+
+  const data = convertirRangoAObjetos(sheet);
+  const mapping = HeaderManager.getMapping("PRODUCTS");
+  const colWooId = mapping["WOO_ID"];
+
+  if (colWooId === undefined) {
+    throw new Error("No se pudo mapear la columna WOO_ID.");
+  }
+
+  let procesados = 0;
+  let encontrados = 0;
+
+  const apiUrl = GLOBAL_CONFIG.WORDPRESS.PRODUCT_API_URL;
+  const apiKey = GLOBAL_CONFIG.WORDPRESS.IMAGE_API_KEY || 'CASTFER2025';
+
+  // Itera sobre todos los productos
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const sku = row.CODIGO_ID;
+    const wooIdActual = row.WOO_ID;
+
+    // Si tiene SKU pero le falta el WOO_ID
+    if (sku && !wooIdActual) {
+      procesados++;
+      Logger.log(`Buscando ID para SKU: ${sku}...`);
+
+      const payloadHTTP = {
+        apiKey: apiKey,
+        action: "get_id_by_sku",
+        sku: String(sku).trim()
+      };
+
+      const options = {
+        method: "post",
+        payload: payloadHTTP,
+        muteHttpExceptions: true
+      };
+
+      try {
+        const response = UrlFetchApp.fetch(apiUrl, options);
+        if (response.getResponseCode() === 200) {
+          const resJson = JSON.parse(response.getContentText());
+          if (resJson.status === "success" && resJson.woo_id) {
+            const nuevoWooId = resJson.woo_id;
+            Logger.log(`✅ Encontrado: ${sku} -> ${nuevoWooId}`);
+            // i + 2 porque el array de 'data' omite el header (= fila 1)
+            sheet.getRange(i + 2, colWooId + 1).setValue(nuevoWooId);
+            encontrados++;
+          } else {
+            Logger.log(`⚠️ No encontrado en WC: ${sku}`);
+          }
+        } else {
+          Logger.log(`❌ Error servidor al buscar ${sku}: HTTP ${response.getResponseCode()}`);
+        }
+      } catch (e) {
+        Logger.log(`❌ Error de red buscando ${sku}: ${e.message}`);
+      }
+    }
+  }
+
+  Logger.log(`🏁 Sincronización masiva finalizada. Evaluados: ${procesados}, Encontrados y Guardados: ${encontrados}.`);
+
+  // Tratar de emitir alerta en UI si se corre desde el botón/menú
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(`Sincronización Finalizada\n\nProductos evaluados: ${procesados}\nIDs recuperados: ${encontrados}`);
+  } catch (e) { }
 }

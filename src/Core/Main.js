@@ -1070,14 +1070,12 @@ function ejecutarAccionDeImagen(params) {
     if (params.eliminar === true) {
       if (!codigo) throw new Error("Se requiere código de producto para eliminar.");
 
-      // INTEGRACIÓN WOOCOMMERCE: Eliminar en la tienda virtual si AppSheet envió el woo_id
-      if (params.woo_id) {
-        try {
-          const resDelete = eliminarProductoWP(params.woo_id);
-          console.log("Resultado Woo Eliminar:", resDelete);
-        } catch (e) {
-          console.error("Fallo silencioso al eliminar en WooCommerce:", e.message);
-        }
+      // INTEGRACIÓN WOOCOMMERCE: Eliminar en la tienda virtual (vía WOO_ID o fallback por CODIGO_ID)
+      try {
+        const resDelete = eliminarProductoWP(params.woo_id, codigo);
+        console.log("Resultado Woo Eliminar:", resDelete);
+      } catch (e) {
+        console.error("Fallo silencioso al eliminar en WooCommerce:", e.message);
       }
 
       // Continuar con la eliminación habitual de la carpeta de Drive
