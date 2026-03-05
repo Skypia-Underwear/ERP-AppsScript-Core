@@ -2812,7 +2812,7 @@ function checkNewProductsFlag(skusExistentes) {
     const idxWoo = mapping["WOO_ID"];
 
     const nuevosProductos = [];
-    const setExistentes = new Set(skusExistentes || []);
+    const setExistentes = new Set((skusExistentes || []).map(String));
 
     for (let i = 1; i < data.length; i++) {
       const sku = String(data[i][idxSku]).trim();
@@ -2829,13 +2829,12 @@ function checkNewProductsFlag(skusExistentes) {
       }
     }
 
-    // Si encontramos y enviamos los nuevos, apagamos el flag
+    // Si encontramos y enviamos los nuevos
     if (nuevosProductos.length > 0) {
-      cache.remove("NEW_PRODUCTS_AVAILABLE");
+      // NOTE: No eliminamos la cache aquí para evitar Race Conditions con múltiples clientes
       return { success: true, hasNew: true, products: nuevosProductos };
     } else {
-      // Falsa alarma (tal vez se borró iterando cabeceras)
-      cache.remove("NEW_PRODUCTS_AVAILABLE");
+      // Falsa alarma (tal vez se borró iterando cabeceras) o cliente ya actualizado
       return { success: true, hasNew: false };
     }
 

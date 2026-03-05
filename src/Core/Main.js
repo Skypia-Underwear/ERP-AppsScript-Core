@@ -1112,8 +1112,8 @@ function ejecutarAccionDeImagen(params) {
             msgWoo = " | ❌ Error WooCommerce: " + eWoo.message;
           }
 
-          // FASE 5: Avisar al frontend que hay nuevos productos
-          CacheService.getScriptCache().put("NEW_PRODUCTS_AVAILABLE", "true", 3600);
+          // FASE 5: Avisar al frontend que hay nuevos productos (Mantenemos vivo 90s para todos los clientes)
+          CacheService.getScriptCache().put("NEW_PRODUCTS_AVAILABLE", "true", 90);
 
           return { success: true, message: `✅ Carpeta y variaciones generadas para '${codigo}'${msgWoo}.` };
         default:
