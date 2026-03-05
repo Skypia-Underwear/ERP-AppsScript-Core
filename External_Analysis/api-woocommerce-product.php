@@ -52,11 +52,37 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit();
 }
 
+$action = $_POST["action"] ?? "sync";
+$woo_id = $_POST["woo_id"] ?? null;
+
+// --- [NUEVO] MANEJO DE ELIMINACIÓN ---
+if ($action === "delete") {
+    if (!$woo_id) {
+        log_error("DELETE requested but missing woo_id.");
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "Missing woo_id for deletion.", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
+        exit();
+    }
+
+    $result = wc_request("DELETE", "products/$woo_id?force=false"); // false = a la papelera, true = borrado permanente
+    $respData = json_decode($result["response"], true);
+
+    if (isset($respData["id"])) {
+        log_error("Successfully trashed product woo_id=$woo_id");
+        echo json_encode(["status" => "deleted", "message" => "Product moved to trash successfully", "product_id" => $respData["id"], "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
+    } else {
+        log_error("API Error during DELETE: " . $result["response"]);
+        http_response_code(500);
+        echo json_encode(["status" => "error", "message" => "Failed to delete product in WooCommerce.", "response" => $result["response"], "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
+    }
+    exit();
+}
+// --- FIN MANEJO DE ELIMINACIÓN ---
+
 $producto_json = $_POST["producto"] ?? "";
-$woo_id = $_POST["woo_id"] ?? null; // [NUEVO] Optimización de llave directa
 
 if (!$producto_json) {
-    log_error("No product JSON received.");
+    log_error("No product JSON received (Sync action expected).");
     http_response_code(400);
     echo json_encode(["status" => "error", "message" => "No product JSON received", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
     exit();
