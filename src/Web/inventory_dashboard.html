@@ -826,23 +826,11 @@
   });
 
   async function initApp() {
-    log("🛰️ Sincronizando catálogo con Servidor Primario...", "info");
+    log("🛰️ Sincronizando catálogo global...", "info");
     document.getElementById('last-sync-label').innerText = "Cargando JSON...";
 
     try {
-      let data = null;
-      try {
-        const response = await fetch(CATALOG_READ_URL);
-        if (!response.ok) throw new Error("Donweb 404/CORS");
-        data = await response.json();
-        log("✅ Conexión establecida con Donweb.", "success");
-      } catch (e) {
-        log("⚠️ Fallo servidor Donweb, activando respaldo GitHub...", "error");
-        const resp = await fetch(CATALOG_FALLBACK_URL);
-        data = await resp.json();
-        log("✅ Catálogo cargado desde Respaldo GitHub.", "success");
-      }
-
+      const data = await window.getGlobalCatalog(CATALOG_READ_URL, CATALOG_FALLBACK_URL);
       globalJsonCache = data;
 
       populateSelectors(data.stores);

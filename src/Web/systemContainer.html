@@ -372,6 +372,42 @@
       }
     }
 
+    // -- GESTIÓN GLOBAL DEL CATÁLOGO CON FALLBACK DE TIMESTAMPS --
+    window.catalogFetchPromise = null;
+    window.getGlobalCatalog = function (readUrl, fallbackUrl) {
+      if (window.catalogFetchPromise) return window.catalogFetchPromise;
+
+      window.catalogFetchPromise = (async () => {
+        console.log("🛰️ [Global Fetch] Descargando JSON del catálogo (Donweb)...");
+        try {
+          const response = await fetch(readUrl);
+          if (!response.ok) throw new Error("HTTP Error o CORS en Donweb");
+          const data = await response.json();
+
+          // Validación de Caducidad (30 minutos = 1800000 ms)
+          const MAX_AGE_MS = 1800000;
+          const dataAge = Date.now() - (data.timestamp_ms || 0);
+
+          if (dataAge > MAX_AGE_MS) {
+            console.warn(`⏳ [Global Fetch] Datos de Donweb caducos (${Math.round(dataAge / 60000)} min). Forzando Fallback...`);
+            throw new Error("Stale Data");
+          }
+
+          console.log("✅ [Global Fetch] Catálogo fresco listo desde Donweb.");
+          return data;
+        } catch (error) {
+          console.error(`⚠️ [Global Fetch] Fallo principal: ${error.message}. Activando respaldo (GitHub)...`);
+          const fbResponse = await fetch(fallbackUrl);
+          if (!fbResponse.ok) throw new Error("Fallback también falló.");
+          const fbData = await fbResponse.json();
+          console.log("✅ [Global Fetch] Catálogo listo desde Respaldo.");
+          return fbData;
+        }
+      })();
+
+      return window.catalogFetchPromise;
+    };
+
     function navigate(viewName) {
       loadView(viewName, '', '', '');
     }

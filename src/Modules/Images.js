@@ -161,6 +161,48 @@ function obtenerOCrearCarpetaProducto(sku) {
   throw new Error(`Producto ${sku} no encontrado.`);
 }
 
+/**
+ * Elimina la carpeta de imágenes de un producto en Drive cuando se borra desde AppSheet.
+ * Como AppSheet borra la fila antes de enviar el webhook, buscamos la carpeta por su nombre (SKU)
+ * dentro de la carpeta padre principal.
+ * @param {string} sku - El código del producto.
+ */
+function eliminarCarpetaProducto(sku) {
+  try {
+    if (!sku) throw new Error("SKU no proporcionado");
+
+    // El nombre de la carpeta es exactamente el SKU
+    const folderName = String(sku).trim();
+
+    const parentId = GLOBAL_CONFIG.DRIVE.PARENT_FOLDER_ID;
+    if (!parentId) throw new Error("ID de carpeta Padre no configurado en GLOBAL_CONFIG.");
+
+    const parentFolder = DriveApp.getFolderById(parentId);
+
+    // Buscar la carpeta dentro de la matriz de imágenes
+    const folders = parentFolder.getFoldersByName(folderName);
+
+    let deletedCount = 0;
+    while (folders.hasNext()) {
+      const folder = folders.next();
+      folder.setTrashed(true); // Envía a la papelera
+      deletedCount++;
+    }
+
+    if (deletedCount > 0) {
+      console.log(`🗑️ Se eliminaron ${deletedCount} carpeta(s) para el producto ${sku}`);
+      return { success: true, message: `Carpeta(s) de ${sku} movida(s) a la papelera.` };
+    } else {
+      console.log(`ℹ️ No se encontró ninguna carpeta llamada ${sku} para eliminar.`);
+      return { success: true, message: `No había carpeta para el producto ${sku}.` };
+    }
+
+  } catch (error) {
+    console.error(`❌ Error al eliminar carpeta de ${sku}: ${error.message}`);
+    return { success: false, message: `Error al eliminar carpeta: ${error.message}` };
+  }
+}
+
 // -----------------------------------------------------------------
 // --- 3. SINCRONIZACIÓN MAESTRA
 // -----------------------------------------------------------------
@@ -411,8 +453,17 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           setVal('URL', publicUrl);
           setVal('FECHA_CARGA', timestamp);
           setVal('FUENTE', 'Sistema Web');
-          // REGLA: El orden 1 siempre es la portada
-          setVal('PORTADA', ordenFinal === 1);
+
+          // REGLA: Conservar el estado de PORTADA preexistente, 
+          // O marcar el primer archivo nuevo (contadorImagenes===1) como portada SOLO si no existía el registro.
+          let esPortada = false;
+          if (yaExistePorId && rowIndex) {
+            esPortada = String(dataImg[rowIndex - 1][col['PORTADA']]).toUpperCase() === 'TRUE';
+          } else if (ordenFinal === 1) {
+            esPortada = true;
+          }
+          setVal('PORTADA', esPortada);
+
           setVal('ORDEN', ordenFinal);
 
           let tipoArchivo = 'otro';
@@ -479,6 +530,12 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         const setVal = (c, v) => { if (col[c] !== undefined) u.rowData[col[c]] = v; };
         setVal('IMAGEN_ID', oldID);
         setVal('ESTADO', oldEstado);
+
+        // Prevenir reseteo indiscriminado de Portada en el ciclo de DB Update
+        const oldPortada = originalRowData[col['PORTADA']];
+        if (oldPortada !== undefined && oldPortada !== "") {
+          setVal('PORTADA', oldPortada);
+        }
 
         // Solo restauramos Prompt y Costo si ya existían y la nueva fila viene vacía (que es siempre en el sync base)
         if (oldPrompt && !u.rowData[col['PROMPT']]) setVal('PROMPT', oldPrompt);
@@ -740,26 +797,15 @@ function guardarNuevoOrdenImagenes(sku, idsOrdenados) {
   }
 
   try {
-    // 1. Resetear todas las portadas de este SKU a FALSE primero (opcional pero seguro)
-    if (colPortada !== -1) {
-      skuRows.forEach(rowNum => {
-        sheet.getRange(rowNum, colPortada + 1).setValue(false);
-      });
-    }
-
-    // 2. Aplicar nuevo ORDEN y marcar la primera como PORTADA
+    // Aplicar nuevo ORDEN. NO tocamos la columna PORTADA. El usuario la selecciona aparte.
     idsOrdenados.forEach((id, index) => {
       const rowNum = mapIds[String(id)];
       if (rowNum) {
         sheet.getRange(rowNum, colOrden + 1).setValue(index + 1);
-        // Si es la primera, marcar como PORTADA
-        if (index === 0 && colPortada !== -1) {
-          sheet.getRange(rowNum, colPortada + 1).setValue(true);
-        }
       }
     });
 
-    return { success: true, message: "Orden y Portada actualizados correctamente." };
+    return { success: true, message: "Orden actualizado correctamente. Portada preservada." };
   } catch (e) {
     console.error(`${logPrefix} Error: ${e.message}`);
     return { success: false, message: e.message };
@@ -1016,24 +1062,24 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
     const dataProd = convertirRangoAObjetos_IMAGENES(sheetProd);
     const prodRow = dataProd.find(p => String(p.CODIGO_ID).trim() === String(sku).trim());
 
-    let contextoTecnico = "Producto: Ropa.";
+    let contextoTecnico = "Product: Clothing.";
     if (prodRow) {
       let coloresDb = prodRow.COLORES || "";
-      if (coloresDb.toLowerCase().includes("surtido")) coloresDb = "Varios (Enfócate SOLO en el color visible)";
+      if (coloresDb.toLowerCase().includes("surtido")) coloresDb = "Assorted (Focus ONLY on the visible color)";
 
       contextoTecnico = `
-        METADATOS DE PRODUCTO:
-        - Marca: ${prodRow.MARCA || "Genérica"}
-        - Estilo: ${prodRow.ESTILO || "Casual"}
-        - Categoría Superior: ${prodRow.CATEGORIA_PADRE || "General"}
-        - Categoría Específica: ${prodRow.CATEGORIA || "Artículo"}
-        - Producto: ${prodRow.MODELO || prodRow.PRODUCTO || "Artículo"}
-        - Material: ${prodRow.MATERIAL || "Textil de alta calidad"}
-        - Talles: ${prodRow.TALLAS || prodRow.CURVA || "Estándar"}
-        - Calce: ${prodRow.FIT || prodRow.CALCE || "Standard Fit"}
-        - Género: ${prodRow.GENERO || "Unisex"}
-        - Colores DB: ${coloresDb}
-        - Descripción: ${prodRow.DESCRIPCION || "Diseño moderno"}
+        PRODUCT METADATA:
+        - Brand: ${prodRow.MARCA || "Generic"}
+        - Style: ${prodRow.ESTILO || "Casual"}
+        - Main Category: ${prodRow.CATEGORIA_PADRE || "General"}
+        - Specific Category: ${prodRow.CATEGORIA || "Item"}
+        - Product Name: ${prodRow.MODELO || prodRow.PRODUCTO || "Item"}
+        - Material: ${prodRow.MATERIAL || "High-quality textile"}
+        - Sizes: ${prodRow.TALLAS || prodRow.CURVA || "Standard"}
+        - Fit: ${prodRow.FIT || prodRow.CALCE || "Standard Fit"}
+        - Gender: ${prodRow.GENERO || "Unisex"}
+        - DB Colors: ${coloresDb}
+        - Description: ${prodRow.DESCRIPCION || "Modern design"}
         `;
     }
 
@@ -1054,23 +1100,23 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         const hasFocus = !!extraSpecs.focus;
         let focusMandateNormal = "";
         if (extraSpecs.focus === 'waist') {
-          focusMandateNormal = "- MANDATO PRIORITARIO: Mostrar el interior de la cintura con una ligera inclinación hacia abajo, resaltando el elástico.";
+          focusMandateNormal = "- PRIORITY MANDATE: Show the inside of the waistband with a slight downward angle, highlighting the elastic.";
         } else if (extraSpecs.focus === 'legs') {
-          focusMandateNormal = "- MANDATO PRIORITARIO: Mostrar el interior de las aberturas de las piernas con un corte limpio.";
+          focusMandateNormal = "- PRIORITY MANDATE: Show the inside of the leg openings with a clean cut.";
         }
 
         promptRules = `
           GHOST MANNEQUIN EFFECT:
-          - Pantalla el artículo como un volumen 3D vestido por un cuerpo invisible.
+          - Display the item as a 3D volume worn by an invisible body.
           ${focusMandateNormal}
-          - CENTRALIZACIÓN: La prenda debe estar PERFECTAMENTE CENTRADA en el lienzo.
-          - ELIMINACIÓN DE SOMBRAS: Borra cualquier rastro de sombras del maniquí. 
-          - ABERTURAS (Cuello, Mangas${!hasFocus ? ', Cintura, Piernas' : ''}): Mostrar aberturas huecas con tela interior visible. ${hasFocus ? '(Concentrar detalle visual en el enfoque prioritario arriba mencionado) ' : ''}
-          - MANDATO DE INTERIOR: El corte de la tela interior debe seguir una perspectiva geométrica limpia, EVITANDO que la tela trasera se vea distorsionada.
-          - Fondo: Blanco puro sólido #FFFFFF. 
-          - Iluminación: Estudio de alta gama multipunto para definir forma y volumen.
-          - Eliminar estrictamente ganchos, etiquetas o stickers.
-          - ABSOLUTAMENTE SIN MODELOS, CUERPOS HUMANOS O MANIQUÍES visibles.
+          - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
+          - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
+          - OPENINGS (Neck, Sleeves${!hasFocus ? ', Waist, Legs' : ''}): Show hollow openings with visible inner fabric. ${hasFocus ? '(Concentrate visual detail on the priority focus mentioned above) ' : ''}
+          - INNER CUT MANDATE: The inner fabric cut must follow clean geometric perspective, AVOIDING distorted rear fabric.
+          - Background: Pure solid white #FFFFFF. 
+          - Lighting: High-end multi-point studio setup to define shape and volume.
+          - Strictly remove: hangers, labels, tags, or stickers.
+          - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.
           `;
         break;
 
@@ -1115,18 +1161,18 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
     }
 
     const promptSystem = `
-        Usted es un Director de Arte experto en catálogos de moda. Su misión es crear una DIRECTIVA DE ARTE maestra para generar una imagen publicitaria de alta fidelidad.
+        You are an expert Art Director for fashion catalogs. Your mission is to create a master ART DIRECTIVE to generate a high-fidelity commercial image.
 
-        AUTORIDAD VISUAL: La imagen adjunta es la única fuente de verdad. Ignore metadatos contradictorios.
+        VISUAL AUTHORITY: The attached image is the absolute source of truth. Ignore any contradictory text metadata.
         
         CRITICAL FIDELITY PROTOCOL (RAW MASTER):
         1. **STRICT VISUAL AUDIT**: Forensic-audit the image for branding, logos, stitching, and unique textures.
         2. **LOGO FIDELITY**: If NO logo is visible, do NOT add one. If a logo exists, describe its exact position and size.
         3. **RAW EVIDENCE**: The garment in the photo is the MASTER. Maintain every physical detail.
-        4. **REASONING PIPELINE (VERIFICACIÓN DE ORIENTACIÓN)**:
+        4. **REASONING PIPELINE (ORIENTATION CHECK)**:
            - Before deciding orientation, you must list specific physical markers:
-           - IF PRENDA INFERIOR (Bottom): Is there a front fly/zipper? (Front). Is there a sewn waist leather tag or large back pockets? (Back).
-           - IF PRENDA SUPERIOR (Top): Is the neckline deep? (Front). Is the collar straight/high? (Back).
+           - IF BOTTOM GARMENT (Pants/Shorts): Is there a front fly/zipper? (Front). Is there a sewn waist leather tag or large back pockets? (Back).
+           - IF TOP GARMENT (T-Shirt/Jacket): Is the neckline deep? (Front). Is the collar straight/high? (Back).
            - MANDATE (ANTI-ERROR): Blue/Color flat cardboard tags (hangtags) are NOT waist labels. Do NOT use hangtags to classify as BACK. Valid BACK indicators are SEWN-IN brand labels on the center-back waistband or back pockets.
         5. **ANATOMICAL ISOLATION**:
            - NEVER describe details from a side that is not visible. If Orientation = BACK, do NOT add a front fly, buttons, or zipper.
@@ -1136,9 +1182,13 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
            - Replace source substrate with a fit model.
            - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.` : `
            - GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.`}
-        6. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
+        7. **EXACT COLOR EXTRACTION**: 
+           - Analyze the pixels of the reference garment (ignoring extreme shadows and highlights).
+           - Extract the exact predominant HEXADECIMAL code of the fabric (e.g. #FF5733).
+           - Determine the technical color name (e.g. Deep Navy Blue, Olive Green).
+        8. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
 
-        INSTRUCCIONES DE ESTILO:
+        STYLE INSTRUCTIONS:
         ${promptRules}
         ${poseProtocol ? `\n${poseProtocol}` : ""}
         
@@ -1146,12 +1196,14 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         ${contextoTecnico}
         ${extraSpecsPrompt ? `\nEXTRA SPECIFICATIONS:${extraSpecsPrompt}` : ""}
 
-        REQUISITO DE SALIDA (Formato limpio en ESPAÑOL):
-        RAZONAMIENTO: [Breve explicación de por qué eligió esta orientación basándose en píxeles].
-        AUDITORÍA VISUAL: [TIPO DE PRENDA] - [ORIENTACIÓN DETECTADA]. [Desglose técnico de detalles reales detectados].
+        OUTPUT REQUIREMENT (MANDATORY SPANISH):
+        All your final output responses MUST be written strictly in SPANISH following this format:
+        
+        RAZONAMIENTO: [Brief explanation in Spanish of why this orientation was chosen based on pixels].
+        AUDITORÍA VISUAL: [GARMENT TYPE] - [DETECTED ORIENTATION]. [Technical breakdown of real details detected].
         
         PROMPT MAESTRO (PARA IMAGEN 4 ULTRA): 
-        [Directiva narrativa fotográfica definitiva, iniciando con el ángulo de vista detectado].
+        [Final photographic narrative directive in Spanish, starting with the detected view angle. IT MUST MANDATORILY INCLUDE THE INSTRUCTION: "La prenda es obligatoriamente de color [Technical Name] con código HEX [HEX Code] exacto"].
     `;
 
     const modelos = ["gemma-3-27b-it", "gemma-3-12b-it", "gemini-2.5-flash"];
@@ -1276,25 +1328,25 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     const dataProd = convertirRangoAObjetos_IMAGENES(sheetProd);
     const prodRow = dataProd.find(p => String(p.CODIGO_ID).trim() === String(sku).trim());
 
-    let contextoTecnico = "Producto: Ropa.";
+    let contextoTecnico = "Product: Clothing.";
 
     if (prodRow) {
       let coloresDb = prodRow.COLORES || "";
-      if (coloresDb.toLowerCase().includes("surtido")) coloresDb = "Varios (Enfócate SOLO en el color visible en estas imágenes)";
+      if (coloresDb.toLowerCase().includes("surtido")) coloresDb = "Assorted (Focus ONLY on the visible color in these images)";
 
       contextoTecnico = `
-        METADATOS DE PRODUCTO:
-      - Marca: ${prodRow.MARCA || "Genérica"}
-      - Estilo: ${prodRow.ESTILO || "Casual/Sport"}
-      - Categoría Superior: ${prodRow.CATEGORIA_PADRE || "General"}
-      - Categoría Específica: ${prodRow.CATEGORIA || "Artículo"}
-      - Producto: ${prodRow.MODELO || prodRow.PRODUCTO || "Artículo"}
-      - Material: ${prodRow.MATERIAL || "Textil de alta calidad"}
-      - Talles: ${prodRow.TALLAS || prodRow.CURVA || "Varios"}
-      - Calce: ${prodRow.FIT || prodRow.CALCE || "Standard Fit"}
-      - Género: ${prodRow.GENERO || "Unisex"}
-      - Colores DB: ${coloresDb}
-      - Descripción: ${prodRow.DESCRIPCION || "Diseño profesional"}
+        PRODUCT METADATA:
+      - Brand: ${prodRow.MARCA || "Generic"}
+      - Style: ${prodRow.ESTILO || "Casual/Sport"}
+      - Main Category: ${prodRow.CATEGORIA_PADRE || "General"}
+      - Specific Category: ${prodRow.CATEGORIA || "Item"}
+      - Product Name: ${prodRow.MODELO || prodRow.PRODUCTO || "Item"}
+      - Material: ${prodRow.MATERIAL || "High-quality textile"}
+      - Sizes: ${prodRow.TALLAS || prodRow.CURVA || "Various"}
+      - Fit: ${prodRow.FIT || prodRow.CALCE || "Standard Fit"}
+      - Gender: ${prodRow.GENERO || "Unisex"}
+      - DB Colors: ${coloresDb}
+      - Description: ${prodRow.DESCRIPCION || "Professional design"}
       `;
     }
 
@@ -1314,23 +1366,23 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
         const hasFocusM = !!extraSpecs.focus;
         let focusMandateMasivo = "";
         if (extraSpecs.focus === 'waist') {
-          focusMandateMasivo = "- MANDATO PRIORITARIO: Mostrar el interior de la cintura con una ligera inclinación hacia abajo, resaltando el elástico.";
+          focusMandateMasivo = "- PRIORITY MANDATE: Show the inside of the waistband with a slight downward angle, highlighting the elastic.";
         } else if (extraSpecs.focus === 'legs') {
-          focusMandateMasivo = "- MANDATO PRIORITARIO: Mostrar el interior de las aberturas de las piernas con un corte limpio.";
+          focusMandateMasivo = "- PRIORITY MANDATE: Show the inside of the leg openings with a clean cut.";
         }
 
         promptRules = `
           GHOST MANNEQUIN EFFECT:
-          - Pantalla el artículo como un volumen 3D vestido por un cuerpo invisible.
+          - Display the item as a 3D volume worn by an invisible body.
           ${focusMandateMasivo}
-          - CENTRALIZACIÓN: La prenda debe estar PERFECTAMENTE CENTRADA en el lienzo.
-          - ELIMINACIÓN DE SOMBRAS: Borra cualquier rastro de sombras del maniquí. 
-          - ABERTURAS (Cuello, Mangas${!hasFocusM ? ', Cintura, Piernas' : ''}): Mostrar aberturas huecas con tela interior visible. ${hasFocusM ? '(Concentrar detalle visual en el enfoque prioritario arriba mencionado) ' : ''}
-          - MANDATO DE INTERIOR: El corte de la tela interior debe seguir una perspectiva geométrica limpia, EVITANDO que la tela trasera se vea distorsionada.
-          - Fondo: Blanco puro sólido #FFFFFF. 
-          - Iluminación: Estudio de alta gama multipunto para definir forma y volumen.
-          - Eliminar estrictamente ganchos, etiquetas o stickers.
-          - ABSOLUTAMENTE SIN MODELOS, CUERPOS HUMANOS O MANIQUÍES visibles.
+          - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
+          - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
+          - OPENINGS (Neck, Sleeves${!hasFocusM ? ', Waist, Legs' : ''}): Show hollow openings with visible inner fabric. ${hasFocusM ? '(Concentrate visual detail on the priority focus mentioned above) ' : ''}
+          - INNER CUT MANDATE: The inner fabric cut must follow clean geometric perspective, AVOIDING distorted rear fabric.
+          - Background: Pure solid white #FFFFFF. 
+          - Lighting: High-end multi-point studio setup to define shape and volume.
+          - Strictly remove: hangers, labels, tags, or stickers.
+          - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.
           `;
         break;
 
@@ -1387,18 +1439,18 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     const isSplitRequested = !isHeroColorsRequested && !isCollageRequested && (forcedAngle.toLowerCase().includes("split") || (esMultiVista && !forcedAngle));
 
     const promptSystem = `
-        Usted es un Director de Arte experto en catálogos de moda. Su misión es crear una DIRECTIVA DE ARTE maestra para generar una imagen publicitaria de alta fidelidad.
+        You are an expert Art Director for fashion catalogs. Your mission is to create a master ART DIRECTIVE to generate a high-fidelity commercial image.
 
-        AUTORIDAD VISUAL: Las imágenes adjuntas son la única fuente de verdad. Ignore metadatos contradictorios.
+        VISUAL AUTHORITY: The attached images are the absolute source of truth. Ignore any contradictory text metadata.
 
         CRITICAL FIDELITY PROTOCOL (RAW MASTER):
         1. **STRICT VISUAL AUDIT**: Forensic-audit the images for branding, logos, stitching, and unique textures.
         2. **LOGO FIDELITY**: If NO logo is visible, do NOT add one. If a logo exists, describe its exact position and size.
         3. **RAW EVIDENCE**: The garment in the photos is the MASTER. Maintain every physical detail across all views.
-        4. **REASONING PIPELINE (VERIFICACIÓN DE ORIENTACIÓN)**:
+        4. **REASONING PIPELINE (ORIENTATION CHECK)**:
            - For each image, you must list specific physical markers before deciding orientation.
-           - IF PRENDA INFERIOR (Bottom): Fly/zipper/waist-button = FRONT. Waist label/tag + High pockets = BACK.
-           - IF PRENDA SUPERIOR (Top): Deep neck = FRONT. High/straight collar = BACK.
+           - IF BOTTOM GARMENT (Pants/Shorts): Fly/zipper/waist-button = FRONT. Waist label/tag + High pockets = BACK.
+           - IF TOP GARMENT (T-Shirt/Jacket): Deep neck = FRONT. High/straight collar = BACK.
            - MANDATE: Avoid "hallucinating" front closures if you see back labels.
         5. **ANATOMICAL ISOLATION**:
            - NEVER leak details from one side to another. If a photo is BACK view, do NOT add front buttons or zippers in its description.
@@ -1408,44 +1460,50 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
            - Replace source substrate with a fit model.
            - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.` : `
            - GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.`}
-        6. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
+        7. **EXACT COLOR EXTRACTION**: 
+           - Analyze the pixels of the reference garments for each variant or angle (ignoring extreme shadows and highlights).
+           - Extract the exact predominant HEXADECIMAL code of each fabric/garment shown (e.g. #FF5733).
+           - Determine the technical color name (e.g. Deep Navy Blue, Olive Green) for each one.
+        8. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
         
         ${isHeroColorsRequested ?
-        `MODO COMPOSICIÓN HERO + COLORES (OBLIGATORIO):
-          - Las imágenes de referencia incluyen una vista principal del producto (Hero) y una imagen con múltiples colores/variantes.
-          - Usted DEBE describir una disposición comercial donde la vista "Hero" ocupe la mayor parte del lienzo.
-          - Las variantes de color DEBEN estar dispuestas limpia y ordenadamente en la parte inferior o lateral (como catálogos de e-commerce).
-          - REGLA DE SEPARACIÓN ESTRICTA: Separe la vista principal de las variantes secundarias usando espacio negativo limpio, sin fusionar. PROHIBIDO el "Ghosting".
-          - REGLA DE FIDELIDAD DE COLOR: Las variantes secundarias DEBEN coincidir exactamente con los colores y texturas visibles en las referencias. NO invente colores.
-          - El prompt DEBE mencionar explícitamente: "Composición comercial con vista principal Hero destacada y opciones de color ordenadas inferior/lateralmente".` :
+        `HERO + COLORS COMPOSITION MODE (MANDATORY):
+          - The reference images include a main product view (Hero) and an image with multiple colors/variants.
+          - You MUST describe a commercial layout where the "Hero" view takes up most of the canvas.
+          - The color variants MUST be arranged cleanly and neatly at the bottom or side (like e-commerce catalogs).
+          - STRICT SEPARATION RULE: Separate the main view from the secondary variants using clean negative space, without merging. "Ghosting" in-between is FORBIDDEN.
+          - COLOR FIDELITY RULE: The secondary variants MUST exactly match the colors and textures visible in the references. DO NOT hallucinate colors.
+          - The prompt MUST explicitly mention: "Composición comercial con vista principal Hero destacada y opciones de color ordenadas inferior/lateralmente".` :
         isCollageRequested ?
-          `MODO COMPOSICIÓN COLLAGE MULTI-VISTA (OBLIGATORIO):
-          - Usted DEBE describir una cuadrícula o disposición lado-a-lado limpia ("clean multi-shot catalog spread") que incluya TODAS las perspectivas.
-          - REGLA DE SEPARACIÓN ESTRICTA: Las diferentes vistas NO deben tocarse, superponerse, ni fusionarse. 
-          - PROHIBIDO EL "GHOSTING": No use opacidad baja, bordes difuminados, ni fondos desvanecidos entre las prendas. Use espacio negativo limpio para separar cada ángulo.
-          - El prompt DEBE mencionar explícitamente: "Composición de catálogo fotográfico multipantalla limpio, prendas enteras separadas sin superposición".` :
+          `MULTI-VIEW COLLAGE COMPOSITION MODE (MANDATORY):
+          - You MUST describe a clean side-by-side or grid layout ("clean multi-shot catalog spread") that includes ALL perspectives.
+          - STRICT SEPARATION RULE: The different views MUST NOT touch, overlap, or merge. 
+          - NO GHOSTING: Do not use low opacity, blurred edges, or faded backgrounds between garments. Use clean negative space to separate each angle.
+          - The prompt MUST explicitly mention: "Composición de catálogo fotográfico multipantalla limpio, prendas enteras separadas sin superposición".` :
           isSplitRequested ?
-            `MODO COMPOSICIÓN SPLIT-VIEW (OBLIGATORIO):
-          - Usted DEBE describir una vista dividida (SPLIT-VIEW) sincronizada.
-          - El prompt DEBE mencionar explícitamente: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".
-          - Asegure que la escala de los detalles sea idéntica en ambas vistas.` :
-            `MODO VISTA ÚNICA (PREDOMINANTE):
-          - Describa exclusivamente un ÚNICO ángulo de vista.
-          - Use las imágenes de referencia únicamente para extraer detalles técnicos (color, tela, logos).
-          - Ignore cualquier pose de las referencias que no coincida con el ángulo solicitado.`
+            `SPLIT-VIEW COMPOSITION MODE (MANDATORY):
+          - You MUST describe a synchronized SPLIT-VIEW composition.
+          - The prompt MUST explicitly mention: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".
+          - Ensure that the scale of details is identical in both views.` :
+            `SINGLE VIEW MODE (PREDOMINANT):
+          - Exclusively describe a SINGLE viewing angle.
+          - Use the reference images solely to extract technical details (color, fabric, logos).
+          - Ignore any pose in the references that does not match the requested angle.`
       }
 
-        INSTRUCCIONES DE ESTILO:
+        STYLE INSTRUCTIONS:
         ${promptRules}
         ${poseProtocol ? `\n${poseProtocol}` : ""}
-        ${extraSpecsPrompt ? `\nESPECIFICACIONES ADICIONALES (SI APLICAN):${extraSpecsPrompt}` : ""}
+        ${extraSpecsPrompt ? `\nEXTRA SPECIFICATIONS (IF APPLICABLE):${extraSpecsPrompt}` : ""}
 
-        REQUISITO DE SALIDA (Formato limpio en ESPAÑOL):
-        RAZONAMIENTO: [Justificación de la orientación detectada por cada foto].
-        AUDITORÍA VISUAL: [TIPO DE PRENDA]. [Desglose técnico de detalles reales detectados por cada foto, especificando ORIENTACIÓN (FRENTE/ESPALDA)].
+        OUTPUT REQUIREMENT (MANDATORY SPANISH):
+        All your final output responses MUST be written strictly in SPANISH following this format:
+        
+        RAZONAMIENTO: [Brief justification in Spanish of the detected orientation for each photo].
+        AUDITORÍA VISUAL: [GARMENT TYPE]. [Technical breakdown of real details detected per photo, specifying ORIENTATION (FRONT/BACK)].
         
         PROMPT MAESTRO (PARA IMAGEN 4 ULTRA): 
-        ${isHeroColorsRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía publicitaria mostrando el producto principal destacado (Hero) junto a una disposición ordenada de las variantes de color."' : isCollageRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo, sin superposiciones ni desvanecimientos."' : isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".' : '[Directiva narrativa fotográfica definitiva, iniciando con el ángulo de vista detectado].'}
+        ${isHeroColorsRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía publicitaria mostrando el producto principal destacado (Hero) junto a una disposición ordenada de las variantes de color." Y DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "Las prendas mostradas son de color [Nombres Técnicos] con códigos HEX [Códigos HEX] exactos según corresponda".' : isCollageRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo, sin superposiciones ni desvanecimientos." Y DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "Las prendas son de color [Nombres Técnicos] con códigos HEX [Códigos HEX] exactos según corresponda".' : isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada". Y DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "La prenda es de color [Nombre Técnico] con código HEX [Código HEX] exacto".' : '[Directiva narrativa fotográfica definitiva en español, iniciando con el ángulo de vista detectado. DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "La prenda es obligatoriamente de color [Nombre Técnico] con código HEX [Código HEX] exacto"].'}
     `;
 
     // Separamos system prompt de las partes de imagen para control condicional
@@ -2784,4 +2842,69 @@ function checkNewProductsFlag(skusExistentes) {
   } catch (e) {
     return { success: false, message: e.message };
   }
+}
+
+/**
+ * Función Auxiliar: Asigna una portada aleatoria (PORTADA=TRUE) 
+ * a todos los productos (SKU) que tengan imágenes en su galería 
+ * pero que actualmente no tengan ninguna designada como portada.
+ */
+function asignarPortadasAleatorias() {
+  const ss = getImagesSpreadsheet();
+  const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+  const data = sheetImg.getDataRange().getValues();
+
+  if (data.length <= 1) return { success: false, message: "No hay imágenes en la BD." };
+
+  const headers = data[0].map(h => String(h).trim().toUpperCase());
+  const colSku = headers.indexOf('PRODUCTO_ID');
+  const colPortada = headers.indexOf('PORTADA');
+
+  if (colSku === -1 || colPortada === -1) {
+    return { success: false, message: "Faltan columnas (PRODUCTO_ID o PORTADA)." };
+  }
+
+  // Agrupar filas por producto
+  const groupedProducts = {};
+  for (let i = 1; i < data.length; i++) {
+    const sku = String(data[i][colSku]).trim();
+    const isPortada = String(data[i][colPortada]).toUpperCase() === 'TRUE';
+
+    if (sku) {
+      if (!groupedProducts[sku]) {
+        groupedProducts[sku] = {
+          hasPortada: false,
+          rows: []
+        };
+      }
+      groupedProducts[sku].rows.push(i + 1); // 1-indexed for the sheet row
+      if (isPortada) {
+        groupedProducts[sku].hasPortada = true;
+      }
+    }
+  }
+
+  let countModificados = 0;
+
+  // Analizar y asignar una portada aleatoria si es necesario
+  for (const sku in groupedProducts) {
+    const productData = groupedProducts[sku];
+
+    if (!productData.hasPortada && productData.rows.length > 0) {
+      // Seleccionar una fila al azar de la galería
+      const randomIndex = Math.floor(Math.random() * productData.rows.length);
+      const targetRow = productData.rows[randomIndex];
+
+      // Asignar el valor TRUE a esa nueva fila
+      sheetImg.getRange(targetRow, colPortada + 1).setValue(true);
+      countModificados++;
+    }
+  }
+
+  const resultMsg = countModificados > 0
+    ? `✅ Se asignaron portadas aleatorias a ${countModificados} productos que estaban sin portada.`
+    : `ℹ️ Todos los productos ya tienen asignada una portada preexistente.`;
+
+  console.log(resultMsg);
+  return { success: true, message: resultMsg, count: countModificados };
 }
