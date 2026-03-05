@@ -594,6 +594,47 @@ function enviarProductoWP(sku) {
 }
 
 /**
+ * Envía una petición DELETE a WooCommerce para enviar un producto a la papelera.
+ * Depende del nuevo soporte de action=delete en el proxy PHP de Donweb.
+ * @param {string|number} wooId - El ID del producto en WooCommerce.
+ */
+function eliminarProductoWP(wooId) {
+  try {
+    if (!wooId) throw new Error("Se requiere un WOO_ID para eliminar en WooCommerce.");
+
+    console.log(`🗑️ Solicitando eliminación en WooCommerce para wooId: ${wooId}...`);
+
+    const payloadHTTP = {
+      apiKey: GLOBAL_CONFIG.WORDPRESS.IMAGE_API_KEY || 'CASTFER2025',
+      action: "delete",
+      woo_id: wooId
+    };
+
+    const options = {
+      method: "post",
+      payload: payloadHTTP,
+      muteHttpExceptions: true
+    };
+
+    const url = GLOBAL_CONFIG.WORDPRESS.PRODUCT_API_URL;
+    const response = UrlFetchApp.fetch(url, options);
+
+    let resJSON = null;
+    try { resJSON = JSON.parse(response.getContentText()); } catch (e) { }
+
+    if (response.getResponseCode() === 200 && resJSON && resJSON.status === "deleted") {
+      console.log(`✅ Producto wooId:${wooId} enviado a la papelera en WooCommerce de forma exitosa.`);
+      return { success: true, message: `Producto Eliminado de WooCommerce.` };
+    } else {
+      throw new Error(resJSON ? resJSON.message : "El servidor WordPress falló la eliminación.");
+    }
+  } catch (error) {
+    console.error(`❌ ERROR WooCommerce Delete: ${error.message}`);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
  * Genera el JSON completo para WooCommerce a partir de filas de CSV maestro.
  * Mantiene exactamente los valores del CSV sin completar campos ni agregar decimales.
  */
