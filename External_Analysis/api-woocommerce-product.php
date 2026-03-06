@@ -63,7 +63,8 @@ if ($action === "get_id_by_sku") {
         echo json_encode(["status" => "error", "message" => "Missing sku parameter.", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
         exit();
     }
-    $result = wc_request("GET", "products?sku=" . urlencode($sku));
+    // Usamos status=any para encontrar también productos en borrador, pendientes o privados
+    $result = wc_request("GET", "products?sku=" . urlencode($sku) . "&status=any");
     $data = json_decode($result["response"], true);
 
     if (!empty($data) && isset($data[0]["id"])) {
@@ -80,7 +81,8 @@ if ($action === "delete") {
     // Si no hay woo_id, intentar buscar por SKU (CODIGO_ID)
     if (empty($woo_id) && !empty($sku)) {
         log_error("DELETE requested without woo_id. Falling back to search by SKU: $sku");
-        $check = wc_request("GET", "products?sku=" . urlencode($sku));
+        // Usamos status=any para encontrar también productos en borrador, pendientes o privados
+        $check = wc_request("GET", "products?sku=" . urlencode($sku) . "&status=any");
         $checkData = json_decode($check["response"], true);
 
         if (!empty($checkData) && isset($checkData[0]["id"])) {
