@@ -928,8 +928,19 @@ function herramienta_sincronizarIdsFaltantesWP() {
   const apiUrl = GLOBAL_CONFIG.WORDPRESS.PRODUCT_API_URL;
   const apiKey = GLOBAL_CONFIG.WORDPRESS.IMAGE_API_KEY || 'CASTFER2025';
 
+  const startTime = Date.now();
+  const MAX_EXECUTION_TIME_MS = 280 * 1000; // 4.6 minutos de límite seguro (Google corta a los 6 min)
+  let cortePorTiempo = false;
+
   // Itera sobre todos los productos
   for (let i = 0; i < data.length; i++) {
+    // Protección contra el límite de ejecución (6 minutos de Apps Script)
+    if (Date.now() - startTime > MAX_EXECUTION_TIME_MS) {
+      Logger.log(`⏳ Límite de tiempo seguro alcanzado (${MAX_EXECUTION_TIME_MS / 1000}s). Se pausa el proceso por seguridad.`);
+      cortePorTiempo = true;
+      break;
+    }
+
     const row = data[i];
     const sku = row.CODIGO_ID;
     const wooIdActual = row.WOO_ID;
@@ -973,11 +984,18 @@ function herramienta_sincronizarIdsFaltantesWP() {
     }
   }
 
-  Logger.log(`🏁 Sincronización masiva finalizada. Evaluados: ${procesados}, Encontrados y Guardados: ${encontrados}.`);
+  if (cortePorTiempo) {
+    Logger.log(`🏁 Secuencia pausada. Evaluados: ${procesados}, Encontrados y Guardados: ${encontrados}. Por favor, vuelve a ejecutar para continuar con el resto.`);
+  } else {
+    Logger.log(`🏁 Sincronización masiva completada al 100%. Evaluados: ${procesados}, Encontrados y Guardados: ${encontrados}.`);
+  }
 
   // Tratar de emitir alerta en UI si se corre desde el botón/menú
   try {
     const ui = SpreadsheetApp.getUi();
-    ui.alert(`Sincronización Finalizada\n\nProductos evaluados: ${procesados}\nIDs recuperados: ${encontrados}`);
+    const msg = cortePorTiempo ?
+      `Pausa Preventiva ⏱️\n\nSe evaluaron ${procesados} productos y se recuperaron ${encontrados} IDs.\nSe detuvo para evitar el error de límite de tiempo de Google. Vuelve a ejecutar la función para continuar el barrido.` :
+      `Auditoría Completada ✅\n\nProductos evaluados: ${procesados}\nIDs recuperados: ${encontrados}`;
+    ui.alert(msg);
   } catch (e) { }
 }
