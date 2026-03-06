@@ -928,12 +928,17 @@ function herramienta_sincronizarIdsFaltantesWP() {
   const apiUrl = GLOBAL_CONFIG.WORDPRESS.PRODUCT_API_URL;
   const apiKey = GLOBAL_CONFIG.WORDPRESS.IMAGE_API_KEY || 'CASTFER2025';
 
+  const scriptProps = PropertiesService.getScriptProperties();
+  const lastIndex = parseInt(scriptProps.getProperty("WooSyncLastIndex") || "-1", 10);
+  const startIndex = lastIndex + 1;
   const startTime = Date.now();
   const MAX_EXECUTION_TIME_MS = 280 * 1000; // 4.6 minutos de límite seguro (Google corta a los 6 min)
   let cortePorTiempo = false;
+  let currIndex = startIndex;
 
-  // Itera sobre todos los productos
-  for (let i = 0; i < data.length; i++) {
+  // Itera sobre todos los productos, comenzando desde el último procesado
+  for (let i = startIndex; i < data.length; i++) {
+    currIndex = i;
     // Protección contra el límite de ejecución (6 minutos de Apps Script)
     if (Date.now() - startTime > MAX_EXECUTION_TIME_MS) {
       Logger.log(`⏳ Límite de tiempo seguro alcanzado (${MAX_EXECUTION_TIME_MS / 1000}s). Se pausa el proceso por seguridad.`);
@@ -985,17 +990,38 @@ function herramienta_sincronizarIdsFaltantesWP() {
   }
 
   if (cortePorTiempo) {
-    Logger.log(`🏁 Secuencia pausada. Evaluados: ${procesados}, Encontrados y Guardados: ${encontrados}. Por favor, vuelve a ejecutar para continuar con el resto.`);
-  } else {
-    Logger.log(`🏁 Sincronización masiva completada al 100%. Evaluados: ${procesados}, Encontrados y Guardados: ${encontrados}.`);
-  }
+    // Guardar dónde nos quedamos
+    scriptProps.setProperty("WooSyncLastIndex", currIndex.toString());
 
-  // Tratar de emitir alerta en UI si se corre desde el botón/menú
-  try {
-    const ui = SpreadsheetApp.getUi();
-    const msg = cortePorTiempo ?
-      `Pausa Preventiva ⏱️\n\nSe evaluaron ${procesados} productos y se recuperaron ${encontrados} IDs.\nSe detuvo para evitar el error de límite de tiempo de Google. Vuelve a ejecutar la función para continuar el barrido.` :
-      `Auditoría Completada ✅\n\nProductos evaluados: ${procesados}\nIDs recuperados: ${encontrados}`;
-    ui.alert(msg);
-  } catch (e) { }
+    // Crear un Trigger para que arranque de nuevo en 1 minuto
+    eliminarTriggersWooSync(); // Limpiar previos por seguridad
+    ScriptApp.newTrigger("herramienta_sincronizarIdsFaltantesWP")
+      .timeBased()
+      .after(60 * 1000) // Reanudar en 1 minuto (60.000 ms)
+      .create();
+
+    Logger.log(`🏁 Secuencia pausada en fila ${currIndex}. Evaluados hoy: ${procesados}, Encontrados: ${encontrados}. El Auto-Trigger correrá en 1 minuto.`);
+  } else {
+    // Terminó de recorrer toda la base, limpiar basuras
+    scriptProps.deleteProperty("WooSyncLastIndex");
+    eliminarTriggersWooSync();
+    Logger.log(`🏁 Sincronización masiva completada al 100%. Evaluados hoy: ${procesados}, Encontrados y Guardados: ${encontrados}.`);
+
+    try {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(`Auditoría Completada ✅\n\nTodos los productos han sido evaluados y se recuperaron todos los IDs posibles.`);
+    } catch (e) { }
+  }
+}
+
+/**
+ * Utilidad privada para limpiar triggers huérfanos de la sincronización.
+ */
+function eliminarTriggersWooSync() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "herramienta_sincronizarIdsFaltantesWP") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
 }
