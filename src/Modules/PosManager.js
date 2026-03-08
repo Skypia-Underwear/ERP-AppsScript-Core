@@ -458,14 +458,16 @@ function tpv_procesarSubidasRemotas() {
         if (!folderId) throw new Error("Falta DRIVE_JSON_CONFIG_FOLDER_ID en la BD");
 
         const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "hostingshop.json";
-        const folder = DriveApp.getFolderById(folderId);
-        const files = folder.getFilesByName(fileName);
 
-        if (!files.hasNext()) throw new Error(`JSON local TPV (${fileName}) no encontrado en Drive.`);
-
-        const file = files.next();
-        const contenidoStr = file.getBlob().getDataAsString();
-        const catalogo = JSON.parse(contenidoStr);
+        // Lectura de Drive con executeWithRetry para errores transitorios
+        const catalogo = executeWithRetry(() => {
+            const folder = DriveApp.getFolderById(folderId);
+            const files = folder.getFilesByName(fileName);
+            if (!files.hasNext()) throw new Error(`JSON local TPV (${fileName}) no encontrado en Drive.`);
+            const file = files.next();
+            const contenidoStr = file.getBlob().getDataAsString();
+            return JSON.parse(contenidoStr);
+        }, 3);
 
         // -- Destino Donweb --
         let resDonweb = { success: false };
@@ -508,8 +510,21 @@ function tpv_procesarSubidasRemotas() {
 }
 
 /**
+ * Calcula un hash MD5 de un objeto JSON para detectar cambios.
+ * Usado internamente para evitar subidas redundantes.
+ * @param {Object} jsonData - Objeto a hashear.
+ * @returns {string} Hash MD5 en hexadecimal.
+ */
+function _computeJsonHash(jsonData) {
+    const raw = JSON.stringify(jsonData);
+    const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, raw, Utilities.Charset.UTF_8);
+    return digest.map(b => ('0' + ((b + 256) % 256).toString(16)).slice(-2)).join('');
+}
+
+/**
  * GENÉRICO: Sube cualquier objeto JSON a GitHub en el path indicado.
  * Reutilizable por PosManager (TPV) y Blogger_Cache.
+ * Incluye: Hash Check (evita subidas redundantes) + Circuit Breaker (1h de pausa tras fallos).
  * @param {Object} jsonData  - Objeto a serializar y subir.
  * @param {string} filePath  - Ruta dentro del repo (ej: "catalogo.json" o "blogger_config.json").
  * @returns {{ success: boolean, message: string }}
@@ -519,6 +534,24 @@ function subirArchivoAGitHub(jsonData, filePath) {
     const RETRYABLE_CODES = [409, 500, 502, 503, 504];
 
     try {
+        const cache = CacheService.getScriptCache();
+        const breakerKey = "GITHUB_CIRCUIT_BREAKER_" + filePath.replace(/[^a-zA-Z0-9]/g, "_");
+
+        // --- Circuit Breaker: omitir si hay bloqueo activo por fallos continuos ---
+        if (cache.get(breakerKey)) {
+            debugLog(`⚠️ Pausa preventiva: Envío a GitHub omitido para '${filePath}' (Circuit Breaker activo por fallos continuos).`);
+            return { success: false, message: `Envío omitido temporalmente por protección del servidor.` };
+        }
+
+        // --- Hash Check: omitir subida si el contenido no cambió ---
+        const hashKey = "LAST_HASH_GITHUB_" + filePath.replace(/[^a-zA-Z0-9]/g, "_");
+        const currentHash = _computeJsonHash(jsonData);
+        const props = PropertiesService.getScriptProperties();
+        if (props.getProperty(hashKey) === currentHash) {
+            debugLog("⏭️ GitHub: '" + filePath + "' sin cambios (hash idéntico). Subida omitida.");
+            return { success: true, message: "Sin cambios, subida omitida." };
+        }
+
         const user = GLOBAL_CONFIG.GITHUB.USER;
         const repo = GLOBAL_CONFIG.GITHUB.REPO;
         const token = GLOBAL_CONFIG.GITHUB.TOKEN;
@@ -571,6 +604,7 @@ function subirArchivoAGitHub(jsonData, filePath) {
 
             if (lastCode === 200 || lastCode === 201) {
                 if (attempt > 0) debugLog(`✅ GitHub: éxito en retry ${attempt}.`);
+                props.setProperty(hashKey, currentHash);
                 debugLog(`✅ GitHub: '${filePath}' subido correctamente.`);
                 return { success: true, message: `GitHub '${filePath}' actualizado.` };
             }
@@ -582,6 +616,17 @@ function subirArchivoAGitHub(jsonData, filePath) {
         throw new Error(`GitHub API Error (${lastCode}): ${lastBody}`);
     } catch (e) {
         debugLog("❌ Error GitHub: " + e.message);
+
+        // Activar el Circuit Breaker por 1 hora si falla consistentemente
+        try {
+            const cache = CacheService.getScriptCache();
+            const breakerKey = "GITHUB_CIRCUIT_BREAKER_" + filePath.replace(/[^a-zA-Z0-9]/g, "_");
+            cache.put(breakerKey, "true", 3600); // 1 hora de bloqueo
+            debugLog(`🛑 Circuit Breaker activado para GitHub '${filePath}' durante 60 minutos.`);
+        } catch (cacheErr) {
+            // Ignorar errores de cache
+        }
+
         return { success: false, message: e.message };
     }
 }
@@ -609,9 +654,19 @@ function subirArchivoADonweb(jsonData, fileName) {
         const cache = CacheService.getScriptCache();
         const breakerKey = "DONWEB_CIRCUIT_BREAKER_" + fileName;
 
+        // --- Circuit Breaker: omitir si hay bloqueo activo por fallos continuos ---
         if (cache.get(breakerKey)) {
             debugLog(`⚠️ Pausa preventiva: Envío a Donweb omitido para '${fileName}' (Circuit Breaker activo por fallos continuos).`);
             return { success: false, message: `Envío omitido temporalmente por protección del servidor.` };
+        }
+
+        // --- Hash Check: omitir subida si el contenido no cambió ---
+        const hashKey = "LAST_HASH_DONWEB_" + fileName.replace(/[^a-zA-Z0-9]/g, "_");
+        const currentHash = _computeJsonHash(jsonData);
+        const props = PropertiesService.getScriptProperties();
+        if (props.getProperty(hashKey) === currentHash) {
+            debugLog("⏭️ Donweb: '" + fileName + "' sin cambios (hash idéntico). Subida omitida.");
+            return { success: true, message: "Sin cambios, subida omitida." };
         }
 
         const url = GLOBAL_CONFIG.DONWEB.WRITE_URL;
@@ -643,6 +698,7 @@ function subirArchivoADonweb(jsonData, fileName) {
 
             if (lastCode === 200) {
                 if (attempt > 0) debugLog(`✅ Donweb: éxito en retry ${attempt}.`);
+                props.setProperty(hashKey, currentHash);
                 debugLog(`✅ Donweb: '${fileName}' guardado correctamente.`);
                 return { success: true, message: `Donweb '${fileName}' actualizado.` };
             }
@@ -680,7 +736,7 @@ function subirCatalogoADonweb(catalogoPreGenerado) {
 }
 
 /**
- * Configura el activador para actualizar el TPV cada 5 minutos.
+ * Configura el activador para actualizar el TPV cada 15 minutos.
  */
 function setupTpvUpdateTrigger() {
     // Eliminar disparadores previos de esta función
@@ -693,14 +749,14 @@ function setupTpvUpdateTrigger() {
         }
     });
 
-    // Crear nuevo disparador (cada 5 min)
+    // Crear nuevo disparador (cada 15 min)
     ScriptApp.newTrigger("publicarCatalogo")
         .timeBased()
         .everyMinutes(15)
         .create();
 
     debugLog("⏰ Activador de actualización TPV (15 min) configurado.");
-    return "Activador configurado cada 5 minutos.";
+    return "Activador configurado cada 15 minutos.";
 }
 
 /**

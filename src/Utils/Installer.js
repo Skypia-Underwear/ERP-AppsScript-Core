@@ -252,16 +252,16 @@ function inicializarEntorno() {
       ScriptApp.newTrigger(handlerFn).timeBased().atHour(hora).everyDays(1).create();
     }
 
-    // -- TRIGGER TPV (publicarCatalogo, cada 5 min) --
+    // -- TRIGGER TPV (publicarCatalogo, cada 15 min) --
     // Condiciones: al menos un destino externo configurado
     const cfg = GLOBAL_CONFIG.SCRIPT_CONFIG;
     const donwebOk = !!(cfg["DONWEB_WRITE_URL"] && !cfg["DONWEB_WRITE_URL"].includes("tudominio"));
     const githubOk = !!(cfg["GITHUB_USER"] && cfg["GITHUB_REPO"] && cfg["GITHUB_TOKEN"]);
 
     if (donwebOk || githubOk) {
-      reinstalarTrigger("publicarCatalogo", 5);
+      reinstalarTrigger("publicarCatalogo", 15);
       reinstalarTriggerDiario("tpv_limpiarFilasVaciasEstructural", 3); // A las 3 AM
-      triggerLog.push("✅ TPV (cada 5 min): Donweb=" + (donwebOk ? "✅" : "⛔") + " GitHub=" + (githubOk ? "✅" : "⛔"));
+      triggerLog.push("✅ TPV (cada 15 min): Donweb=" + (donwebOk ? "✅" : "⛔") + " GitHub=" + (githubOk ? "✅" : "⛔"));
     } else {
       triggerLog.push("⛔ TPV: Trigger NO instalado. Configurá DONWEB_WRITE_URL o GITHUB_USER/REPO/TOKEN.");
     }
