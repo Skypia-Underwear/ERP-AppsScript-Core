@@ -1288,7 +1288,7 @@
 <div id="imageModal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity" onclick="closeModal()"></div>
     <div
-        class="absolute inset-2 md:inset-10 bg-slate-800 rounded-lg flex flex-col md:flex-row overflow-hidden shadow-2xl ring-1 ring-white/10">
+        class="absolute inset-2 md:inset-10 bg-slate-800 rounded-lg flex flex-col md:flex-row shadow-2xl ring-1 ring-white/10 overflow-y-auto md:overflow-hidden">
 
         <!-- Imagen Grande -->
         <div
@@ -2735,6 +2735,12 @@
         }
         // Toolbar button
         actualizarToolbar();
+
+        // Visibilidad de Paneles de Pago
+        const refinePanel = document.getElementById('refinePanel');
+        const anglePanel = document.getElementById('anglePanel');
+        if (refinePanel) refinePanel.classList.toggle('hidden', !currentPaidPin);
+        if (anglePanel) anglePanel.classList.toggle('hidden', !currentPaidPin);
 
         // Angle button availability
         const btnAngle = document.getElementById('btnGenerateAngle');

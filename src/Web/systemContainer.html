@@ -618,6 +618,7 @@
       if (!user) {
         document.getElementById('main-sidebar').classList.add('hidden');
         document.getElementById('shell-status-container').classList.add('hidden');
+        if (document.getElementById('mobile-bottom-nav')) document.getElementById('mobile-bottom-nav').style.display = 'none';
         document.getElementById('main-content').classList.remove('m-2', 'rounded-xl');
         document.getElementById('main-content').classList.add('m-0', 'rounded-none');
         loadView('login', '', '', '', '', 'Iniciar Sesión');
@@ -627,6 +628,7 @@
       // Asegurar visibilidad de elementos si hay usuario
       document.getElementById('main-sidebar').classList.remove('hidden');
       document.getElementById('shell-status-container').classList.remove('hidden');
+      if (document.getElementById('mobile-bottom-nav')) document.getElementById('mobile-bottom-nav').style.display = '';
       document.getElementById('main-content').classList.add('m-2', 'rounded-xl');
       document.getElementById('main-content').classList.remove('m-0', 'rounded-none');
 

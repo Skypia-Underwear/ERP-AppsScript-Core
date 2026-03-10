@@ -230,7 +230,7 @@ const GLOBAL_CONFIG = {
  * Se puede expandir según sea necesario.
  */
 const SHEET_SCHEMA = {
-  STORES: ["TIENDA_ID", "MODO_VENTA", "RECARGO_MENOR", "IP_IMPRESORA_LOCAL"],
+  STORES: ["TIENDA_ID", "LOGOTIPO", "MODO_VENTA", "RECARGO_MENOR", "IP_IMPRESORA_LOCAL"],
   PRODUCTS: ["CODIGO_ID", "MODELO", "PRECIO_COSTO", "RECARGO_MENOR", "CATEGORIA", "COLORES", "TALLES", "WOO_ID"],
   INVENTORY: ["INVENTARIO_ID", "TIENDA_ID", "PRODUCTO_ID", "COLOR", "TALLE", "STOCK_ACTUAL", "ENTRADAS", "SALIDAS", "VENTAS_LOCAL", "VENTAS_WEB"],
   INVENTORY_MOVEMENTS: ["REGISTRO_ID", "USER_ID", "FECHA", "INVENTARIO_ID", "MOVIMIENTO", "ORIGEN", "DESTINO", "PRODUCTO_ID", "CANTIDAD", "REFERENCIA"],
@@ -883,8 +883,29 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // --- NUEVA: Vista de Login ---
   if (view === 'login') {
-    return HtmlService.createTemplateFromFile('Web/login_view')
-      .evaluate().getContent();
+    const template = HtmlService.createTemplateFromFile('Web/login_view');
+
+    // Obtener Logo de la Tienda Principal (BD_TIENDAS, Fila 2)
+    let logoUrl = "";
+    try {
+      const ss = getActiveSS();
+      const sheetTiendas = ss.getSheetByName(SHEETS.STORES || "BD_TIENDAS");
+      const mapping = HeaderManager.getMapping("STORES");
+      const colLogo = mapping ? mapping["LOGOTIPO"] : -1;
+
+      if (sheetTiendas && colLogo !== -1) {
+        const logoPath = sheetTiendas.getRange(2, colLogo + 1).getValue();
+        if (logoPath) {
+          const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME;
+          logoUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${appName}&tableName=BD_TIENDAS&fileName=${encodeURIComponent(logoPath)}`;
+        }
+      }
+    } catch (e) {
+      console.error("Error al cargar logo para login: " + e.message);
+    }
+
+    template.STORE_LOGO = logoUrl;
+    return template.evaluate().getContent();
   }
 
   // 3. Runner (Reutilizamos la lógica centralizada)
