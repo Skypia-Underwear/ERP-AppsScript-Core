@@ -3,9 +3,40 @@
 // -----------------------------------------------------------
 
 /**
- * Consolida y devuelve todas las ventas usando 'convertirRangoAObjetos' (Nativo de tu Main.gs)
+ * Punto de entrada principal para el Dashboard.
+ * Intenta cargar desde el JSON optimizado en Drive (Bake & Serve).
+ * Si no existe, realiza la carga pesada tradicional.
  */
 function cargarDashboardVentas() {
+    try {
+        const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
+        const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "erp";
+        const appSlug = appName.toLowerCase().replace(/\s+/g, '-');
+        const fileName = appSlug + "-ventas-dashboard.json";
+
+        if (folderId) {
+            const folder = DriveApp.getFolderById(folderId);
+            const files = folder.getFilesByName(fileName);
+            if (files.hasNext()) {
+                const file = files.next();
+                const content = file.getBlob().getDataAsString();
+                debugLog("🚀 [Dashboard] Cargado instantáneamente desde Drive (Bake & Serve).");
+                return content;
+            }
+        }
+    } catch (e) {
+        debugLog("⚠️ Error cargando JSON desde Drive: " + e.message);
+    }
+
+    // Fallback a carga pesada
+    debugLog("🐢 [Dashboard] JSON no encontrado o error. Iniciando carga pesada...");
+    return cargarDashboardVentas_HEAVY();
+}
+
+/**
+ * Consolida y devuelve todas las ventas procesando las hojas de cálculo (Carga Pesada).
+ */
+function cargarDashboardVentas_HEAVY() {
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
     const logArray = [];
 
@@ -143,6 +174,31 @@ function cargarDashboardVentas() {
         procesarDetalles(detalleBlogger, 'Blogger');
         procesarDetalles(detallePedidos, 'Pedido Local');
 
+        // --- 2.1 HELPER DE NORMALIZACIÓN JSON ---
+        const normalizarDetalleJson = (jsonString, ventaId) => {
+            try {
+                if (!jsonString) return null;
+                const parsed = JSON.parse(jsonString);
+                const items = parsed.detalle || parsed; // Soporta ambos formatos
+                if (!Array.isArray(items)) return null;
+
+                return items.map((it, idx) => ({
+                    id: ventaId + '-j-' + idx,
+                    descripcion: it.nombre || it.descripcion_venta || it.descripcion || 'Sin descripción',
+                    cantidad: it.cantidad || 1,
+                    precioUnitario: parseMontoRobust(it.precio || it.precioUnitario),
+                    subtotal: parseMontoRobust(it.subtotal || it.monto),
+                    tipoPrecio: it.tipoPrecio || 'N/A',
+                    productoId: it.productoId || it.codigo || '',
+                    color: it.color || 'N/A',
+                    talle: it.talle || 'N/A'
+                }));
+            } catch (e) {
+                Logger.log("Error parseando DETALLE_JSON para " + ventaId + ": " + e.message);
+                return null;
+            }
+        };
+
         // --- 3. CONSOLIDAR VENTAS ---
         const ventasConsolidadas = [];
         const uniqueCajas = new Set();
@@ -175,8 +231,13 @@ function cargarDashboardVentas() {
                 const transferId = row.DATOS_TRANSFERENCIA;
                 const infoTransfer = transferenciaMap[transferId] || { banco: 'N/A', alias: 'N/A' };
 
-                // --- CALCULOS PREVIOS ---
-                const detallesVenta = detalleVentasMap[ventaId] || [];
+                // --- 2.2 PRIORIZACIÓN DE DATOS (Híbrido JSON / Hoja Detalles) ---
+                let detallesVenta = normalizarDetalleJson(row.DETALLE_JSON, ventaId);
+
+                if (!detallesVenta) {
+                    detallesVenta = detalleVentasMap[ventaId] || [];
+                }
+
                 const recargoTransf = Number(row.RECARGO_TRANSFERENCIA || 0);
 
                 let montoProductos = parseMontoRobust(row.MONTO_TOTAL_PRODUCTOS);
@@ -248,7 +309,7 @@ function cargarDashboardVentas() {
         });
 
     } catch (error) {
-        logArray.push(error.toString());
+        debugLog("❌ ERROR en cargarDashboardVentas_HEAVY: " + error.toString());
         return JSON.stringify({ success: false, message: error.toString(), logs: logArray });
     }
 }
@@ -276,10 +337,11 @@ function actualizarEstadoVenta(ventaId, nuevoEstado, origen) {
             return { success: false, message: `❌ Columnas VENTA_ID/CODIGO o ESTADO no encontradas en el mapeo de ${origen}.` };
         }
 
-        let filaEncontrada = -1;
+        const dataRows = hojaVentas.getDataRange().getValues();
+        dataRows.shift(); // Quitar encabezados
 
-        for (let i = 0; i < data.length; i++) {
-            if (data[i][ventaIdIndex] === ventaId) {
+        for (let i = 0; i < dataRows.length; i++) {
+            if (dataRows[i][ventaIdIndex] === ventaId) {
                 filaEncontrada = i + 2;
                 hojaVentas.getRange(filaEncontrada, estadoIndex + 1).setValue(nuevoEstado);
                 SpreadsheetApp.flush();

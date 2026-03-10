@@ -19,32 +19,88 @@ function guardarRespaldoEnDrive() {
 
             if (!folderId) throw new Error("ID de carpeta JSON no configurado.");
 
-            const folder = DriveApp.getFolderById(folderId);
             const catalogo = generarCatalogoJsonTPV();
-            catalogo.timestamp_ms = Date.now(); // Inject timestamp_ms here
+            catalogo.timestamp_ms = Date.now();
             const content = JSON.stringify(catalogo, null, 2);
-            const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "hostingshop.json";
+            const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalog-tpv.json";
 
-            const files = folder.getFilesByName(fileName);
             let file;
-            if (files.hasNext()) {
-                file = files.next();
-                drive_updateFileContent(file.getId(), content, MimeType.PLAIN_TEXT);
-                debugLog(`✅ Respaldo en Drive actualizado (${fileName}).`);
-            } else {
-                file = folder.createFile(fileName, content, MimeType.PLAIN_TEXT);
-                debugLog(`✅ Nuevo respaldo en Drive creado (${fileName}).`);
+            if (fileId) {
+                try {
+                    file = DriveApp.getFileById(fileId);
+                    drive_updateFileContent(fileId, content, MimeType.PLAIN_TEXT);
+                    debugLog(`✅ Backup en Drive actualizado vía ID (${fileId}).`);
+                } catch (errId) {
+                    debugLog("⚠️ ID de archivo inválido, buscando por nombre...");
+                    fileId = null;
+                }
+            }
+
+            if (!fileId) {
+                const folder = DriveApp.getFolderById(folderId);
+                const files = folder.getFilesByName(fileName);
+                if (files.hasNext()) {
+                    file = files.next();
+                    drive_updateFileContent(file.getId(), content, MimeType.PLAIN_TEXT);
+                    debugLog(`✅ Backup en Drive actualizado por nombre (${fileName}).`);
+                } else {
+                    file = folder.createFile(fileName, content, MimeType.PLAIN_TEXT);
+                    debugLog(`✅ Nuevo backup en Drive creado (${fileName}).`);
+                }
             }
 
             return { success: true, fileId: file.getId() };
 
         } catch (e) {
             debugLog("❌ Error en respaldo Drive: " + e.message);
-            // Re-lanzar error de DriveApp para que executeWithRetry lo detecte
             if (e.message.includes("Drive")) throw e;
             return { success: false, message: e.message };
         }
     }, 3);
+}
+
+/**
+ * Obtiene el catálogo JSON directamente desde el respaldo en Google Drive.
+ * Esto es mucho más rápido para el ERP y evita problemas de CORS.
+ */
+function tpv_obtenerCatalogoDesdeDrive() {
+    try {
+        const fileId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FILE_ID;
+        let content = null;
+
+        if (fileId) {
+            try {
+                const file = DriveApp.getFileById(fileId);
+                content = file.getBlob().getDataAsString();
+                debugLog("🚀 [TPV] Catálogo cargado por ID desde Drive.");
+            } catch (err) {
+                debugLog("⚠️ ID de catálogo no encontrado, buscando backup...");
+            }
+        }
+
+        if (!content) {
+            const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
+            const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalog-tpv.json";
+            if (!folderId) throw new Error("ID de carpeta JSON no configurado.");
+
+            const folder = DriveApp.getFolderById(folderId);
+            const files = folder.getFilesByName(fileName);
+            if (files.hasNext()) {
+                content = files.next().getBlob().getDataAsString();
+                debugLog("🚀 [TPV] Catálogo cargado por nombre desde Drive.");
+            }
+        }
+
+        if (content) {
+            const catalog = JSON.parse(content);
+            return { success: true, catalog: catalog };
+        } else {
+            throw new Error("Archivo de catálogo no encontrado en Drive. Por favor, 'Actualiza el Catálogo' primero.");
+        }
+    } catch (e) {
+        debugLog("⚠️ Fallo lectura de catálogo desde Drive: " + e.message);
+        return { success: false, message: e.message };
+    }
 }
 
 /**
@@ -878,7 +934,21 @@ function processSale(saleData) {
         const fechaStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
         const horaStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss");
 
-        // 1. Registrar en BD_VENTAS_PEDIDOS (24 columnas)
+        // 1.1 Generar DETALLE_JSON para optimización de Dashboard
+        const detalleJson = JSON.stringify({
+            detalle: saleData.cart.map(item => ({
+                productoId: item.product_id || "",
+                nombre: item.model || item.product_id || "Producto",
+                cantidad: item.quantity || 0,
+                precio: item.price || 0,
+                monto: (item.price || 0) * (item.quantity || 0),
+                color: item.color || "N/A",
+                talle: item.size || "N/A",
+                tipoPrecio: "MENOR"
+            }))
+        });
+
+        // 1.2 Registrar en BD_VENTAS_PEDIDOS (24 columnas físicas + DETALLE_JSON en la 26)
         const ventaRow = [
             saleData.saleId,                    // VENTA_ID
             saleData.storeId,                   // TIENDA_ID
@@ -903,7 +973,9 @@ function processSale(saleData) {
             "ENTREGADO",                        // ESTADO
             "",                                 // CAMBIOS
             "",                                 // COMPROBANTE_FILE
-            ""                                  // DETALLE_AUDITORIA_IA
+            "",                                 // DETALLE_AUDITORIA_IA
+            "",                                 // Espacio para columna 25
+            detalleJson                         // 26: DETALLE_JSON
         ];
         sheetVentas.appendRow(ventaRow);
 
