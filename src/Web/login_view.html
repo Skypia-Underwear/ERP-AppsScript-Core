@@ -1,14 +1,21 @@
 <div class="min-h-full flex items-center justify-center bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8 bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
         <div>
+            <? if (STORE_LOGO) { ?>
+            <div class="mx-auto flex justify-center mb-6">
+                <img src="<?= STORE_LOGO ?>" alt="Logo Tienda"
+                    class="h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+            </div>
+            <? } else { ?>
             <div
-                class="mx-auto h-12 w-12 bg-indigo-500 rounded-xl flex items-center justify-center text-white text-2xl">
+                class="mx-auto h-16 w-16 bg-indigo-500 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg shadow-indigo-500/20 mb-6">
                 <i class="ph-fill ph-lock-key"></i>
             </div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-white">
+            <? } ?>
+            <h2 class="text-center text-2xl font-extrabold text-white tracking-tight">
                 Bienvenido al ERP
             </h2>
-            <p class="mt-2 text-center text-sm text-slate-400">
+            <p class="mt-1 text-center text-sm text-slate-400 font-medium">
                 Inicia sesión para acceder al sistema
             </p>
         </div>
