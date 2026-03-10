@@ -393,7 +393,9 @@
                 overflow-y: hidden !important;
                 gap: 6px !important;
                 padding: 6px 8px !important;
-                flex: none !important;
+                flex: 1 !important;
+                min-width: 0 !important;
+                /* CRITICAL FIX: allow flex child to shrink and show arrows */
                 -ms-overflow-style: none;
                 scrollbar-width: none;
             }
@@ -1931,7 +1933,8 @@
     }
 
     function scrollProducts(px) {
-        const container = document.getElementById('productList');
+        // En móvil/tablet el ID puede cambiar por el hack de desktop
+        const container = document.getElementById('productList') || document.getElementById('productListMobile');
         if (container) container.scrollBy({ left: px, behavior: 'smooth' });
     }
 
@@ -1939,17 +1942,43 @@
         const prompt = document.getElementById('aiPromptText').value;
         if (!prompt) return;
 
+        // Procesar el prompt para añadir colores por secciones
+        let styledHtml = prompt
+            .replace(/\*\*(RAZONAMIENTO:?)\*\*/gi, '<b class="text-sky-400 border-b border-sky-400/30 pb-1 mb-2 block uppercase tracking-wider">$1</b>')
+            .replace(/\*\*(AUDITORÍA VISUAL:?)\*\*/gi, '<b class="text-amber-400 border-b border-amber-400/30 pb-1 mb-2 mt-6 block uppercase tracking-wider">$1</b>')
+            .replace(/\*\*(PROMPT MAESTRO.*?)\*\*/gi, '<b class="text-emerald-400 border-b border-emerald-400/30 pb-1 mb-2 mt-6 block uppercase tracking-wider">$1</b>')
+            .replace(/##\s+DIRECTIVA DE ARTE/gi, '<h2 class="text-indigo-300 text-center font-bold mb-6 underline decoration-indigo-500/50">DIRECTIVA DE ARTE</h2>');
+
         Swal.fire({
-            title: 'Auditoría de Prompt',
-            html: `<textarea readonly class="w-full h-[60vh] bg-slate-900 text-emerald-400 p-4 font-mono text-sm border border-slate-700 rounded-lg focus:outline-none resize-none">${prompt}</textarea>`,
-            width: '90%',
+            title: 'Análisis Estratégico de Imagen',
+            html: `
+                <div class="text-left bg-slate-900/80 p-6 rounded-xl border border-slate-700 max-h-[70vh] overflow-y-auto custom-scrollbar font-sans leading-relaxed text-slate-300 text-sm shadow-inner">
+                    ${styledHtml}
+                </div>
+                <div class="mt-4 flex justify-center">
+                    <button onclick="copiarPromptDesdeModal()" class="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/30 rounded-lg transition text-xs font-bold uppercase">
+                        <span class="material-icons text-sm">content_copy</span> Copiar Todo el Prompt
+                    </button>
+                </div>
+            `,
+            width: '95%',
             background: '#1e293b',
             color: '#fff',
-            confirmButtonText: 'Cerrar',
-            confirmButtonColor: '#4f46e5',
+            showConfirmButton: false,
+            showCloseButton: true,
             customClass: {
-                container: 'z-[1000]'
+                container: 'z-[2000]',
+                closeButton: 'text-slate-400 hover:text-white'
             }
+        });
+    }
+
+    // Función auxiliar para el modal
+    window.copiarPromptDesdeModal = function () {
+        const prompt = document.getElementById('aiPromptText').value;
+        navigator.clipboard.writeText(prompt).then(() => {
+            Swal.showValidationMessage('¡Copiado al portapapeles!');
+            setTimeout(() => Swal.resetValidationMessage(), 2000);
         });
     }
 
