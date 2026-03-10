@@ -378,8 +378,24 @@
       if (window.catalogFetchPromise) return window.catalogFetchPromise;
 
       window.catalogFetchPromise = (async () => {
-        console.log("🛰️ [Global Fetch] Descargando JSON del catálogo (Donweb)...");
+        console.log("🛰️ [Global Fetch] Intentando carga directa desde Drive (Ultra-Fast)...");
         try {
+          // 1. Intentar Carga desde Drive (Server-Side)
+          const driveRes = await new Promise((resolve) => {
+            google.script.run
+              .withSuccessHandler(res => resolve(res))
+              .withFailureHandler(() => resolve({ success: false }))
+              .tpv_obtenerCatalogoDesdeDrive();
+          });
+
+          if (driveRes && driveRes.success) {
+            console.log("🚀 [Global Fetch] Catálogo cargado instantáneamente desde Drive.");
+            return driveRes.catalog;
+          }
+
+          console.warn("⚠️ [Global Fetch] Drive no disponible, recurriendo a Donweb...");
+
+          // 2. Fallback: Donweb
           const response = await fetch(readUrl);
           if (!response.ok) throw new Error("HTTP Error o CORS en Donweb");
           const data = await response.json();
@@ -396,12 +412,17 @@
           console.log("✅ [Global Fetch] Catálogo fresco listo desde Donweb.");
           return data;
         } catch (error) {
-          console.error(`⚠️ [Global Fetch] Fallo principal: ${error.message}. Activando respaldo (GitHub)...`);
-          const fbResponse = await fetch(fallbackUrl);
-          if (!fbResponse.ok) throw new Error("Fallback también falló.");
-          const fbData = await fbResponse.json();
-          console.log("✅ [Global Fetch] Catálogo listo desde Respaldo.");
-          return fbData;
+          console.error(`⚠️ [Global Fetch] Fallo principal: ${error.message}. Activando respaldo GitHub...`);
+          try {
+            const fbResponse = await fetch(fallbackUrl);
+            if (!fbResponse.ok) throw new Error("Fallback también falló.");
+            const fbData = await fbResponse.json();
+            console.log("✅ [Global Fetch] Catálogo listo desde Respaldo.");
+            return fbData;
+          } catch (e) {
+            console.error("❌ [Global Fetch] Fallo total de carga del catálogo.");
+            throw e;
+          }
         }
       })();
 

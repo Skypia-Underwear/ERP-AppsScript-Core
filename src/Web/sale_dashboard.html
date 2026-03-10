@@ -339,15 +339,15 @@
 
       <button id="btn-stat-complete"
         class="stat-btn bg-teal-500/10 border-teal-500/20 text-teal-400 hover:bg-teal-500/20"
-        onclick="filterByStatusButton('COMPLETADA', this)">
-        <span class="text-[9px] font-extrabold uppercase tracking-wide">Completas</span>
+        onclick="filterByStatusButton('COMPLETAS', this)">
+        <span class="text-[9px] font-extrabold uppercase tracking-wide">Entregadas</span>
         <span id="summary-count-complete" class="text-xl font-black leading-none mt-1">0</span>
       </button>
 
       <button id="btn-stat-pending"
         class="stat-btn bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20"
-        onclick="filterByStatusButton('SOLICITADO', this)">
-        <span class="text-[9px] font-extrabold uppercase tracking-wide">Pendientes</span>
+        onclick="filterByStatusButton('PENDIENTES', this)">
+        <span class="text-[9px] font-extrabold uppercase tracking-wide">Solicitadas</span>
         <span id="summary-count-pending" class="text-xl font-black leading-none mt-1">0</span>
       </button>
 
@@ -625,7 +625,7 @@
     });
 
     // Grupos de Macro Filtros
-    // El usuario define "Pendiente" explícitamente como "SOLICITADO" (el primer estado de una venta)
+    // El usuario define "Pendiente" explícitamente como "SOLICITADO"
     const pendingStatuses = ['SOLICITADO'];
     const completeStatuses = ['COMPLETADA', 'ENTREGADO'];
 
