@@ -1110,14 +1110,17 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
           - Display the item as a 3D volume worn by an invisible body.
           ${focusMandateNormal}
           - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
+          - SYMMETRY MANDATE: Ensure both sleeve/leg openings and overall shape are geometrically symmetrical and balanced.
           - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
+          - CONTACT SHADOW: Add a extremely subtle, realistic contact shadow on the ground to provide floor-plane reference and avoid a "floating" look.
           - OPENINGS (Neck, Sleeves${!hasFocus ? ', Waist, Legs' : ''}): Show hollow openings with visible inner fabric. ${hasFocus ? '(Concentrate visual detail on the priority focus mentioned above) ' : ''}
           - INNER CUT MANDATE: The inner fabric cut must follow clean geometric perspective, AVOIDING distorted rear fabric.
+          - TEXTURE FIDELITY: Maintain all technical fabric details, including mesh, perforations, stitching, and complex prints without over-smoothing.
           - Background: Pure solid white #FFFFFF. 
           - Lighting: High-end multi-point studio setup to define shape and volume.
           - Strictly remove: hangers, labels, tags, or stickers.
           - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.
-          `;
+                    `;
         break;
 
       case 'lifestyle':
@@ -1182,10 +1185,11 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
            - Replace source substrate with a fit model.
            - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.` : `
            - GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.`}
-        7. **EXACT COLOR EXTRACTION**: 
+        7. **TECHNICAL COLOR & TEXTURE EXTRACTION**: 
            - Analyze the pixels of the reference garment (ignoring extreme shadows and highlights).
-           - Extract the exact predominant HEXADECIMAL code of the fabric (e.g. #FF5733).
-           - Determine the technical color name (e.g. Deep Navy Blue, Olive Green).
+           - Identify if the garment has complex patterns, sublimation, gradients, or all-over prints.
+           - If complex: Prioritize 'TEXTURE FIDELITY' over a single color. Describe the palette and patterns.
+           - If solid: Extract the exact predominant HEXADECIMAL code (e.g. #FF5733) and technical name.
         8. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
 
         STYLE INSTRUCTIONS:
@@ -1203,7 +1207,9 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         AUDITORÍA VISUAL: [GARMENT TYPE] - [DETECTED ORIENTATION]. [Technical breakdown of real details detected].
         
         PROMPT MAESTRO (PARA IMAGEN 4 ULTRA): 
-        [Final photographic narrative directive in Spanish, starting with the detected view angle. IT MUST MANDATORILY INCLUDE THE INSTRUCTION: "La prenda es obligatoriamente de color [Technical Name] con código HEX [HEX Code] exacto"].
+        [Final photographic narrative directive in Spanish, starting with the detected view angle. 
+        MANDATO DE COLOR: Si la prenda es LISA, DEBE incluir: "La prenda es obligatoriamente de color [Nombre] con código HEX [HEX] exacto". 
+        Si tiene ESTAMPADOS/SUBLIMADOS, DEBE incluir: "La prenda presenta un diseño sublimado/estampado con la paleta de colores detectada, manteniendo la fidelidad absoluta de la textura y el patrón original de las referencias"].
     `;
 
     const modelos = ["gemma-3-27b-it", "gemma-3-12b-it", "gemini-2.5-flash"];
@@ -1376,9 +1382,12 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
           - Display the item as a 3D volume worn by an invisible body.
           ${focusMandateMasivo}
           - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
+          - SYMMETRY MANDATE: Ensure both sleeve/leg openings and overall shape are geometrically symmetrical and balanced.
           - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
+          - CONTACT SHADOW: Add a extremely subtle, realistic contact shadow on the ground to provide floor-plane reference.
           - OPENINGS (Neck, Sleeves${!hasFocusM ? ', Waist, Legs' : ''}): Show hollow openings with visible inner fabric. ${hasFocusM ? '(Concentrate visual detail on the priority focus mentioned above) ' : ''}
           - INNER CUT MANDATE: The inner fabric cut must follow clean geometric perspective, AVOIDING distorted rear fabric.
+          - TEXTURE FIDELITY: Maintain all technical fabric details, including mesh, perforations, stitching, and complex prints without over-smoothing.
           - Background: Pure solid white #FFFFFF. 
           - Lighting: High-end multi-point studio setup to define shape and volume.
           - Strictly remove: hangers, labels, tags, or stickers.
@@ -1460,10 +1469,11 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
            - Replace source substrate with a fit model.
            - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.` : `
            - GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.`}
-        7. **EXACT COLOR EXTRACTION**: 
+        7. **TECHNICAL COLOR & TEXTURE EXTRACTION**: 
            - Analyze the pixels of the reference garments for each variant or angle (ignoring extreme shadows and highlights).
-           - Extract the exact predominant HEXADECIMAL code of each fabric/garment shown (e.g. #FF5733).
-           - Determine the technical color name (e.g. Deep Navy Blue, Olive Green) for each one.
+           - Identify if the garments have complex patterns, sublimation, gradients, or all-over prints.
+           - If complex: Prioritize 'TEXTURE FIDELITY' over a single color. Describe colors and technical patterns accurately.
+           - If solid: Extract the exact predominant HEXADECIMAL code (e.g. #FF5733) and technical name.
         8. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
         
         ${isHeroColorsRequested ?
@@ -1503,7 +1513,7 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
         AUDITORÍA VISUAL: [GARMENT TYPE]. [Technical breakdown of real details detected per photo, specifying ORIENTATION (FRONT/BACK)].
         
         PROMPT MAESTRO (PARA IMAGEN 4 ULTRA): 
-        ${isHeroColorsRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía publicitaria mostrando el producto principal destacado (Hero) junto a una disposición ordenada de las variantes de color." Y DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "Las prendas mostradas son de color [Nombres Técnicos] con códigos HEX [Códigos HEX] exactos según corresponda".' : isCollageRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo, sin superposiciones ni desvanecimientos." Y DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "Las prendas son de color [Nombres Técnicos] con códigos HEX [Códigos HEX] exactos según corresponda".' : isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada". Y DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "La prenda es de color [Nombre Técnico] con código HEX [Código HEX] exacto".' : '[Directiva narrativa fotográfica definitiva en español, iniciando con el ángulo de vista detectado. DEBE INCLUIR OBLIGATORIAMENTE LA INSTRUCCIÓN: "La prenda es obligatoriamente de color [Nombre Técnico] con código HEX [Código HEX] exacto"].'}
+        ${isHeroColorsRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía publicitaria mostrando el producto principal destacado (Hero) junto a una disposición ordenada de las variantes de color." Y DEBE INCLUIR EL MANDATO DE COLOR: Si las prendas son LISAS, incluya "Las prendas son de color [Nombres] con códigos HEX [HEX] exactos". Si tienen ESTAMPADOS/SUBLIMADOS, incluya "Las prendas presentan diseños con la paleta de colores y patrones detectados, manteniendo fidelidad absoluta de la textura original".' : isCollageRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo, sin superposiciones ni desvanecimientos." Y DEBE INCLUIR EL MANDATO DE COLOR: Si las prendas son LISAS, incluya "Las prendas son de color [Nombres] con códigos HEX [HEX] exactos". Si tienen ESTAMPADOS/SUBLIMADOS, incluya "Las prendas presentan diseños con la paleta de colores y patrones detectados, manteniendo fidelidad de la textura original".' : isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada". Y DEBE INCLUIR EL MANDATO DE COLOR: Si es LISA, incluya "La prenda es de color [Nombre] con código HEX [HEX] exacto". Si tiene ESTAMPADOS, incluya "La prenda presenta un diseño sublimado con la paleta de colores y patrones detectados, manteniendo fidelidad de la textura".' : '[Directiva narrativa fotográfica definitiva en español, iniciando con el ángulo de vista detectado. MANDATO DE COLOR: Si la prenda es LISA, DEBE incluir: "La prenda es obligatoriamente de color [Nombre] con código HEX [HEX] exacto". Si tiene ESTAMPADOS/SUBLIMADOS, DEBE incluir: "La prenda presenta un diseño sublimado/estampado con la paleta de colores y patrones detectados, manteniendo la fidelidad absoluta de la textura original"].'}
     `;
 
     // Separamos system prompt de las partes de imagen para control condicional
