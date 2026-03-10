@@ -384,21 +384,51 @@
             display: none;
         }
 
-        /* Product list: horizontal scroll carousel */
-        #productList {
-            display: flex !important;
-            flex-direction: row !important;
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            gap: 6px !important;
-            padding: 6px 8px !important;
-            flex: none !important;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        /* Product list: horizontal scroll carousel on mobile/tablet */
+        @media (max-width: 1024px) {
+            #productList {
+                display: flex !important;
+                flex-direction: row !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                gap: 6px !important;
+                padding: 6px 8px !important;
+                flex: none !important;
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
 
-        #productList::-webkit-scrollbar {
-            display: none;
+            #productList::-webkit-scrollbar {
+                display: none;
+            }
+
+            .product-nav-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                background: #1e293b;
+                border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            }
+
+            .product-arrow {
+                flex-shrink: 0;
+                background: rgba(15, 23, 42, 0.8);
+                color: #94a3b8;
+                border: 1px solid #334155;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .product-arrow:hover {
+                color: #fff;
+                border-color: #6366f1;
+            }
         }
 
         #productList .sidebar-item {
@@ -670,8 +700,8 @@
         background: #475569;
     }
 
-    /* DISEÑO GRID SIDEBAR (Solo Desktop) */
-    @media (min-width: 769px) {
+    /* DISEÑO GRID SIDEBAR (Solo Desktop > 1024px) */
+    @media (min-width: 1025px) {
         #productList {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -1104,10 +1134,32 @@
                 <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Modelos</span>
             </div>
 
-            <!-- Lista de Productos -->
-            <div id="productList" class="flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
+            <!-- Lista de Productos con Navegación -->
+            <div class="product-nav-wrapper md:hidden lg:hidden" id="productCarouselWrapper">
+                <button class="product-arrow ml-2" onclick="scrollProducts(-150)">
+                    <span class="material-icons text-sm">chevron_left</span>
+                </button>
+                <div id="productList" class="flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar no-scrollbar">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                <button class="product-arrow mr-2" onclick="scrollProducts(150)">
+                    <span class="material-icons text-sm">chevron_right</span>
+                </button>
+            </div>
+
+            <!-- Lista de Productos Estándar (Desktop) -->
+            <div id="productListDesktop"
+                class="hidden lg:block xl:block flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
                 <!-- Se llena dinámicamente -->
             </div>
+
+            <script>
+                // Pequeño hack para compatibilidad con el ID productList existente
+                if (window.innerWidth > 1024) {
+                    document.getElementById('productList').id = 'productListMobile';
+                    document.getElementById('productListDesktop').id = 'productList';
+                }
+            </script>
         </aside>
 
         <!-- CONTENIDO PRINCIPAL -->
@@ -1364,6 +1416,10 @@
                         <button onclick="copiarPrompt()"
                             class="text-[10px] text-blue-400 hover:text-blue-300 font-bold mt-1 w-full text-right uppercase">Copiar
                             Prompt</button>
+                        <button onclick="auditarPrompt()"
+                            class="flex items-center justify-center gap-1.5 w-full mt-2 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 rounded text-[10px] font-bold text-slate-300 transition uppercase">
+                            <span class="material-icons text-sm">zoom_in</span> Auditar Prompt
+                        </button>
                     </div>
 
                     <!-- PANEL DE REFINAMIENTO (Corrección) -->
@@ -1872,6 +1928,29 @@
     function scrollCategories(px) {
         const container = document.getElementById('categoryFilterContainer');
         if (container) container.scrollBy({ left: px, behavior: 'smooth' });
+    }
+
+    function scrollProducts(px) {
+        const container = document.getElementById('productList');
+        if (container) container.scrollBy({ left: px, behavior: 'smooth' });
+    }
+
+    function auditarPrompt() {
+        const prompt = document.getElementById('aiPromptText').value;
+        if (!prompt) return;
+
+        Swal.fire({
+            title: 'Auditoría de Prompt',
+            html: `<textarea readonly class="w-full h-[60vh] bg-slate-900 text-emerald-400 p-4 font-mono text-sm border border-slate-700 rounded-lg focus:outline-none resize-none">${prompt}</textarea>`,
+            width: '90%',
+            background: '#1e293b',
+            color: '#fff',
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#4f46e5',
+            customClass: {
+                container: 'z-[1000]'
+            }
+        });
     }
 
     function filtrarPorCategoria(catId) {
