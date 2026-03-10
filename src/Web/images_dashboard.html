@@ -1288,7 +1288,7 @@
 <div id="imageModal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity" onclick="closeModal()"></div>
     <div
-        class="absolute inset-2 md:inset-10 bg-slate-800 rounded-lg flex flex-col md:flex-row shadow-2xl ring-1 ring-white/10 overflow-y-auto md:overflow-hidden">
+        class="absolute inset-2 md:inset-10 bg-slate-800 rounded-lg flex flex-col md:flex-row shadow-2xl ring-1 ring-white/10 overflow-y-auto md:overflow-visible overflow-x-hidden">
 
         <!-- Imagen Grande -->
         <div
@@ -1323,7 +1323,7 @@
 
         <!-- Panel Lateral Modal -->
         <div id="modalSidePanel"
-            class="modal-side-panel w-full md:w-72 bg-slate-800 border-l border-slate-700 p-5 flex flex-col overflow-y-auto flex-shrink-0">
+            class="modal-side-panel w-full md:w-72 bg-slate-800 border-l border-slate-700 p-5 flex flex-col md:overflow-y-auto flex-shrink-0">
 
             <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-700">
                 <div>
@@ -2363,14 +2363,14 @@
         document.getElementById('imageModal').classList.remove('hidden');
         updateAiButtonLabels();
 
-        // MOSTRAR PANEL DE REFINAR Y ÁNGULOS SI ES GENERADA POR IA O TIENE PROMPT
+        // MOSTRAR PANEL DE REFINAR Y ÁNGULOS SI ES GENERADA POR IA O TIENE PROMPT Y PIN ACTIVO
         const refinePanel = document.getElementById('refinePanel');
         const anglePanel = document.getElementById('anglePanel');
 
-        if (img.PROMPT && (img.FUENTE === 'Sistema Web' || img.FUENTE === 'IA_Gemini')) {
+        if (currentPaidPin && img.PROMPT && (img.FUENTE === 'Sistema Web' || img.FUENTE === 'IA_Gemini')) {
             refinePanel.classList.remove('hidden');
-            anglePanel.classList.remove('hidden'); // Fase 5
-            document.getElementById('refineFeedback').value = ""; // Limpiar
+            anglePanel.classList.remove('hidden');
+            document.getElementById('refineFeedback').value = "";
         } else {
             refinePanel.classList.add('hidden');
             anglePanel.classList.add('hidden');
