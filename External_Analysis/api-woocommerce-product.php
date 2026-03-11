@@ -343,8 +343,24 @@ try {
     if (!empty($woo_id)) {
         $product_id = $woo_id;
         $result = wc_request("PUT", "products/$product_id", $wcReadyData);
-        $status = "updated";
-        log_error("Optimized Update: Used woo_id=$woo_id for direct PUT.");
+        $respData = json_decode($result["response"], true);
+
+        // --- INICIO FALLBACK: PRODUCTO ELIMINADO EN WOOCOMMERCE ---
+        $isInvalidId = isset($respData["code"]) && $respData["code"] === "woocommerce_rest_product_invalid_id";
+        $is404 = $result["httpcode"] == 404;
+
+        if ($isInvalidId || $is404) {
+            log_error("Fallback Triggered: woo_id=$woo_id no longer exists. Creating new product for SKU=$sku.");
+            // Anular el ID para que Woo cree uno nuevo
+            $result = wc_request("POST", "products", $wcReadyData);
+            $respData = json_decode($result["response"], true);
+            $status = "created"; // Forzamos "created" para que Apps Script sobrescriba el viejo WOO_ID
+        } else {
+            $status = "updated";
+            log_error("Optimized Update: Used woo_id=$woo_id for direct PUT.");
+        }
+        // --- FIN FALLBACK ---
+
     } else {
         // Fallback Clásico: Buscar por SKU
         $check = wc_request("GET", "products?sku=" . urlencode($sku));
@@ -353,16 +369,17 @@ try {
         if (!empty($checkData) && isset($checkData[0]["id"])) {
             $product_id = $checkData[0]["id"];
             $result = wc_request("PUT", "products/$product_id", $wcReadyData);
+            $respData = json_decode($result["response"], true);
             $status = "updated";
             log_error("Update: Found by SKU=$sku -> woo_id=$product_id");
         } else {
             $result = wc_request("POST", "products", $wcReadyData);
+            $respData = json_decode($result["response"], true);
             $status = "created";
             log_error("Create: Product SKU=$sku");
         }
     }
 
-    $respData = json_decode($result["response"], true);
     if (isset($respData["id"])) {
         $product_id = $respData["id"];
     } else {
