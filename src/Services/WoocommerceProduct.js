@@ -371,12 +371,17 @@ function construirJSONProductoDesdeSheets(sku) {
     .filter(Boolean)
     .join(', ');
 
+  // --- Determinar estado de publicación ---
+  // Si la columna ESTADO_WOO existe y dice Borrador u Oculto, mandamos 0. Si no, 1.
+  const estadoWoo = (producto.ESTADO_WOO || '').trim().toLowerCase();
+  const publishedValue = (estadoWoo === 'borrador' || estadoWoo === 'oculto') ? '0' : '1';
+
   // --- Construir JSON del padre ---
   const json = {
     Type: 'variable',
     SKU: skuPrincipal,
     Name: producto.MODELO || '',
-    Published: '1',
+    Published: publishedValue,
     'Is featured?': '0',
     'Short description': descripcionCorta,
     Description: descripcionLargaHtml,
