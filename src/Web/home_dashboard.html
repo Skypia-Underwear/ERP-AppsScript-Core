@@ -143,12 +143,16 @@
         google.script.run
             .withSuccessHandler(data => {
                 setGlobalStatus(false);
+                const elTotal = document.getElementById('kpi-ventas-total');
+                const elCantidad = document.getElementById('kpi-ventas-cantidad');
+                const elStock = document.getElementById('kpi-stock-bajo');
+
                 if (data.ventas) {
-                    document.getElementById('kpi-ventas-total').innerText = '$' + data.ventas.total.toLocaleString("es-AR");
-                    document.getElementById('kpi-ventas-cantidad').innerText = data.ventas.cantidad + (data.ventas.cantidad === 1 ? ' operación' : ' operaciones');
+                    if (elTotal) elTotal.innerText = '$' + data.ventas.total.toLocaleString("es-AR");
+                    if (elCantidad) elCantidad.innerText = data.ventas.cantidad + (data.ventas.cantidad === 1 ? ' operación' : ' operaciones');
                 }
                 if (data.stock) {
-                    document.getElementById('kpi-stock-bajo').innerText = data.stock.bajo;
+                    if (elStock) elStock.innerText = data.stock.bajo;
                 }
                 // Otros datos de salud si es necesario
             })

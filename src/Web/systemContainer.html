@@ -442,7 +442,22 @@
       loadView('runner', actionName, '', '', map[actionName] || '', title);
     }
 
+    let isGlobalLoading = false;
+    let isNavigating = false;
+
     function loadView(view, accion, codigo, fecha, activeBtnId, customTitle) {
+      if (isGlobalLoading || isNavigating) {
+        console.warn("Navegación bloqueada: Proceso en curso.");
+        const badge = document.getElementById('shell-status');
+        if (badge) {
+          badge.classList.remove('animate-fade-in');
+          badge.classList.add('animate-bounce');
+          setTimeout(() => badge.classList.remove('animate-bounce'), 1000);
+        }
+        return;
+      }
+      isNavigating = true;
+
       // 1. UI Active State
       document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
       const btnId = activeBtnId || 'btn-' + view;
@@ -492,9 +507,11 @@
           if (window.innerWidth < 768) {
             document.getElementById('main-sidebar').classList.remove('open');
           }
+          isNavigating = false;
         })
         .withFailureHandler(err => {
           hideLoader();
+          isNavigating = false;
           document.getElementById('app-container').innerHTML = `
             <div class="p-10 text-center flex flex-col items-center justify-center h-full">
               <div class="inline-flex p-4 bg-red-500/10 rounded-full text-red-500 mb-4 border border-red-500/20"><i class="ph-bold ph-warning text-3xl"></i></div>
@@ -583,6 +600,7 @@
      * Permite a los módulos hijos mostrar un indicador de carga en el header principal
      */
     function setGlobalStatus(isLoading, text = "Procesando...") {
+      isGlobalLoading = isLoading;
       const badge = document.getElementById('shell-status');
       const textEl = document.getElementById('shell-status-text');
       if (isLoading) {

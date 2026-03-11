@@ -266,6 +266,10 @@ function inicializarEntorno() {
       triggerLog.push("⛔ TPV: Trigger NO instalado. Configurá DONWEB_WRITE_URL o GITHUB_USER/REPO/TOKEN.");
     }
 
+    // -- TRIGGER DASHBOARD VENTAS --
+    tpv_setupDashboardConsolidatorTrigger();
+    triggerLog.push("✅ DASHBOARD: Consolidación Bake & Serve (cada 1 hora)");
+
     // -- TRIGGER BLOGGER -- 
     // NOTA: Se ha desactivado el trigger recurrente. Blogger se actualiza en cadena desde publicarCatalogo.
     triggerLog.push("ℹ️ Blogger: Trigger automático desactivado (actualización en cadena activada).");
