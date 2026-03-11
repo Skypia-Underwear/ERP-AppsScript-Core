@@ -841,7 +841,10 @@
       initDataTables(catalogData);
       updateKPIs(catalogData);
 
-      document.getElementById('last-sync-label').innerText = `Sincronizado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const syncLabel = document.getElementById('last-sync-label');
+      if (syncLabel) {
+          syncLabel.innerText = `Sincronizado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
 
       // Hidratar datos en tiempo real (Stock, Entradas, Salidas, Ventas)
       hydrateInventoryData();
@@ -851,7 +854,8 @@
 
     } catch (error) {
       log("❌ Error crítico: " + error.message, "error");
-      document.getElementById('last-sync-label').innerText = "ERROR SYNC";
+      const errLabel = document.getElementById('last-sync-label');
+      if (errLabel) errLabel.innerText = "ERROR SYNC";
     }
   }
 
@@ -862,6 +866,7 @@
   async function hydrateInventoryData() {
     log("💧 Hidratando datos de inventario en tiempo real...", "info");
     const label = document.getElementById('last-sync-label');
+    if (!label) return; // Component unmounted during await
     const oldLabel = label.innerText;
     label.innerHTML = '<i class="ph-bold ph-drop animate-bounce"></i> Hidratando...';
 
