@@ -159,7 +159,7 @@ function wc_request($method, $endpoint, $data = null)
     $response = curl_exec($ch);
     $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
-    curl_close($ch);
+    // curl_close($ch); // Función obsoleta (deprecated) a partir de PHP 8.5. PHP ahora libera la memoria automáticamente.
     return ["httpcode" => $httpcode, "response" => $response, "error" => $error];
 }
 
