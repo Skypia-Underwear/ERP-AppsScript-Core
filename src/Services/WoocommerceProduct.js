@@ -470,7 +470,7 @@ function construirJSONProductoDesdeSheets(sku) {
     posicionVariacion++;
   }
 
-  return { wooId: wooIdExistente, payload: json };
+  return { wooId: wooIdExistente, payload: json, estadoWoo: estadoWoo };
 }
 
 /**
@@ -489,7 +489,13 @@ function enviarProductoWP(sku) {
 
     // 1️⃣ Construir JSON directamente desde las hojas de cálculo (sin CSV intermediario)
     logArray.push(`📊 Leyendo datos en tiempo real desde las hojas de cálculo...`);
-    const { wooId, payload: wooJSON } = construirJSONProductoDesdeSheets(sku);
+    const { wooId, payload: wooJSON, estadoWoo } = construirJSONProductoDesdeSheets(sku);
+
+    if (estadoWoo === "no publicar") {
+      const msgSkip = "ℹ️ Sincronización OMITIDA: El producto está marcado como 'No publicar' (Venta Solo Local).";
+      logArray.push(msgSkip);
+      return { success: true, message: msgSkip, logs: logArray };
+    }
 
     if (!wooJSON) throw new Error("Error al construir el paquete de datos JSON.");
 
