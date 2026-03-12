@@ -1,4 +1,4 @@
-﻿// =================================================================
+// =================================================================
 // ===      LÓGICA DE IMÁGENES (MASTER FINAL RESTAURADO)         ===
 // =================================================================
 
@@ -2916,4 +2916,57 @@ function asignarPortadasAleatorias() {
 
   console.log(resultMsg);
   return { success: true, message: resultMsg, count: countModificados };
+}
+
+/**
+ * Busca la imagen de "Portada" con prompt ya generado para un SKU.
+ */
+function obtenerReferenciaMaestra(sku) {
+  const ss = getImagesSpreadsheet();
+  const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+  const data = convertirRangoAObjetos_IMAGENES(sheetImg);
+  
+  const SKU_NORM = String(sku).trim().toUpperCase();
+  
+  // Buscar imagen que sea PORTADA y tenga PROMPT
+  return data.find(r => 
+    String(r.PRODUCTO_ID).trim().toUpperCase() === SKU_NORM && 
+    (String(r.PORTADA).toUpperCase() === 'TRUE' || r.PORTADA === true) &&
+    (r.PROMPT && String(r.PROMPT).trim() !== "")
+  );
+}
+
+/**
+ * Prepara el prompt multimodal (combinando datos y visual) para la IA.
+ */
+function prepararPromptDescripcionIA(referencia, prodObj) {
+  const visualContext = referencia.PROMPT || "Sin descripción visual detallada.";
+  
+  const prompt = `
+    ESTRES DE ROL: Eres un experto en Copywriting para E-commerce de moda y calzado.
+    TU OBJETIVO: Crear una descripción de producto irresistible y una guía de talles técnica basada en datos y contexto visual.
+
+    DATOS DEL PRODUCTO:
+    - Modelo: ${prodObj.MODELO || 'N/A'}
+    - Marca: ${prodObj.MARCA || 'HostingShop'}
+    - Categoría: ${prodObj.CATEGORIA || 'N/A'}
+    - Material: ${prodObj.MATERIAL || 'N/A'}
+    - Temporada: ${prodObj.TEMPORADA || 'N/A'}
+    - Atributos visuales detectados previamente: ${visualContext}
+
+    REQUISITOS DE RESPUESTA (JSON ÚNICAMENTE):
+    Retorna un objeto JSON con esta estructura exacta:
+    {
+      "corta": "Frase de máximo 15 palabras con alto impacto y emojis.",
+      "fichatecnica": "Contenido HTML usando <p>, <ul>, <li>. No uses estilos en línea. Enfócate en beneficios y calidad.",
+      "tabla_talles": "Estructura HTML <table> con filas <tr> y celdas <td> representando una guía de talles lógica para este tipo de producto (ej: S, M, L, XL o Talles 36-45)."
+    }
+
+    NOTAS IMPORTANTES:
+    - No inventes datos que contradigan los proporcionados.
+    - La tabla de talles debe ser estándar para su categoría si no se especifica.
+    - El tono debe ser profesional pero cercano.
+  `;
+  
+  return prompt;
 }
