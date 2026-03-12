@@ -363,8 +363,14 @@ function construirJSONProductoDesdeSheets(sku) {
   if (tieneVariedadNoMenor && !coloresPadre.includes('Surtido')) coloresPadre.push('Surtido');
   if (tieneVariedadNoMenor && !tallesPadre.includes('Surtido')) tallesPadre.push('Surtido');
 
-  const descripcionCorta = construirDescripcionCorta(producto, variedadesProducto);
-  const descripcionLargaHtml = construirDescripcionHtml(producto, producto.DESCRIPCION, producto.TABLA_TALLES);
+  // --- Priorizar DESCRIPCION_IA ---
+  const descripcionLargaHtml = (producto.DESCRIPCION_IA || "").trim() !== "" 
+    ? producto.DESCRIPCION_IA 
+    : construirDescripcionHtml(producto, producto.DESCRIPCION, producto.TABLA_TALLES);
+
+  const descripcionCorta = (producto.DESCRIPCION_IA || "").trim() !== ""
+    ? String(producto.DESCRIPCION_IA).split('\n')[0].replace(/<[^>]*>/g, '').substring(0, 160) // Extraer texto plano del primer párrafo
+    : construirDescripcionCorta(producto, variedadesProducto);
 
   const tagsCombinados = [producto.MATERIAL, producto.MARCA]
     .map(s => s ? String(s).trim() : '')
