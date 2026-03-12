@@ -231,7 +231,7 @@ const GLOBAL_CONFIG = {
  */
 const SHEET_SCHEMA = {
   STORES: ["TIENDA_ID", "LOGOTIPO", "MODO_VENTA", "RECARGO_MENOR", "IP_IMPRESORA_LOCAL"],
-  PRODUCTS: ["CODIGO_ID", "MODELO", "PRECIO_COSTO", "RECARGO_MENOR", "CATEGORIA", "COLORES", "TALLES", "WOO_ID"],
+  PRODUCTS: ["CODIGO_ID", "MODELO", "PRECIO_COSTO", "RECARGO_MENOR", "CATEGORIA", "COLORES", "TALLES", "WOO_ID", "DESCRIPCION_IA"],
   INVENTORY: ["INVENTARIO_ID", "TIENDA_ID", "PRODUCTO_ID", "COLOR", "TALLE", "STOCK_ACTUAL", "ENTRADAS", "SALIDAS", "VENTAS_LOCAL", "VENTAS_WEB"],
   INVENTORY_MOVEMENTS: ["REGISTRO_ID", "USER_ID", "FECHA", "INVENTARIO_ID", "MOVIMIENTO", "ORIGEN", "DESTINO", "PRODUCTO_ID", "CANTIDAD", "REFERENCIA"],
   CATEGORIES: ["CATEGORIA_ID", "CATEGORIA_GENERAL", "HTML", "ICONO"], // ICONO suele ser el ID del SVG
@@ -1000,6 +1000,12 @@ function configurarTemplateRunner(accion, codigo, fecha) {
       template.parametros = JSON.stringify([codigo]);
       template.mostrarBotonPrompt = true;
       break;
+    case "generarDescripcionIA":
+      template.titulo = 'Enriquecimiento de Producto (IA)';
+      template.descripcion = 'Generando descripciones para:';
+      template.funcionParaLlamar = 'gestionarAccionEnriquecimiento';
+      template.parametros = JSON.stringify([codigo]);
+      break;
     case "subir_imagenes_wp":
       template.titulo = 'Subir a WordPress';
       template.descripcion = 'Enviando SKU:';
@@ -1296,6 +1302,13 @@ function testAllSchemas() {
   const finalSummary = results.join("\n");
   debugLog(finalSummary, true);
   return finalSummary;
+}
+
+/**
+ * Función puente para guardar la descripción auditada.
+ */
+function guardarDescripcionEditadaIA(sku, data) {
+  return procesarGuardadoDescripcionIA(sku, data);
 }
 
 /**

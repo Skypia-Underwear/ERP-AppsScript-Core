@@ -1262,53 +1262,120 @@ function guardarCopiaHistoricaDrive(content, fechaObj, logArray) {
 /**
  * Gestión manual/AppSheet de enriquecimiento de producto
  */
+/**
+ * Gestión manual/AppSheet de enriquecimiento de producto.
+ * Ahora integra condiciones de "Imagen Maestra" y permite auditoría previa.
+ */
 function gestionarAccionEnriquecimiento(sku) {
-  debugLog(`🛠️ [Webhook] Iniciando enriquecimiento para SKU: ${sku}`);
+  debugLog(`🛠️ [IA] Iniciando enriquecimiento para SKU: ${sku}`);
+  const logArray = [`🚀 Iniciando análisis para el producto ${sku}...`];
+  
+  try {
+    // 1. Verificar condiciones en BD_PRODUCTO_IMAGENES
+    logArray.push("🔍 Buscando referencia visual maestra (Portada + Prompt)...");
+    const referenciaMaestra = obtenerReferenciaMaestra(sku);
+    
+    if (!referenciaMaestra) {
+      const errorMsg = "⚠️ No se encontró una imagen marcada como PORTADA con PROMPT generado. Genera primero la imagen de portada en el Gestor de Imágenes.";
+      logArray.push(errorMsg);
+      return { success: false, message: errorMsg, logs: logArray };
+    }
+    logArray.push("✅ Referencia maestra encontrada.");
+
+    // 2. Obtener metadatos del producto
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+    const mappingProd = HeaderManager.getMapping("PRODUCTS");
+    const productosData = convertirRangoAObjetos(sheetProd);
+    const prodObj = productosData.find(p => String(p.CODIGO_ID) === String(sku));
+    
+    if (!prodObj) {
+      throw new Error(`Producto ${sku} no encontrado en la base de datos.`);
+    }
+
+    // 3. Preparar Prompt y Consultar IA
+    logArray.push("🧠 Consultando a la IA para generar descripción y tabla de talles...");
+    const promptMaster = prepararPromptDescripcionIA(referenciaMaestra, prodObj);
+    const respuestaIA = consultarIA(promptMaster);
+
+    if (!respuestaIA || respuestaIA.includes("Error")) {
+      throw new Error("La IA no respondió correctamente.");
+    }
+
+    // Intentar limpiar JSON si la IA agregó backticks
+    let jsonLimpio = respuestaIA.replace(/```json/g, "").replace(/```/g, "").trim();
+    let dataIA;
+    try {
+      dataIA = JSON.parse(jsonLimpio);
+    } catch (e) {
+      logArray.push("⚠️ La respuesta no es un JSON válido. Reintentando limpieza...");
+      // Intento de rescate desesperado
+      const inicio = jsonLimpio.indexOf("{");
+      const fin = jsonLimpio.lastIndexOf("}");
+      if (inicio !== -1 && fin !== -1) {
+        dataIA = JSON.parse(jsonLimpio.substring(inicio, fin + 1));
+      } else {
+        throw new Error("No se pudo parsear la respuesta de la IA.");
+      }
+    }
+
+    logArray.push("✅ Contenido generado con éxito.");
+    
+    // Retornamos los datos para que el auditor los muestre
+    return { 
+      success: true, 
+      message: "Contenido generado. Revisa y edita antes de guardar.",
+      data: dataIA,
+      logs: logArray 
+    };
+
+  } catch (e) {
+    const errorMsg = `❌ Error técnico: ${e.message}`;
+    logArray.push(errorMsg);
+    debugLog(errorMsg);
+    return { success: false, message: errorMsg, logs: logArray };
+  }
+}
+
+/**
+ * Persiste la descripción auditada por el usuario en la base de datos.
+ */
+function procesarGuardadoDescripcionIA(sku, dataFinal) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
-    const dataProd = sheetProd.getDataRange().getValues();
-    const headers = dataProd[0].map(h => String(h).trim());
-    const colId = headers.indexOf("CODIGO_ID");
-    const colDescIA = headers.indexOf("DESCRIPCION_IA");
-
-    if (colId === -1 || colDescIA === -1) {
-      debugLog("❌ [Webhook] Error: Faltan columnas ID o DESCRIPCION_IA");
-      return { error: "Faltan columnas ID o DESCRIPCION_IA" };
-    }
-
-    const rowIndex = dataProd.findIndex(r => String(r[colId]) === sku);
-    if (rowIndex === -1) {
-      debugLog(`❌ [Webhook] Error: SKU ${sku} no encontrado en la hoja.`);
-      return { error: "Producto no encontrado" };
-    }
-
-    const prodData = dataProd[rowIndex];
-    const contexto = `Producto: ${prodData[headers.indexOf("MODELO")]} | Marca: ${prodData[headers.indexOf("MARCA")]} | Categoria: ${prodData[headers.indexOf("CATEGORIA")]}`;
-
-    debugLog(`🧠 [IA] Solicitando descripción para: ${contexto}`);
-    const prompt = `Actúa como un experto vendedor de moda. Genera una descripción humana para este producto enfocada en sus beneficios.
-    Datos técnicos: ${contexto}
+    const mapping = HeaderManager.getMapping("PRODUCTS");
     
-    Reglas:
-    - Máximo 3 frases cortas.
-    - Usa emojis.
-    - No inventes colores.`;
+    const finder = sheetProd.createTextFinder(sku).matchEntireCell(true);
+    const range = finder.findNext();
+    
+    if (!range) throw new Error("Producto no encontrado al intentar guardar.");
+    const row = range.getRow();
 
-    const respuestaHumanizada = consultarIA(prompt);
+    const colDescIA = mapping["DESCRIPCION_IA"];
+    const colDescG = mapping["DESCRIPCION"]; // GENÉRICA
+    const colTalles = mapping["TABLA_TALLES"];
 
-    if (respuestaHumanizada && respuestaHumanizada.includes("Error")) {
-      debugLog(`❌ [IA] Falló la consulta: ${respuestaHumanizada}`);
-      return { error: "Error de IA" };
+    if (colDescIA === undefined) throw new Error("Columna DESCRIPCION_IA no encontrada.");
+
+    // Construimos el HTML final unificado
+    let htmlFinal = `<p>${dataFinal.corta}</p>\n${dataFinal.fichatecnica}`;
+    if (dataFinal.tabla_talles) {
+      htmlFinal += `\n<br><h3>Guía de Talles (Referencial)</h3>\n${dataFinal.tabla_talles}`;
     }
 
-    sheetProd.getRange(rowIndex + 1, colDescIA + 1).setValue(respuestaHumanizada);
-    debugLog(`✅ [Webhook] Descripción guardada con éxito para ${sku}`);
+    // Guardamos en la columna nueva
+    sheetProd.getRange(row, colDescIA + 1).setValue(htmlFinal);
+    
+    // También guardamos la tabla de talles en su propia columna si existe
+    if (colTalles !== undefined && dataFinal.tabla_talles) {
+      sheetProd.getRange(row, colTalles + 1).setValue(dataFinal.tabla_talles);
+    }
 
-    return { success: true, description: respuestaHumanizada };
+    return { success: true, message: "✅ Descripción guardada correctamente en BD_PRODUCTOS." };
+
   } catch (e) {
-    debugLog(`❌ [Webhook] Error crítico: ${e.message}`);
-    return { error: e.message };
+    return { success: false, message: "❌ Error al guardar: " + e.message };
   }
 }
 

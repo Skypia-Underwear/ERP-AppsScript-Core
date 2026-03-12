@@ -67,6 +67,44 @@
         data-filter="success"
         class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-emerald-900/40">Éxitos</button>
     </div>
+    <!-- CONTENEDOR DE EDICIÓN IA (NUEVO) -->
+    <div id="ia-editor-container" class="hidden mt-6 space-y-6">
+      <div class="bg-slate-900 border border-blue-500/30 rounded-xl overflow-hidden shadow-2xl">
+        <div class="bg-blue-600/20 px-4 py-3 border-b border-blue-500/30 flex justify-between items-center">
+          <h3 class="font-bold text-blue-100 flex items-center gap-2">
+            <span class="material-icons text-sm">auto_awesome</span> Editor de Contenido IA
+          </h3>
+          <span class="text-[10px] text-blue-300 uppercase font-black tracking-widest">Auditoría Requerida</span>
+        </div>
+        
+        <div class="p-6 space-y-4">
+          <!-- Frase Corta -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Frase Impactante (Woo Short Desc)</label>
+            <div id="ia-corta" contenteditable="true" class="bg-slate-800 border border-slate-700 p-3 rounded text-white focus:outline-none focus:border-blue-500 transition font-medium"></div>
+          </div>
+          
+          <!-- Ficha Técnica -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ficha Técnica HTML (Woocommerce Description)</label>
+            <div id="ia-ficha" contenteditable="true" class="bg-slate-800 border border-slate-700 p-3 rounded text-slate-300 focus:outline-none focus:border-blue-500 transition text-sm leading-relaxed min-h-[150px] font-serif"></div>
+          </div>
+
+          <!-- Tabla de Talles -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Guía de Talles (HTML Table)</label>
+            <div id="ia-tabla" contenteditable="true" class="bg-slate-800 border border-slate-700 p-3 rounded text-slate-300 focus:outline-none focus:border-blue-500 transition text-xs overflow-x-auto"></div>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/50 p-4 border-t border-slate-700 flex justify-end gap-3">
+          <button id="save-ia-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-md transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+            <span class="material-icons text-sm">save</span> Guardar en Base de Datos
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- VISTA PREVIA DE DATOS (TABLA) -->
     <div id="data-preview-container"
       class="hidden mt-8 border border-slate-700 rounded-lg overflow-hidden bg-slate-900">
@@ -144,9 +182,14 @@
       error: document.getElementById('stat-error'),
       warning: document.getElementById('stat-warning'),
       info: document.getElementById('stat-info')
-    }
+    };
 
-      ;
+    // Elementos AI Editor
+    const iaEditorContainer = document.getElementById('ia-editor-container');
+    const iaCorta = document.getElementById('ia-corta');
+    const iaFicha = document.getElementById('ia-ficha');
+    const iaTabla = document.getElementById('ia-tabla');
+    const saveIaBtn = document.getElementById('save-ia-btn');
 
     // Elementos de Datos
     const dataPreviewContainer = document.getElementById('data-preview-container');
@@ -190,6 +233,35 @@
           });
         });
       }
+
+      if (saveIaBtn) {
+        saveIaBtn.addEventListener('click', () => {
+          const sku = parametrosBase[0]; // El primer parámetro es el SKU
+          const data = {
+            corta: iaCorta.innerText,
+            fichatecnica: iaFicha.innerHTML,
+            tabla_talles: iaTabla.innerHTML
+          };
+
+          saveIaBtn.disabled = true;
+          saveIaBtn.innerHTML = '<span class="material-icons text-sm animate-spin">sync</span> Guardando...';
+
+          google.script.run.withSuccessHandler(res => {
+            saveIaBtn.disabled = false;
+            saveIaBtn.innerHTML = '<span class="material-icons text-sm">save</span> Guardar en Base de Datos';
+            if (res.success) {
+              showStatus(res.message, 'success');
+              iaEditorContainer.classList.add('hidden');
+            } else {
+              showStatus(res.message, 'error');
+            }
+          }).withFailureHandler(err => {
+            saveIaBtn.disabled = false;
+            saveIaBtn.innerHTML = '<span class="material-icons text-sm">save</span> Guardar en Base de Datos';
+            showStatus('Error al guardar: ' + err.message, 'error');
+          }).guardarDescripcionEditadaIA(sku, data);
+        });
+      }
     });
 
     function runMacro(parametros) {
@@ -204,6 +276,7 @@
       statsDashboard.classList.add('hidden');
       logFilters.classList.add('hidden');
       retryBtn.classList.add('hidden');
+      iaEditorContainer.classList.add('hidden');
 
       if (copiarBtn) copiarBtn.classList.add('hidden');
       openUrlBtn.classList.add('hidden');
@@ -237,6 +310,14 @@
 
           if (mostrarBotonPrompt) showResults(response.logs);
           else showLogs(response.logs);
+
+          // --- Manejo de Datos IA ---
+          if (response.data && response.data.corta) {
+            iaCorta.innerText = response.data.corta;
+            iaFicha.innerHTML = response.data.fichatecnica || "";
+            iaTabla.innerHTML = response.data.tabla_talles || "";
+            iaEditorContainer.classList.remove('hidden');
+          }
 
         }
 
