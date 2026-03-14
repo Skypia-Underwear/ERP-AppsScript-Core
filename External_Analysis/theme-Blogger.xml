@@ -9026,11 +9026,12 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
          */
         function _crearHTMLParaSubvariedadSinTalles(subvariedad, variedad, categoria, idProducto) {
             const idSubvariedad = `${sanitizeForId(categoria)}-${sanitizeForId(idProducto)}-${sanitizeForId(variedad.variedad)}-${sanitizeForId(subvariedad.nombre)}`;
+            const color = subvariedad.nombre;
 
             return `
         <div class="col-12 col-sm-6 col-md-4">
             <a class="dropdown-item text-center" href="#" id="${idSubvariedad}"
-                onclick="event.preventDefault(); seleccionar_variedad('${categoria}','${idProducto}','${variedad.variedad} - ${subvariedad.nombre}', '${variedad.precio}','${variedad.moneda}','${variedad.minima}',1); this.style.display = 'none';"
+                onclick="event.preventDefault(); seleccionar_variedad('${categoria}','${idProducto}','${variedad.variedad} - ${subvariedad.nombre}', '${variedad.precio}','${variedad.moneda}','${variedad.minima}',1, null, null, '${color}'); this.style.display = 'none';"
                 style="background-color: ${subvariedad.color || '#ccc'}; color: ${getContrastingTextColor(subvariedad.color || '#ccc')}; font-weight: bold; border-radius: 6px; width: 100%;">
                 ${subvariedad.nombre}
             </a>
@@ -9051,7 +9052,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             <div class="d-flex flex-wrap align-items-center gap-2" style="justify-content: center;">
                 <button class="btn btn-block" id="btn-${idProducto}-${sanitizeForId(variedad.variedad)}-${sanitizeForId(subvariedad.nombre)}"
                     style="${estilo}"
-                    onclick="seleccionarTalle('${categoria}', '${idProducto}', '${variedad.variedad}', '${subvariedad.nombre}', '${variedad.precio}', '${variedad.moneda}', '${variedad.minima}', 1, '${talleUnico.id}', '${talleUnico.stock}'); this.style.display = 'none';">
+                    onclick="seleccionarTalle('${categoria}', '${idProducto}', '${variedad.variedad}', '${subvariedad.nombre}', '${variedad.precio}', '${variedad.moneda}', '${variedad.minima}', 1, '${talleUnico.id}', '${talleUnico.stock}', '${subvariedad.nombre}'); this.style.display = 'none';">
                     ${talleUnico.etiqueta} (Stock: ${talleUnico.stock})
                 </button>
             </div>
@@ -9074,7 +9075,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
         if (!valorTalle) return;
         const stockTalle = parseInt(talle.dataset.stock, 10) || 0;
         const subvariedadNombre = '${subvariedad.nombre}';
-        seleccionarTalle('${categoria}', '${idProducto}', '${variedad.variedad}', '${subvariedad.nombre}', '${variedad.precio}', '${variedad.moneda}', '${variedad.minima}', 1, valorTalle, stockTalle, subvariedadNombre);
+        seleccionarTalle('${categoria}', '${idProducto}', '${variedad.variedad}', '${subvariedad.nombre}', '${variedad.precio}', '${variedad.moneda}', '${variedad.minima}', 1, valorTalle, stockTalle, subvariedadNombre, subvariedadNombre);
         talle.style.display = 'none';
         const placeholder = this.options[0];
         const tallesVisibles = Array.from(this.options).slice(1).filter(opt => opt.style.display !== 'none').map(opt => opt.textContent.trim().split(' ')[0]);
@@ -9123,7 +9124,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
         }
 
         // Función de seleccionar variedad
-        function seleccionar_variedad(categoria, id, variedad, precio, moneda, minima, cantidad, talle = null, stock = null) {
+        function seleccionar_variedad(categoria, id, variedad, precio, moneda, minima, cantidad, talle = null, stock = null, color = null) {
             // Verificar si 'categoria' está definido o es 'undefined' (string)
             if (!categoria || categoria === "undefined") {
                 const productoItem = document.querySelector(`#producto-${id}`);
@@ -9170,7 +9171,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             // Desactivar temporalmente el resaltado y los eventos de acordeón durante el cambio
             $(".accordion-collapse").off("shown.bs.collapse hidden.bs.collapse");
 
-            mostrar_cantidad_pedido(categoria, id, variedad, precio, moneda, minima, cantidad, stock);
+            mostrar_cantidad_pedido(categoria, id, variedad, precio, moneda, minima, cantidad, stock, color, talle);
 
 
 
@@ -9234,7 +9235,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             localStorage.setItem('subvariedades_seleccionadas', JSON.stringify(subvariedadesSeleccionadas));
         }
 
-        function seleccionarTalle(categoria, id, variedad, nombreVariedad, precio, moneda, minima, cantidad, talleSeleccionado, stock = null) {
+        function seleccionarTalle(categoria, id, variedad, nombreVariedad, precio, moneda, minima, cantidad, talleSeleccionado, stock = null, colorSeleccionado = null) {
             // 🛑 Validar que haya stock disponible antes de continuar
             const stockNumerico = parseInt(stock || "0");
             if (stockNumerico <= 0) {
@@ -9259,10 +9260,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 subvariedadesSeleccionadas[id][seleccionKey] = true;
                 localStorage.setItem('subvariedades_seleccionadas', JSON.stringify(subvariedadesSeleccionadas));
 
-                seleccionar_variedad(categoria, id, seleccionKey, precio, moneda, minima, cantidad, talleSeleccionado, stock);
+                seleccionar_variedad(categoria, id, seleccionKey, precio, moneda, minima, cantidad, talleSeleccionado, stock, colorSeleccionado);
             } else if (variedad.toLowerCase() === "surtido") {
                 console.log("Subvariedad 'Surtido' seleccionada, no hay talles asociados.");
-                seleccionar_variedad(categoria, id, variedad, precio, moneda, minima, cantidad, null, null);
+                seleccionar_variedad(categoria, id, variedad, precio, moneda, minima, cantidad, null, null, "Surtido");
             } else {
                 console.error("Error: No se seleccionó un talle válido.");
             }
@@ -9271,7 +9272,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
         /**
          * Añade una variedad seleccionada al mini-carrito con un formato enriquecido.
          */
-        function mostrar_cantidad_pedido(categoria, id, variedad, precio, moneda, minima, cantidad_producto, stock) {
+        function mostrar_cantidad_pedido(categoria, id, variedad, precio, moneda, minima, cantidad_producto, stock, color = null, talle = null) {
             stock = parseInt(stock, 10);
             if (isNaN(stock)) {
                 stock = Infinity;
@@ -9364,7 +9365,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 </button>
 
                 <button type="button" id="agregar_carrito${key_completo}" class="d-none"
-                    onclick="mostrar_detalle('${categoria}', '${id}', '${variedad}', '${precio}', '${minima}', '${stock}');">
+                    onclick="mostrar_detalle('${categoria}', '${id}', '${variedad}', '${precio}', '${minima}', '${stock}', '${color}', '${talle}');">
                 </button>
             </div>
             <div class="subtotal-item" id="subtotal_${key_completo}">${formatMoneda(subtotalInicial, moneda)}</div>
@@ -9508,7 +9509,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
         }
 
-        function mostrar_detalle(categoriaCodigo, id, variante, precio, minima, stock) { // <-- Cambiado nombre parámetro
+        function mostrar_detalle(categoriaCodigo, id, variante, precio, minima, stock, color = 'Surtido', talle = 'Surtido') { // <-- Cambiado nombre parámetro
 
             // --- 👇 INICIO: LEER Y APLANAR ESTRUCTURA CORRECTAMENTE 👇 ---
             let producto = null;
@@ -9574,6 +9575,9 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             venta.item.minima = minima;
             venta.item.key_completo = id + key_variante + "";
             venta.item.stock = stock; // <---- Aquí asignás el stock
+            venta.item.color = color;
+            venta.item.talle = talle;
+            venta.item.tipoPrecio = variante.split(' - ')[0] || 'Menor';
 
             try {
                 // Asegurarse que el elemento exista antes de intentar leerlo

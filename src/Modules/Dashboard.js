@@ -142,16 +142,35 @@ function cargarDashboardVentas_HEAVY() {
                 const precio = parseMontoRobust(row.PRECIO) || 0;
                 const subtotal = parseMontoRobust(row.SUBTOTAL || row.MONTO) || 0;
 
-                // Normalización de nombres según origen
-                let descripcion, tipoPrecio;
+                // Normalización de nombres y variaciones según origen
+                let descripcion, tipoPrecio, color, talle, variedadId;
+                
                 if (origen === 'Pedido Local') {
-                    descripcion = row.VARIACION_ID; // O PRODUCTO_ID según tu hoja
+                    descripcion = row.VARIACION_ID || row.PRODUCTO_ID; 
                     tipoPrecio = row.TIPO_PRECIO || 'N/A';
+                    color = row.COLOR || 'N/A';
+                    talle = row.TALLE || 'N/A';
+                    variedadId = row.VARIACION_ID || '';
                 } else {
-                    // Lógica para extraer tipo de precio de Blogger (ej: "Producto (Mayorista)")
-                    descripcion = row.PRODUCTO_VARIACION || '';
+                    // Blogger: Usamos columnas específicas si existen, sino fallback del nombre
+                    descripcion = row.PRODUCTO_VARIACION || row.NOMBRE || row.CODIGO_ID || '';
+                    
+                    color = row.COLOR || '';
+                    talle = row.TALLE || '';
+                    variedadId = row.VARIEDAD_ID || '';
+                    
                     const match = descripcion.match(/\(([^)]+)\)/);
-                    tipoPrecio = match && match[1] ? match[1].split('-')[0].trim() : 'Menor';
+                    if (match) {
+                        const partes = match[1].split('-').map(p => p.trim());
+                        tipoPrecio = row.TIPO_PRECIO || partes[0] || 'Menor';
+                        if (!color || color === 'N/A') color = partes[1] || 'Surtido';
+                        if (!talle || talle === 'N/A') talle = partes[2] || 'Surtido';
+                    } else {
+                        tipoPrecio = row.TIPO_PRECIO || 'Menor';
+                    }
+                    
+                    if (!color) color = 'Surtido';
+                    if (!talle) talle = 'Surtido';
                 }
 
                 const item = {
@@ -162,8 +181,9 @@ function cargarDashboardVentas_HEAVY() {
                     subtotal: subtotal,
                     tipoPrecio: tipoPrecio,
                     productoId: row.PRODUCTO_ID,
-                    color: row.COLOR,
-                    talle: row.TALLE
+                    color: color,
+                    talle: talle,
+                    variedadId: variedadId
                 };
 
                 if (!detalleVentasMap[ventaId]) detalleVentasMap[ventaId] = [];
@@ -182,17 +202,35 @@ function cargarDashboardVentas_HEAVY() {
                 const items = parsed.detalle || parsed; // Soporta ambos formatos
                 if (!Array.isArray(items)) return null;
 
-                return items.map((it, idx) => ({
-                    id: ventaId + '-j-' + idx,
-                    descripcion: it.nombre || it.descripcion_venta || it.descripcion || 'Sin descripción',
-                    cantidad: it.cantidad || 1,
-                    precioUnitario: parseMontoRobust(it.precio || it.precioUnitario),
-                    subtotal: parseMontoRobust(it.subtotal || it.monto),
-                    tipoPrecio: it.tipoPrecio || 'N/A',
-                    productoId: it.productoId || it.codigo || '',
-                    color: it.color || 'N/A',
-                    talle: it.talle || 'N/A'
-                }));
+                return items.map((it, idx) => {
+                    let c = it.color;
+                    let t = it.talle;
+                    let tp = it.tipoPrecio;
+                    const desc = it.nombre || it.descripcion_venta || it.descripcion || '';
+                    
+                    if (!c || !t || !tp) {
+                        const match = desc.match(/\(([^)]+)\)/);
+                        if (match) {
+                            const partes = match[1].split('-').map(p => p.trim());
+                            tp = tp || partes[0] || 'Menor';
+                            c = c || partes[1] || 'Surtido';
+                            t = t || partes[2] || 'Surtido';
+                        }
+                    }
+
+                    return {
+                        id: ventaId + '-j-' + idx,
+                        descripcion: desc || 'Sin descripción',
+                        cantidad: it.cantidad || 1,
+                        precioUnitario: parseMontoRobust(it.precio || it.precioUnitario),
+                        subtotal: parseMontoRobust(it.subtotal || it.monto),
+                        tipoPrecio: tp || 'Menor',
+                        productoId: it.productoId || it.codigo || '',
+                        color: c || 'Surtido',
+                        talle: t || 'Surtido',
+                        variedadId: it.variedadId || it.variation_id || ''
+                    };
+                });
             } catch (e) {
                 Logger.log("Error parseando DETALLE_JSON para " + ventaId + ": " + e.message);
                 return null;
@@ -231,12 +269,15 @@ function cargarDashboardVentas_HEAVY() {
                 const transferId = row.DATOS_TRANSFERENCIA;
                 const infoTransfer = transferenciaMap[transferId] || { banco: 'N/A', alias: 'N/A' };
 
-                // --- 2.2 PRIORIZACIÓN DE DATOS (Híbrido JSON / Hoja Detalles) ---
-                let detallesVenta = normalizarDetalleJson(row.DETALLE_JSON, ventaId);
+                // --- 2.2 PRIORIZACIÓN DE DATOS (Híbrido Hoja Detalles / JSON) ---
+                // Priorizamos la hoja de detalles (detalleVentasMap) ya que contiene las columnas estructuradas (Color, Talle, VariedadId)
+                let detallesVenta = detalleVentasMap[ventaId];
 
-                if (!detallesVenta) {
-                    detallesVenta = detalleVentasMap[ventaId] || [];
+                if (!detallesVenta || detallesVenta.length === 0) {
+                    detallesVenta = normalizarDetalleJson(row.DETALLE_JSON, ventaId);
                 }
+
+                if (!detallesVenta) detallesVenta = [];
 
                 const recargoTransf = Number(row.RECARGO_TRANSFERENCIA || 0);
 
@@ -332,6 +373,7 @@ function actualizarEstadoVenta(ventaId, nuevoEstado, origen) {
         const ventaIdHeader = origen === 'Blogger' ? "CODIGO" : "VENTA_ID";
         const ventaIdIndex = mapping[ventaIdHeader];
         const estadoIndex = mapping["ESTADO"];
+        const cajaIndex = mapping["CAJA_ID"];
 
         if (ventaIdIndex === undefined || estadoIndex === undefined) {
             return { success: false, message: `❌ Columnas VENTA_ID/CODIGO o ESTADO no encontradas en el mapeo de ${origen}.` };
@@ -342,8 +384,25 @@ function actualizarEstadoVenta(ventaId, nuevoEstado, origen) {
 
         for (let i = 0; i < dataRows.length; i++) {
             if (dataRows[i][ventaIdIndex] === ventaId) {
-                filaEncontrada = i + 2;
+                const filaEncontrada = i + 2;
                 hojaVentas.getRange(filaEncontrada, estadoIndex + 1).setValue(nuevoEstado);
+
+                // --- ASIGNACIÓN AUTOMÁTICA DE CAJA (Solo Blogger) ---
+                if (origen === 'Blogger' && (nuevoEstado === 'PAGADO' || nuevoEstado === 'ENTREGADO') && cajaIndex !== undefined) {
+                    const currentCaja = dataRows[i][cajaIndex];
+                    if (!currentCaja || currentCaja === 'N/A' || currentCaja === '') {
+                        try {
+                            const activeBoxId = getCurrentOpenBoxId();
+                            if (activeBoxId) {
+                                hojaVentas.getRange(filaEncontrada, cajaIndex + 1).setValue(activeBoxId);
+                                debugLog(`📦 [Caja Auto] Venta ${ventaId} asignada a Caja ${activeBoxId}`);
+                            }
+                        } catch (eBox) {
+                            debugLog(`⚠️ No se pudo asignar caja automáticamente: ${eBox.message}`);
+                        }
+                    }
+                }
+
                 SpreadsheetApp.flush();
                 return { success: true, message: `✅ Estado de venta ${ventaId} (${origen}) actualizado a "${nuevoEstado}".` };
             }

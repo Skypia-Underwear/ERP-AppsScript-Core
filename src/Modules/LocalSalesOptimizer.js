@@ -12,7 +12,8 @@ function tpv_consolidarVentasJson() {
         debugLog("🍳 [Bake & Serve] Iniciando consolidación de ventas...");
 
         // 1. Obtener los datos consolidados usando la lógica existente de Dashboard.js
-        const dashboardJsonStr = cargarDashboardVentas();
+        // Forzamos HEAVY para que no lea el JSON viejo que el mismo genera
+        const dashboardJsonStr = cargarDashboardVentas_HEAVY();
         const dataParsed = JSON.parse(dashboardJsonStr);
 
         if (!dataParsed.success) {

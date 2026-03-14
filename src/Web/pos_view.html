@@ -580,6 +580,82 @@
     backdrop-filter: blur(4px);
     z-index: 2000;
   }
+  /* Estilos para mini-botones de variedad en la tarjeta de producto */
+  .variety-btns-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .variety-mini-btn {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1.5px solid var(--primary);
+    background: white;
+    color: var(--primary);
+    font-size: 0.65rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+  }
+
+  .variety-mini-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+  }
+
+  .variety-mini-btn:active {
+    transform: scale(0.96);
+  }
+
+  /* Botones de variedad en el modal */
+  .variety-modal-btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .variety-modal-btn:hover {
+    border-color: var(--primary);
+    background: #f0f6ff;
+  }
+
+  .variety-modal-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .variety-price-tag {
+    display: block;
+    font-size: 1rem;
+    font-weight: 900;
+    color: var(--primary);
+    margin-top: 2px;
+  }
+
+  .variety-modal-btn.active .variety-price-tag {
+    color: white;
+  }
+
+  .variety-qty-tag {
+    display: block;
+    font-size: 0.6rem;
+    opacity: 0.7;
+    margin-top: 1px;
+  }
 </style>
 
 <div id="pos-root">
@@ -694,6 +770,11 @@
             </div>
 
             <div class="space-y-4">
+              <!-- Sección de Variedades de Precio (solo en modo PRECIO VARIABLE) -->
+              <div id="variety-container" style="display: none;">
+                <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Tipo de Precio</label>
+                <div id="variety-options" class="variant-grid" style="margin-top: 8px;"></div>
+              </div>
               <div>
                 <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Colores
                   Disponibles</label>
@@ -706,12 +787,12 @@
             </div>
           </div>
         </div>
-
         <div class="cart-table-wrapper">
           <table id="cart-table" class="display" style="width: 100%;">
             <thead>
               <tr>
                 <th>Producto</th>
+                <th>Tipo Precio</th>
                 <th>Color</th>
                 <th>Talle</th>
                 <th>Cant.</th>
@@ -943,6 +1024,7 @@
       const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
 
       let selectedMinPurchase = 1;
+      let priceConfig = { tipoRegistroPrecio: 'PRECIO + RECARGO ESTANDAR', tipoRegistroProducto: 'PRODUCTO VARIABLE' };
       let currentTpvFilters = {
         parent: 'ALL',
         cat: 'ALL',
@@ -1103,6 +1185,12 @@
                 posMetadata.userEmail = userEmail;
                 posMetadata.sellerId = sessionStorage.getItem('userPassword');
 
+                // Guardar config de precios en scope del TPV
+                if (data.priceConfig) {
+                  priceConfig = data.priceConfig;
+                  console.log('[TPV] priceConfig:', priceConfig);
+                }
+
                 // 1. Aplicar Modo de Venta
                 var rawMode = (data.storeConfig && data.storeConfig.saleMode) || "BOTONES DE FILTRADO";
                 setTpvMode(rawMode);
@@ -1221,7 +1309,7 @@
           searching: false,
           info: false,
           language: { emptyTable: "Sin productos" },
-          columnDefs: [{ targets: 5, className: 'text-right' }]
+          columnDefs: [{ targets: 6, className: 'text-right' }]
         });
       }
 
@@ -1229,7 +1317,9 @@
         if (cart.length === 0) return alert("Carrito vacío");
         var text = "*PRESUPUESTO HOSTINGSHOP*\n--------------------------\n";
         cart.forEach(function (i) {
-          text += "• " + i.model + " (" + i.color + "/" + i.size + ")\n  " + i.quantity + " x $" + i.price.toLocaleString() + " = $" + (i.price * i.quantity).toLocaleString() + "\n";
+          text += "• " + i.model + " (" + i.color + "/" + i.size + ")" +
+            (i.tipoPrecio && i.tipoPrecio !== 'Estándar' ? " [" + i.tipoPrecio + "]" : "") +
+            "\n  " + i.quantity + " x $" + i.price.toLocaleString() + " = $" + (i.price * i.quantity).toLocaleString() + "\n";
         });
         var total = document.getElementById('total-amount').innerText;
         text += "--------------------------\n*TOTAL: " + total + "*";
@@ -1431,29 +1521,82 @@
         var grid = document.getElementById('product-grid');
         if (!grid) return;
         grid.innerHTML = '';
+        const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
+
         products.forEach(function (p) {
           var div = document.createElement('div');
           div.className = 'product-card';
 
           var imgHtml = p.image
             ? "<div class='product-img-container'><img src='" + p.image + "' alt='" + p.model + "' loading='lazy'></div>"
-            : "<div class='product-img-container'><div class='product-no-img'>👕</div></div>";
+            : "<div class='product-img-container'><div class='product-no-img'>&#128085;</div></div>";
+
+          // Precio a mostrar: en PRECIO VARIABLE usamos display_price (el menor precio de variedad)
+          var displayPx = isPrecioVariable ? (p.display_price || p.price) : p.price;
 
           div.innerHTML = imgHtml +
             "<div style='flex: 1;'>" +
             "<div class='product-title' style='font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 0.25rem; line-height: 1.2;'>" + p.model + "</div>" +
-            "<div class='product-price' style='color: var(--primary); font-weight: 800; font-size: 1.1rem; margin-top: 5px;'>$" + p.price.toLocaleString() + "</div>" +
+            "<div class='product-price' style='color: var(--primary); font-weight: 800; font-size: 1.1rem; margin-top: 5px;'>$" + displayPx.toLocaleString() + "</div>" +
             "<div style='font-size: 0.65rem; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;'>" + p.categoryName + "</div>" +
             "</div>";
-          div.onclick = function () { openTpvVariations(p); };
+
+          // --- MINI-BOTONES DE VARIEDAD (solo en PRECIO VARIABLE) ---
+          if (isPrecioVariable && p.varieties && p.varieties.length > 0) {
+            var varietyContainer = document.createElement('div');
+            varietyContainer.className = 'variety-btns-container';
+
+            p.varieties.forEach(function (v) {
+              var vBtn = document.createElement('button');
+              vBtn.className = 'variety-mini-btn';
+              vBtn.innerHTML = v.nombre + '<br><span style="font-size:0.75rem;font-weight:900;">$' + (v.precio_unitario || 0).toLocaleString() + '</span>';
+              vBtn.title = 'Cant. mín: ' + (v.cantidad_minima || 1);
+
+              vBtn.onclick = function (e) {
+                e.stopPropagation(); // No abrir card completa
+                handleVarietyClick(p, v);
+              };
+              varietyContainer.appendChild(vBtn);
+            });
+            div.appendChild(varietyContainer);
+
+            // En PRECIO VARIABLE la tarjeta entera NO dispara openTpvVariations directa
+            div.onclick = null;
+          } else {
+            // Flujo normal: clic en la tarjeta abre el modal de variaciones
+            div.onclick = function () { openTpvVariations(p); };
+          }
+
           grid.appendChild(div);
         });
       }
 
-      window.openTpvVariations = function (product, scan = null) {
+      /**
+       * Maneja el clic en un mini-botón de variedad desde la tarjeta.
+       * - PRODUCTO SIMPLE (1 sola variación): agrega directo al carrito.
+       * - PRODUCTO VARIABLE (múltiples): abre el modal de color/talle con la variedad preseleccionada.
+       */
+      function handleVarietyClick(product, variety) {
+        const isSingleVariation = product.variations.length <= 1;
+        if (isSingleVariation) {
+          // PRODUCTO SIMPLE: la única variación es color=Surtido, talle=Surtido
+          const variation = product.variations[0] || {
+            variation_id: product.id + '-Surtido-Surtido-' + (posMetadata.managedStoreId || ''),
+            color: 'Surtido',
+            size: 'Surtido',
+            store_id: posMetadata.managedStoreId || ''
+          };
+          addTpvToCart(product, variation, variety);
+        } else {
+          // PRODUCTO VARIABLE: abre modal color/talle con variedad ya seleccionada
+          openTpvVariations(product, null, variety);
+        }
+      }
+
+      window.openTpvVariations = function (product, scan = null, preselectedVariety = null) {
         // AUTO-SELECCIÓN: Si el producto tiene una sola variación, la añadimos directo
         if (product.variations.length === 1) {
-          addTpvToCart(product, product.variations[0]);
+          addTpvToCart(product, product.variations[0], preselectedVariety);
           return;
         }
 
@@ -1463,10 +1606,37 @@
         const colorCont = document.getElementById('color-options');
         const sizeCont = document.getElementById('size-options');
         const sizeContainer = document.getElementById('size-container');
+        const varietyCont = document.getElementById('variety-options');
+        const varietyContainer = document.getElementById('variety-container');
 
         colorCont.innerHTML = '';
         sizeCont.innerHTML = '';
         sizeContainer.style.display = 'none';
+
+        // --- Selector de Tipo de Precio en Modal (PRECIO VARIABLE con múlt. variaciones) ---
+        const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
+        let _selectedVariety = preselectedVariety || null; // variedad preseleccionada
+
+        if (isPrecioVariable && product.varieties && product.varieties.length > 0) {
+          varietyContainer.style.display = 'block';
+          varietyCont.innerHTML = '';
+          product.varieties.forEach(function (v) {
+            var vBtn = document.createElement('button');
+            vBtn.className = 'variety-modal-btn' + (preselectedVariety && preselectedVariety.variedad_id === v.variedad_id ? ' active' : '');
+            vBtn.innerHTML =
+              '<span>' + v.nombre + '</span>' +
+              '<span class="variety-price-tag">$' + (v.precio_unitario || 0).toLocaleString() + '</span>' +
+              '<span class="variety-qty-tag">Mín: ' + (v.cantidad_minima || 1) + ' u.</span>';
+            vBtn.onclick = function () {
+              document.querySelectorAll('.variety-modal-btn').forEach(b => b.classList.remove('active'));
+              vBtn.classList.add('active');
+              _selectedVariety = v;
+            };
+            varietyCont.appendChild(vBtn);
+          });
+        } else {
+          varietyContainer.style.display = 'none';
+        }
 
         const colors = [...new Set(product.variations.map(v => v.color))];
         colors.forEach(color => {
@@ -1474,7 +1644,6 @@
           btn.className = 'color-btn';
           btn.innerText = color;
 
-          // APLICAR COLOR HEXADECIMAL (Desde BD_COLORES vía masterData)
           if (catalog.colors && catalog.colors[color]) {
             const config = catalog.colors[color];
             const hex = config.hex.startsWith('#') ? config.hex : '#' + config.hex;
@@ -1483,25 +1652,23 @@
             btn.style.borderColor = 'rgba(0,0,0,0.1)';
           }
 
-          // Aplicar color si existe en posMetadata (vía masterData logic)
           btn.onclick = () => {
             document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            renderTpvSizes(product, color);
+            renderTpvSizes(product, color, () => _selectedVariety);
           };
           colorCont.appendChild(btn);
         });
 
         modal.style.display = 'flex';
 
-        // Si venía de un scan con color parcial
         if (scan && scan.color) {
           const btn = Array.from(colorCont.children).find(b => b.innerText === scan.color);
           if (btn) btn.click();
         }
       };
 
-      function renderTpvSizes(product, color) {
+      function renderTpvSizes(product, color, getVariety) {
         const sizeCont = document.getElementById('size-options');
         document.getElementById('size-container').style.display = 'block';
         sizeCont.innerHTML = '';
@@ -1526,7 +1693,9 @@
             btn.style.cursor = 'not-allowed';
           } else {
             btn.onclick = () => {
-              addTpvToCart(product, v);
+              // Si hay un getter de variedad (modo PRECIO VARIABLE en modal), lo usamos
+              const variety = getVariety ? getVariety() : null;
+              addTpvToCart(product, v, variety);
               btn.style.transform = 'scale(0.95)';
               setTimeout(() => btn.style.transform = 'scale(1)', 100);
             };
@@ -1588,20 +1757,26 @@
         }
       };
 
-      function addTpvToCart(product, variation) {
+      function addTpvToCart(product, variation, variety = null) {
         const varId = variation.variation_id;
         const available = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
 
-        const existing = cart.find(i => i.variation_id === varId);
+        // En modo PRECIO VARIABLE: precio y cantidad mínima vienen de la variedad
+        const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
+        const itemPrice = isPrecioVariable && variety ? variety.precio_unitario : product.price;
+        const initQty  = isPrecioVariable && variety ? Math.max(1, variety.cantidad_minima) : 1;
+        const tipoPrecio = variety ? variety.nombre : (isPrecioVariable ? '—' : 'Estándar');
+
+        const existing = cart.find(i => i.variation_id === varId && i.tipoPrecio === tipoPrecio);
         const currentInCart = existing ? existing.quantity : 0;
 
-        if (currentInCart + 1 > available) {
-          alert("No hay suficiente stock disponible (" + available + ")");
+        if (currentInCart + initQty > available) {
+          alert('No hay suficiente stock disponible (' + available + ')');
           return;
         }
 
         if (existing) {
-          existing.quantity += 1;
+          existing.quantity += initQty;
         } else {
           cart.push({
             variation_id: varId,
@@ -1609,13 +1784,17 @@
             model: product.model,
             color: variation.color,
             size: variation.size,
-            price: product.price,
-            quantity: 1,
+            price: itemPrice,
+            quantity: initQty,
+            tipoPrecio: tipoPrecio,
+            variedad_id: variety ? variety.variedad_id : '',
             categoryName: product.categoryName
           });
         }
+
         renderTpvCart();
-        console.log("🛒 Añadido:", product.model, variation.color, variation.size);
+        closeTpvModal();
+        console.log('🛒 Añadido:', product.model, variation.color, variation.size, tipoPrecio, '$' + itemPrice);
       }
 
       function renderTpvCart() {
@@ -1625,6 +1804,7 @@
         cart.forEach(function (item, index) {
           dt.row.add([
             "<div style='font-weight:600'>" + item.model + "</div>",
+            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '—') + "</span>",
             item.color,
             item.size,
             "<input type='number' class='qty-input' value='" + item.quantity + "' onchange='updateTpvQty(" + index + ", this.value)'>",
@@ -1655,26 +1835,32 @@
         if (!catalog || !posMetadata) return;
 
         var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
+        const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
 
         // A. Cálculos Base
         const montoProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const totalUnits = cart.reduce((acc, i) => acc + i.quantity, 0);
 
         // B. Recargo Minorista
+        // En PRECIO VARIABLE el precio ya incluye el margen → NO se aplica recargo minorista.
         let minorSurcharge = 0;
-        const storeSurcharge = (posMetadata.storeConfig && posMetadata.storeConfig.minorSurcharge) ? posMetadata.storeConfig.minorSurcharge : 0;
-        const noMinorSurchargeId = isQr ? 'qr-tpv-modal-deactivate-minor-surcharge' : 'tpv-modal-deactivate-minor-surcharge';
-        const noMinorSurcharge = document.getElementById(noMinorSurchargeId)?.checked || false;
+        if (!isPrecioVariable) {
+          const storeSurcharge = (posMetadata.storeConfig && posMetadata.storeConfig.minorSurcharge) ? posMetadata.storeConfig.minorSurcharge : 0;
+          const noMinorSurchargeId = isQr ? 'qr-tpv-modal-deactivate-minor-surcharge' : 'tpv-modal-deactivate-minor-surcharge';
+          const noMinorSurcharge = document.getElementById(noMinorSurchargeId)?.checked || false;
 
-        if (totalUnits > 0 && totalUnits < selectedMinPurchase && !noMinorSurcharge) {
-          if (storeSurcharge > 0) {
-            minorSurcharge = storeSurcharge * totalUnits;
-          } else {
-            minorSurcharge = cart.reduce((acc, item) => {
-              const product = catalog.products.find(p => p.id === item.product_id);
-              const productSurcharge = (product && product.minor_surcharge) ? product.minor_surcharge : 0;
-              return acc + (productSurcharge * item.quantity);
-            }, 0);
+          if (totalUnits > 0 && totalUnits < selectedMinPurchase && !noMinorSurcharge) {
+            if (storeSurcharge > 0) {
+              // PRECIO + RECARGO ESTANDAR: recargo a nivel tienda
+              minorSurcharge = storeSurcharge * totalUnits;
+            } else {
+              // PRECIO + RECARGO PERSONALIZADO: recargo a nivel producto
+              minorSurcharge = cart.reduce((acc, item) => {
+                const product = catalog.products.find(p => p.id === item.product_id);
+                const productSurcharge = (product && product.minor_surcharge) ? product.minor_surcharge : 0;
+                return acc + (productSurcharge * item.quantity);
+              }, 0);
+            }
           }
         }
 
