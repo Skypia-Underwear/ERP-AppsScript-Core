@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * API Proxy WooCommerce: Create/Update Product via REST API
  * Version 7.9 (ATTRIBUTE POSITIONING + FIX BRANDS)
@@ -159,7 +161,7 @@ function wc_request($method, $endpoint, $data = null)
     $response = curl_exec($ch);
     $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
-    // curl_close($ch); // Función obsoleta (deprecated) a partir de PHP 8.5. PHP ahora libera la memoria automáticamente.
+    curl_close($ch);
     return ["httpcode" => $httpcode, "response" => $response, "error" => $error];
 }
 
@@ -383,7 +385,7 @@ try {
     if (isset($respData["id"])) {
         $product_id = $respData["id"];
     } else {
-        throw new Exception("API Error: " . $result["response"]);
+        throw new \Exception("API Error: " . $result["response"]);
     }
 
     if ($product_id && $wcReadyData["type"] === "variable" && !empty($variationsData)) {
@@ -423,7 +425,7 @@ try {
 
     echo json_encode(["status" => $status, "message" => "Product processed successfully", "sku" => $sku, "product_id" => $product_id, "product_url" => $respData["permalink"] ?? "", "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);
 
-} catch (Exception $e) {
+} catch (\Exception $e) {
     log_error("CRITICAL: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => $e->getMessage(), "server_logs" => $LOG_BUFFER], JSON_INVALID_UTF8_IGNORE);

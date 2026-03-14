@@ -497,6 +497,18 @@ function blogger_pagar_venta(informacion) {
 
         if (fila_actualizar !== -1) {
             sheet.getRange(fila_actualizar + 2, mS.ESTADO + 1).setValue("PAGADO");
+
+            // ASIGNAR CAJA DEL DÍA
+            try {
+                const cajaId = getCurrentOpenBoxId();
+                if (cajaId && mS.CAJA_ID !== undefined) {
+                    sheet.getRange(fila_actualizar + 2, mS.CAJA_ID + 1).setValue(cajaId);
+                    debugLog(`📦 [Blogger Bridge] Venta ${venta.idpedido} auto-asignada a Caja ${cajaId}`);
+                }
+            } catch (eC) {
+                debugLog("⚠️ No se pudo auto-asignar caja en pagar_venta: " + eC.message);
+            }
+
             jo.status = "0";
             jo.message = "Se notificó el pagó de la venta exitosamente, espere confirmación por WhatsApp";
         } else {
@@ -642,9 +654,57 @@ function blogger_registrar_venta(informacion) {
         // CORRECCIÓN AUDITORÍA: Inyectar fecha y hora en el JSON para consistencia en Frontend
         venta.fecha = fechaStr;
         venta.hora = horaStr;
+        venta.id = codigoventa;
+        venta.estado = "SOLICITADO";
 
-        // Guardar Venta (Usando indices del mapeo, asumiendo estructura estándar para appendRow si es posible, o reconstruyendo)
-        // Por simplicidad en appendRow manteniendo el orden del ERP:
+        const sheetTiendas = ss.getSheetByName(SHEETS.STORES);
+        const mShtT = HeaderManager.getMapping("STORES");
+        const tiendaId = sheetTiendas ? sheetTiendas.getRange(2, mShtT.TIENDA_ID + 1).getValue() : "T1";
+        let detalle_pedido = "";
+
+        // Procesar y enriquecer cada item antes de guardar el JSON final
+        venta.detalle.forEach(item => {
+            const nombreOriginal = item.nombre || "";
+            const nombreLimpio = nombreOriginal.replace(/<\/?b>/g, "").trim();
+            item.nombre = nombreLimpio;
+
+            // --- PARSEO ROBUSTO DE VARIEDADES ---
+            const productID = nombreLimpio.split(" ")[0];
+            
+            // Si no vienen del frontend, intentamos extraer del nombre: "PRODUCTO ( Precio - Color - Talle )"
+            if (!item.color || !item.talle || !item.tipoPrecio) {
+                const match = nombreLimpio.match(/\(([^)]+)\)/);
+                if (match) {
+                    const partes = match[1].split('-').map(p => p.trim());
+                    item.tipoPrecio = item.tipoPrecio || partes[0] || "Menor";
+                    item.color = item.color || partes[1] || "Surtido";
+                    item.talle = item.talle || partes[2] || "Surtido";
+                }
+            }
+
+            // Fallbacks seguros
+            const color = item.color || "Surtido";
+            const talle = item.talle || "Surtido";
+            const tipoPrecio = item.tipoPrecio || "Menor";
+            
+            // Atributos normalizados en el item para el JSON
+            item.color = color;
+            item.talle = talle;
+            item.tipoPrecio = tipoPrecio;
+            
+            // VARIEDAD_ID Crítico para ajuste de stock en AppSheet
+            const variedadId = item.variedadId || `${productID}-${color}-${talle}-${tiendaId}`;
+            item.variedadId = variedadId;
+            
+            detalle_pedido += `${nombreLimpio} Cant: ${item.cantidad} x ${item.precio} = ${venta.moneda}${item.total}\n`;
+
+            sheetDetalle.appendRow([
+                codigoventa, nombreLimpio, item.categoria, item.cantidad,
+                item.precio, item.total, productID, color, talle, variedadId
+            ]);
+        });
+
+        // Guardar Venta con el JSON ya enriquecido
         sheetVentas.appendRow([
             codigoventa, fechaStr, horaStr, "WEB", venta.forma_pago,
             venta.datos_transferencia_id || "", venta.nombre_entrega,
@@ -654,33 +714,6 @@ function blogger_registrar_venta(informacion) {
             venta.costo_agencia || 0, venta.recargo_valor || 0,
             venta.total, JSON.stringify(venta), "SOLICITADO", ""
         ]);
-
-        const sheetTiendas = ss.getSheetByName(SHEETS.STORES);
-        const mShtT = HeaderManager.getMapping("STORES");
-        const tiendaId = sheetTiendas ? sheetTiendas.getRange(2, mShtT.TIENDA_ID + 1).getValue() : "T1";
-        let detalle_pedido = "";
-
-        venta.detalle.forEach(item => {
-            const nombreLimpio = item.nombre.replace(/<\/?b>/g, "").trim();
-            item.nombre = nombreLimpio;
-
-            const productID = nombreLimpio.split(" ")[0];
-            const contentMatch = nombreLimpio.match(/\(([^)]+)\)/);
-            const content = contentMatch ? contentMatch[1].trim() : "";
-            const parts = content.split("-").map(p => p.trim());
-
-            const color = parts.length > 1 ? parts[1] : "Surtido";
-            let talle = "Surtido";
-            if (parts.length > 2) talle = parts.slice(2).join("-");
-
-            const variedadId = `${productID}-${color}-${talle}-${tiendaId}`;
-            detalle_pedido += `${nombreLimpio} Cant: ${item.cantidad} x ${item.precio} = ${venta.moneda}${item.total}\n`;
-
-            sheetDetalle.appendRow([
-                codigoventa, nombreLimpio, item.categoria, item.cantidad,
-                item.precio, item.total, productID, color, talle, variedadId
-            ]);
-        });
 
         notificarTelegramSalud(`🛒 <b>Venta Blogger: ${codigoventa}</b>\nCliente: ${venta.nombre_entrega_mostrado || venta.nombre_entrega}\nTotal: ${venta.moneda}${venta.total}`, "EXITO");
 
@@ -919,6 +952,16 @@ function blogger_pagar_venta_con_comprobante(payload) {
         const nuevoEstado = resultado.verified ? "PAGADO" : "REVISION_MANUAL";
         sheet.getRange(rowIndex + 1, mS.ESTADO + 1).setValue(nuevoEstado);
 
+        // ASIGNAR CAJA SI ESTÁ PAGADO
+        if (nuevoEstado === "PAGADO" && mS.CAJA_ID !== undefined) {
+            try {
+                const activeBoxId = getCurrentOpenBoxId();
+                if (activeBoxId) {
+                    sheet.getRange(rowIndex + 1, mS.CAJA_ID + 1).setValue(activeBoxId);
+                }
+            } catch (e) { }
+        }
+
         // Actualizar DETALLE_JSON con el nuevo estado y URL
         updateBloggerJson(sheet, rowIndex, mS, {
             estado: nuevoEstado,
@@ -1007,6 +1050,16 @@ function blogger_confirmar_pago_presencial(contents) {
 
         const nuevoEstado = contents.nuevoEstado || "REVISION_MANUAL";
         sheet.getRange(rowIndex + 1, mS.ESTADO + 1).setValue(nuevoEstado);
+
+        // ASIGNAR CAJA SI ES PAGADO O ENTREGADO
+        if ((nuevoEstado === "PAGADO" || nuevoEstado === "ENTREGADO") && mS.CAJA_ID !== undefined) {
+            try {
+                const activeBoxId = getCurrentOpenBoxId();
+                if (activeBoxId) {
+                    sheet.getRange(rowIndex + 1, mS.CAJA_ID + 1).setValue(activeBoxId);
+                }
+            } catch (e) { }
+        }
 
         // Actualizar DETALLE_JSON
         updateBloggerJson(sheet, rowIndex, mS, {

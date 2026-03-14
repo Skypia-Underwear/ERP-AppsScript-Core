@@ -620,14 +620,19 @@
       if (fOri && s.origen !== fOri) return false;
       if (fPay && s.metodoPago !== fPay) return false;
       if (fCaja && s.cajaId !== fCaja) return false;
-      if (dStart || dEnd) { const sd = new Date(s.fecha.replace(' ', 'T')); if (dStart && sd < dStart) return false; if (dEnd && sd > dEnd) return false; }
+      if (dStart || dEnd) { 
+        const datePart = s.fecha.split(' ')[0]; // Extract YYYY-MM-DD
+        const sd = new Date(datePart + 'T00:00:00'); 
+        if (dStart && sd < dStart) return false; 
+        if (dEnd && sd > dEnd) return false; 
+      }
       return true;
     });
 
     // Grupos de Macro Filtros
     // El usuario define "Pendiente" explícitamente como "SOLICITADO"
     const pendingStatuses = ['SOLICITADO'];
-    const completeStatuses = ['COMPLETADA', 'ENTREGADO'];
+    const completeStatuses = ['COMPLETADA', 'ENTREGADO', 'PAGADO'];
 
     preFiltered.forEach(s => {
       if (completeStatuses.includes(s.estado)) cComp++;
@@ -645,8 +650,10 @@
       if (macroFilter === 'PENDIENTES' && !pendingStatuses.includes(s.estado)) return false;
       if (macroFilter === 'CANCELADO' && s.estado !== 'CANCELADO') return false;
 
-      // Monto total solo de completas
-      if (completeStatuses.includes(s.estado)) total += s.total;
+      // Monto total solo de completas (Incluye el neto pagado + efectivo de ventas mixtas)
+      if (completeStatuses.includes(s.estado)) {
+        total += s.total + (s.pagoEfectivo || 0);
+      }
       return true;
     });
 
@@ -735,7 +742,13 @@
 
   function populateFilters(o) { const fill = (el, a) => { const c = el.value; el.innerHTML = `<option value="">${el.options[0].text}</option>` + a.map(x => `<option value="${x}">${x}</option>`).join(''); el.value = c; }; fill(filterOrigen, o.origenes); fill(filterMetodoPago, o.metodosPago); fill(filterCaja, o.cajas); }
   window.setDateRange = function (v) {
-    const n = new Date(), fmt = d => d.toISOString().split('T')[0];
+    const n = new Date();
+    const fmt = d => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
     if (v === 'today') { filterDateStart.value = fmt(n); filterDateEnd.value = fmt(n); }
     else if (v === 'yesterday') { const p = new Date(n); p.setDate(n.getDate() - 1); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(p); }
     else if (v === 'week') { const p = new Date(n); p.setDate(n.getDate() - 7); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(n); }
@@ -759,9 +772,9 @@
   function showStatus(m, t) { const e = document.getElementById('status-message'); e.innerHTML = t === 'success' ? `<span class="material-icons">check_circle</span> ${m}` : `<span class="material-icons">error</span> ${m}`; e.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 z-[110] flex items-center gap-2 ${t === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 3000); }
 
   // --- CHART LOGIC ---
-  function calculateProductRanking(d) { const m = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO'].includes(s.estado)).forEach(s => s.detalles.forEach(x => { if (x.productoId) m.set(x.productoId, (m.get(x.productoId) || 0) + Number(x.cantidad)) })); return Array.from(m.entries()).map(e => ({ id: e[0], qty: e[1], img: productImageMap[e[0]] || 'https://placehold.co/40x40' })).sort((a, b) => b.qty - a.qty).slice(0, 5); }
+  function calculateProductRanking(d) { const m = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO', 'PAGADO'].includes(s.estado)).forEach(s => s.detalles.forEach(x => { if (x.productoId) m.set(x.productoId, (m.get(x.productoId) || 0) + Number(x.cantidad)) })); return Array.from(m.entries()).map(e => ({ id: e[0], qty: e[1], img: productImageMap[e[0]] || 'https://placehold.co/40x40' })).sort((a, b) => b.qty - a.qty).slice(0, 5); }
   function renderRanking(d) { const c = document.getElementById('ranking-list'); c.innerHTML = ''; if (!d.length) { c.innerHTML = '<p class="text-center text-xs text-slate-500 mt-4">Sin datos</p>'; return; } d.forEach((i, x) => c.innerHTML += `<div class="flex items-center gap-3 p-2 hover:bg-slate-700/50 rounded-lg"><div class="w-6 h-6 flex justify-center items-center rounded-full text-xs font-bold ${x === 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-700 text-slate-400'}">${x + 1}</div><img src="${i.img}" class="w-8 h-8 rounded border border-slate-600 bg-slate-800"><div class="flex-1 truncate text-xs font-bold text-slate-300">${i.id}</div><span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 rounded-full font-bold">${i.qty}</span></div>`); }
-  function calculateChartData(d) { const D = new Map(), O = new Map(), P = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO'].includes(s.estado)).forEach(s => { const dy = s.fecha.split(' ')[0]; D.set(dy, (D.get(dy) || 0) + s.total); O.set(s.tiendaId || 'N/A', (O.get(s.tiendaId) || 0) + s.total); P.set(s.metodoPago || 'N/A', (P.get(s.metodoPago) || 0) + s.total); }); return { daily: Array.from(D.entries()).sort((a, b) => new Date(a[0]) - new Date(b[0])), origin: Array.from(O.entries()), payment: Array.from(P.entries()) }; }
+  function calculateChartData(d) { const D = new Map(), O = new Map(), P = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO', 'PAGADO'].includes(s.estado)).forEach(s => { const dy = s.fecha.split(' ')[0]; const grossTotal = s.total + (s.pagoEfectivo || 0); D.set(dy, (D.get(dy) || 0) + grossTotal); O.set(s.tiendaId || 'N/A', (O.get(s.tiendaId) || 0) + grossTotal); P.set(s.metodoPago || 'N/A', (P.get(s.metodoPago) || 0) + grossTotal); }); return { daily: Array.from(D.entries()).sort((a, b) => new Date(a[0]) - new Date(b[0])), origin: Array.from(O.entries()), payment: Array.from(P.entries()) }; }
   function renderCharts(c) {
     if (chartInstances.daily) chartInstances.daily.destroy();
     chartInstances.daily = new Chart(document.getElementById('dailySalesChart'), { type: 'line', data: { labels: c.daily.map(d => d[0]), datasets: [{ data: c.daily.map(d => d[1]), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => formatMoneda.format(x.raw) } } }, scales: { x: { display: true, ticks: { font: { size: 10 } }, grid: { display: false } }, y: { display: true, beginAtZero: true, ticks: { font: { size: 10 }, callback: v => '$' + v.toLocaleString('es-AR') }, grid: { borderDash: [2, 4], color: '#334155' } } } } });
@@ -771,7 +784,10 @@
     chartInstances.payment = new Chart(document.getElementById('paymentMethodChart'), { type: 'doughnut', data: { labels: c.payment.map(d => d[0]), datasets: [{ data: c.payment.map(d => d[1]), backgroundColor: ['#34d399', '#60a5fa', '#f87171', '#fbbf24'], borderColor: '#1e293b', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: '#cbd5e1' } } } } });
   }
 
-  [searchInput, filterStatus, filterOrigen, filterMetodoPago, filterCaja].forEach(el => el.addEventListener('input', () => renderTable(allSalesData)));
+  [searchInput, filterStatus, filterOrigen, filterMetodoPago, filterCaja].forEach(el => {
+    if (el) el.addEventListener('change', () => renderTable(allSalesData));
+  });
+  if (searchInput) searchInput.addEventListener('input', () => renderTable(allSalesData));
 
   // --- INICIALIZACION ASINCRONA ---
   function initDashboard() {

@@ -114,7 +114,11 @@ function generarCatalogoJsonTPV() {
         stores: {},
         colors: {},
         categories: [],
-        products: []
+        products: [],
+        priceConfig: {
+            tipoRegistroPrecio: "PRECIO + RECARGO ESTANDAR",
+            tipoRegistroProducto: "PRODUCTO VARIABLE"
+        }
     };
 
     try {
@@ -199,6 +203,38 @@ function generarCatalogoJsonTPV() {
         }
         catalogo.categorySvgs = categorySvgs;
 
+        // 4.2 Leer CONFIGURACIÓN GLOBAL (BD_CONFIGURACION_GENERAL)
+        const sheetConfig = ss.getSheetByName(SHEETS.GENERAL_CONFIG);
+        if (sheetConfig) {
+            const configData = convertirRangoAObjetos(sheetConfig);
+            if (configData.length > 0) {
+                const cfg = configData[0]; // Solo hay 1 fila de configuración
+                catalogo.priceConfig = {
+                    tipoRegistroPrecio: String(cfg.TIPO_REGISTRO_PRECIO || "PRECIO + RECARGO ESTANDAR").trim(),
+                    tipoRegistroProducto: String(cfg.TIPO_REGISTRO_PRODUCTO || "PRODUCTO VARIABLE").trim()
+                };
+            }
+        }
+
+        // 4.3 Mapear VARIEDADES DE PRECIO (BD_VARIEDAD_PRODUCTOS)
+        // Construir mapa: PRODUCTO_ID -> [{ variedad_id, nombre, precio_unitario, cantidad_minima }]
+        const varietiesByProduct = {};
+        const sheetVariedades = ss.getSheetByName(SHEETS.PRODUCT_VARIETIES);
+        if (sheetVariedades) {
+            const variedadesData = convertirRangoAObjetos(sheetVariedades);
+            variedadesData.forEach(v => {
+                const pid = String(v.PRODUCTO_ID || "").trim();
+                if (!pid) return;
+                if (!varietiesByProduct[pid]) varietiesByProduct[pid] = [];
+                varietiesByProduct[pid].push({
+                    variedad_id: String(v.VARIEDAD_ID || v.VARIATION_ID || "").trim(),
+                    nombre: String(v.VARIEDAD || v.TIPO_PRECIO || "").trim(),
+                    precio_unitario: parseFloat(v.PRECIO_UNITARIO || v.PRECIO_VARIEDAD || 0),
+                    cantidad_minima: parseInt(v.CANTIDAD_MINIMA || 1)
+                });
+            });
+        }
+
         // 5. Mapear PRODUCTOS (BD_PRODUCTOS) y VARIACIONES (BD_INVENTARIO)
         const sheetProductos = ss.getSheetByName(SHEETS.PRODUCTS);
         const sheetInventario = ss.getSheetByName(SHEETS.INVENTORY);
@@ -230,23 +266,37 @@ function generarCatalogoJsonTPV() {
                 .filter(p => p.CODIGO_ID && String(p.CODIGO_ID).trim() !== "")
                 .map(p => {
                     const pid = p.CODIGO_ID;
+                    const pVarieties = varietiesByProduct[String(pid)] || [];
+                    const pVariations = variacionesPorProducto[pid] || [];
+
+                    // Precio base: se usa para modos ESTANDAR y PERSONALIZADO.
+                    // En modo PRECIO VARIABLE, el precio viene de cada variety.precio_unitario.
+                    // Para mostrar en la tarjeta en modo VARIABLE, usamos el menor precio de variedad.
+                    let displayPrice = parseFloat(p.PRECIO_COSTO || 0);
+                    if (pVarieties.length > 0) {
+                        const minVarietyPrice = Math.min(...pVarieties.map(v => v.precio_unitario).filter(Boolean));
+                        if (minVarietyPrice > 0) displayPrice = minVarietyPrice;
+                    }
+
                     return {
                         id: pid,
                         model: p.MODELO || "",
-                        price: parseFloat(p.PRECIO_COSTO || 0),
+                        price: parseFloat(p.PRECIO_COSTO || 0),      // Precio costo base (ESTANDAR/PERSONALIZADO)
+                        display_price: displayPrice,                  // Precio a mostrar en tarjeta
                         minor_surcharge: parseFloat(p.RECARGO_MENOR || 0),
                         category_id: p.CATEGORIA || "",
                         categoryName: p.CATEGORIA || "",
                         parentCategory: p.CATEGORIA_GENERAL || "",
                         season: p.TEMPORADA || "",
-                        gender: p.GENERO || "",   // Nuevo filtro
-                        brand: p.MARCA || "",     // Nuevo filtro
-                        style: p.ESTILO || "",     // Nuevo filtro
-                        material: p.MATERIAL || "", // Nuevo filtro
+                        gender: p.GENERO || "",
+                        brand: p.MARCA || "",
+                        style: p.ESTILO || "",
+                        material: p.MATERIAL || "",
                         image: thumbMap.get(String(pid)) || "",
                         carpeta_id: p.CARPETA_ID || "",
-                        woo_id: p.WOO_ID || "",    // --- NUEVO: ID de WooCommerce ---
-                        variations: variacionesPorProducto[pid] || []
+                        woo_id: p.WOO_ID || "",
+                        varieties: pVarieties,     // Variedades de precio (BD_VARIEDAD_PRODUCTOS)
+                        variations: pVariations    // Variaciones de inventario (color/talle)
                     };
                 });
         }
@@ -900,6 +950,23 @@ function getInitialPosData(managedStoreId, userId) {
             }
         }
 
+        // 5. Leer Configuración Global de Precios (BD_CONFIGURACION_GENERAL)
+        let priceConfig = {
+            tipoRegistroPrecio: "PRECIO + RECARGO ESTANDAR",
+            tipoRegistroProducto: "PRODUCTO VARIABLE"
+        };
+        const sheetGeneralConfig = ss.getSheetByName(SHEETS.GENERAL_CONFIG);
+        if (sheetGeneralConfig) {
+            const generalConfigData = convertirRangoAObjetos(sheetGeneralConfig);
+            if (generalConfigData.length > 0) {
+                const cfg = generalConfigData[0];
+                priceConfig = {
+                    tipoRegistroPrecio: String(cfg.TIPO_REGISTRO_PRECIO || "PRECIO + RECARGO ESTANDAR").trim(),
+                    tipoRegistroProducto: String(cfg.TIPO_REGISTRO_PRODUCTO || "PRODUCTO VARIABLE").trim()
+                };
+            }
+        }
+
         return {
             success: true,
             customers: clientes,
@@ -944,7 +1011,8 @@ function processSale(saleData) {
                 monto: (item.price || 0) * (item.quantity || 0),
                 color: item.color || "N/A",
                 talle: item.size || "N/A",
-                tipoPrecio: "MENOR"
+                tipoPrecio: item.tipoPrecio || "Estándar",
+                variedadId: item.variedad_id || ""
             }))
         });
 
@@ -979,20 +1047,26 @@ function processSale(saleData) {
         ];
         sheetVentas.appendRow(ventaRow);
 
-        // 2. Registrar en BD_DETALLE_VENTAS (18 columnas) y actualizar Inventario
+        // 2. Registrar en BD_DETALLE_VENTAS y actualizar Inventario
         saleData.cart.forEach(item => {
+            // Para PRECIO VARIABLE, usamos el VARIEDAD_ID como referencia de precio
+            const tipoPrecioRegistro = item.tipoPrecio || "Estándar";
+            const scanRef = item.variedad_id && item.variedad_id !== ''
+                ? item.variedad_id
+                : item.variation_id;
+
             const detalleRow = [
                 saleData.saleId,                  // VENTA_ID
                 `REG-${Utilities.getUuid()}`,      // REGISTRO_ID
-                item.variation_id,                // SCAN
-                item.variation_id,                // VARIACION_ID
+                scanRef,                           // SCAN (variedad_id si PRECIO VARIABLE, si no variation_id)
+                item.variation_id,                 // VARIACION_ID
                 "",                               // CATEGORIA_PADRE
                 item.categoryName,                // CATEGORIA
                 "",                               // TEMPORADA
                 item.product_id,                  // PRODUCTO_ID
                 item.color,                       // COLOR
                 item.size,                        // TALLE
-                "MENOR",                          // TIPO_PRECIO
+                tipoPrecioRegistro,               // TIPO_PRECIO (ej: 'Mayor', 'Menor', 'Curva')
                 item.price,                       // PRECIO
                 item.quantity,                    // CANTIDAD
                 item.price * item.quantity,       // MONTO
@@ -1075,4 +1149,37 @@ function tpv_limpiarFilasVaciasEstructural() {
         debugLog(`🧹 [Limpieza Estructural] Se eliminaron ${totalEliminadas} filas vacías en el centro de las hojas.`);
     }
     return { success: true, eliminadas: totalEliminadas };
+}
+
+/**
+ * Busca el primer ID de caja abierta para el día actual.
+ * @returns {string|null} El CAJA_ID o null si no hay ninguna abierta hoy.
+ */
+function getCurrentOpenBoxId() {
+    try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const sheetCaja = ss.getSheetByName(SHEETS.GESTION_CAJA);
+        if (!sheetCaja) return null;
+
+        const mapping = HeaderManager.getMapping("GESTION_CAJA");
+        const data = sheetCaja.getDataRange().getValues();
+        const headers = data.shift();
+
+        const hoy = new Date().toLocaleDateString('es-AR');
+        
+        // Buscamos de abajo hacia arriba para obtener la más reciente
+        for (let i = data.length - 1; i >= 0; i--) {
+            const row = data[i];
+            const fechaCaja = new Date(row[mapping.FECHA]).toLocaleDateString('es-AR');
+            const estado = row[mapping.ESTADO];
+
+            if (fechaCaja === hoy && estado === "ABIERTA") {
+                return row[mapping.CAJA_ID];
+            }
+        }
+        return null;
+    } catch (e) {
+        debugLog("Error en getCurrentOpenBoxId: " + e.message);
+        return null;
+    }
 }
