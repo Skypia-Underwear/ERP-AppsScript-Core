@@ -1573,23 +1573,51 @@
 
       /**
        * Maneja el clic en un mini-botón de variedad desde la tarjeta.
-       * - PRODUCTO SIMPLE (1 sola variación): agrega directo al carrito.
-       * - PRODUCTO VARIABLE (múltiples): abre el modal de color/talle con la variedad preseleccionada.
+       *
+       * - PRODUCTO SIMPLE: solo tiene variaciones "Surtido/Surtido" por tienda.
+       *   → Busca la variación correspondiente a la tienda activa del vendedor
+       *   → Agrega directo al carrito SIN abrir modal.
+       *
+       * - PRODUCTO VARIABLE: tiene variaciones reales de color/talle.
+       *   → Abre el modal de color/talle con la variedad preseleccionada.
        */
       function handleVarietyClick(product, variety) {
-        const isSingleVariation = product.variations.length <= 1;
-        if (isSingleVariation) {
-          // PRODUCTO SIMPLE: la única variación es color=Surtido, talle=Surtido
-          const variation = product.variations[0] || {
-            variation_id: product.id + '-Surtido-Surtido-' + (posMetadata.managedStoreId || ''),
-            color: 'Surtido',
-            size: 'Surtido',
-            store_id: posMetadata.managedStoreId || ''
-          };
+        const isProductoSimple = (priceConfig.tipoRegistroProducto === 'PRODUCTO SIMPLE');
+        const managedStore = posMetadata ? posMetadata.managedStoreId : '';
+
+        if (isProductoSimple) {
+          // PRODUCTO SIMPLE: buscar la variación de la tienda activa del vendedor
+          let variation = product.variations.find(v => v.store_id === managedStore);
+
+          // Si no encuentra por tienda, usar la primera disponible
+          if (!variation) variation = product.variations[0];
+
+          // Si aún no hay variación (raro), construir una sintética
+          if (!variation) {
+            variation = {
+              variation_id: product.id + '-Surtido-Surtido-' + managedStore,
+              color: 'Surtido',
+              size: 'Surtido',
+              store_id: managedStore
+            };
+          }
+
           addTpvToCart(product, variation, variety);
         } else {
-          // PRODUCTO VARIABLE: abre modal color/talle con variedad ya seleccionada
-          openTpvVariations(product, null, variety);
+          // PRODUCTO VARIABLE: verificar si hay variaciones reales (no solo Surtido)
+          const realVariations = product.variations.filter(
+            v => v.store_id === managedStore && !(v.color === 'Surtido' && v.size === 'Surtido')
+          );
+
+          if (realVariations.length === 0) {
+            // Solo tiene variación Surtido para esta tienda → agregar directo
+            const variation = product.variations.find(v => v.store_id === managedStore)
+              || product.variations[0];
+            addTpvToCart(product, variation, variety);
+          } else {
+            // Tiene variaciones reales → abrir modal de color/talle
+            openTpvVariations(product, null, variety);
+          }
         }
       }
 
