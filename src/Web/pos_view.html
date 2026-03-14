@@ -1187,8 +1187,15 @@
 
                 // Guardar config de precios en scope del TPV
                 if (data.priceConfig) {
+                  const prevTipo = priceConfig.tipoRegistroPrecio;
                   priceConfig = data.priceConfig;
-                  console.log('[TPV] priceConfig:', priceConfig);
+                  console.log('[TPV] priceConfig desde getInitialPosData:', priceConfig);
+
+                  // Si el priceConfig cambió y el catálogo ya está cargado → re-renderizar productos
+                  if (prevTipo !== priceConfig.tipoRegistroPrecio && catalog && catalog.products) {
+                    console.log('[TPV] priceConfig cambió, re-renderizando productos...');
+                    applyTpvFilters();
+                  }
                 }
 
                 // 1. Aplicar Modo de Venta
@@ -1281,6 +1288,14 @@
           }
 
           if (catalog) {
+            // ✔ Leer priceConfig del catálogo ANTES de renderizar (evita problema de timing)
+            // getInitialPosData() es async y puede no haber retornado todavía cuando
+            // el catálogo ya está disponible. El catálogo mismo contiene priceConfig.
+            if (catalog.priceConfig) {
+              priceConfig = catalog.priceConfig;
+              console.log('[TPV] priceConfig desde catalog.json:', priceConfig);
+            }
+
             renderTpvUI();
             initCartDataTable();
             hideTpvLoader();
