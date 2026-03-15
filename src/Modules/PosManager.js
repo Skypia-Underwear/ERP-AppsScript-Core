@@ -286,7 +286,7 @@ function generarCatalogoJsonTPV() {
                         minor_surcharge: parseFloat(p.RECARGO_MENOR || 0),
                         category_id: p.CATEGORIA || "",
                         categoryName: p.CATEGORIA || "",
-                        parentCategory: p.CATEGORIA_GENERAL || "",
+                        parentCategory: p.CATEGORIA_PADRE || p.CATEGORIA_GENERAL || "",
                         season: p.TEMPORADA || "",
                         gender: p.GENERO || "",
                         brand: p.MARCA || "",

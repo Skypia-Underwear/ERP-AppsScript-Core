@@ -580,27 +580,44 @@
     backdrop-filter: blur(4px);
     z-index: 2000;
   }
-  /* Estilos para mini-botones de variedad en la tarjeta de producto */
-  .variety-btns-container {
+  /* ===== CARRUSEL DE VARIEDADES EN TARJETA ===== */
+  .variety-carousel-wrapper {
+    position: relative;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .variety-carousel-track {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
+    flex-direction: row;
+    gap: 5px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE/Edge */
+    padding: 2px 2px 4px 2px;
+  }
+
+  .variety-carousel-track::-webkit-scrollbar {
+    display: none;                /* Chrome/Safari */
   }
 
   .variety-mini-btn {
-    padding: 4px 8px;
-    border-radius: 6px;
+    flex: 0 0 auto;               /* No encoger, no crecer → tamaño fijo */
+    padding: 5px 9px;
+    border-radius: 7px;
     border: 1.5px solid var(--primary);
     background: white;
     color: var(--primary);
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 800;
     cursor: pointer;
     transition: all 0.18s;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    line-height: 1.2;
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .variety-mini-btn:hover {
@@ -613,6 +630,36 @@
   .variety-mini-btn:active {
     transform: scale(0.96);
   }
+
+  /* Flechas del carrusel */
+  .variety-carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    font-size: 0.65rem;
+    color: #64748b;
+    transition: all 0.15s;
+  }
+
+  .variety-carousel-arrow:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .variety-carousel-arrow.prev { left: -10px; }
+  .variety-carousel-arrow.next { right: -10px; }
+  .variety-carousel-arrow.hidden { display: none; }
 
   /* Botones de variedad en el modal */
   .variety-modal-btn {
@@ -1537,48 +1584,69 @@
         if (!grid) return;
         grid.innerHTML = '';
         const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
+        // Ocultar categoría si hay un filtro activo (ya se sabe cuál es)
+        const catFilterActive = (currentTpvFilters.cat !== 'ALL' || currentTpvFilters.parent !== 'ALL');
 
         products.forEach(function (p) {
           var div = document.createElement('div');
           div.className = 'product-card';
 
+          // IMAGEN
           var imgHtml = p.image
             ? "<div class='product-img-container'><img src='" + p.image + "' alt='" + p.model + "' loading='lazy'></div>"
             : "<div class='product-img-container'><div class='product-no-img'>&#128085;</div></div>";
 
-          // Precio a mostrar: en PRECIO VARIABLE usamos display_price (el menor precio de variedad)
-          var displayPx = isPrecioVariable ? (p.display_price || p.price) : p.price;
+          // PRECIO: En PRECIO VARIABLE se omite (los botones del carrusel ya lo muestran)
+          var priceHtml = isPrecioVariable
+            ? ''
+            : "<div class='product-price' style='color:var(--primary);font-weight:800;font-size:1.05rem;margin-top:4px;'>$" + (p.price || 0).toLocaleString() + "</div>";
+
+          // CATEGORÍA: Se oculta si ya hay un filtro activo de categoría / padre
+          var catHtml = catFilterActive
+            ? ''
+            : "<div style='font-size:0.63rem;color:#94a3b8;margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;'>" + p.categoryName + "</div>";
 
           div.innerHTML = imgHtml +
-            "<div style='flex: 1;'>" +
-            "<div class='product-title' style='font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 0.25rem; line-height: 1.2;'>" + p.model + "</div>" +
-            "<div class='product-price' style='color: var(--primary); font-weight: 800; font-size: 1.1rem; margin-top: 5px;'>$" + displayPx.toLocaleString() + "</div>" +
-            "<div style='font-size: 0.65rem; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;'>" + p.categoryName + "</div>" +
+            "<div style='flex:1;padding:0 2px;'>" +
+            "<div class='product-title' style='font-weight:700;font-size:0.85rem;color:#1e293b;line-height:1.2;margin-bottom:2px;'>" + p.model + "</div>" +
+            priceHtml +
+            catHtml +
             "</div>";
 
-          // --- MINI-BOTONES DE VARIEDAD (solo en PRECIO VARIABLE) ---
+          // CARRUSEL DE VARIEDADES (solo en PRECIO VARIABLE)
           if (isPrecioVariable && p.varieties && p.varieties.length > 0) {
-            var varietyContainer = document.createElement('div');
-            varietyContainer.className = 'variety-btns-container';
+            var wrapper = document.createElement('div');
+            wrapper.className = 'variety-carousel-wrapper';
+
+            var btnPrev = document.createElement('button');
+            btnPrev.className = 'variety-carousel-arrow prev' + (p.varieties.length > 2 ? '' : ' hidden');
+            btnPrev.innerHTML = '<i class="ph-bold ph-caret-left"></i>';
+
+            var btnNext = document.createElement('button');
+            btnNext.className = 'variety-carousel-arrow next' + (p.varieties.length > 2 ? '' : ' hidden');
+            btnNext.innerHTML = '<i class="ph-bold ph-caret-right"></i>';
+
+            var track = document.createElement('div');
+            track.className = 'variety-carousel-track';
 
             p.varieties.forEach(function (v) {
               var vBtn = document.createElement('button');
               vBtn.className = 'variety-mini-btn';
-              vBtn.innerHTML = v.nombre + '<br><span style="font-size:0.75rem;font-weight:900;">$' + (v.precio_unitario || 0).toLocaleString() + '</span>';
-              vBtn.title = 'Cant. mín: ' + (v.cantidad_minima || 1);
-
-              vBtn.onclick = function (e) {
-                e.stopPropagation(); // No abrir card completa
-                handleVarietyClick(p, v);
-              };
-              varietyContainer.appendChild(vBtn);
+              vBtn.innerHTML = v.nombre + '<br><span style="font-size:0.72rem;font-weight:900;">$' + (v.precio_unitario || 0).toLocaleString() + '</span>';
+              vBtn.title = 'M\u00edn: ' + (v.cantidad_minima || 1) + ' u.';
+              vBtn.onclick = function (e) { e.stopPropagation(); handleVarietyClick(p, v); };
+              track.appendChild(vBtn);
             });
-            div.appendChild(varietyContainer);
 
-            // En PRECIO VARIABLE la tarjeta entera NO dispara openTpvVariations directa
-            div.onclick = null;
+            btnPrev.onclick = function (e) { e.stopPropagation(); track.scrollBy({ left: -90, behavior: 'smooth' }); };
+            btnNext.onclick = function (e) { e.stopPropagation(); track.scrollBy({ left: 90, behavior: 'smooth' }); };
+
+            wrapper.appendChild(btnPrev);
+            wrapper.appendChild(track);
+            wrapper.appendChild(btnNext);
+            div.appendChild(wrapper);
+            div.onclick = null; // La tarjeta no abre modal, los botones lo hacen
           } else {
-            // Flujo normal: clic en la tarjeta abre el modal de variaciones
             div.onclick = function () { openTpvVariations(p); };
           }
 
