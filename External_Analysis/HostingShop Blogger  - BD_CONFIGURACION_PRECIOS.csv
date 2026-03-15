@@ -1,0 +1,10 @@
+PRECIO_ID,MARGEN_PORCENTUAL
+Corte,10%
+Fardo,15%
+Caja,30%
+Docena,50%
+Curva,50%
+Mayor,40%
+Combo,50%
+Pack x3,80%
+Menor,100%

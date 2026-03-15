@@ -828,8 +828,20 @@
                 <div id="color-options" class="variant-grid"></div>
               </div>
               <div id="size-container" style="display: none;">
-                <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Talles y Stock</label>
                 <div id="size-options" class="variant-grid"></div>
+              </div>
+
+              <!-- Resumen y Acción para Curva -->
+              <div id="curva-summary-container" style="display: none; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 1rem; padding: 1rem; margin-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                  <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Progreso Curva</span>
+                  <span id="curva-counter" style="font-size: 0.85rem; font-weight: 900; color: var(--primary);">0 / 0</span>
+                </div>
+                <div id="curva-details" style="font-size: 0.7rem; color: #475569; display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;"></div>
+                <button id="btn-confirm-curva" onclick="confirmCurvaSelection()" disabled
+                  style="width: 100%; padding: 0.75rem; background: var(--success); color: white; border-radius: 0.75rem; font-weight: 800; border: none; cursor: not-allowed; opacity: 0.5; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                  <i class="ph-bold ph-check-circle"></i> AÑADIR CURVA AL CARRITO
+                </button>
               </div>
             </div>
           </div>
@@ -1075,11 +1087,16 @@
       let currentTpvFilters = {
         parent: 'ALL',
         cat: 'ALL',
-        season: 'ALL',
-        gender: 'ALL',
-        brand: 'ALL',
-        style: 'ALL',
-        material: 'ALL'
+        isCombo: false
+      };
+
+      // Estado para la Variedad "Curva"
+      let curvaState = {
+        active: false,
+        product: null,
+        variety: null,
+        targetTotal: 0,
+        selection: {} // variationId -> quantity
       };
 
       const categoryIcons = {
@@ -1466,7 +1483,39 @@
           return group;
         };
 
-        // === JERARQUÍA: LÍNEA (PADRE) > PRODUCTO (CATEGORIA) ===
+        // === JERARQUÍA: COMBOS > LÍNEA (PADRE) > PRODUCTO (CATEGORIA) ===
+
+        // 0. SECCIÓN DE COMBOS (Básico por ahora, filtrando productos con variedad "Combo")
+        var hasCombos = catalog.products.some(p => (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo')));
+        if (hasCombos) {
+          var comboGroup = document.createElement('div');
+          comboGroup.style.marginBottom = '1.5rem';
+          comboGroup.innerHTML = "<h3 style='font-size: 0.65rem; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem; font-weight: 800; letter-spacing: 0.1em;'>Ofertas Especiales</h3>";
+          var comboGrid = document.createElement('div');
+          comboGrid.className = "filters-grid";
+          
+          var btnCombo = document.createElement('button');
+          var isComboActive = currentTpvFilters.isCombo === true;
+          btnCombo.className = "filter-btn-tpv " + (isComboActive ? 'active' : '');
+          btnCombo.innerHTML = "<i class='ph-bold ph-gift' style='color:#ec4899;'></i><span>Combos</span>";
+          btnCombo.onclick = function() {
+            if (currentTpvFilters.isCombo === true) {
+              currentTpvFilters.isCombo = false;
+            } else {
+              // Limpiar otros filtros para ver solo combos? O combinarlos?
+              // El usuario dijo "filtrado anidado a categorías", pero también "botón destacado".
+              // Por ahora, actuamos como toggle.
+              currentTpvFilters.parent = 'ALL';
+              currentTpvFilters.cat = 'ALL';
+              currentTpvFilters.isCombo = true;
+            }
+            applyTpvFilters();
+            renderTpvUI();
+          };
+          comboGrid.appendChild(btnCombo);
+          comboGroup.appendChild(comboGrid);
+          catCont.appendChild(comboGroup);
+        }
 
         // 1. CATEGORÍA PADRE (Línea)
         var parents = [...new Set(catalog.products.map(p => p.parentCategory))].filter(Boolean).sort();
@@ -1486,9 +1535,10 @@
 
       window.applyTpvFilters = function () {
         const filtered = catalog.products.filter(p => {
+          const matchCombo = !currentTpvFilters.isCombo || (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo'));
           const matchParent = currentTpvFilters.parent === 'ALL' || p.parentCategory === currentTpvFilters.parent;
           const matchCat = currentTpvFilters.cat === 'ALL' || p.categoryName === currentTpvFilters.cat;
-          return matchParent && matchCat;
+          return matchCombo && matchParent && matchCat;
         });
         renderTpvProducts(filtered);
       };
@@ -1663,15 +1713,22 @@
       function handleVarietyClick(product, variety) {
         const isProductoSimple = (priceConfig.tipoRegistroProducto === 'PRODUCTO SIMPLE');
         const managedStore = posMetadata ? posMetadata.managedStoreId : '';
+        const varietyName = (variety.nombre || '').toLowerCase();
+
+        // REGLA: Variedad "Docena" siempre es directa si hay variación Surtido/Surtido
+        if (varietyName === 'docena') {
+          const variation = product.variations.find(v => v.store_id === managedStore && v.color === 'Surtido')
+            || product.variations.find(v => v.store_id === managedStore)
+            || product.variations[0];
+          addTpvToCart(product, variation, variety);
+          return;
+        }
 
         if (isProductoSimple) {
           // PRODUCTO SIMPLE: buscar la variación de la tienda activa del vendedor
           let variation = product.variations.find(v => v.store_id === managedStore);
-
-          // Si no encuentra por tienda, usar la primera disponible
           if (!variation) variation = product.variations[0];
 
-          // Si aún no hay variación (raro), construir una sintética
           if (!variation) {
             variation = {
               variation_id: product.id + '-Surtido-Surtido-' + managedStore,
@@ -1680,21 +1737,20 @@
               store_id: managedStore
             };
           }
-
           addTpvToCart(product, variation, variety);
         } else {
-          // PRODUCTO VARIABLE: verificar si hay variaciones reales (no solo Surtido)
+          // PRODUCTO VARIABLE: 
+          // Si es "Curva" o "Mayor" con talles reales -> Abrir Modal
           const realVariations = product.variations.filter(
             v => v.store_id === managedStore && !(v.color === 'Surtido' && v.size === 'Surtido')
           );
 
           if (realVariations.length === 0) {
-            // Solo tiene variación Surtido para esta tienda → agregar directo
-            const variation = product.variations.find(v => v.store_id === managedStore)
-              || product.variations[0];
+            // No hay talles reales -> Agregado directo con la variedad elegida
+            const variation = product.variations.find(v => v.store_id === managedStore) || product.variations[0];
             addTpvToCart(product, variation, variety);
           } else {
-            // Tiene variaciones reales → abrir modal de color/talle
+            // Abrir modal avanzado
             openTpvVariations(product, null, variety);
           }
         }
@@ -1715,34 +1771,64 @@
         const sizeContainer = document.getElementById('size-container');
         const varietyCont = document.getElementById('variety-options');
         const varietyContainer = document.getElementById('variety-container');
+        const curvaSummary = document.getElementById('curva-summary-container');
 
         colorCont.innerHTML = '';
         sizeCont.innerHTML = '';
         sizeContainer.style.display = 'none';
+        curvaSummary.style.display = 'none';
 
-        // --- Selector de Tipo de Precio en Modal (PRECIO VARIABLE con múlt. variaciones) ---
+        // --- Selector de Tipo de Precio en Modal ---
         const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
-        let _selectedVariety = preselectedVariety || null; // variedad preseleccionada
+        let _selectedVariety = preselectedVariety || null;
+
+        const initCurvaMode = (v) => {
+          if (v && v.nombre.toLowerCase() === 'curva') {
+            const realSizes = [...new Set(product.variations
+              .filter(varItem => !(varItem.color === 'Surtido' && varItem.size === 'Surtido'))
+              .map(varItem => varItem.size))];
+            
+            curvaState.active = true;
+            curvaState.product = product;
+            curvaState.variety = v;
+            curvaState.targetTotal = realSizes.length; // La curva es la suma de talles reales
+            curvaState.selection = {};
+            curvaSummary.style.display = 'block';
+            updateCurvaUI();
+          } else {
+            curvaState.active = false;
+            curvaSummary.style.display = 'none';
+          }
+        };
 
         if (isPrecioVariable && product.varieties && product.varieties.length > 0) {
           varietyContainer.style.display = 'block';
           varietyCont.innerHTML = '';
           product.varieties.forEach(function (v) {
             var vBtn = document.createElement('button');
-            vBtn.className = 'variety-modal-btn' + (preselectedVariety && preselectedVariety.variedad_id === v.variedad_id ? ' active' : '');
+            const isActive = _selectedVariety && _selectedVariety.variedad_id === v.variedad_id;
+            vBtn.className = 'variety-modal-btn' + (isActive ? ' active' : '');
             vBtn.innerHTML =
               '<span>' + v.nombre + '</span>' +
               '<span class="variety-price-tag">$' + (v.precio_unitario || 0).toLocaleString() + '</span>' +
               '<span class="variety-qty-tag">Mín: ' + (v.cantidad_minima || 1) + ' u.</span>';
+            
             vBtn.onclick = function () {
               document.querySelectorAll('.variety-modal-btn').forEach(b => b.classList.remove('active'));
               vBtn.classList.add('active');
               _selectedVariety = v;
+              initCurvaMode(v);
+              // Refrescar talles si hay color seleccionado
+              const activeColor = document.querySelector('.color-btn.active');
+              if (activeColor) renderTpvSizes(product, activeColor.innerText, () => _selectedVariety);
             };
             varietyCont.appendChild(vBtn);
           });
+          
+          if (_selectedVariety) initCurvaMode(_selectedVariety);
         } else {
           varietyContainer.style.display = 'none';
+          curvaState.active = false;
         }
 
         const colors = [...new Set(product.variations.map(v => v.color))];
@@ -1790,33 +1876,141 @@
             ? realStockCache.map[varId]
             : 0;
 
-          const btn = document.createElement('button');
-          btn.className = `size-btn ${currentStock > 0 ? 'in-stock' : 'out-of-stock'}`;
-          btn.innerText = v.size;
+          if (curvaState.active) {
+            // MODO CURVA: Selector de cantidad [-] 0 [+]
+            const qty = curvaState.selection[varId] || 0;
+            const container = document.createElement('div');
+            container.className = 'qty-selector-curva';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.background = '#f1f5f9';
+            container.style.borderRadius = '0.5rem';
+            container.style.padding = '4px';
+            container.style.gap = '8px';
+            container.style.width = '100%';
 
-          if (currentStock <= 0) {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-            btn.style.cursor = 'not-allowed';
-          } else {
-            btn.onclick = () => {
-              // Si hay un getter de variedad (modo PRECIO VARIABLE en modal), lo usamos
-              const variety = getVariety ? getVariety() : null;
-              addTpvToCart(product, v, variety);
-              btn.style.transform = 'scale(0.95)';
-              setTimeout(() => btn.style.transform = 'scale(1)', 100);
+            const btnMinus = document.createElement('button');
+            btnMinus.innerHTML = '<i class="ph-bold ph-minus"></i>';
+            btnMinus.className = 'qty-btn';
+            btnMinus.style.padding = '4px 8px';
+            btnMinus.onclick = () => {
+              if (curvaState.selection[varId] > 0) {
+                curvaState.selection[varId]--;
+                if (curvaState.selection[varId] === 0) delete curvaState.selection[varId];
+                renderTpvSizes(product, color, getVariety);
+                updateCurvaUI();
+              }
             };
+
+            const qtySpan = document.createElement('span');
+            qtySpan.innerText = qty;
+            qtySpan.style.fontWeight = '800';
+            qtySpan.style.fontSize = '0.9rem';
+            qtySpan.style.minWidth = '1.2rem';
+            qtySpan.style.textAlign = 'center';
+
+            const btnPlus = document.createElement('button');
+            btnPlus.innerHTML = '<i class="ph-bold ph-plus"></i>';
+            btnPlus.className = 'qty-btn';
+            btnPlus.style.padding = '4px 8px';
+            btnPlus.disabled = currentStock <= qty;
+            btnPlus.onclick = () => {
+              curvaState.selection[varId] = (curvaState.selection[varId] || 0) + 1;
+              renderTpvSizes(product, color, getVariety);
+              updateCurvaUI();
+            };
+
+            const sizeLabel = document.createElement('span');
+            sizeLabel.innerText = v.size;
+            sizeLabel.style.fontSize = '0.75rem';
+            sizeLabel.style.fontWeight = '700';
+            sizeLabel.style.marginRight = 'auto';
+            sizeLabel.style.paddingLeft = '4px';
+
+            container.appendChild(sizeLabel);
+            container.appendChild(btnMinus);
+            container.appendChild(qtySpan);
+            container.appendChild(btnPlus);
+            wrapper.appendChild(container);
+          } else {
+            // MODO ESTÁNDAR: Botón simple
+            const btn = document.createElement('button');
+            btn.className = `size-btn ${currentStock > 0 ? 'in-stock' : 'out-of-stock'}`;
+            btn.innerText = v.size;
+
+            if (currentStock <= 0) {
+              btn.disabled = true;
+              btn.style.opacity = '0.5';
+              btn.style.cursor = 'not-allowed';
+            } else {
+              btn.onclick = () => {
+                const variety = getVariety ? getVariety() : null;
+                addTpvToCart(product, v, variety);
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => btn.style.transform = 'scale(1)', 100);
+              };
+            }
+            wrapper.appendChild(btn);
           }
 
           const label = document.createElement('span');
           label.className = 'stock-label';
-          label.innerText = `S: ${currentStock}`;
-
-          wrapper.appendChild(btn);
+          label.innerText = `Stock: ${currentStock}`;
           wrapper.appendChild(label);
+          
           sizeCont.appendChild(wrapper);
         });
       }
+
+      window.updateCurvaUI = function () {
+        const totalSelected = Object.values(curvaState.selection).reduce((acc, q) => acc + q, 0);
+        const counter = document.getElementById('curva-counter');
+        const details = document.getElementById('curva-details');
+        const btnConfirm = document.getElementById('btn-confirm-curva');
+
+        counter.innerText = `${totalSelected} / ${curvaState.targetTotal}`;
+        details.innerHTML = '';
+
+        Object.entries(curvaState.selection).forEach(([varId, qty]) => {
+          const v = curvaState.product.variations.find(v => v.variation_id === varId);
+          if (v) {
+            const badge = document.createElement('span');
+            badge.style.padding = '2px 8px';
+            badge.style.background = '#e2e8f0';
+            badge.style.borderRadius = '0.5rem';
+            badge.innerText = `${v.color}/${v.size}: ${qty}`;
+            details.appendChild(badge);
+          }
+        });
+
+        if (totalSelected === curvaState.targetTotal) {
+          btnConfirm.disabled = false;
+          btnConfirm.style.opacity = '1';
+          btnConfirm.style.cursor = 'pointer';
+        } else {
+          btnConfirm.disabled = true;
+          btnConfirm.style.opacity = '0.5';
+          btnConfirm.style.cursor = 'not-allowed';
+        }
+      };
+
+      window.confirmCurvaSelection = function () {
+        const totalSelected = Object.values(curvaState.selection).reduce((acc, q) => acc + q, 0);
+        if (totalSelected !== curvaState.targetTotal) {
+          alert(`Debes completar la curva de ${curvaState.targetTotal} prendas.`);
+          return;
+        }
+
+        Object.entries(curvaState.selection).forEach(([varId, qty]) => {
+          const v = curvaState.product.variations.find(v => v.variation_id === varId);
+          if (v) {
+            addTpvToCart(curvaState.product, v, curvaState.variety, qty);
+          }
+        });
+
+        closeTpvModal();
+        renderTpvCart();
+      };
 
       window.manualRefreshStock = function () {
         const btn = document.getElementById('tpv-manual-refresh');
@@ -1864,14 +2058,17 @@
         }
       };
 
-      function addTpvToCart(product, variation, variety = null) {
+      function addTpvToCart(product, variation, variety = null, qtyOverride = null) {
         const varId = variation.variation_id;
         const available = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
 
         // En modo PRECIO VARIABLE: precio y cantidad mínima vienen de la variedad
         const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
         const itemPrice = isPrecioVariable && variety ? variety.precio_unitario : product.price;
-        const initQty  = isPrecioVariable && variety ? Math.max(1, variety.cantidad_minima) : 1;
+        
+        // La cantidad inicial es qtyOverride (para Curva) o la cantidad_minima de la variedad
+        const initQty = qtyOverride !== null ? qtyOverride : (isPrecioVariable && variety ? Math.max(1, variety.cantidad_minima) : 1);
+        
         const tipoPrecio = variety ? variety.nombre : (isPrecioVariable ? '—' : 'Estándar');
 
         const existing = cart.find(i => i.variation_id === varId && i.tipoPrecio === tipoPrecio);
