@@ -1415,7 +1415,7 @@
           if (filteredItems.length === 0) return document.createElement('div');
 
           var group = document.createElement('div');
-          group.style.marginBottom = '2rem';
+          group.style.marginBottom = '1.5rem';
           group.innerHTML = "<h3 style='font-size: 0.65rem; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem; font-weight: 800; letter-spacing: 0.1em;'>" + title + "</h3>";
 
           var grid = document.createElement('div');
@@ -1434,6 +1434,8 @@
 
           btnAll.onclick = function () {
             currentTpvFilters[filterKey] = 'ALL';
+            // Reset hijos si se limpia el padre
+            if (filterKey === 'parent') currentTpvFilters.cat = 'ALL';
             applyTpvFilters();
             renderTpvUI();
           };
@@ -1464,66 +1466,29 @@
           return group;
         };
 
-        // 1. GRUPO PADRE
-        var parents = [].concat(Array.from(new Set(catalog.products.map(function (p) { return p.parentCategory; })))).filter(Boolean).sort();
-        catCont.appendChild(createFilterGroup('Línea', parents, 'parent', categoryIcons));
+        // === JERARQUÍA: LÍNEA (PADRE) > PRODUCTO (CATEGORIA) ===
 
-        // 2. CATEGORÍA (Con SVGs de la base de datos)
-        var cats = [].concat(Array.from(new Set(catalog.products.map(function (p) { return p.categoryName; })))).filter(Boolean).sort();
+        // 1. CATEGORÍA PADRE (Línea)
+        var parents = [...new Set(catalog.products.map(p => p.parentCategory))].filter(Boolean).sort();
+        catCont.appendChild(createFilterGroup('Línea', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
+
+        // 2. CATEGORÍA HOJA — filtrada por el padre activo
+        var parentFilter = currentTpvFilters.parent;
+        var catsSource = parentFilter !== 'ALL'
+          ? catalog.products.filter(p => p.parentCategory === parentFilter)
+          : catalog.products;
+        var cats = [...new Set(catsSource.map(p => p.categoryName))].filter(Boolean).sort();
         catCont.appendChild(createFilterGroup('Producto', cats, 'cat', categoryIcons, true));
-
-        // 3. TEMPORADA
-        var seasons = [].concat(Array.from(new Set(catalog.products.map(function (p) { return p.season; })))).filter(Boolean).sort();
-        catCont.appendChild(createFilterGroup('Temporada', seasons, 'season', seasonIcons));
-
-        // --- SECCIÓN COLAPSABLE DE FILTROS AVANZADOS ---
-        var hasAdv = true;
-        var advHeader = document.createElement('div');
-        advHeader.className = "advanced-filters-header";
-        advHeader.innerHTML = "<h3>Más Filtros</h3><i class='ph-bold ph-caret-down'></i>";
-        advHeader.onclick = function () {
-          var content = document.getElementById('advanced-filters-content');
-          var icon = this.querySelector('i');
-          var isOpen = content.classList.toggle('open');
-          icon.className = isOpen ? "ph-bold ph-caret-up" : "ph-bold ph-caret-down";
-        };
-        catCont.appendChild(advHeader);
-
-        var advContent = document.createElement('div');
-        advContent.id = "advanced-filters-content";
-
-        // 4. GÉNERO
-        var genders = [].concat(Array.from(new Set(catalog.products.map(function (p) { return p.gender; })))).filter(Boolean).sort();
-        if (genders.length > 0) advContent.appendChild(createFilterGroup('Género', genders, 'gender', { 'DEFAULT': 'ph-gender-intersex' }));
-
-        // 5. MARCA
-        var brands = [].concat(Array.from(new Set(catalog.products.map(function (p) { return p.brand; })))).filter(Boolean).sort();
-        if (brands.length > 0) advContent.appendChild(createFilterGroup('Marca', brands, 'brand', { 'DEFAULT': 'ph-copyright' }));
-
-        // 6. ESTILO 
-        var styles = [].concat(Array.from(new Set(catalog.products.map(function (p) { return p.style; })))).filter(Boolean).sort();
-        if (styles.length > 0) advContent.appendChild(createFilterGroup('Estilo', styles, 'style', { 'DEFAULT': 'ph-paint-brush' }));
-
-        // 7. MATERIAL
-        var materials = [].concat(Array.from(new Set(catalog.products.map(function (p) { return p.material; })))).filter(Boolean).sort();
-        if (materials.length > 0) advContent.appendChild(createFilterGroup('Material', materials, 'material', { 'DEFAULT': 'ph-atom' }));
-
-        catCont.appendChild(advContent);
 
         applyTpvFilters();
       }
+
 
       window.applyTpvFilters = function () {
         const filtered = catalog.products.filter(p => {
           const matchParent = currentTpvFilters.parent === 'ALL' || p.parentCategory === currentTpvFilters.parent;
           const matchCat = currentTpvFilters.cat === 'ALL' || p.categoryName === currentTpvFilters.cat;
-          const matchSeason = currentTpvFilters.season === 'ALL' || p.season === currentTpvFilters.season;
-          const matchGender = currentTpvFilters.gender === 'ALL' || p.gender === currentTpvFilters.gender;
-          const matchBrand = currentTpvFilters.brand === 'ALL' || p.brand === currentTpvFilters.brand;
-          const matchStyle = currentTpvFilters.style === 'ALL' || p.style === currentTpvFilters.style;
-          const matchMaterial = currentTpvFilters.material === 'ALL' || p.material === currentTpvFilters.material;
-
-          return matchParent && matchCat && matchSeason && matchGender && matchBrand && matchStyle && matchMaterial;
+          return matchParent && matchCat;
         });
         renderTpvProducts(filtered);
       };
@@ -1591,27 +1556,58 @@
           var div = document.createElement('div');
           div.className = 'product-card';
 
-          // IMAGEN
-          var imgHtml = p.image
-            ? "<div class='product-img-container'><img src='" + p.image + "' alt='" + p.model + "' loading='lazy'></div>"
-            : "<div class='product-img-container'><div class='product-no-img'>&#128085;</div></div>";
+          // BADGES de género y temporada sobre la imagen
+          var genderIconMap = {
+            'HOMBRE':  { icon: 'ph-gender-male',       color: '#3b82f6', bg: '#eff6ff' },
+            'MUJER':   { icon: 'ph-gender-female',     color: '#ec4899', bg: '#fdf2f8' },
+            'UNISEX':  { icon: 'ph-gender-intersex',   color: '#8b5cf6', bg: '#f5f3ff' },
+          };
+          var seasonIconMap = {
+            'INVIERNO':       { icon: 'ph-snowflake',  color: '#0ea5e9', bg: '#f0f9ff' },
+            'VERANO':         { icon: 'ph-sun',        color: '#f59e0b', bg: '#fffbeb' },
+            'PRIMAVERA':      { icon: 'ph-flower',     color: '#22c55e', bg: '#f0fdf4' },
+            'SIN-TEMPORADA':  null,
+          };
+
+          var gInfo = genderIconMap[(p.gender || '').toUpperCase()];
+          var sInfo = seasonIconMap[(p.season || '').toUpperCase()];
+
+          // Badges HTML (se superponen en esquina superior derecha de la imagen)
+          var badgesHtml = "<div style='position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:3px;z-index:2;'>";
+          if (gInfo) {
+            badgesHtml += "<span style='display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:" + gInfo.bg + ";box-shadow:0 1px 3px rgba(0,0,0,0.15);'>" +
+              "<i class='ph-bold " + gInfo.icon + "' style='color:" + gInfo.color + ";font-size:11px;'></i></span>";
+          }
+          if (sInfo) {
+            badgesHtml += "<span style='display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:" + sInfo.bg + ";box-shadow:0 1px 3px rgba(0,0,0,0.15);'>" +
+              "<i class='ph-bold " + sInfo.icon + "' style='color:" + sInfo.color + ";font-size:11px;'></i></span>";
+          }
+          badgesHtml += "</div>";
+
+          // IMAGEN con posición relativa para los badges
+          var imgHtml = "<div class='product-img-container' style='position:relative;'>" +
+            (p.image
+              ? "<img src='" + p.image + "' alt='" + p.model + "' loading='lazy'>"
+              : "<div class='product-no-img'>&#128085;</div>"
+            ) + badgesHtml + "</div>";
 
           // PRECIO: En PRECIO VARIABLE se omite (los botones del carrusel ya lo muestran)
           var priceHtml = isPrecioVariable
             ? ''
             : "<div class='product-price' style='color:var(--primary);font-weight:800;font-size:1.05rem;margin-top:4px;'>$" + (p.price || 0).toLocaleString() + "</div>";
 
-          // CATEGORÍA: Se oculta si ya hay un filtro activo de categoría / padre
-          var catHtml = catFilterActive
-            ? ''
-            : "<div style='font-size:0.63rem;color:#94a3b8;margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;'>" + p.categoryName + "</div>";
+          // MARCA como texto indicativo (en lugar de la categoría)
+          var brandHtml = p.brand
+            ? "<div style='font-size:0.6rem;color:#94a3b8;margin-top:3px;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;'>" + p.brand + "</div>"
+            : "";
 
           div.innerHTML = imgHtml +
             "<div style='flex:1;padding:0 2px;'>" +
             "<div class='product-title' style='font-weight:700;font-size:0.85rem;color:#1e293b;line-height:1.2;margin-bottom:2px;'>" + p.model + "</div>" +
             priceHtml +
-            catHtml +
+            brandHtml +
             "</div>";
+
 
           // CARRUSEL DE VARIEDADES (solo en PRECIO VARIABLE)
           if (isPrecioVariable && p.varieties && p.varieties.length > 0) {
