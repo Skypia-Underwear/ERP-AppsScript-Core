@@ -479,6 +479,86 @@
     box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
   }
 
+  /* Curva Matrix Styles */
+  .curva-matrix-container {
+    margin-top: 1rem;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: white;
+  }
+  .curva-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.7rem;
+  }
+  .curva-table th, .curva-table td {
+    padding: 0.5rem;
+    border: 1px solid #f1f5f9;
+    text-align: center;
+  }
+  .curva-table th {
+    background: #f8fafc;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+  .curva-color-cell {
+    text-align: left;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 100px;
+  }
+  .curva-qty-input {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: #f8fafc;
+    border-radius: 0.4rem;
+    padding: 2px;
+  }
+  .curva-qty-input button {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: none;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .curva-qty-input button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .curva-qty-input span { min-width: 14px; font-weight: 800; font-size: 0.75rem; }
+  .curva-stock-hint { display: block; font-size: 0.55rem; color: #94a3b8; margin-top: 2px; }
+  .btn-row-curva {
+    padding: 0.25rem 0.5rem;
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-row-curva:hover { background: #dbeafe; }
+  .col-status-indicator {
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+  }
+  .status-pending { background: #fee2e2; color: #b91c1c; }
+  .status-ok { background: #dcfce7; color: #15803d; }
+  .status-excess { background: #fef9c3; color: #a16207; }
+
   .size-btn.in-stock {
     border-color: #059669;
     color: #059669;
@@ -822,25 +902,30 @@
                 <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Tipo de Precio</label>
                 <div id="variety-options" class="variant-grid" style="margin-top: 8px;"></div>
               </div>
-              <div>
-                <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Colores
-                  Disponibles</label>
-                <div id="color-options" class="variant-grid"></div>
-              </div>
-              <div id="size-container" style="display: none;">
-                <div id="size-options" class="variant-grid"></div>
+              <!-- Nueva Matriz de Curva -->
+              <div id="curva-matrix-wrapper" style="display: none;">
+                <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Matriz de Selección (Curva)</label>
+                <div class="curva-matrix-container">
+                  <table class="curva-table">
+                    <thead id="curva-matrix-head"></thead>
+                    <tbody id="curva-matrix-body"></tbody>
+                    <tfoot id="curva-matrix-foot"></tfoot>
+                  </table>
+                </div>
               </div>
 
               <!-- Resumen y Acción para Curva -->
               <div id="curva-summary-container" style="display: none; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 1rem; padding: 1rem; margin-top: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                  <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Progreso Curva</span>
-                  <span id="curva-counter" style="font-size: 0.85rem; font-weight: 900; color: var(--primary);">0 / 0</span>
+                  <div>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Estado de la Curva</span>
+                    <p id="curva-msg" style="font-size: 0.65rem; color: #94a3b8; margin: 0;">Cada talle debe tener la misma cantidad total.</p>
+                  </div>
+                  <span id="curva-counter" style="font-size: 0.85rem; font-weight: 900; color: var(--primary);">0 Curvas completas</span>
                 </div>
-                <div id="curva-details" style="font-size: 0.7rem; color: #475569; display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;"></div>
                 <button id="btn-confirm-curva" onclick="confirmCurvaSelection()" disabled
                   style="width: 100%; padding: 0.75rem; background: var(--success); color: white; border-radius: 0.75rem; font-weight: 800; border: none; cursor: not-allowed; opacity: 0.5; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                  <i class="ph-bold ph-check-circle"></i> AÑADIR CURVA AL CARRITO
+                  <i class="ph-bold ph-check-circle"></i> CONFIRMAR SELECCIÓN DE CURVA
                 </button>
               </div>
             </div>
@@ -1096,7 +1181,9 @@
         product: null,
         variety: null,
         targetTotal: 0,
-        selection: {} // variationId -> quantity
+        selection: {}, // variationId -> quantity
+        colors: [],
+        sizes: []
       };
 
       const categoryIcons = {
@@ -1757,7 +1844,6 @@
       }
 
       window.openTpvVariations = function (product, scan = null, preselectedVariety = null) {
-        // AUTO-SELECCIÓN: Si el producto tiene una sola variación, la añadimos directo
         if (product.variations.length === 1) {
           addTpvToCart(product, product.variations[0], preselectedVariety);
           return;
@@ -1767,37 +1853,53 @@
         document.getElementById('modal-product-title').innerText = product.model;
 
         const colorCont = document.getElementById('color-options');
+        const colorContainer = colorCont.parentElement;
         const sizeCont = document.getElementById('size-options');
         const sizeContainer = document.getElementById('size-container');
         const varietyCont = document.getElementById('variety-options');
         const varietyContainer = document.getElementById('variety-container');
+        const curvaWrapper = document.getElementById('curva-matrix-wrapper');
         const curvaSummary = document.getElementById('curva-summary-container');
 
         colorCont.innerHTML = '';
         sizeCont.innerHTML = '';
         sizeContainer.style.display = 'none';
+        colorContainer.style.display = 'block';
+        if (curvaWrapper) curvaWrapper.style.display = 'none';
         curvaSummary.style.display = 'none';
 
-        // --- Selector de Tipo de Precio en Modal ---
         const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
         let _selectedVariety = preselectedVariety || null;
 
         const initCurvaMode = (v) => {
           if (v && v.nombre.toLowerCase() === 'curva') {
-            const realSizes = [...new Set(product.variations
-              .filter(varItem => !(varItem.color === 'Surtido' && varItem.size === 'Surtido'))
-              .map(varItem => varItem.size))];
-            
             curvaState.active = true;
             curvaState.product = product;
             curvaState.variety = v;
-            curvaState.targetTotal = realSizes.length; // La curva es la suma de talles reales
             curvaState.selection = {};
+            
+            // Talles Reales (excluyendo Surtido)
+            curvaState.sizes = [...new Set(product.variations
+              .filter(varItem => varItem.size !== 'Surtido')
+              .map(varItem => varItem.size))];
+            
+            // Colores
+            curvaState.colors = [...new Set(product.variations.map(varItem => varItem.color))];
+            
+            curvaState.targetTotal = curvaState.sizes.length;
+            
+            // UI Matrix
+            colorContainer.style.display = 'none';
+            sizeContainer.style.display = 'none';
+            if (curvaWrapper) curvaWrapper.style.display = 'block';
             curvaSummary.style.display = 'block';
-            updateCurvaUI();
+            
+            renderCurvaMatrix();
           } else {
             curvaState.active = false;
+            if (curvaWrapper) curvaWrapper.style.display = 'none';
             curvaSummary.style.display = 'none';
+            colorContainer.style.display = 'block';
           }
         };
 
@@ -1818,9 +1920,10 @@
               vBtn.classList.add('active');
               _selectedVariety = v;
               initCurvaMode(v);
-              // Refrescar talles si hay color seleccionado
-              const activeColor = document.querySelector('.color-btn.active');
-              if (activeColor) renderTpvSizes(product, activeColor.innerText, () => _selectedVariety);
+              if (!curvaState.active) {
+                const activeColor = document.querySelector('.color-btn.active');
+                if (activeColor) renderTpvSizes(product, activeColor.innerText, () => _selectedVariety);
+              }
             };
             varietyCont.appendChild(vBtn);
           });
@@ -1962,32 +2065,195 @@
         });
       }
 
-      window.updateCurvaUI = function () {
-        const totalSelected = Object.values(curvaState.selection).reduce((acc, q) => acc + q, 0);
-        const counter = document.getElementById('curva-counter');
-        const details = document.getElementById('curva-details');
-        const btnConfirm = document.getElementById('btn-confirm-curva');
+      window.renderCurvaMatrix = function () {
+        const head = document.getElementById('curva-matrix-head');
+        const body = document.getElementById('curva-matrix-body');
+        const product = curvaState.product;
+        const sizes = curvaState.sizes;
+        const colors = curvaState.colors;
 
-        counter.innerText = `${totalSelected} / ${curvaState.targetTotal}`;
-        details.innerHTML = '';
+        if (!sizes || !colors) return;
 
-        Object.entries(curvaState.selection).forEach(([varId, qty]) => {
-          const v = curvaState.product.variations.find(v => v.variation_id === varId);
+        // HEAD
+        head.innerHTML = '<tr><th>Variación</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
+
+        // BODY
+        body.innerHTML = '';
+        colors.forEach(color => {
+          const tr = document.createElement('tr');
+          
+          // Celda Color
+          const tdColor = document.createElement('td');
+          tdColor.className = 'curva-color-cell';
+          let dotHtml = '';
+          if (catalog.colors && catalog.colors[color]) {
+            const hex = catalog.colors[color].hex.startsWith('#') ? catalog.colors[color].hex : '#' + catalog.colors[color].hex;
+            dotHtml = '<div style="width:12px; height:12px; border-radius:3px; background:' + hex + '; border:1px solid rgba(0,0,0,0.1)"></div>';
+          }
+          tdColor.innerHTML = dotHtml + '<span>' + color + '</span>';
+          tr.appendChild(tdColor);
+
+          // Celdas Talles
+          sizes.forEach(size => {
+            const td = document.createElement('td');
+            const v = product.variations.find(varItem => varItem.color === color && varItem.size === size);
+            
+            if (v) {
+              const varId = v.variation_id;
+              const stock = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
+              const qty = curvaState.selection[varId] || 0;
+
+              const div = document.createElement('div');
+              div.className = 'curva-qty-input';
+              
+              const bMinus = document.createElement('button');
+              bMinus.innerText = '-';
+              bMinus.onclick = () => updateCurvaMatrixQty(varId, -1);
+              
+              const sQty = document.createElement('span');
+              sQty.innerText = qty;
+              
+              const bPlus = document.createElement('button');
+              bPlus.innerText = '+';
+              bPlus.disabled = stock <= qty;
+              bPlus.onclick = () => updateCurvaMatrixQty(varId, 1);
+
+              div.appendChild(bMinus);
+              div.appendChild(sQty);
+              div.appendChild(bPlus);
+              
+              td.appendChild(div);
+              const hint = document.createElement('span');
+              hint.className = 'curva-stock-hint';
+              hint.innerText = (stock > 100 ? '99+' : stock);
+              td.appendChild(hint);
+            } else {
+              td.innerHTML = '<span style="color:#cbd5e1">—</span>';
+            }
+            tr.appendChild(td);
+          });
+
+          // Celda Botón (+) Curva
+          const tdCurva = document.createElement('td');
+          const btn = document.createElement('button');
+          btn.className = 'btn-row-curva';
+          btn.innerText = '+ Fila';
+          btn.onclick = () => fillCurvaRow(color);
+          tdCurva.appendChild(btn);
+          tr.appendChild(tdCurva);
+
+          body.appendChild(tr);
+        });
+
+        updateCurvaUI();
+      };
+
+      window.updateCurvaMatrixQty = function (varId, delta) {
+        const cur = curvaState.selection[varId] || 0;
+        const next = cur + delta;
+        const product = curvaState.product;
+        const v = product.variations.find(item => item.variation_id === varId);
+        const stock = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
+
+        if (next < 0) return;
+        if (next > stock) return;
+
+        if (next === 0) delete curvaState.selection[varId];
+        else curvaState.selection[varId] = next;
+
+        renderCurvaMatrix();
+      };
+
+      window.fillCurvaRow = function (color) {
+        const product = curvaState.product;
+        const sizes = curvaState.sizes;
+        
+        let canFill = true;
+        sizes.forEach(size => {
+          const v = product.variations.find(varItem => varItem.color === color && varItem.size === size);
           if (v) {
-            const badge = document.createElement('span');
-            badge.style.padding = '2px 8px';
-            badge.style.background = '#e2e8f0';
-            badge.style.borderRadius = '0.5rem';
-            badge.innerText = `${v.color}/${v.size}: ${qty}`;
-            details.appendChild(badge);
+            const stock = (realStockCache.map && realStockCache.map[v.variation_id] !== undefined) ? realStockCache.map[v.variation_id] : 0;
+            const current = curvaState.selection[v.variation_id] || 0;
+            if (stock <= current) canFill = false;
+          } else {
+            canFill = false;
           }
         });
 
-        if (totalSelected === curvaState.targetTotal) {
+        if (!canFill) {
+          alert('No hay stock suficiente para completar una curva de este color.');
+          return;
+        }
+
+        sizes.forEach(size => {
+          const v = product.variations.find(varItem => varItem.color === color && varItem.size === size);
+          if (v) {
+            curvaState.selection[v.variation_id] = (curvaState.selection[v.variation_id] || 0) + 1;
+          }
+        });
+
+        renderCurvaMatrix();
+      };
+
+      window.updateCurvaUI = function () {
+        const foot = document.getElementById('curva-matrix-foot');
+        const counter = document.getElementById('curva-counter');
+        const btnConfirm = document.getElementById('btn-confirm-curva');
+        const msg = document.getElementById('curva-msg');
+        
+        const product = curvaState.product;
+        const sizes = curvaState.sizes;
+        
+        if (!sizes) return;
+
+        // Calcular totales por columna (talle)
+        let colTotals = sizes.map(size => {
+          return Object.entries(curvaState.selection).reduce((acc, [varId, qty]) => {
+            const v = product.variations.find(item => item.variation_id === varId);
+            return (v && v.size === size) ? acc + qty : acc;
+          }, 0);
+        });
+
+        // Foot HTML
+        let footHtml = '<tr><td style="text-align:right; font-weight:800">TOTAL:</td>';
+        colTotals.forEach(total => {
+          footHtml += '<td>' + total + '</td>';
+        });
+        footHtml += '<td>—</td></tr>';
+        
+        // Status row below totals
+        footHtml += '<tr><td style="text-align:right; font-weight:800">ESTADO:</td>';
+        const uniqueTotals = [...new Set(colTotals)];
+        const isPerfect = uniqueTotals.length === 1 && uniqueTotals[0] > 0;
+        const target = uniqueTotals.length > 0 ? Math.max(...uniqueTotals) : 0;
+
+        colTotals.forEach(total => {
+          let statusClass = 'status-pending';
+          let statusText = 'FALTA';
+          if (total > 0 && total === target) { statusClass = 'status-ok'; statusText = 'OK'; }
+          else if (total > target) { statusClass = 'status-excess'; statusText = 'EXCESO'; }
+          else if (total > 0 && total < target) { statusClass = 'status-pending'; statusText = 'INCOMP'; }
+          
+          footHtml += '<td><span class="col-status-indicator ' + statusClass + '">' + statusText + '</span></td>';
+        });
+        footHtml += '<td>—</td></tr>';
+        foot.innerHTML = footHtml;
+
+        // Update Global UI
+        if (isPerfect) {
+          counter.innerText = target + (target === 1 ? ' Curva completa' : ' Curvas completas');
+          counter.style.color = 'var(--success)';
+          msg.innerText = '¡Curva perfecta! Ya puedes añadir al carrito.';
+          msg.style.color = 'var(--success)';
           btnConfirm.disabled = false;
           btnConfirm.style.opacity = '1';
           btnConfirm.style.cursor = 'pointer';
         } else {
+          const curvesFound = Math.min(...colTotals);
+          counter.innerText = curvesFound + ' Curvas completas';
+          counter.style.color = 'var(--primary)';
+          msg.innerText = 'Cada columna de talle debe sumar la misma cantidad.';
+          msg.style.color = '#94a3b8';
           btnConfirm.disabled = true;
           btnConfirm.style.opacity = '0.5';
           btnConfirm.style.cursor = 'not-allowed';
@@ -1995,14 +2261,21 @@
       };
 
       window.confirmCurvaSelection = function () {
-        const totalSelected = Object.values(curvaState.selection).reduce((acc, q) => acc + q, 0);
-        if (totalSelected !== curvaState.targetTotal) {
-          alert(`Debes completar la curva de ${curvaState.targetTotal} prendas.`);
+        const colTotals = curvaState.sizes.map(size => {
+          return Object.entries(curvaState.selection).reduce((acc, [varId, qty]) => {
+            const v = curvaState.product.variations.find(item => item.variation_id === varId);
+            return (v && v.size === size) ? acc + qty : acc;
+          }, 0);
+        });
+
+        const uniqueTotals = [...new Set(colTotals)];
+        if (uniqueTotals.length !== 1 || uniqueTotals[0] === 0) {
+          alert('La curva está incompleta o es desigual. Todas las columnas deben sumar lo mismo.');
           return;
         }
 
         Object.entries(curvaState.selection).forEach(([varId, qty]) => {
-          const v = curvaState.product.variations.find(v => v.variation_id === varId);
+          const v = curvaState.product.variations.find(item => item.variation_id === varId);
           if (v) {
             addTpvToCart(curvaState.product, v, curvaState.variety, qty);
           }
