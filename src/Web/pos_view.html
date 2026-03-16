@@ -914,6 +914,17 @@
                 </div>
               </div>
 
+              <!-- Selección Estándar (Restaurada) -->
+              <div id="standard-variations-container">
+                <div>
+                  <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Colores Disponibles</label>
+                  <div id="color-options" class="variant-grid"></div>
+                </div>
+                <div id="size-container" style="display: none;">
+                  <div id="size-options" class="variant-grid"></div>
+                </div>
+              </div>
+
               <!-- Resumen y Acción para Curva -->
               <div id="curva-summary-container" style="display: none; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 1rem; padding: 1rem; margin-top: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
@@ -1853,8 +1864,8 @@
         document.getElementById('modal-product-title').innerText = product.model;
 
         const colorCont = document.getElementById('color-options');
-        const colorContainer = colorCont.parentElement;
         const sizeCont = document.getElementById('size-options');
+        const standardContainer = document.getElementById('standard-variations-container');
         const sizeContainer = document.getElementById('size-container');
         const varietyCont = document.getElementById('variety-options');
         const varietyContainer = document.getElementById('variety-container');
@@ -1864,7 +1875,7 @@
         colorCont.innerHTML = '';
         sizeCont.innerHTML = '';
         sizeContainer.style.display = 'none';
-        colorContainer.style.display = 'block';
+        if (standardContainer) standardContainer.style.display = 'block';
         if (curvaWrapper) curvaWrapper.style.display = 'none';
         curvaSummary.style.display = 'none';
 
@@ -1889,7 +1900,7 @@
             curvaState.targetTotal = curvaState.sizes.length;
             
             // UI Matrix
-            colorContainer.style.display = 'none';
+            if (standardContainer) standardContainer.style.display = 'none';
             sizeContainer.style.display = 'none';
             if (curvaWrapper) curvaWrapper.style.display = 'block';
             curvaSummary.style.display = 'block';
@@ -1899,7 +1910,7 @@
             curvaState.active = false;
             if (curvaWrapper) curvaWrapper.style.display = 'none';
             curvaSummary.style.display = 'none';
-            colorContainer.style.display = 'block';
+            if (standardContainer) standardContainer.style.display = 'block';
           }
         };
 
