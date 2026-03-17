@@ -2,22 +2,27 @@
 
 <style>
   :root {
-    --primary: #2563eb;
-    --success: #059669;
-    --bg-tpv: #f8fafc;
-    --panel-tpv: #ffffff;
-    --text-tpv: #1e293b;
+    --primary: #6366f1; /* Indigo 500 para alineación con ERP */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #f43f5e;
+    --bg-main: #020617;
+    --bg-secondary: #0f172a;
+    --bg-panel: #1e293b;
+    --border-color: rgba(51, 65, 85, 0.5);
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
   }
 
   /* El contenedor raíz del fragmento TPV */
   #pos-root {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100vh;
     width: 100%;
-    background-color: var(--bg-tpv);
-    color: var(--text-tpv);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'Plus Jakarta Sans', sans-serif;
     position: relative;
     overflow: hidden;
   }
@@ -30,13 +35,13 @@
   }
 
   .tpv-header {
-    background: #1e293b;
-    color: white;
-    padding: 0.75rem 1.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-main);
+    padding: 0.5rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--border-color);
     z-index: 100;
   }
 
@@ -205,20 +210,21 @@
   }
 
   .col-sidebar-tpv {
-    background: var(--panel-tpv);
-    border-right: 1px solid #e2e8f0;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
     padding: 1rem;
     overflow-y: auto;
   }
 
   .col-catalog-tpv {
+    background: var(--bg-main);
     padding: 1rem;
     overflow-y: auto;
   }
 
   .col-cart-tpv {
-    background: var(--panel-tpv);
-    border-left: 1px solid #e2e8f0;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -259,34 +265,89 @@
   }
 
   .product-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    padding: 0.5rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 0.75rem;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
   }
 
   .product-card:hover {
     border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(99, 102, 241, 0.4);
   }
 
   .product-card .product-img-container {
-    height: 120px;
+    height: 140px;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--bg-secondary);
   }
 
   .product-card .product-title {
-    font-size: 0.75rem !important;
+    font-size: 0.8rem !important;
+    font-weight: 700;
+    color: var(--text-main);
   }
 
   .product-card .product-price {
-    font-size: 1rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 900;
+    color: var(--primary);
   }
+
+  /* Carrusel de variedades optimizado */
+  .variety-card-carousel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: auto;
+    position: relative;
+    padding: 0 20px; /* Espacio para flechas */
+  }
+
+  .variety-card-btn {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-align: center;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .variety-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .variety-nav-btn:hover { color: white; border-color: var(--primary); }
+  .variety-nav-btn.prev { left: 0; }
+  .variety-nav-btn.next { right: 0; }
 
   /* Estilos para Botones de Variaciones (Estilo TPV Muestra) */
   .variant-grid {
@@ -395,15 +456,16 @@
   }
 
   .checkout-modal {
-    background: white;
-    width: 90%;
-    max-width: 800px;
+    background: var(--bg-secondary);
+    width: 95%;
+    max-width: 900px;
     max-height: 90vh;
     border-radius: 1.5rem;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--border-color);
   }
 
   .checkout-header {
@@ -482,10 +544,11 @@
   /* Curva Matrix Styles */
   .curva-matrix-container {
     margin-top: 1rem;
-    overflow-x: auto;
-    border: 1px solid #e2e8f0;
+    overflow: auto;
+    max-height: 50vh; /* Para laptops de 13/14" */
+    border: 1px solid var(--border-color);
     border-radius: 0.75rem;
-    background: white;
+    background: var(--bg-panel);
   }
   .curva-table {
     width: 100%;
@@ -809,21 +872,8 @@
     </div>
 
     <div class="header-actions">
-      <!-- Selección de Modo -->
-      <div class="header-control-group">
-        <span class="header-label">Vista</span>
-        <div class="flex gap-1" id="tpv-mode-selector">
-          <button class="header-btn outline active" id="btn-mode-buttons" onclick="setTpvMode('BOTONES DE FILTRADO')">
-            <i class="ph-bold ph-grid-four"></i> Botones
-          </button>
-          <button class="header-btn outline" id="btn-mode-qr" onclick="setTpvMode('LECTOR QR')">
-            <i class="ph-bold ph-qr-code"></i> Lector QR
-          </button>
-        </div>
-      </div>
-
-      <!-- Compra Mínima -->
-      <div class="header-control-group">
+      <!-- Sección Condicional: Compra Mínima (Solo para Recargos) -->
+      <div class="header-control-group" id="header-min-purchase-wrapper" style="display: none;">
         <span class="header-label">Mínima</span>
         <div class="flex gap-1" id="tpv-header-min-purchase">
           <button class="header-btn outline btn-min-qty" onclick="setSelectedMinPurchase(1)">1</button>
@@ -832,6 +882,11 @@
           <button class="header-btn outline btn-min-qty" onclick="setSelectedMinPurchase(12)">12</button>
         </div>
       </div>
+
+      <!-- Configuración -->
+      <button class="header-btn outline" onclick="openConfigModal()" title="Configuración de Vista">
+        <i class="ph-bold ph-gear text-lg"></i>
+      </button>
 
       <!-- Refrescar -->
       <button class="header-btn primary" onclick="manualRefreshStock()">
@@ -883,15 +938,14 @@
         </div>
 
         <div id="modal-variations"
-          style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 1000;">
-          <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          style="display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.9); backdrop-filter: blur(8px); align-items: center; justify-content: center; z-index: 1000;">
+          <div class="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-2xl w-[95%] border border-slate-800 animate-fade-in">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
               <div>
-                <h3 id="modal-product-title" style="font-size: 1.25rem; font-weight: 800; color: #1e293b;">Producto</h3>
-                <p id="modal-product-subtitle" style="font-size: 0.875rem; color: #64748b;">Selecciona una variante para
-                  agregar al carrito</p>
+                <h3 id="modal-product-title" style="font-size: 1.5rem; font-weight: 800; color: white;">Producto</h3>
+                <p id="modal-product-subtitle" style="font-size: 0.9rem; color: #94a3b8;">Configura las variaciones para este producto</p>
               </div>
-              <button onclick="closeTpvModal()" class="text-slate-400 hover:text-slate-600 transition p-2">
+              <button onclick="closeTpvModal()" class="text-slate-500 hover:text-white transition p-2">
                 <i class="ph-bold ph-x text-2xl"></i>
               </button>
             </div>
@@ -914,13 +968,14 @@
                 </div>
               </div>
 
-              <!-- Selección Estándar (Restaurada) -->
+              <!-- Selección Estándar -->
               <div id="standard-variations-container">
-                <div>
-                  <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Colores Disponibles</label>
+                <div class="mb-4">
+                  <label class="text-[0.7rem] font-bold text-slate-400 uppercase tracking-widest block mb-2">Colores Disponibles</label>
                   <div id="color-options" class="variant-grid"></div>
                 </div>
                 <div id="size-container" style="display: none;">
+                  <label class="text-[0.7rem] font-bold text-slate-400 uppercase tracking-widest block mb-2">Talles</label>
                   <div id="size-options" class="variant-grid"></div>
                 </div>
               </div>
@@ -942,14 +997,13 @@
             </div>
           </div>
         </div>
-        <div class="cart-table-wrapper">
+        <div class="cart-table-wrapper" style="flex: 1; overflow-y: auto; padding-right: 4px;">
           <table id="cart-table" class="display" style="width: 100%;">
             <thead>
               <tr>
                 <th>Producto</th>
-                <th>Tipo Precio</th>
-                <th>Color</th>
-                <th>Talle</th>
+                <th>Precio</th>
+                <th>Variante</th>
                 <th>Cant.</th>
                 <th>Subtotal</th>
                 <th></th>
@@ -960,15 +1014,17 @@
         </div>
       </div>
 
-      <!-- Sidebar Totals (Quick View - Only for Buttons Mode) -->
+      <!-- Sidebar Totals (Sticky Footer) -->
       <div id="tpv-sidebar-totals"
-        style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #64748b;">
-          <span>Subtotal:</span> <span id="tpv-sidebar-subtotal" style="font-weight: 600;">$0</span>
+        style="background: var(--bg-secondary); border-top: 1px solid var(--border-color); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; flex-shrink: 0;">
+        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text-muted); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem;">
+          <span class="font-bold">SUBTOTAL:</span> 
+          <span id="tpv-sidebar-subtotal" style="font-weight: 900; color: white; font-size: 1.25rem;">$0</span>
         </div>
         <button onclick="openCheckoutModal()"
-          style="width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 0.75rem; font-weight: 800; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);">
-          <i class="ph-bold ph-shopping-cart"></i> REGISTRAR VENTA
+          style="width: 100%; padding: 1.15rem; background: var(--primary); color: white; border: none; border-radius: 1rem; font-weight: 900; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.75rem; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4); transition: transform 0.2s;"
+          onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          <i class="ph-bold ph-lightning"></i> REGISTRAR VENTA
         </button>
       </div>
 
@@ -1062,9 +1118,9 @@
 <!-- CHECKOUT MODAL -->
 <div id="checkout-modal" class="checkout-modal-overlay">
   <div class="checkout-modal">
-    <div class="checkout-header">
-      <h3 style="font-size: 1.25rem; font-weight: 800; color: #1e293b;">Finalizar Venta</h3>
-      <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-600 transition p-2">
+    <div class="checkout-header" style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: white;">Finalizar Venta</h3>
+      <button onclick="closeCheckoutModal()" class="text-slate-500 hover:text-white transition p-2">
         <i class="ph-bold ph-x text-2xl"></i>
       </button>
     </div>
@@ -1697,99 +1753,107 @@
         if (!grid) return;
         grid.innerHTML = '';
         const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
-        // Ocultar categoría si hay un filtro activo (ya se sabe cuál es)
-        const catFilterActive = (currentTpvFilters.cat !== 'ALL' || currentTpvFilters.parent !== 'ALL');
 
         products.forEach(function (p) {
           var div = document.createElement('div');
           div.className = 'product-card';
 
-          // BADGES de género y temporada sobre la imagen
           var genderIconMap = {
-            'HOMBRE':  { icon: 'ph-gender-male',       color: '#3b82f6', bg: '#eff6ff' },
-            'MUJER':   { icon: 'ph-gender-female',     color: '#ec4899', bg: '#fdf2f8' },
-            'UNISEX':  { icon: 'ph-gender-intersex',   color: '#8b5cf6', bg: '#f5f3ff' },
+            'HOMBRE':  { icon: 'ph-gender-male',       color: '#3b82f6', bg: '#0f172a' },
+            'MUJER':   { icon: 'ph-gender-female',     color: '#ec4899', bg: '#0f172a' },
+            'UNISEX':  { icon: 'ph-gender-intersex',   color: '#8b5cf6', bg: '#0f172a' },
           };
           var seasonIconMap = {
-            'INVIERNO':       { icon: 'ph-snowflake',  color: '#0ea5e9', bg: '#f0f9ff' },
-            'VERANO':         { icon: 'ph-sun',        color: '#f59e0b', bg: '#fffbeb' },
-            'PRIMAVERA':      { icon: 'ph-flower',     color: '#22c55e', bg: '#f0fdf4' },
-            'SIN-TEMPORADA':  null,
+            'INVIERNO':       { icon: 'ph-snowflake',  color: '#0ea5e9', bg: '#0f172a' },
+            'VERANO':         { icon: 'ph-sun',        color: '#f59e0b', bg: '#0f172a' },
+            'PRIMAVERA':      { icon: 'ph-flower',     color: '#22c55e', bg: '#0f172a' },
           };
 
           var gInfo = genderIconMap[(p.gender || '').toUpperCase()];
           var sInfo = seasonIconMap[(p.season || '').toUpperCase()];
 
-          // Badges HTML (se superponen en esquina superior derecha de la imagen)
-          var badgesHtml = "<div style='position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:3px;z-index:2;'>";
+          var badgesHtml = "<div style='position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px;z-index:2;'>";
           if (gInfo) {
-            badgesHtml += "<span style='display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:" + gInfo.bg + ";box-shadow:0 1px 3px rgba(0,0,0,0.15);'>" +
-              "<i class='ph-bold " + gInfo.icon + "' style='color:" + gInfo.color + ";font-size:11px;'></i></span>";
+            badgesHtml += "<span style='display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--bg-main);border:1px solid var(--border-color);'>" +
+              "<i class='ph-bold " + gInfo.icon + "' style='color:" + gInfo.color + ";font-size:12px;'></i></span>";
           }
           if (sInfo) {
-            badgesHtml += "<span style='display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:" + sInfo.bg + ";box-shadow:0 1px 3px rgba(0,0,0,0.15);'>" +
-              "<i class='ph-bold " + sInfo.icon + "' style='color:" + sInfo.color + ";font-size:11px;'></i></span>";
+            badgesHtml += "<span style='display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--bg-main);border:1px solid var(--border-color);'>" +
+              "<i class='ph-bold " + sInfo.icon + "' style='color:" + sInfo.color + ";font-size:12px;'></i></span>";
           }
           badgesHtml += "</div>";
 
-          // IMAGEN con posición relativa para los badges
-          var imgHtml = "<div class='product-img-container' style='position:relative;'>" +
+          var imgHtml = "<div class='product-img-container'>" +
             (p.image
-              ? "<img src='" + p.image + "' alt='" + p.model + "' loading='lazy'>"
-              : "<div class='product-no-img'>&#128085;</div>"
+              ? "<img src='" + p.image + "' style='width:100%;height:100%;object-fit:cover;' alt='" + p.model + "' loading='lazy'>"
+              : "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg-main);opacity:0.5;'>&#128085;</div>"
             ) + badgesHtml + "</div>";
 
-          // PRECIO: En PRECIO VARIABLE se omite (los botones del carrusel ya lo muestran)
-          var priceHtml = isPrecioVariable
-            ? ''
-            : "<div class='product-price' style='color:var(--primary);font-weight:800;font-size:1.05rem;margin-top:4px;'>$" + (p.price || 0).toLocaleString() + "</div>";
-
-          // MARCA como texto indicativo (en lugar de la categoría)
-          var brandHtml = p.brand
-            ? "<div style='font-size:0.6rem;color:#94a3b8;margin-top:3px;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;'>" + p.brand + "</div>"
-            : "";
+          var priceHtml = isPrecioVariable ? '' : "<div class='product-price'>$" + (p.price || 0).toLocaleString() + "</div>";
+          var brandHtml = p.brand ? "<div style='font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;'>" + p.brand + "</div>" : "";
 
           div.innerHTML = imgHtml +
-            "<div style='flex:1;padding:0 2px;'>" +
-            "<div class='product-title' style='font-weight:700;font-size:0.85rem;color:#1e293b;line-height:1.2;margin-bottom:2px;'>" + p.model + "</div>" +
+            "<div style='flex:1;'>" +
+            "<div class='product-title'>" + p.model + "</div>" +
             priceHtml +
             brandHtml +
             "</div>";
 
-
-          // CARRUSEL DE VARIEDADES (solo en PRECIO VARIABLE)
+          // CARRUSEL DE VARIEDADES (2 botones por página)
           if (isPrecioVariable && p.varieties && p.varieties.length > 0) {
-            var wrapper = document.createElement('div');
-            wrapper.className = 'variety-carousel-wrapper';
+            const carousel = document.createElement('div');
+            carousel.className = 'variety-card-carousel';
 
-            var btnPrev = document.createElement('button');
-            btnPrev.className = 'variety-carousel-arrow prev' + (p.varieties.length > 2 ? '' : ' hidden');
+            let curPage = 0;
+            const totalPages = Math.ceil(p.varieties.length / 2);
+
+            const btnPrev = document.createElement('button');
+            btnPrev.className = 'variety-nav-btn prev';
             btnPrev.innerHTML = '<i class="ph-bold ph-caret-left"></i>';
+            btnPrev.style.display = totalPages > 1 ? 'flex' : 'none';
 
-            var btnNext = document.createElement('button');
-            btnNext.className = 'variety-carousel-arrow next' + (p.varieties.length > 2 ? '' : ' hidden');
+            const btnNext = document.createElement('button');
+            btnNext.className = 'variety-nav-btn next';
             btnNext.innerHTML = '<i class="ph-bold ph-caret-right"></i>';
+            btnNext.style.display = totalPages > 1 ? 'flex' : 'none';
 
-            var track = document.createElement('div');
-            track.className = 'variety-carousel-track';
+            const container = document.createElement('div');
+            container.style.display = 'flex';
+            container.style.gap = '6px';
+            container.style.flex = '1';
+            container.style.justifyContent = 'center'; // Centrado automático
 
-            p.varieties.forEach(function (v) {
-              var vBtn = document.createElement('button');
-              vBtn.className = 'variety-mini-btn';
-              vBtn.innerHTML = v.nombre + '<br><span style="font-size:0.72rem;font-weight:900;">$' + (v.precio_unitario || 0).toLocaleString() + '</span>';
-              vBtn.title = 'M\u00edn: ' + (v.cantidad_minima || 1) + ' u.';
-              vBtn.onclick = function (e) { e.stopPropagation(); handleVarietyClick(p, v); };
-              track.appendChild(vBtn);
-            });
+            const updatePage = () => {
+              container.innerHTML = '';
+              const start = curPage * 2;
+              const chunk = p.varieties.slice(start, start + 2);
 
-            btnPrev.onclick = function (e) { e.stopPropagation(); track.scrollBy({ left: -90, behavior: 'smooth' }); };
-            btnNext.onclick = function (e) { e.stopPropagation(); track.scrollBy({ left: 90, behavior: 'smooth' }); };
+              chunk.forEach(v => {
+                const vBtn = document.createElement('button');
+                vBtn.className = 'variety-card-btn';
+                const vColor = getVarietyColor(v.nombre);
+                vBtn.style.borderColor = vColor + '50'; // Transparencia leve
+                vBtn.style.color = vColor;
+                vBtn.innerHTML = v.nombre + '<br><span style="font-size:0.75rem;font-weight:900;">$' + (v.precio_unitario || 0).toLocaleString() + '</span>';
+                vBtn.onclick = (e) => { e.stopPropagation(); handleVarietyClick(p, v); };
+                container.appendChild(vBtn);
+              });
 
-            wrapper.appendChild(btnPrev);
-            wrapper.appendChild(track);
-            wrapper.appendChild(btnNext);
-            div.appendChild(wrapper);
-            div.onclick = null; // La tarjeta no abre modal, los botones lo hacen
+              btnPrev.style.opacity = curPage === 0 ? '0.3' : '1';
+              btnPrev.style.pointerEvents = curPage === 0 ? 'none' : 'auto';
+              btnNext.style.opacity = curPage === totalPages - 1 ? '0.3' : '1';
+              btnNext.style.pointerEvents = curPage === totalPages - 1 ? 'none' : 'auto';
+            };
+
+            btnPrev.onclick = (e) => { e.stopPropagation(); if (curPage > 0) { curPage--; updatePage(); } };
+            btnNext.onclick = (e) => { e.stopPropagation(); if (curPage < totalPages - 1) { curPage++; updatePage(); } };
+
+            updatePage();
+
+            carousel.appendChild(btnPrev);
+            carousel.appendChild(container);
+            carousel.appendChild(btnNext);
+            div.appendChild(carousel);
           } else {
             div.onclick = function () { openTpvVariations(p); };
           }
@@ -2776,11 +2840,6 @@
       function finishTpvSale(showAlert = true) {
         if (showAlert) alert("¡Venta completada!");
         cart = [];
-
-        // Resetear campos del modal
-        const payMethod = document.getElementById('tpv-payment-method');
-        if (payMethod) payMethod.value = "Efectivo";
-
         const cashAmount = document.getElementById('tpv-cash-amount');
         if (cashAmount) cashAmount.value = "";
 
@@ -2793,5 +2852,72 @@
     } catch (e) {
       console.error("TPV_Fail_Critical:", e);
     }
+
+    // --- MEJORAS UI/UX (Paso 4) ---
+    
+    // Listener Global para Tecla Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeTpvModal();
+        closeConfigModal();
+        closeCheckoutModal();
+      }
+    });
+
+    /**
+     * Actualiza la visibilidad de elementos del Header según la configuración
+     */
+    function updateTpvHeaderUI() {
+      const wrapper = document.getElementById('header-min-purchase-wrapper');
+      if (wrapper) {
+        // Mostrar solo si el tipo de registro es con recargo (Mínima)
+        const t = (priceConfig.tipoRegistroPrecio || "").toUpperCase();
+        const show = t === 'RECARGO ESTANDAR' || t === 'RECARGO PERSONALIZADO';
+        wrapper.style.display = show ? 'flex' : 'none';
+      }
+    }
+
+    window.openConfigModal = function() {
+      const modal = document.getElementById('modal-config');
+      if (modal) {
+        modal.style.display = 'flex';
+        const rawMode = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
+        updateConfigModeButtons(rawMode);
+      }
+    };
+
+    window.closeConfigModal = function() {
+      const modal = document.getElementById('modal-config');
+      if (modal) modal.style.display = 'none';
+    };
+
+    function updateConfigModeButtons(mode) {
+      const btnButtons = document.getElementById('btn-mode-buttons-config');
+      const btnQr = document.getElementById('btn-mode-qr-config');
+      if (!btnButtons || !btnQr) return;
+      btnButtons.classList.toggle('active', mode === 'BOTONES DE FILTRADO');
+      btnQr.classList.toggle('active', mode === 'LECTOR QR');
+    }
+
+    function getVarietyColor(name) {
+      const n = (name || "").toLowerCase();
+      if (n.includes('curva')) return '#6366f1'; 
+      if (n.includes('mayor')) return '#f59e0b'; 
+      if (n.includes('menor')) return '#10b981'; 
+      if (n.includes('docena')) return '#ec4899'; 
+      if (n.includes('pack')) return '#8b5cf6'; 
+      return '#64748b'; 
+    }
+    // --- FIN MEJORAS UI/UX ---
   })();
+</script>
+eturn '#64748b'; // Slate default
+    }
+
+    // --- FIN MEJORAS UI/UX ---
+
+    try {
+      if (typeof initTPV === 'function') {
+        initTPV();
+      }
 </script>
