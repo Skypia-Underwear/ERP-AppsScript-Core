@@ -2,7 +2,7 @@
 
 <style>
   :root {
-    --primary: #6366f1; /* Indigo 500 para alineación con ERP */
+    --primary: #6366f1; /* Indigo 500 para alineaciÃ³n con ERP */
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #f43f5e;
@@ -14,7 +14,7 @@
     --text-muted: #94a3b8;
   }
 
-  /* El contenedor raíz del fragmento TPV */
+  /* El contenedor raÃ­z del fragmento TPV */
   #pos-root {
     display: flex;
     flex-direction: column;
@@ -29,7 +29,7 @@
 
   .tpv-main-layout {
     display: grid;
-    grid-template-columns: 200px 1fr 450px;
+    grid-template-columns: 200px 1fr 500px; /* Mas espacio al carrito */
     flex: 1;
     overflow: hidden;
   }
@@ -111,9 +111,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-    padding: 0.75rem 0.5rem;
-    margin-bottom: 0.5rem;
+    gap: 0.15rem;
+    padding: 0.5rem 0.25rem; /* Mas compacto */
+    margin-bottom: 0.4rem;
     background: white;
     border: 1px solid #e2e8f0;
     border-radius: 0.75rem;
@@ -127,10 +127,10 @@
   }
 
   .filter-btn-tpv span {
-    font-size: 0.65rem;
+    font-size: 0.58rem; /* Mas pequeÃ±o */
     font-weight: 700;
     text-transform: uppercase;
-    color: #1e293b;
+    color: #475569;
     text-align: center;
     line-height: 1.1;
     display: block;
@@ -199,9 +199,7 @@
     max-height: 100%;
   }
 
-  .filter-btn-tpv.active div svg {
-    fill: white !important;
-  }
+  /* Se elimina fill: white para preservar colores originales */
 
   .filters-grid {
     display: grid;
@@ -260,7 +258,7 @@
 
   .product-grid-tpv {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 1rem;
   }
 
@@ -418,11 +416,27 @@
     height: 100%;
   }
 
+  .tpv-main-layout.mode-qr .col-sidebar-tpv,
+  .tpv-main-layout.mode-qr .col-catalog-tpv {
+    display: none;
+  }
+
+  .tpv-main-layout.mode-qr #tpv-scan-container {
+    display: flex !important;
+  }
+
+  .tpv-main-layout.mode-qr .col-cart-tpv {
+    grid-column: 1 / 4;
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    height: 100%;
+  }
+
   .tpv-main-layout.mode-qr .qr-checkout-panel {
     display: flex !important;
     flex-direction: column;
-    background: #f8fafc;
-    border-left: 1px solid #e2e8f0;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
     padding: 1.25rem;
     overflow-y: auto;
     height: 100%;
@@ -432,22 +446,11 @@
     display: none !important;
   }
 
-  .tpv-main-layout.mode-qr .cart-main-content {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    height: 100%;
-  }
-
-  .qr-checkout-panel {
-    display: none;
-  }
-
-  /* Checkout Modal */
-  .checkout-modal-overlay {
+  /* Checkout Modal & Overall Modals */
+  .checkout-modal-overlay, .tpv-modal-id {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(2, 6, 23, 0.9);
     backdrop-filter: blur(8px);
     display: none;
     align-items: center;
@@ -455,7 +458,7 @@
     z-index: 2000;
   }
 
-  .checkout-modal {
+  .checkout-modal, .tpv-modal-content-inner {
     background: var(--bg-secondary);
     width: 95%;
     max-width: 900px;
@@ -468,10 +471,15 @@
     border: 1px solid var(--border-color);
   }
 
+  .tpv-modal-content-inner {
+    padding: 2rem;
+    overflow-y: auto;
+  }
+
   .checkout-header {
     padding: 1.5rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -481,20 +489,46 @@
     padding: 1.5rem;
     overflow-y: auto;
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 340px;
     gap: 1.5rem;
   }
 
   .checkout-footer {
     padding: 1.25rem 1.5rem;
-    background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
+    align-items: center;
   }
 
-  /* Payment Method Icons */
+  /* Shared UI Elements */
+  .tpv-label-checkout {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .tpv-select-checkout, .tpv-input-checkout {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .tpv-select-checkout:focus, .tpv-input-checkout:focus {
+    border-color: var(--primary);
+  }
+
   .payment-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -507,374 +541,273 @@
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    padding: 0.4rem;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.2s;
-    height: auto;
-    min-height: 50px;
-  }
-
-  .payment-btn i {
-    font-size: 1rem;
-  }
-
-  .payment-btn span {
-    font-size: 0.55rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    text-align: center;
-    line-height: 1;
+    color: var(--text-muted);
   }
 
   .payment-btn:hover {
     border-color: var(--primary);
-    background: #f8fafc;
+    background: var(--bg-secondary);
+    color: white;
   }
 
   .payment-btn.active {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.4);
   }
 
-  /* Curva Matrix Styles */
+  .checkout-summary-panel, .checkout-summary-box {
+    background: var(--bg-main);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* Buttons */
+  .tpv-btn-primary-large {
+    width: 100%;
+    padding: 1.15rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 1rem;
+    font-weight: 900;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .tpv-btn-primary-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -3px rgba(99, 102, 241, 0.5);
+  }
+
+  .tpv-btn-success-large {
+    width: 100%;
+    padding: 1rem;
+    background: var(--success);
+    color: white;
+    border-radius: 0.75rem;
+    font-weight: 900;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);
+    transition: all 0.2s;
+  }
+
+  .tpv-btn-success-large:hover {
+    background: #059669;
+    transform: translateY(-1px);
+  }
+
+  .tpv-btn-ghost {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .tpv-btn-ghost:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .tpv-config-mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .tpv-config-mode-btn i { font-size: 1.5rem; }
+  .tpv-config-mode-btn span { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+
+  .tpv-config-mode-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-secondary);
+    color: white;
+  }
+
+  .tpv-config-mode-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+  }
+
+  /* Curva Matrix */
   .curva-matrix-container {
     margin-top: 1rem;
     overflow: auto;
-    max-height: 50vh; /* Para laptops de 13/14" */
+    max-height: 45vh;
     border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
-    background: var(--bg-panel);
+    border-radius: 1rem;
+    background: var(--bg-main);
   }
+
   .curva-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
+
   .curva-table th, .curva-table td {
-    padding: 0.5rem;
-    border: 1px solid #f1f5f9;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
     text-align: center;
+    color: var(--text-main);
   }
+
   .curva-table th {
-    background: #f8fafc;
-    color: #64748b;
+    background: var(--bg-panel);
+    color: var(--text-muted);
     text-transform: uppercase;
     font-weight: 800;
+    position: sticky;
+    top: 0;
   }
-  .curva-color-cell {
-    text-align: left;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 100px;
-  }
+
   .curva-qty-input {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
-    background: #f8fafc;
-    border-radius: 0.4rem;
-    padding: 2px;
+    gap: 8px;
+    background: var(--bg-panel);
+    padding: 4px 8px;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
   }
+
   .curva-qty-input button {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 4px;
     border: none;
-    background: white;
-    color: #475569;
+    background: var(--bg-secondary);
+    color: white;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.6rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
-  .curva-qty-input button:disabled { opacity: 0.3; cursor: not-allowed; }
-  .curva-qty-input span { min-width: 14px; font-weight: 800; font-size: 0.75rem; }
-  .curva-stock-hint { display: block; font-size: 0.55rem; color: #94a3b8; margin-top: 2px; }
-  .btn-row-curva {
-    padding: 0.25rem 0.5rem;
-    background: #eff6ff;
-    color: #2563eb;
-    border: 1px solid #bfdbfe;
-    border-radius: 4px;
-    font-size: 0.6rem;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .btn-row-curva:hover { background: #dbeafe; }
-  .col-status-indicator {
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 0.6rem;
-    font-weight: 800;
-  }
-  .status-pending { background: #fee2e2; color: #b91c1c; }
-  .status-ok { background: #dcfce7; color: #15803d; }
-  .status-excess { background: #fef9c3; color: #a16207; }
-
-  .size-btn.in-stock {
-    border-color: #059669;
-    color: #059669;
+    font-weight: 900;
   }
 
-  .size-btn.out-of-stock {
-    border-color: #ef4444;
-    color: #ef4444;
-    background: #fef2f2;
+  .curva-qty-input button:hover:not(:disabled) {
+    background: var(--primary);
   }
 
-  .size-btn:hover {
-    background: #f8fafc;
-  }
-
-  .stock-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #64748b;
-  }
-
-  /* Estilo del Carrito (DataTable) */
+  /* Carrito (DataTable Override) */
   .cart-table-wrapper {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 20px;
+    padding: 0;
   }
 
   #cart-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
   }
 
-  #cart-table th {
-    background: #f8fafc;
-    text-align: left;
-    padding: 10px;
-    border-bottom: 1px solid #e2e8f0;
+  #cart-table thead th {
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.75rem;
+    border-bottom: 2px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 10;
   }
 
-  #cart-table td {
-    padding: 10px;
-    border-bottom: 1px solid #f1f5f9;
+  #cart-table tbody td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-main);
+    font-size: 0.8rem;
   }
 
-  .qty-input {
-    width: 45px;
-    padding: 4px;
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    text-align: center;
+  .dataTables_wrapper .dataTables_scroll {
+    overflow: visible !important;
   }
 
-  .product-img-container {
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 0.5rem;
-    background: #f1f5f9;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .product-img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .product-no-img {
-    font-size: 2rem;
-    color: #cbd5e1;
-  }
-
-  /* Sobrescribir loader para que sea local al contenedor */
+  /* Loader local */
   .tpv-internal-loader {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.9);
+    inset: 0;
+    background: rgba(2, 6, 23, 0.8);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
-    backdrop-filter: blur(2px);
-  }
-
-  /* Ajustar modales para que no se pierdan */
-  .tpv-modal {
-    background: rgba(0, 0, 0, 0.6);
+    z-index: 5000;
     backdrop-filter: blur(4px);
-    z-index: 2000;
-  }
-  /* ===== CARRUSEL DE VARIEDADES EN TARJETA ===== */
-  .variety-carousel-wrapper {
-    position: relative;
-    margin-top: 8px;
-    width: 100%;
   }
 
-  .variety-carousel-track {
+  /* Utilitarios */
+  .variant-grid {
     display: flex;
-    flex-direction: row;
-    gap: 5px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    scrollbar-width: none;        /* Firefox */
-    -ms-overflow-style: none;     /* IE/Edge */
-    padding: 2px 2px 4px 2px;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
-  .variety-carousel-track::-webkit-scrollbar {
-    display: none;                /* Chrome/Safari */
-  }
-
-  .variety-mini-btn {
-    flex: 0 0 auto;               /* No encoger, no crecer → tamaño fijo */
-    padding: 5px 9px;
-    border-radius: 7px;
-    border: 1.5px solid var(--primary);
-    background: white;
-    color: var(--primary);
-    font-size: 0.62rem;
-    font-weight: 800;
-    cursor: pointer;
-    transition: all 0.18s;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    line-height: 1.3;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .variety-mini-btn:hover {
-    background: var(--primary);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(37,99,235,0.25);
-  }
-
-  .variety-mini-btn:active {
-    transform: scale(0.96);
-  }
-
-  /* Flechas del carrusel */
-  .variety-carousel-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: white;
-    border: 1.5px solid #e2e8f0;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 2;
-    font-size: 0.65rem;
-    color: #64748b;
-    transition: all 0.15s;
-  }
-
-  .variety-carousel-arrow:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-  }
-
-  .variety-carousel-arrow.prev { left: -10px; }
-  .variety-carousel-arrow.next { right: -10px; }
-  .variety-carousel-arrow.hidden { display: none; }
-
-  /* Botones de variedad en el modal */
-  .variety-modal-btn {
-    padding: 10px 16px;
-    border-radius: 8px;
-    border: 2px solid #e2e8f0;
-    background: white;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-    text-align: center;
-  }
-
-  .variety-modal-btn:hover {
-    border-color: var(--primary);
-    background: #f0f6ff;
-  }
-
-  .variety-modal-btn.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-  }
-
-  .variety-price-tag {
-    display: block;
-    font-size: 1rem;
-    font-weight: 900;
-    color: var(--primary);
-    margin-top: 2px;
-  }
-
-  .variety-modal-btn.active .variety-price-tag {
-    color: white;
-  }
-
-  .variety-qty-tag {
-    display: block;
-    font-size: 0.6rem;
-    opacity: 0.7;
-    margin-top: 1px;
-  }
+  .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
 <div id="pos-root">
-  <!-- Loader Local (Inicia oculto) -->
+  <!-- Loader Local -->
   <div id="tpv-overlay-loader" class="tpv-internal-loader" style="display: none;">
     <div class="w-10 h-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-3"></div>
     <p id="tpv-loader-msg" class="text-sm font-semibold text-slate-700">Cargando...</p>
   </div>
 
-  <!-- El modal legacy fue eliminado para evitar conflictos de ID -->
-
   <header class="tpv-header">
     <div class="flex items-center gap-4">
-      <div id="tpv-user-status"
-        class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-full border border-slate-700 text-xs font-semibold text-slate-300">
+      <div id="tpv-user-status" class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-full border border-slate-700 text-xs font-semibold text-slate-300">
         <div class="w-2 h-2 rounded-full bg-slate-500"></div>
         <span>Conectando...</span>
       </div>
-      <div id="tpv-sync-status" style="display: none;"
-        class="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-xs font-bold animate-pulse">
+      <div id="tpv-sync-status" style="display: none;" class="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-xs font-bold animate-pulse">
         <i class="ph-bold ph-warning-circle"></i>
         <span><span id="sync-pending-count">0</span> Pendientes</span>
       </div>
     </div>
 
+    <div id="tpv-header-center" style="flex: 1; max-width: 600px; margin: 0 2rem;">
+      <div style="position: relative; width: 100%;">
+        <i class="ph-bold ph-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1rem;"></i>
+        <input type="text" id="tpv-search" placeholder="Buscar por modelo o SKU..."
+          style="width: 100%; padding: 0.65rem 1rem 0.65rem 2.8rem; border-radius: 0.75rem; border: 1px solid var(--border-color); background: var(--bg-main); color: white; outline: none; transition: border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border-color)'">
+      </div>
+    </div>
+
     <div class="header-actions">
-      <!-- Sección Condicional: Compra Mínima (Solo para Recargos) -->
       <div class="header-control-group" id="header-min-purchase-wrapper" style="display: none;">
-        <span class="header-label">Mínima</span>
+        <span class="header-label">MÃ­nima</span>
         <div class="flex gap-1" id="tpv-header-min-purchase">
           <button class="header-btn outline btn-min-qty" onclick="setSelectedMinPurchase(1)">1</button>
           <button class="header-btn outline btn-min-qty" onclick="setSelectedMinPurchase(3)">3</button>
@@ -883,12 +816,10 @@
         </div>
       </div>
 
-      <!-- Configuración -->
-      <button class="header-btn outline" onclick="openConfigModal()" title="Configuración de Vista">
+      <button class="header-btn outline" onclick="openConfigModal()" title="ConfiguraciÃ³n de Vista">
         <i class="ph-bold ph-gear text-lg"></i>
       </button>
 
-      <!-- Refrescar -->
       <button class="header-btn primary" onclick="manualRefreshStock()">
         <i class="ph-bold ph-arrows-clockwise"></i> Refrescar Stock
       </button>
@@ -896,108 +827,25 @@
   </header>
 
   <div class="tpv-main-layout">
-    <!-- Sidebar: Filtros con Iconos -->
     <div class="col-sidebar-tpv">
-      <style>
-        @keyframes pulse {
-          0% {
-            opacity: 1;
-          }
-
-          50% {
-            opacity: 0.6;
-          }
-
-          100% {
-            opacity: 1;
-          }
-        }
-      </style>
       <div id="categories-container"></div>
     </div>
 
-    <!-- Catálogo -->
     <div class="col-catalog-tpv">
-      <div style="margin-bottom: 1rem;">
-        <input type="text" id="tpv-search" placeholder="🔍 Buscar por modelo o SKU..."
-          style="width: 100%; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; outline: none;">
-      </div>
       <div class="product-grid-tpv" id="product-grid"></div>
     </div>
 
-    <!-- Carrito -->
     <div class="col-cart-tpv">
       <div class="cart-main-content">
-        <div
-          style="padding: 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-          <span style="font-weight: 700; font-size: 0.9rem;">TICKET ACTUAL</span>
-          <div id="tpv-scan-container" style="flex: 1; max-width: 300px; margin-left: 1rem;">
-            <input type="text" id="tpv-scan-input" placeholder="🔍 Escanear QR/Barras..."
-              style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 0.8rem; outline: none; border: 2px solid var(--primary);">
+        <div style="padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+          <span style="font-weight: 700; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Ticket Actual</span>
+          <div id="tpv-scan-container" style="display: none; flex: 1; max-width: 250px; margin-left: 1rem;">
+            <input type="text" id="tpv-scan-input" placeholder="Escanear..."
+              style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--primary); background: var(--bg-main); color: white; font-size: 0.8rem; outline: none;">
           </div>
         </div>
 
-        <div id="modal-variations"
-          style="display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.9); backdrop-filter: blur(8px); align-items: center; justify-content: center; z-index: 1000;">
-          <div class="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-2xl w-[95%] border border-slate-800 animate-fade-in">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-              <div>
-                <h3 id="modal-product-title" style="font-size: 1.5rem; font-weight: 800; color: white;">Producto</h3>
-                <p id="modal-product-subtitle" style="font-size: 0.9rem; color: #94a3b8;">Configura las variaciones para este producto</p>
-              </div>
-              <button onclick="closeTpvModal()" class="text-slate-500 hover:text-white transition p-2">
-                <i class="ph-bold ph-x text-2xl"></i>
-              </button>
-            </div>
-
-            <div class="space-y-4">
-              <!-- Sección de Variedades de Precio (solo en modo PRECIO VARIABLE) -->
-              <div id="variety-container" style="display: none;">
-                <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Tipo de Precio</label>
-                <div id="variety-options" class="variant-grid" style="margin-top: 8px;"></div>
-              </div>
-              <!-- Nueva Matriz de Curva -->
-              <div id="curva-matrix-wrapper" style="display: none;">
-                <label class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider">Matriz de Selección (Curva)</label>
-                <div class="curva-matrix-container">
-                  <table class="curva-table">
-                    <thead id="curva-matrix-head"></thead>
-                    <tbody id="curva-matrix-body"></tbody>
-                    <tfoot id="curva-matrix-foot"></tfoot>
-                  </table>
-                </div>
-              </div>
-
-              <!-- Selección Estándar -->
-              <div id="standard-variations-container">
-                <div class="mb-4">
-                  <label class="text-[0.7rem] font-bold text-slate-400 uppercase tracking-widest block mb-2">Colores Disponibles</label>
-                  <div id="color-options" class="variant-grid"></div>
-                </div>
-                <div id="size-container" style="display: none;">
-                  <label class="text-[0.7rem] font-bold text-slate-400 uppercase tracking-widest block mb-2">Talles</label>
-                  <div id="size-options" class="variant-grid"></div>
-                </div>
-              </div>
-
-              <!-- Resumen y Acción para Curva -->
-              <div id="curva-summary-container" style="display: none; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 1rem; padding: 1rem; margin-top: 1rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                  <div>
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Estado de la Curva</span>
-                    <p id="curva-msg" style="font-size: 0.65rem; color: #94a3b8; margin: 0;">Cada talle debe tener la misma cantidad total.</p>
-                  </div>
-                  <span id="curva-counter" style="font-size: 0.85rem; font-weight: 900; color: var(--primary);">0 Curvas completas</span>
-                </div>
-                <button id="btn-confirm-curva" onclick="confirmCurvaSelection()" disabled
-                  style="width: 100%; padding: 0.75rem; background: var(--success); color: white; border-radius: 0.75rem; font-weight: 800; border: none; cursor: not-allowed; opacity: 0.5; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                  <i class="ph-bold ph-check-circle"></i> CONFIRMAR SELECCIÓN DE CURVA
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="cart-table-wrapper" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+        <div class="cart-table-wrapper">
           <table id="cart-table" class="display" style="width: 100%;">
             <thead>
               <tr>
@@ -1014,205 +862,173 @@
         </div>
       </div>
 
-      <!-- Sidebar Totals (Sticky Footer) -->
-      <div id="tpv-sidebar-totals"
-        style="background: var(--bg-secondary); border-top: 1px solid var(--border-color); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; flex-shrink: 0;">
-        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text-muted); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem;">
-          <span class="font-bold">SUBTOTAL:</span> 
+      <div id="tpv-sidebar-totals">
+        <div id="tpv-min-purchase-container" style="display: none; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+          <div class="flex justify-between items-center">
+            <span class="header-label">COMPRA MÍNIMA:</span>
+            <div id="tpv-min-purchase-display" class="font-black text-warning">0 / 0</div>
+          </div>
+          <div class="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
+            <div id="tpv-min-purchase-progress" class="bg-warning h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text-muted); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+          <span class="font-bold text-white">SUBTOTAL:</span> 
           <span id="tpv-sidebar-subtotal" style="font-weight: 900; color: white; font-size: 1.25rem;">$0</span>
         </div>
-        <button onclick="openCheckoutModal()"
-          style="width: 100%; padding: 1.15rem; background: var(--primary); color: white; border: none; border-radius: 1rem; font-weight: 900; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.75rem; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4); transition: transform 0.2s;"
-          onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+        <button onclick="openCheckoutModal()" class="tpv-btn-primary-large">
           <i class="ph-bold ph-lightning"></i> REGISTRAR VENTA
         </button>
       </div>
 
-      <!-- QR Mode Checkout Panel (Visible instead of totals in QR mode) -->
       <div class="qr-checkout-panel">
-        <h3
-          style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
-          Finalizar Venta</h3>
-
+        <h3 style="font-size: 1.1rem; font-weight: 800; color: white; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">Finalizar Venta</h3>
         <div class="space-y-4" style="flex: 1;">
           <div>
-            <label
-              style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Cliente</label>
-            <select id="qr-tpv-customer" class="w-full mt-1 p-2 rounded-xl border border-slate-200 bg-white text-sm">
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cliente</label>
+            <select id="qr-tpv-customer" class="tpv-select-checkout">
               <option value="CLIENTE_GENERAL">Cliente General</option>
             </select>
           </div>
-
           <div>
-            <label style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Método de
-              Pago</label>
-            <div id="qr-payment-methods-grid" class="payment-grid mt-2"
-              style="grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-              <!-- Dinámico -->
-            </div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">MÃ©todo de Pago</label>
+            <div id="qr-payment-methods-grid" class="payment-grid mt-2"></div>
             <select id="qr-tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
           </div>
-
           <div id="qr-tpv-transfer-account-container" style="display: none;">
-            <label style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Cuenta
-              Destino</label>
-            <select id="qr-tpv-transfer-account"
-              class="w-full mt-1 p-2 rounded-xl border border-slate-200 bg-white text-sm"></select>
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cuenta Destino</label>
+            <select id="qr-tpv-transfer-account" class="tpv-select-checkout"></select>
           </div>
-
           <div>
-            <label style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Efectivo
-              (Mixto)</label>
-            <input type="number" id="qr-tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()"
-              class="w-full mt-1 p-2 rounded-xl border border-slate-200 bg-white text-lg font-bold text-success">
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Efectivo (Mixto)</label>
+            <input type="number" id="qr-tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()" class="tpv-input-checkout">
           </div>
-
-          <div style="background: #f1f5f9; padding: 1rem; border-radius: 1rem; margin-top: 1rem;">
-            <div id="qr-tpv-modal-products-row"
-              style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
-              <span class="text-slate-500">Monto Productos:</span> <span id="qr-tpv-modal-total-products"
-                class="font-bold">$0</span>
+          <div class="checkout-summary-box">
+            <div id="qr-tpv-modal-products-row" class="flex justify-between text-xs mb-2">
+              <span class="text-slate-400">Monto Productos:</span> <span id="qr-tpv-modal-total-products" class="font-bold text-white">$0</span>
             </div>
-            <div id="qr-tpv-modal-minor-row"
-              style="display: none; justify-content: space-between; font-size: 0.8rem; color: #f59e0b; margin-bottom: 0.5rem;">
+            <div id="qr-tpv-modal-minor-row" style="display: none;" class="flex justify-between text-xs mb-2 text-amber-500">
               <span>Recargo Minorista:</span> <span id="qr-tpv-modal-minor-surcharge" class="font-bold">+$0</span>
             </div>
-            <div id="qr-tpv-modal-cash-row"
-              style="display: none; justify-content: space-between; font-size: 0.8rem; color: #ef4444; margin-bottom: 0.5rem;">
+            <div id="qr-tpv-modal-cash-row" style="display: none;" class="flex justify-between text-xs mb-2 text-red-500">
               <span>Pago Efectivo:</span> <span id="qr-tpv-modal-cash-discount" class="font-bold">-$0</span>
             </div>
-            <div
-              style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem; border-top: 2px dashed #cbd5e1; padding-top: 0.5rem; font-weight: 800; color: #1e293b;">
+            <div class="flex justify-between text-xs border-t border-dashed border-slate-700 pt-2 font-bold text-white">
               <span>Subtotal:</span> <span id="qr-tpv-modal-subtotal">$0</span>
             </div>
-            <div id="qr-tpv-modal-payment-row"
-              style="display: none; justify-content: space-between; font-size: 0.8rem; color: #2563eb; margin-bottom: 0.5rem;">
-              <span>Recargo <span id="qr-pm-name"></span>:</span> <span id="qr-tpv-modal-payment-surcharge"
-                class="font-bold">+$0</span>
-            </div>
-            <div style="text-align: right; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem;">
-              <p
-                style="font-size: 0.65rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">
-                Total a Pagar</p>
-              <p id="qr-tpv-modal-final-total"
-                style="font-size: 1.75rem; font-weight: 950; color: var(--primary); line-height: 1;">$0</p>
+            <div style="text-align: right; border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">
+              <p class="text-[0.6rem] uppercase font-bold text-slate-500">Total a Pagar</p>
+              <p id="qr-tpv-modal-final-total" class="text-2xl font-black text-primary">$0</p>
             </div>
           </div>
         </div>
-
         <div style="margin-top: 1rem;">
-          <label class="flex items-center gap-2 cursor-pointer mb-3">
-            <input type="checkbox" id="qr-tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()">
-            <span style="font-size: 0.65rem; color: #64748b; font-weight: 700;">SIN RECARGO TRANSF.</span>
-          </label>
-          <button onclick="processCheckoutSale()"
-            style="width: 100%; padding: 1rem; background: var(--success); color: white; border-radius: 0.75rem; font-weight: 800; border: none; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">
-            REGISTRAR VENTA
-          </button>
+          <button onclick="processCheckoutSale()" class="tpv-btn-success-large">REGISTRAR VENTA</button>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- CHECKOUT MODAL -->
-<div id="checkout-modal" class="checkout-modal-overlay">
-  <div class="checkout-modal">
-    <div class="checkout-header" style="background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
-      <h3 style="font-size: 1.25rem; font-weight: 800; color: white;">Finalizar Venta</h3>
-      <button onclick="closeCheckoutModal()" class="text-slate-500 hover:text-white transition p-2">
-        <i class="ph-bold ph-x text-2xl"></i>
-      </button>
+  <!-- MODALES -->
+  <div id="modal-variations" class="tpv-modal-id" style="display: none;">
+    <div class="tpv-modal-content-inner">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h3 id="modal-product-title" class="text-xl font-bold text-white">Producto</h3>
+          <p id="modal-product-subtitle" class="text-sm text-slate-400">Configura las variaciones de venta</p>
+        </div>
+        <button onclick="closeTpvModal()" class="text-slate-500 hover:text-white"><i class="ph-bold ph-x text-2xl"></i></button>
+      </div>
+      <div id="variety-container" style="display: none;" class="mb-4">
+        <label class="text-[0.65rem] font-bold text-slate-500 uppercase">Tipo de Precio</label>
+        <div id="variety-options" class="variant-grid mt-2"></div>
+      </div>
+      <div id="standard-variations-container">
+        <div class="mb-4">
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Colores Disponibles</label>
+          <div id="color-options" class="variant-grid mt-2"></div>
+        </div>
+        <div id="size-container" style="display: none;">
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Talles</label>
+          <div id="size-options" class="variant-grid mt-2"></div>
+        </div>
+      </div>
     </div>
-    <div class="checkout-body">
-      <!-- Izquierda: Configuración -->
+  </div>
+
+  <div id="modal-config" class="tpv-modal-id" style="display: none;">
+    <div class="tpv-modal-content-inner max-w-md">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-white">Preferencias TPV</h3>
+        <button onclick="closeConfigModal()" class="text-slate-500 hover:text-white"><i class="ph-bold ph-x text-2xl"></i></button>
+      </div>
       <div class="space-y-6">
         <div>
-          <label
-            style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Cliente</label>
-          <select id="tpv-customer" class="w-full mt-1 p-3 rounded-xl border border-slate-200 bg-white text-sm">
-            <option value="CLIENTE_GENERAL">Cliente General</option>
-          </select>
-        </div>
-
-        <div>
-          <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Método de
-            Pago</label>
-          <div id="payment-methods-grid" class="payment-grid mt-2">
-            <!-- Se cargará dinámicamente -->
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Modo de Venta</label>
+          <div class="grid grid-cols-2 gap-4 mt-3">
+            <button id="btn-mode-buttons-config" onclick="setTpvMode('BOTONES DE FILTRADO')" class="tpv-config-mode-btn"><i class="ph-bold ph-squares-four text-2xl"></i><span>Botones</span></button>
+            <button id="btn-mode-qr-config" onclick="setTpvMode('LECTOR QR')" class="tpv-config-mode-btn"><i class="ph-bold ph-qr-code text-2xl"></i><span>Lector QR</span></button>
           </div>
-          <select id="tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
-        </div>
-
-        <div id="tpv-transfer-account-container" style="display: none;">
-          <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Cuenta de
-            Destino</label>
-          <select id="tpv-transfer-account"
-            class="w-full mt-1 p-3 rounded-xl border border-slate-200 bg-white text-sm"></select>
-        </div>
-
-        <div style="display: flex; gap: 1rem;">
-          <div style="flex: 1;">
-            <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Pago
-              Efectivo (Mixto)</label>
-            <input type="number" id="tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()"
-              class="w-full mt-1 p-3 rounded-xl border border-slate-200 bg-white text-lg font-bold text-success">
-          </div>
-        </div>
-      </div>
-
-      <!-- Derecha: Resumen -->
-      <div
-        style="background: #f1f5f9; padding: 1.5rem; border-radius: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
-        <h4
-          style="font-size: 0.8rem; font-weight: 700; color: #1e293b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
-          Resumen de Pago</h4>
-
-        <div class="space-y-3">
-          <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
-            <span class="text-slate-500">Monto Productos:</span> <span id="tpv-modal-total-products"
-              class="font-bold">$0</span>
-          </div>
-          <div id="tpv-modal-minor-row"
-            style="display: none; justify-content: space-between; font-size: 0.9rem; color: #f59e0b;">
-            <span>Recargo Minorista:</span> <span id="tpv-modal-minor-surcharge" class="font-bold">+$0</span>
-          </div>
-          <div id="tpv-modal-cash-row"
-            style="display: none; justify-content: space-between; font-size: 0.9rem; color: #ef4444;">
-            <span>Pago Efectivo:</span> <span id="tpv-modal-cash-discount" class="font-bold">-$0</span>
-          </div>
-
-          <div
-            style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: 800; color: #1e293b; border-top: 2px dashed #cbd5e1; padding-top: 0.5rem;">
-            <span>Subtotal:</span> <span id="tpv-modal-subtotal">$0</span>
-          </div>
-
-          <div id="tpv-modal-payment-row"
-            style="display: none; justify-content: space-between; font-size: 0.9rem; color: #2563eb;">
-            <span>Recargo Transf:</span> <span id="tpv-modal-payment-surcharge" class="font-bold">+$0</span>
-          </div>
-        </div>
-
-        <div style="flex: 1;"></div>
-
-        <div style="text-align: right;">
-          <p style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Total a Pagar
-          </p>
-          <p id="tpv-modal-final-total"
-            style="font-size: 2.25rem; font-weight: 950; color: var(--primary); line-height: 1;">$0</p>
         </div>
       </div>
     </div>
-    <div class="checkout-footer">
-      <label class="flex items-center gap-2 cursor-pointer mr-auto">
-        <input type="checkbox" id="tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()">
-        <span style="font-size: 0.7rem; color: #64748b; font-weight: 700;">SIN RECARGO TRANSFERENCIA</span>
-      </label>
-      <button onclick="closeCheckoutModal()"
-        style="padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 700; color: #64748b; border: none; background: transparent; cursor: pointer;">Cancelar</button>
-      <button onclick="processCheckoutSale()"
-        style="padding: 0.75rem 2rem; background: var(--success); color: white; border-radius: 0.75rem; font-weight: 800; border: none; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">CONFIRMAR
-        Y PAGAR</button>
+  </div>
+
+  <div id="checkout-modal" class="checkout-modal-overlay">
+    <div class="checkout-modal">
+      <div class="checkout-header">
+        <h3 class="text-xl font-bold text-white">Finalizar Venta</h3>
+        <button onclick="closeCheckoutModal()" class="text-slate-500 hover:text-white"><i class="ph-bold ph-x text-2xl"></i></button>
+      </div>
+      <div class="checkout-body">
+        <div class="space-y-6">
+          <div>
+            <label class="tpv-label-checkout">Cliente</label>
+            <select id="tpv-customer" class="tpv-select-checkout">
+              <option value="CLIENTE_GENERAL">Cliente General</option>
+            </select>
+          </div>
+          <div>
+            <label class="tpv-label-checkout">MÃ©todo de Pago</label>
+            <div id="payment-methods-grid" class="payment-grid"></div>
+            <select id="tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
+          </div>
+          <div id="tpv-transfer-account-container" style="display: none;">
+            <label class="tpv-label-checkout">Cuenta de Destino</label>
+            <select id="tpv-transfer-account" class="tpv-select-checkout"></select>
+          </div>
+          <div>
+            <label class="tpv-label-checkout">Pago Efectivo (Mixto)</label>
+            <input type="number" id="tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()" class="tpv-input-checkout text-success font-bold text-xl">
+          </div>
+        </div>
+        <div class="checkout-summary-panel">
+          <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-2 mb-4">Resumen de Pago</h4>
+          <div class="space-y-3">
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-400">Monto Productos:</span> <span id="tpv-modal-total-products" class="font-bold text-white">$0</span>
+            </div>
+            <div id="tpv-modal-minor-row" style="display: none;" class="flex justify-between text-sm text-amber-500">
+              <span>Recargo Minorista:</span> <span id="tpv-modal-minor-surcharge" class="font-bold">+$0</span>
+            </div>
+            <div id="tpv-modal-cash-row" style="display: none;" class="flex justify-between text-sm text-red-500">
+              <span>Pago Efectivo:</span> <span id="tpv-modal-cash-discount" class="font-bold">-$0</span>
+            </div>
+            <div class="flex justify-between text-base font-bold text-white border-t border-dashed border-slate-700 pt-3">
+              <span>Subtotal:</span> <span id="tpv-modal-subtotal">$0</span>
+            </div>
+          </div>
+          <div class="mt-auto text-right">
+            <p class="text-[0.65rem] font-bold text-slate-500 uppercase mb-1">Total Final</p>
+            <p id="tpv-modal-final-total" class="text-4xl font-black text-primary">$0</p>
+          </div>
+        </div>
+      </div>
+      <div class="checkout-footer">
+        <button onclick="closeCheckoutModal()" class="tpv-btn-ghost">Cancelar</button>
+        <button onclick="processCheckoutSale()" class="tpv-btn-success-large px-8">CONFIRMAR Y PAGAR</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1223,7 +1039,7 @@
 <script>
   (function () {
     try {
-      console.log("🟢 [TPV] Fragmento inicializado");
+      console.log("ðŸŸ¢ [TPV] Fragmento inicializado");
       let catalog = null;
       let posMetadata = null;
       let cart = [];
@@ -1259,10 +1075,10 @@
         'CALZA': 'ph-pants',
         'JOGGING': 'ph-pants',
         'PANTALON': 'ph-pants',
-        'PANTALÓN': 'ph-pants',
+        'PANTALÃ“N': 'ph-pants',
         'SHORT': 'ph-pants',
         'SUETER': 'ph-t-shirt',
-        'SUÉTER': 'ph-t-shirt',
+        'SUÃ‰TER': 'ph-t-shirt',
         'CAMISETA': 'ph-t-shirt',
         'TOP': 'ph-selection-background',
         'MUSCULOSA': 'ph-user-focus',
@@ -1277,7 +1093,7 @@
         'INVIERNO': 'ph-snowflake',
         'VERANO': 'ph-sun',
         'PRIMAVERA': 'ph-flower',
-        'OTOÑO': 'ph-leaf',
+        'OTOÃ‘O': 'ph-leaf',
         'CONTINUO': 'ph-arrows-clockwise',
         'DEFAULT': 'ph-calendar'
       };
@@ -1310,25 +1126,25 @@
         updateTpvTotals();
       };
 
-      // Ejecución inmediata
+      // EjecuciÃ³n inmediata
       initTPV();
 
       window.openCheckoutModal = function () {
         if (cart.length === 0) {
-          alert("El carrito está vacío");
+          alert("El carrito estÃ¡ vacÃ­o");
           return;
         }
 
-        // Si es modo QR, no abrimos modal, sino que nos aseguramos de que el panel esté listo
+        // Si es modo QR, no abrimos modal, sino que nos aseguramos de que el panel estÃ© listo
         var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
 
-        // Renderizar métodos de pago en ambos contenedores
+        // Renderizar mÃ©todos de pago en ambos contenedores
         renderPaymentMethods('payment-methods-grid');
         renderPaymentMethods('qr-payment-methods-grid');
 
         if (isQr) {
-          // En modo QR la UI ya está visible en el panel derecho
-          console.log("Modo QR: El panel de checkout ya debería estar visible.");
+          // En modo QR la UI ya estÃ¡ visible en el panel derecho
+          console.log("Modo QR: El panel de checkout ya deberÃ­a estar visible.");
           updateTpvTotals();
           return;
         }
@@ -1386,8 +1202,8 @@
 
       async function initTPV() {
         try {
-          console.log("🔍 [TPV] Iniciando servicios...");
-          showTpvLoader("🚀 Sincronizando datos...");
+          console.log("ðŸ” [TPV] Iniciando servicios...");
+          showTpvLoader("ðŸš€ Sincronizando datos...");
 
           const userStr = sessionStorage.getItem('loggedInUser');
           const user = userStr ? JSON.parse(userStr) : null;
@@ -1409,9 +1225,9 @@
                   priceConfig = data.priceConfig;
                   console.log('[TPV] priceConfig desde getInitialPosData:', priceConfig);
 
-                  // Si el priceConfig cambió y el catálogo ya está cargado → re-renderizar productos
+                  // Si el priceConfig cambiÃ³ y el catÃ¡logo ya estÃ¡ cargado â†’ re-renderizar productos
                   if (prevTipo !== priceConfig.tipoRegistroPrecio && catalog && catalog.products) {
-                    console.log('[TPV] priceConfig cambió, re-renderizando productos...');
+                    console.log('[TPV] priceConfig cambiÃ³, re-renderizando productos...');
                     applyTpvFilters();
                   }
                 }
@@ -1460,7 +1276,7 @@
                 renderPaymentMethods('qr-payment-methods-grid');
                 setSelectedPaymentMethod('Efectivo');
 
-                // 4. Configuración de Compra Mínima
+                // 4. ConfiguraciÃ³n de Compra MÃ­nima
                 if (data.storeConfig && data.storeConfig.minimumPurchase) {
                   setSelectedMinPurchase(data.storeConfig.minimumPurchase);
                 } else {
@@ -1484,12 +1300,12 @@
               if (data && data.success) {
                 realStockCache.map = data.stockMap;
                 realStockCache.lastUpdate = new Date();
-                console.log("📦 [Stock Cache] Sincronizado:", Object.keys(data.stockMap).length, "ítems");
+                console.log("ðŸ“¦ [Stock Cache] Sincronizado:", Object.keys(data.stockMap).length, "Ã­tems");
               }
             })
             .getAllStockFromCache();
 
-          // B. Catálogo - Optimizado: Carga centralizada vía Shell (Prioriza Drive)
+          // B. CatÃ¡logo - Optimizado: Carga centralizada vÃ­a Shell (Prioriza Drive)
           try {
             catalog = await window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
 
@@ -1502,13 +1318,13 @@
               }).filter(function (p) { return p.variations.length > 0; });
             }
           } catch (e) {
-            console.error("❌ Fallo crítico al cargar el catálogo:", e);
+            console.error("âŒ Fallo crÃ­tico al cargar el catÃ¡logo:", e);
           }
 
           if (catalog) {
-            // ✔ Leer priceConfig del catálogo ANTES de renderizar (evita problema de timing)
-            // getInitialPosData() es async y puede no haber retornado todavía cuando
-            // el catálogo ya está disponible. El catálogo mismo contiene priceConfig.
+            // âœ” Leer priceConfig del catÃ¡logo ANTES de renderizar (evita problema de timing)
+            // getInitialPosData() es async y puede no haber retornado todavÃ­a cuando
+            // el catÃ¡logo ya estÃ¡ disponible. El catÃ¡logo mismo contiene priceConfig.
             if (catalog.priceConfig) {
               priceConfig = catalog.priceConfig;
               console.log('[TPV] priceConfig desde catalog.json:', priceConfig);
@@ -1531,7 +1347,7 @@
           dom: 'Bfrtip',
           buttons: [
             {
-              text: '📱 WhatsApp',
+              text: 'ðŸ“± WhatsApp',
               className: 'bg-green-500 text-white rounded px-2 py-1 text-xs',
               action: function (e, dt, node, config) {
                 copyCartToWhatsApp();
@@ -1547,18 +1363,18 @@
       }
 
       function copyCartToWhatsApp() {
-        if (cart.length === 0) return alert("Carrito vacío");
+        if (cart.length === 0) return alert("Carrito vacÃ­o");
         var text = "*PRESUPUESTO HOSTINGSHOP*\n--------------------------\n";
         cart.forEach(function (i) {
-          text += "• " + i.model + " (" + i.color + "/" + i.size + ")" +
-            (i.tipoPrecio && i.tipoPrecio !== 'Estándar' ? " [" + i.tipoPrecio + "]" : "") +
+          text += "â€¢ " + i.model + " (" + i.color + "/" + i.size + ")" +
+            (i.tipoPrecio && i.tipoPrecio !== 'EstÃ¡ndar' ? " [" + i.tipoPrecio + "]" : "") +
             "\n  " + i.quantity + " x $" + i.price.toLocaleString() + " = $" + (i.price * i.quantity).toLocaleString() + "\n";
         });
         var total = document.getElementById('total-amount').innerText;
         text += "--------------------------\n*TOTAL: " + total + "*";
 
         navigator.clipboard.writeText(text).then(function () {
-          alert("¡Copiado al portapapeles para WhatsApp!");
+          alert("Â¡Copiado al portapapeles para WhatsApp!");
         });
       }
 
@@ -1592,7 +1408,7 @@
           var grid = document.createElement('div');
           grid.className = "filters-grid";
 
-          // Botón "Todos"
+          // BotÃ³n "Todos"
           var btnAll = document.createElement('button');
           var isAllActive = currentTpvFilters[filterKey] === 'ALL';
           btnAll.className = "filter-btn-tpv " + (isAllActive ? 'active' : '');
@@ -1637,9 +1453,9 @@
           return group;
         };
 
-        // === JERARQUÍA: COMBOS > LÍNEA (PADRE) > PRODUCTO (CATEGORIA) ===
+        // === JERARQUÃA: COMBOS > LÃNEA (PADRE) > PRODUCTO (CATEGORIA) ===
 
-        // 0. SECCIÓN DE COMBOS (Básico por ahora, filtrando productos con variedad "Combo")
+        // 0. SECCIÃ“N DE COMBOS (BÃ¡sico por ahora, filtrando productos con variedad "Combo")
         var hasCombos = catalog.products.some(p => (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo')));
         if (hasCombos) {
           var comboGroup = document.createElement('div');
@@ -1657,7 +1473,7 @@
               currentTpvFilters.isCombo = false;
             } else {
               // Limpiar otros filtros para ver solo combos? O combinarlos?
-              // El usuario dijo "filtrado anidado a categorías", pero también "botón destacado".
+              // El usuario dijo "filtrado anidado a categorÃ­as", pero tambiÃ©n "botÃ³n destacado".
               // Por ahora, actuamos como toggle.
               currentTpvFilters.parent = 'ALL';
               currentTpvFilters.cat = 'ALL';
@@ -1671,11 +1487,11 @@
           catCont.appendChild(comboGroup);
         }
 
-        // 1. CATEGORÍA PADRE (Línea)
+        // 1. CATEGORÃA PADRE (LÃ­nea)
         var parents = [...new Set(catalog.products.map(p => p.parentCategory))].filter(Boolean).sort();
-        catCont.appendChild(createFilterGroup('Línea', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
+        catCont.appendChild(createFilterGroup('LÃ­nea', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
 
-        // 2. CATEGORÍA HOJA — filtrada por el padre activo
+        // 2. CATEGORÃA HOJA â€” filtrada por el padre activo
         var parentFilter = currentTpvFilters.parent;
         var catsSource = parentFilter !== 'ALL'
           ? catalog.products.filter(p => p.parentCategory === parentFilter)
@@ -1756,17 +1572,17 @@
 
         products.forEach(function (p) {
           var div = document.createElement('div');
-          div.className = 'product-card';
+          div.className = 'product-card animate-fade-in';
 
           var genderIconMap = {
-            'HOMBRE':  { icon: 'ph-gender-male',       color: '#3b82f6', bg: '#0f172a' },
-            'MUJER':   { icon: 'ph-gender-female',     color: '#ec4899', bg: '#0f172a' },
-            'UNISEX':  { icon: 'ph-gender-intersex',   color: '#8b5cf6', bg: '#0f172a' },
+            'HOMBRE':  { icon: 'ph-gender-male',       color: '#3b82f6' },
+            'MUJER':   { icon: 'ph-gender-female',     color: '#ec4899' },
+            'UNISEX':  { icon: 'ph-gender-intersex',   color: '#8b5cf6' },
           };
           var seasonIconMap = {
-            'INVIERNO':       { icon: 'ph-snowflake',  color: '#0ea5e9', bg: '#0f172a' },
-            'VERANO':         { icon: 'ph-sun',        color: '#f59e0b', bg: '#0f172a' },
-            'PRIMAVERA':      { icon: 'ph-flower',     color: '#22c55e', bg: '#0f172a' },
+            'INVIERNO':       { icon: 'ph-snowflake',  color: '#0ea5e9' },
+            'VERANO':         { icon: 'ph-sun',        color: '#f59e0b' },
+            'PRIMAVERA':      { icon: 'ph-flower',     color: '#22c55e' },
           };
 
           var gInfo = genderIconMap[(p.gender || '').toUpperCase()];
@@ -1786,165 +1602,105 @@
           var imgHtml = "<div class='product-img-container'>" +
             (p.image
               ? "<img src='" + p.image + "' style='width:100%;height:100%;object-fit:cover;' alt='" + p.model + "' loading='lazy'>"
-              : "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg-main);opacity:0.5;'>&#128085;</div>"
+              : "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg-main);opacity:0.3;'>👕</div>"
             ) + badgesHtml + "</div>";
 
           var priceHtml = isPrecioVariable ? '' : "<div class='product-price'>$" + (p.price || 0).toLocaleString() + "</div>";
-          var brandHtml = p.brand ? "<div style='font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;'>" + p.brand + "</div>" : "";
+          var brandHtml = p.brand ? "<div style='font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:800;'>" + p.brand + "</div>" : "";
 
           div.innerHTML = imgHtml +
-            "<div style='flex:1;'>" +
+            "<div style='flex:1;display:flex;flex-direction:column;gap:0.25rem;'>" +
+            brandHtml +
             "<div class='product-title'>" + p.model + "</div>" +
             priceHtml +
-            brandHtml +
             "</div>";
 
-          // CARRUSEL DE VARIEDADES (2 botones por página)
-          if (isPrecioVariable && p.varieties && p.varieties.length > 0) {
+          // CARRUSEL DE VARIEDADES (2 botones por slide)
+          const pVarieties = p.varieties || [];
+          if (isPrecioVariable && pVarieties.length > 0) {
             const carousel = document.createElement('div');
-            carousel.className = 'variety-card-carousel';
+            carousel.className = 'variety-carousel-wrapper';
+            
+            const track = document.createElement('div');
+            track.className = 'variety-carousel-track';
+            track.id = 'track-' + p.id;
 
-            let curPage = 0;
-            const totalPages = Math.ceil(p.varieties.length / 2);
+            // Agrupación de 2 en 2
+            for (let i = 0; i < pVarieties.length; i += 2) {
+              const slide = document.createElement('div');
+              const isLastSingle = (i + 1 >= pVarieties.length);
+              slide.style.cssText = `flex: 0 0 100%; display: flex; gap: 4px; justify-content: ${isLastSingle ? 'center' : 'space-between'};`;
+              
+              const v1 = pVarieties[i];
+              const btn1 = document.createElement('button');
+              btn1.className = 'variety-mini-btn';
+              btn1.style.flex = isLastSingle ? '0 0 80%' : '1';
+              btn1.innerHTML = v1.nombre + '<br><span style="font-size:0.75rem;font-weight:900;">$' + (v1.precio_unitario || 0).toLocaleString() + '</span>';
+              btn1.onclick = (e) => { e.stopPropagation(); handleVarietyClick(p, v1); };
+              slide.appendChild(btn1);
 
-            const btnPrev = document.createElement('button');
-            btnPrev.className = 'variety-nav-btn prev';
-            btnPrev.innerHTML = '<i class="ph-bold ph-caret-left"></i>';
-            btnPrev.style.display = totalPages > 1 ? 'flex' : 'none';
+              if (!isLastSingle) {
+                const v2 = pVarieties[i+1];
+                const btn2 = document.createElement('button');
+                btn2.className = 'variety-mini-btn';
+                btn2.style.flex = '1';
+                btn2.innerHTML = v2.nombre + '<br><span style="font-size:0.75rem;font-weight:900;">$' + (v2.precio_unitario || 0).toLocaleString() + '</span>';
+                btn2.onclick = (e) => { e.stopPropagation(); handleVarietyClick(p, v2); };
+                slide.appendChild(btn2);
+              }
+              track.appendChild(slide);
+            }
+            carousel.appendChild(track);
 
-            const btnNext = document.createElement('button');
-            btnNext.className = 'variety-nav-btn next';
-            btnNext.innerHTML = '<i class="ph-bold ph-caret-right"></i>';
-            btnNext.style.display = totalPages > 1 ? 'flex' : 'none';
-
-            const container = document.createElement('div');
-            container.style.display = 'flex';
-            container.style.gap = '6px';
-            container.style.flex = '1';
-            container.style.justifyContent = 'center'; // Centrado automático
-
-            const updatePage = () => {
-              container.innerHTML = '';
-              const start = curPage * 2;
-              const chunk = p.varieties.slice(start, start + 2);
-
-              chunk.forEach(v => {
-                const vBtn = document.createElement('button');
-                vBtn.className = 'variety-card-btn';
-                const vColor = getVarietyColor(v.nombre);
-                vBtn.style.borderColor = vColor + '50'; // Transparencia leve
-                vBtn.style.color = vColor;
-                vBtn.innerHTML = v.nombre + '<br><span style="font-size:0.75rem;font-weight:900;">$' + (v.precio_unitario || 0).toLocaleString() + '</span>';
-                vBtn.onclick = (e) => { e.stopPropagation(); handleVarietyClick(p, v); };
-                container.appendChild(vBtn);
-              });
-
-              btnPrev.style.opacity = curPage === 0 ? '0.3' : '1';
-              btnPrev.style.pointerEvents = curPage === 0 ? 'none' : 'auto';
-              btnNext.style.opacity = curPage === totalPages - 1 ? '0.3' : '1';
-              btnNext.style.pointerEvents = curPage === totalPages - 1 ? 'none' : 'auto';
-            };
-
-            btnPrev.onclick = (e) => { e.stopPropagation(); if (curPage > 0) { curPage--; updatePage(); } };
-            btnNext.onclick = (e) => { e.stopPropagation(); if (curPage < totalPages - 1) { curPage++; updatePage(); } };
-
-            updatePage();
-
-            carousel.appendChild(btnPrev);
-            carousel.appendChild(container);
-            carousel.appendChild(btnNext);
+            if (pVarieties.length > 2) {
+              const btnPrev = document.createElement('button');
+              btnPrev.className = 'variety-carousel-arrow prev';
+              btnPrev.innerHTML = '<i class="ph ph-caret-left"></i>';
+              btnPrev.onclick = (e) => { e.stopPropagation(); track.scrollBy({ left: -track.offsetWidth, behavior: 'smooth' }); };
+              
+              const btnNext = document.createElement('button');
+              btnNext.className = 'variety-carousel-arrow next';
+              btnNext.innerHTML = '<i class="ph ph-caret-right"></i>';
+              btnNext.onclick = (e) => { e.stopPropagation(); track.scrollBy({ left: track.offsetWidth, behavior: 'smooth' }); };
+              
+              carousel.appendChild(btnPrev);
+              carousel.appendChild(btnNext);
+            }
             div.appendChild(carousel);
           } else {
             div.onclick = function () { openTpvVariations(p); };
           }
-
           grid.appendChild(div);
         });
       }
 
-      /**
-       * Maneja el clic en un mini-botón de variedad desde la tarjeta.
-       *
-       * - PRODUCTO SIMPLE: solo tiene variaciones "Surtido/Surtido" por tienda.
-       *   → Busca la variación correspondiente a la tienda activa del vendedor
-       *   → Agrega directo al carrito SIN abrir modal.
-       *
-       * - PRODUCTO VARIABLE: tiene variaciones reales de color/talle.
-       *   → Abre el modal de color/talle con la variedad preseleccionada.
-       */
       function handleVarietyClick(product, variety) {
-        const isProductoSimple = (priceConfig.tipoRegistroProducto === 'PRODUCTO SIMPLE');
         const managedStore = posMetadata ? posMetadata.managedStoreId : '';
         const varietyName = (variety.nombre || '').toLowerCase();
 
-        // REGLA: Variedad "Docena" siempre es directa si hay variación Surtido/Surtido
-        if (varietyName === 'docena') {
-          const variation = product.variations.find(v => v.store_id === managedStore && v.color === 'Surtido')
-            || product.variations.find(v => v.store_id === managedStore)
-            || product.variations[0];
-          addTpvToCart(product, variation, variety);
-          return;
-        }
-
-        if (isProductoSimple) {
-          // PRODUCTO SIMPLE: buscar la variación de la tienda activa del vendedor
-          let variation = product.variations.find(v => v.store_id === managedStore);
-          if (!variation) variation = product.variations[0];
-
-          if (!variation) {
-            variation = {
-              variation_id: product.id + '-Surtido-Surtido-' + managedStore,
-              color: 'Surtido',
-              size: 'Surtido',
-              store_id: managedStore
-            };
-          }
-          addTpvToCart(product, variation, variety);
+        // Si es producto simple, agregamos directo
+        if (priceConfig.tipoRegistroPrecio === 'PRODUCTO SIMPLE') {
+           const variation = product.variations.find(v => v.store_id === managedStore) || product.variations[0];
+           addTpvToCart(product, variation, variety);
         } else {
-          // PRODUCTO VARIABLE: 
-          // Si es "Curva" o "Mayor" con talles reales -> Abrir Modal
-          const realVariations = product.variations.filter(
-            v => v.store_id === managedStore && !(v.color === 'Surtido' && v.size === 'Surtido')
-          );
-
-          if (realVariations.length === 0) {
-            // No hay talles reales -> Agregado directo con la variedad elegida
-            const variation = product.variations.find(v => v.store_id === managedStore) || product.variations[0];
-            addTpvToCart(product, variation, variety);
-          } else {
-            // Abrir modal avanzado
-            openTpvVariations(product, null, variety);
-          }
+           // Si es variable, abrimos modal preseleccionando la variedad
+           openTpvVariations(product, null, variety);
         }
       }
 
       window.openTpvVariations = function (product, scan = null, preselectedVariety = null) {
-        if (product.variations.length === 1) {
-          addTpvToCart(product, product.variations[0], preselectedVariety);
-          return;
-        }
+        curvaState.product = product;
+        curvaState.active = false;
+        curvaState.selection = {};
 
         const modal = document.getElementById('modal-variations');
+        if (!modal) return;
+
         document.getElementById('modal-product-title').innerText = product.model;
-
-        const colorCont = document.getElementById('color-options');
-        const sizeCont = document.getElementById('size-options');
-        const standardContainer = document.getElementById('standard-variations-container');
-        const sizeContainer = document.getElementById('size-container');
-        const varietyCont = document.getElementById('variety-options');
+        
+        // Reset modal content
+        const varietyOptions = document.getElementById('variety-options');
         const varietyContainer = document.getElementById('variety-container');
-        const curvaWrapper = document.getElementById('curva-matrix-wrapper');
-        const curvaSummary = document.getElementById('curva-summary-container');
-
-        colorCont.innerHTML = '';
-        sizeCont.innerHTML = '';
-        sizeContainer.style.display = 'none';
-        if (standardContainer) standardContainer.style.display = 'block';
-        if (curvaWrapper) curvaWrapper.style.display = 'none';
-        curvaSummary.style.display = 'none';
-
-        const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
-        let _selectedVariety = preselectedVariety || null;
 
         const initCurvaMode = (v) => {
           if (v && v.nombre.toLowerCase() === 'curva') {
@@ -1988,7 +1744,7 @@
             vBtn.innerHTML =
               '<span>' + v.nombre + '</span>' +
               '<span class="variety-price-tag">$' + (v.precio_unitario || 0).toLocaleString() + '</span>' +
-              '<span class="variety-qty-tag">Mín: ' + (v.cantidad_minima || 1) + ' u.</span>';
+              '<span class="variety-qty-tag">MÃ­n: ' + (v.cantidad_minima || 1) + ' u.</span>';
             
             vBtn.onclick = function () {
               document.querySelectorAll('.variety-modal-btn').forEach(b => b.classList.remove('active'));
@@ -2111,7 +1867,7 @@
             container.appendChild(btnPlus);
             wrapper.appendChild(container);
           } else {
-            // MODO ESTÁNDAR: Botón simple
+            // MODO ESTÃNDAR: BotÃ³n simple
             const btn = document.createElement('button');
             btn.className = `size-btn ${currentStock > 0 ? 'in-stock' : 'out-of-stock'}`;
             btn.innerText = v.size;
@@ -2150,7 +1906,7 @@
         if (!sizes || !colors) return;
 
         // HEAD
-        head.innerHTML = '<tr><th>Variación</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
+        head.innerHTML = '<tr><th>VariaciÃ³n</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
 
         // BODY
         body.innerHTML = '';
@@ -2203,12 +1959,12 @@
               hint.innerText = (stock > 100 ? '99+' : stock);
               td.appendChild(hint);
             } else {
-              td.innerHTML = '<span style="color:#cbd5e1">—</span>';
+              td.innerHTML = '<span style="color:#cbd5e1">â€”</span>';
             }
             tr.appendChild(td);
           });
 
-          // Celda Botón (+) Curva
+          // Celda BotÃ³n (+) Curva
           const tdCurva = document.createElement('td');
           const btn = document.createElement('button');
           btn.className = 'btn-row-curva';
@@ -2294,7 +2050,7 @@
         colTotals.forEach(total => {
           footHtml += '<td>' + total + '</td>';
         });
-        footHtml += '<td>—</td></tr>';
+        footHtml += '<td>â€”</td></tr>';
         
         // Status row below totals
         footHtml += '<tr><td style="text-align:right; font-weight:800">ESTADO:</td>';
@@ -2311,14 +2067,14 @@
           
           footHtml += '<td><span class="col-status-indicator ' + statusClass + '">' + statusText + '</span></td>';
         });
-        footHtml += '<td>—</td></tr>';
+        footHtml += '<td>â€”</td></tr>';
         foot.innerHTML = footHtml;
 
         // Update Global UI
         if (isPerfect) {
           counter.innerText = target + (target === 1 ? ' Curva completa' : ' Curvas completas');
           counter.style.color = 'var(--success)';
-          msg.innerText = '¡Curva perfecta! Ya puedes añadir al carrito.';
+          msg.innerText = 'Â¡Curva perfecta! Ya puedes aÃ±adir al carrito.';
           msg.style.color = 'var(--success)';
           btnConfirm.disabled = false;
           btnConfirm.style.opacity = '1';
@@ -2345,7 +2101,7 @@
 
         const uniqueTotals = [...new Set(colTotals)];
         if (uniqueTotals.length !== 1 || uniqueTotals[0] === 0) {
-          alert('La curva está incompleta o es desigual. Todas las columnas deben sumar lo mismo.');
+          alert('La curva estÃ¡ incompleta o es desigual. Todas las columnas deben sumar lo mismo.');
           return;
         }
 
@@ -2363,7 +2119,7 @@
       window.manualRefreshStock = function () {
         const btn = document.getElementById('tpv-manual-refresh');
         const oldText = btn.innerText;
-        btn.innerText = "⌛ ACTUALIZANDO...";
+        btn.innerText = "âŒ› ACTUALIZANDO...";
         btn.disabled = true;
 
         google.script.run
@@ -2371,8 +2127,8 @@
             if (data.success) {
               realStockCache.map = data.stockMap;
               realStockCache.lastUpdate = new Date();
-              console.log("✅ Stock actualizado manualmente.");
-              // Si el modal está abierto, refrescar talle
+              console.log("âœ… Stock actualizado manualmente.");
+              // Si el modal estÃ¡ abierto, refrescar talle
               const activeColorBtn = document.querySelector('.color-btn.active');
               if (activeColorBtn) {
                 const modalTitle = document.getElementById('modal-product-title').innerText;
@@ -2410,14 +2166,14 @@
         const varId = variation.variation_id;
         const available = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
 
-        // En modo PRECIO VARIABLE: precio y cantidad mínima vienen de la variedad
+        // En modo PRECIO VARIABLE: precio y cantidad mÃ­nima vienen de la variedad
         const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
         const itemPrice = isPrecioVariable && variety ? variety.precio_unitario : product.price;
         
         // La cantidad inicial es qtyOverride (para Curva) o la cantidad_minima de la variedad
         const initQty = qtyOverride !== null ? qtyOverride : (isPrecioVariable && variety ? Math.max(1, variety.cantidad_minima) : 1);
         
-        const tipoPrecio = variety ? variety.nombre : (isPrecioVariable ? '—' : 'Estándar');
+        const tipoPrecio = variety ? variety.nombre : (isPrecioVariable ? 'â€”' : 'EstÃ¡ndar');
 
         const existing = cart.find(i => i.variation_id === varId && i.tipoPrecio === tipoPrecio);
         const currentInCart = existing ? existing.quantity : 0;
@@ -2446,7 +2202,7 @@
 
         renderTpvCart();
         closeTpvModal();
-        console.log('🛒 Añadido:', product.model, variation.color, variation.size, tipoPrecio, '$' + itemPrice);
+        console.log('ðŸ›’ AÃ±adido:', product.model, variation.color, variation.size, tipoPrecio, '$' + itemPrice);
       }
 
       function renderTpvCart() {
@@ -2456,7 +2212,7 @@
         cart.forEach(function (item, index) {
           dt.row.add([
             "<div style='font-weight:600'>" + item.model + "</div>",
-            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '—') + "</span>",
+            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || 'â€”') + "</span>",
             item.color,
             item.size,
             "<input type='number' class='qty-input' value='" + item.quantity + "' onchange='updateTpvQty(" + index + ", this.value)'>",
@@ -2475,7 +2231,7 @@
         const available = (realStockCache.map && realStockCache.map[item.variation_id] !== undefined) ? realStockCache.map[item.variation_id] : 0;
 
         if (newQty > available) {
-          alert("Stock insuficiente. Máximo disponible: " + available);
+          alert("Stock insuficiente. MÃ¡ximo disponible: " + available);
           item.quantity = available;
         } else {
           item.quantity = newQty;
@@ -2489,39 +2245,45 @@
         var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
         const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
 
-        // A. Cálculos Base
+        // A. CÃ¡lculos Base
         const montoProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-        const totalUnits = cart.reduce((acc, i) => acc + i.quantity, 0);
+        const totalUnitsSize = cart.reduce((acc, i) => acc + i.quantity, 0);
 
         // B. Recargo Minorista
-        // En PRECIO VARIABLE el precio ya incluye el margen → NO se aplica recargo minorista.
         let minorSurcharge = 0;
         if (!isPrecioVariable) {
           const storeSurcharge = (posMetadata.storeConfig && posMetadata.storeConfig.minorSurcharge) ? posMetadata.storeConfig.minorSurcharge : 0;
           const noMinorSurchargeId = isQr ? 'qr-tpv-modal-deactivate-minor-surcharge' : 'tpv-modal-deactivate-minor-surcharge';
           const noMinorSurcharge = document.getElementById(noMinorSurchargeId)?.checked || false;
 
-          if (totalUnits > 0 && totalUnits < selectedMinPurchase && !noMinorSurcharge) {
-            if (storeSurcharge > 0) {
-              // PRECIO + RECARGO ESTANDAR: recargo a nivel tienda
-              minorSurcharge = storeSurcharge * totalUnits;
-            } else {
-              // PRECIO + RECARGO PERSONALIZADO: recargo a nivel producto
-              minorSurcharge = cart.reduce((acc, item) => {
-                const product = catalog.products.find(p => p.id === item.product_id);
-                const productSurcharge = (product && product.minor_surcharge) ? product.minor_surcharge : 0;
-                return acc + (productSurcharge * item.quantity);
-              }, 0);
-            }
+          if (totalUnitsSize > 0 && totalUnitsSize < selectedMinPurchase && !noMinorSurcharge) {
+            minorSurcharge = storeSurcharge * totalUnitsSize;
           }
         }
 
-        // C. Pago Mixto y Subtotal Neto (Fórmula AppSheet)
+        // C. Compra MÃ­nima (Visual)
+        const minCont = document.getElementById('tpv-min-purchase-container');
+        if (minCont) {
+          if (isPrecioVariable) {
+             minCont.style.display = 'block';
+             const display = document.getElementById('tpv-min-purchase-display');
+             const progress = document.getElementById('tpv-min-purchase-progress');
+             const target = selectedMinPurchase || 1;
+             display.innerText = `${totalUnitsSize} / ${target}`;
+             const percent = Math.min(100, (totalUnitsSize / target) * 100);
+             progress.style.width = percent + '%';
+             progress.className = percent >= 100 ? 'bg-emerald-500 h-full transition-all' : 'bg-warning h-full transition-all';
+          } else {
+             minCont.style.display = 'none';
+          }
+        }
+
+        // D. Pago Mixto y Subtotal Neto
         const cashInputId = isQr ? 'qr-tpv-cash-amount' : 'tpv-cash-amount';
         const cashAmount = parseFloat(document.getElementById(cashInputId).value) || 0;
         const subtotalNeto = Math.max(0, montoProductos + minorSurcharge - cashAmount);
 
-        // D. Recargo Medio de Pago (Sobre Subtotal Neto)
+        // E. Recargo Medio de Pago
         const methodId = isQr ? 'qr-tpv-payment-method' : 'tpv-payment-method';
         const method = document.getElementById(methodId).value || 'Efectivo';
         const noPaymentSurchargeId = isQr ? 'qr-tpv-modal-deactivate-surcharge' : 'tpv-modal-deactivate-surcharge';
@@ -2536,62 +2298,41 @@
 
         const totalFinal = subtotalNeto + paymentSurcharge;
 
-        // E. Sincronización UI - SIDEBAR
+        // F. SincronizaciÃ³n UI
         document.getElementById('tpv-sidebar-subtotal').innerText = '$' + montoProductos.toLocaleString();
 
-        // F. Sincronización UI - MODAL & QR PANEL
-        if (isQr) {
-          const qrPre = 'qr-';
-          const qrPreModal = 'qr-tpv-modal-';
+        const preModal = isQr ? 'qr-tpv-modal-' : 'tpv-modal-';
+        const totalProdEl = document.getElementById(preModal + 'total-products');
+        if (totalProdEl) totalProdEl.innerText = '$' + montoProductos.toLocaleString();
 
-          document.getElementById(qrPreModal + 'total-products').innerText = '$' + montoProductos.toLocaleString();
-
-          const modalMinorRow = document.getElementById(qrPreModal + 'minor-row');
-          if (modalMinorRow) {
-            modalMinorRow.style.display = minorSurcharge > 0 ? 'flex' : 'none';
-            document.getElementById(qrPreModal + 'minor-surcharge').innerText = '+$' + minorSurcharge.toLocaleString();
-          }
-
-          const modalCashRow = document.getElementById(qrPreModal + 'cash-row');
-          if (modalCashRow) {
-            modalCashRow.style.display = cashAmount > 0 ? 'flex' : 'none';
-            document.getElementById(qrPreModal + 'cash-discount').innerText = '-$' + cashAmount.toLocaleString();
-          }
-
-          document.getElementById(qrPreModal + 'subtotal').innerText = '$' + subtotalNeto.toLocaleString();
-
-          const modalPayRow = document.getElementById(qrPreModal + 'payment-row');
-          if (modalPayRow) {
-            modalPayRow.style.display = paymentSurcharge > 0 ? 'flex' : 'none';
-            document.getElementById('qr-pm-name').innerText = method;
-            document.getElementById(qrPreModal + 'payment-surcharge').innerText = '+$' + Math.round(paymentSurcharge).toLocaleString();
-          }
-          document.getElementById(qrPreModal + 'final-total').innerText = '$' + Math.round(totalFinal).toLocaleString();
-        } else if (document.getElementById('checkout-modal').style.display === 'flex') {
-          document.getElementById('tpv-modal-total-products').innerText = '$' + montoProductos.toLocaleString();
-
-          const modalMinorRow = document.getElementById('tpv-modal-minor-row');
-          if (modalMinorRow) {
-            modalMinorRow.style.display = minorSurcharge > 0 ? 'flex' : 'none';
-            document.getElementById('tpv-modal-minor-surcharge').innerText = '+$' + minorSurcharge.toLocaleString();
-          }
-
-          const modalCashRow = document.getElementById('tpv-modal-cash-row');
-          if (modalCashRow) {
-            modalCashRow.style.display = cashAmount > 0 ? 'flex' : 'none';
-            document.getElementById('tpv-modal-cash-discount').innerText = '-$' + cashAmount.toLocaleString();
-          }
-
-          document.getElementById('tpv-modal-subtotal').innerText = '$' + subtotalNeto.toLocaleString();
-
-          const modalPayRow = document.getElementById('tpv-modal-payment-row');
-          if (modalPayRow) {
-            modalPayRow.style.display = paymentSurcharge > 0 ? 'flex' : 'none';
-            document.getElementById('tpv-modal-payment-surcharge').innerText = '+$' + Math.round(paymentSurcharge).toLocaleString();
-          }
-
-          document.getElementById('tpv-modal-final-total').innerText = '$' + Math.round(totalFinal).toLocaleString();
+        const modalMinorRow = document.getElementById(preModal + 'minor-row');
+        if (modalMinorRow) {
+          modalMinorRow.style.display = minorSurcharge > 0 ? 'flex' : 'none';
+          const msLabel = document.getElementById(preModal + 'minor-surcharge');
+          if (msLabel) msLabel.innerText = '+$' + minorSurcharge.toLocaleString();
         }
+
+        const modalCashRow = document.getElementById(preModal + 'cash-row');
+        if (modalCashRow) {
+          modalCashRow.style.display = cashAmount > 0 ? 'flex' : 'none';
+          const cdLabel = document.getElementById(preModal + 'cash-discount');
+          if (cdLabel) cdLabel.innerText = '-$' + cashAmount.toLocaleString();
+        }
+
+        const subtotalEl = document.getElementById(preModal + 'subtotal');
+        if (subtotalEl) subtotalEl.innerText = '$' + subtotalNeto.toLocaleString();
+
+        const modalPayRow = document.getElementById(preModal + 'payment-row');
+        if (modalPayRow) {
+          modalPayRow.style.display = paymentSurcharge > 0 ? 'flex' : 'none';
+          const pmNameEl = document.getElementById('qr-pm-name'); // This ID is specific to QR mode
+          if (pmNameEl) pmNameEl.innerText = method;
+          const psLabel = document.getElementById(preModal + 'payment-surcharge');
+          if (psLabel) psLabel.innerText = '+$' + Math.round(paymentSurcharge).toLocaleString();
+        }
+
+        const finalTotalEl = document.getElementById(preModal + 'final-total');
+        if (finalTotalEl) finalTotalEl.innerText = '$' + Math.round(totalFinal).toLocaleString();
       };
 
       window.removeTpvItem = function (index) {
@@ -2605,7 +2346,7 @@
         const preModal = isQr ? 'qr-tpv-modal-' : 'tpv-modal-';
 
         const confirmMsg = document.getElementById(preModal + 'final-total').innerText;
-        if (!confirm("¿Confirmar venta por " + confirmMsg + "?")) return;
+        if (!confirm("Â¿Confirmar venta por " + confirmMsg + "?")) return;
 
         const subtotalProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const method = document.getElementById(pre + 'tpv-payment-method').value;
@@ -2613,7 +2354,7 @@
         const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount').value) || 0;
         const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account').value : '';
 
-        // Recuperar cálculos finales ya procesados por updateTpvTotals
+        // Recuperar cÃ¡lculos finales ya procesados por updateTpvTotals
         const minorSurcharge = parseFloat(document.getElementById(preModal + 'minor-surcharge')?.innerText.replace('$', '').replace('+', '').replace('.', '').trim()) || 0;
         const paymentSurcharge = parseFloat(document.getElementById(preModal + 'payment-surcharge').innerText.replace('$', '').replace('+', '').replace('.', '').trim()) || 0;
         const finalTotal = parseFloat(document.getElementById(preModal + 'final-total').innerText.replace('$', '').replace('.', '').trim()) || 0;
@@ -2644,7 +2385,7 @@
         // PERSISTENCIA
         saveToLocalQueue(saleData);
 
-        // IMPRESIÓN OPTIMISTA
+        // IMPRESIÃ“N OPTIMISTA
         try {
           var printData = generateTicketLocal(saleData);
           sendToTpvPrinter(printData);
@@ -2659,7 +2400,7 @@
       };
 
       function generateTicketLocal(sale) {
-        if (!catalog || !catalog.stores) throw new Error("Catálogo no disponible para impresión");
+        if (!catalog || !catalog.stores) throw new Error("CatÃ¡logo no disponible para impresiÃ³n");
         const store = catalog.stores[sale.storeId] || { name: "SHOP", address: "", phone: "" };
         const settings = posMetadata.printSettings || { copias: 1, sonido: "0", marketing: "" };
 
@@ -2757,7 +2498,7 @@
         if (queue.length === 0) return;
 
         isSyncing = true;
-        console.log("🔄 Tentativa de sincronización de", queue.length, "ventas...");
+        console.log("ðŸ”„ Tentativa de sincronizaciÃ³n de", queue.length, "ventas...");
 
         const currentSale = queue[0];
 
@@ -2765,7 +2506,7 @@
           .withSuccessHandler(res => {
             isSyncing = false;
             if (res.success) {
-              console.log("✅ Venta sincronizada:", currentSale.saleId);
+              console.log("âœ… Venta sincronizada:", currentSale.saleId);
               const newQueue = JSON.parse(localStorage.getItem('tpv_offline_queue') || "[]");
               newQueue.shift(); // Eliminar la procesada
               localStorage.setItem('tpv_offline_queue', JSON.stringify(newQueue));
@@ -2782,7 +2523,7 @@
           })
           .withFailureHandler(err => {
             isSyncing = false;
-            console.warn("⚠️ Fallo de red detectado, venta permanece en cola.");
+            console.warn("âš ï¸ Fallo de red detectado, venta permanece en cola.");
           })
           .processSale(currentSale);
       }
@@ -2792,10 +2533,10 @@
         setInterval(syncLocalQueue, 30000); // Cada 30 seg
       }
 
-      // Se eliminó handleTpvPrinting por redundancia
+      // Se eliminÃ³ handleTpvPrinting por redundancia
 
       async function sendToTpvPrinter(p) {
-        console.log("🌐 [Printer] Enviando comando a:", p.printer_ip);
+        console.log("ðŸŒ [Printer] Enviando comando a:", p.printer_ip);
 
         const params = new URLSearchParams({
           id: p.venta_id,
@@ -2820,9 +2561,9 @@
           });
 
           clearTimeout(timeoutId);
-          console.log("✅ [Printer] Comando enviado");
+          console.log("âœ… [Printer] Comando enviado");
         } catch (e) {
-          console.warn("❌ [Printer] Fallo al enviar ticket:", e.message);
+          console.warn("âŒ [Printer] Fallo al enviar ticket:", e.message);
           google.script.run.logErrorFromFrontend("Fallo impresion TPV: " + e.message);
         }
       }
@@ -2838,7 +2579,7 @@
       }
 
       function finishTpvSale(showAlert = true) {
-        if (showAlert) alert("¡Venta completada!");
+        if (showAlert) alert("Â¡Venta completada!");
         cart = [];
         const cashAmount = document.getElementById('tpv-cash-amount');
         if (cashAmount) cashAmount.value = "";
@@ -2865,12 +2606,12 @@
     });
 
     /**
-     * Actualiza la visibilidad de elementos del Header según la configuración
+     * Actualiza la visibilidad de elementos del Header segÃºn la configuraciÃ³n
      */
     function updateTpvHeaderUI() {
       const wrapper = document.getElementById('header-min-purchase-wrapper');
       if (wrapper) {
-        // Mostrar solo si el tipo de registro es con recargo (Mínima)
+        // Mostrar solo si el tipo de registro es con recargo (MÃ­nima)
         const t = (priceConfig.tipoRegistroPrecio || "").toUpperCase();
         const show = t === 'RECARGO ESTANDAR' || t === 'RECARGO PERSONALIZADO';
         wrapper.style.display = show ? 'flex' : 'none';
@@ -2899,6 +2640,28 @@
       btnQr.classList.toggle('active', mode === 'LECTOR QR');
     }
 
+    window.openCheckoutModal = function() {
+      if (cart.length === 0) {
+        alert("El carrito está vacío");
+        return;
+      }
+      const isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
+      if (isQr) {
+        // En modo QR la venta se finaliza en el panel derecho, no necesita modal extra usualmente
+        // pero lo abrimos si el usuario lo invoca manualmente
+      }
+      const modal = document.getElementById('checkout-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        updateTpvTotals();
+      }
+    };
+
+    window.closeCheckoutModal = function() {
+      const modal = document.getElementById('checkout-modal');
+      if (modal) modal.style.display = 'none';
+    };
+
     function getVarietyColor(name) {
       const n = (name || "").toLowerCase();
       if (n.includes('curva')) return '#6366f1'; 
@@ -2910,14 +2673,4 @@
     }
     // --- FIN MEJORAS UI/UX ---
   })();
-</script>
-eturn '#64748b'; // Slate default
-    }
-
-    // --- FIN MEJORAS UI/UX ---
-
-    try {
-      if (typeof initTPV === 'function') {
-        initTPV();
-      }
 </script>
