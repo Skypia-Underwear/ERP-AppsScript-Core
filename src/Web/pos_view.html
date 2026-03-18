@@ -1512,7 +1512,7 @@
           searching: false,
           info: false,
           language: { emptyTable: "Sin productos" },
-          columnDefs: [{ targets: 6, className: 'text-right' }]
+          columnDefs: [{ targets: 5, className: 'text-right' }]
         });
       }
 
@@ -2432,9 +2432,13 @@
 
         // C. Compra MÃ­nima (Visual)
         const minCont = document.getElementById('tpv-min-purchase-container');
+        const headerMinWrapper = document.getElementById('header-min-purchase-wrapper');
+        
         if (minCont) {
-          if (isPrecioVariable) {
+          if (!isPrecioVariable) {
              minCont.style.display = 'block';
+             if (headerMinWrapper) headerMinWrapper.style.display = 'flex';
+             
              const display = document.getElementById('tpv-min-purchase-display');
              const progress = document.getElementById('tpv-min-purchase-progress');
              const target = selectedMinPurchase || 1;
@@ -2444,6 +2448,7 @@
              progress.className = percent >= 100 ? 'bg-emerald-500 h-full transition-all' : 'bg-warning h-full transition-all';
           } else {
              minCont.style.display = 'none';
+             if (headerMinWrapper) headerMinWrapper.style.display = 'none';
           }
         }
 
