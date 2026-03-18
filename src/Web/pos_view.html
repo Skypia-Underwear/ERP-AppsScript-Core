@@ -1201,6 +1201,9 @@
       var selectedMinPurchase = 1;
       var priceConfig = { tipoRegistroPrecio: 'PRECIO + RECARGO ESTANDAR', tipoRegistroProducto: 'PRODUCTO VARIABLE' };
       
+      const CATALOG_URL = "<?!= CATALOG_URL ?>";
+      const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
+      
       const checkIsPrecioVariable = () => (priceConfig && priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
       let currentTpvFilters = {
         parent: 'ALL',
