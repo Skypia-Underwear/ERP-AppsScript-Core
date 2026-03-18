@@ -1,6 +1,0 @@
-FECHA,MENSAJE
-17/3/2026 22:28:51,FRONTEND ERROR: Error: Uncaught ReferenceError: isPrecioVariable is not defined en https://n-tl7weyvyt62lmvk5v52gckyzihb2q7xfsnbdyay-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true:1379:9 | URL: undefined | L: undefined | C: undefined
-17/3/2026 22:31:13,FRONTEND ERROR: Error: Uncaught ReferenceError: isPrecioVariable is not defined en https://n-tl7weyvyt62lmvk5v52gckyzihb2q7xfsnbdyay-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true:1379:9 | URL: undefined | L: undefined | C: undefined
-17/3/2026 22:31:13,FRONTEND ERROR: Error: Uncaught ReferenceError: isPrecioVariable is not defined en https://n-tl7weyvyt62lmvk5v52gckyzihb2q7xfsnbdyay-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true:1379:9 | URL: undefined | L: undefined | C: undefined
-17/3/2026 22:35:50,FRONTEND ERROR: Error: Uncaught ReferenceError: isPrecioVariable is not defined en https://n-tl7weyvyt62lmvk5v52gckyzihb2q7xfsnbdyay-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true:1379:9 | URL: undefined | L: undefined | C: undefined
-17/3/2026 22:37:41,FRONTEND ERROR: Error: Uncaught ReferenceError: posMetadata is not defined en :3152:25 | URL: undefined | L: undefined | C: undefined
