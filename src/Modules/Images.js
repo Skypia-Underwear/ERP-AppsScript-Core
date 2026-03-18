@@ -147,15 +147,47 @@ function obtenerOCrearCarpetaProducto(sku) {
 
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idxSku]) === String(sku)) {
-      const folderId = idxFolder !== undefined ? String(data[i][idxFolder]) : "";
+      // 1. Lectura rápida sin bloqueo
+      let folderId = idxFolder !== undefined ? String(data[i][idxFolder]) : "";
       if (folderId) { try { return DriveApp.getFolderById(folderId); } catch (e) { } }
 
-      const parentId = GLOBAL_CONFIG.DRIVE.PARENT_FOLDER_ID;
-      const parent = DriveApp.getFolderById(parentId);
-      const newFolder = parent.createFolder(sku);
+      // 2. Lock para procesos concurrentes de Frontend
+      const lock = LockService.getScriptLock();
+      try {
+        lock.waitLock(15000); // 15s de gracia
 
-      if (idxFolder !== undefined) sheet.getRange(i + 1, idxFolder + 1).setValue(newFolder.getId());
-      return newFolder;
+        // 3. Doble verificación (BD)
+        const reData = sheet.getDataRange().getValues();
+        folderId = idxFolder !== undefined ? String(reData[i][idxFolder]) : "";
+        if (folderId) { try { return DriveApp.getFolderById(folderId); } catch (e) { } }
+
+        // 4. Triple verificación (Drive)
+        const parentId = GLOBAL_CONFIG.DRIVE.PARENT_FOLDER_ID;
+        const parent = DriveApp.getFolderById(parentId);
+        
+        const existingFolders = parent.getFoldersByName(String(sku));
+        let theFolder;
+        
+        if (existingFolders.hasNext()) {
+          theFolder = existingFolders.next();
+          console.log(`⏳ Carpeta rescatada desde Drive (Sync Bypass): ${sku}`);
+        } else {
+          theFolder = parent.createFolder(sku);
+          console.log(`📁 Nueva carpeta creada (Lock Seguro): ${sku}`);
+        }
+
+        // 5. Guardado Atomizado
+        if (idxFolder !== undefined) {
+           sheet.getRange(i + 1, idxFolder + 1).setValue(theFolder.getId());
+           SpreadsheetApp.flush(); // Forzar cache global
+        }
+        
+        return theFolder;
+      } catch (e) {
+        throw new Error("Lock timeout o fallo de concurrencia en carpeta: " + e.message);
+      } finally {
+        lock.releaseLock();
+      }
     }
   }
   throw new Error(`Producto ${sku} no encontrado.`);
