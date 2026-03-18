@@ -1133,6 +1133,33 @@ function ejecutarAccionDeImagen(params) {
           return { success: true, message: "✅ Relleno de miniaturas faltantes ejecutado." };
         case "generarCarpetaYVariaciones":
           if (!codigo) throw new Error("Se requiere código de producto.");
+          
+          // BUCLE ANTI-CARRERA (Esperar a la latencia de AppSheet / Google Sheets)
+          let intentos = 0;
+          let productoEncontrado = false;
+          while (intentos < 5 && !productoEncontrado) {
+            SpreadsheetApp.flush();
+            const sheetProd = getActiveSS().getSheetByName(SHEETS.PRODUCTS);
+            const mapProd = HeaderManager.getMapping("PRODUCTS");
+            if (!sheetProd || !mapProd) break; // Fallo de esquema, abortar bucle y tirar a la suerte
+            
+            const colProdId = mapProd["CODIGO_ID"];
+            const dataProdFlags = sheetProd.getDataRange().getValues();
+            
+            if (dataProdFlags.some(row => String(row[colProdId]).trim() === String(codigo))) {
+              productoEncontrado = true;
+            } else {
+              console.log(`⏳ [generarCarpetaYVariaciones] Producto ${codigo} no detectado. Esperando sync de AppSheet (Intento ${intentos + 1}/5)`);
+              Utilities.sleep(2000); // 2 segundos
+              intentos++;
+              HeaderManager.clearCache(); // Refrescar el caché
+            }
+          }
+          
+          if (!productoEncontrado) {
+             throw new Error(`🛑 Producto ${codigo} no apareció en BD_PRODUCTOS tras 10 segundos de espera (lag extemo o mala configuración del Bot).`);
+          }
+          
           obtenerOCrearCarpetaProducto(codigo);
           generarInventarioPorProducto(codigo);
 
