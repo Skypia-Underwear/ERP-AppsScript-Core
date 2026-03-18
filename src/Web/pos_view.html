@@ -1192,20 +1192,15 @@
       console.log("🟢 [TPV] Fragmento inicializado");
       window.catalog = null;
       window.posMetadata = null;
-      let catalog = null; // Local copy for easier access
-      let posMetadata = null; // Local copy for easier access
-      let cart = [];
-      let realStockCache = {
-        map: {},
-        lastUpdate: null
-      };
-      const CATALOG_URL = "<?!= CATALOG_URL ?>";
-      const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
-
-      let selectedMinPurchase = 1;
-      let priceConfig = { tipoRegistroPrecio: 'PRECIO + RECARGO ESTANDAR', tipoRegistroProducto: 'PRODUCTO VARIABLE' };
+      window.cart = [];
       
-      // Función helper global en el scope de la IIFE
+      var catalog = null; 
+      var posMetadata = null; 
+      var cart = [];
+      var realStockCache = { map: {}, lastUpdate: null };
+      var selectedMinPurchase = 1;
+      var priceConfig = { tipoRegistroPrecio: 'PRECIO + RECARGO ESTANDAR', tipoRegistroProducto: 'PRODUCTO VARIABLE' };
+      
       const checkIsPrecioVariable = () => (priceConfig && priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
       let currentTpvFilters = {
         parent: 'ALL',
@@ -1286,26 +1281,27 @@
 
       window.openCheckoutModal = function () {
         if (cart.length === 0) {
-          alert("El carrito estÃ¡ vacÃ­o");
+          alert("El carrito está vacío");
           return;
         }
 
-        // Si es modo QR, no abrimos modal, sino que nos aseguramos de que el panel estÃ© listo
-        var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
-
-        // Renderizar mÃ©todos de pago en ambos contenedores
+        const isQr = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
+        
+        // Renderizar mÃ©todos de pago
         renderPaymentMethods('payment-methods-grid');
         renderPaymentMethods('qr-payment-methods-grid');
 
         if (isQr) {
-          // En modo QR la UI ya estÃ¡ visible en el panel derecho
           console.log("Modo QR: El panel de checkout ya deberÃ­a estar visible.");
           updateTpvTotals();
           return;
         }
 
-        document.getElementById('checkout-modal').style.display = 'flex';
-        updateTpvTotals();
+        const modal = document.getElementById('checkout-modal');
+        if (modal) {
+          modal.style.display = 'flex';
+          updateTpvTotals();
+        }
       };
 
       function renderPaymentMethods(containerId) {
@@ -2764,87 +2760,61 @@
         renderTpvCart();
         hideTpvLoader();
       }
+
+      // --- FUNCIONES DE UI/UX (RESTAURADAS EN SCOPE) ---
+
+      // Global Escape Key Listener
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          if (typeof window.closeTpvModal === 'function') window.closeTpvModal();
+          if (typeof window.closeConfigModal === 'function') window.closeConfigModal();
+          if (typeof window.closeCheckoutModal === 'function') window.closeCheckoutModal();
+        }
+      });
+
+      window.updateTpvHeaderUI = function() {
+        const wrapper = document.getElementById('header-min-purchase-wrapper');
+        if (wrapper) {
+          const t = (priceConfig.tipoRegistroPrecio || "").toUpperCase();
+          const show = t === 'RECARGO ESTANDAR' || t === 'RECARGO PERSONALIZADO';
+          wrapper.style.display = show ? 'flex' : 'none';
+        }
+      };
+
+      window.openConfigModal = function () {
+        const modal = document.getElementById('modal-config');
+        if (modal) {
+          modal.style.display = 'flex';
+          const rawMode = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
+          updateConfigModeButtons(rawMode);
+        }
+      };
+
+      window.closeConfigModal = function () {
+        const modal = document.getElementById('modal-config');
+        if (modal) modal.style.display = 'none';
+      };
+
+      function updateConfigModeButtons(mode) {
+        const btnButtons = document.getElementById('btn-mode-buttons-config');
+        const btnQr = document.getElementById('btn-mode-qr-config');
+        if (!btnButtons || !btnQr) return;
+        btnButtons.classList.toggle('active', mode === 'BOTONES DE FILTRADO');
+        btnQr.classList.toggle('active', mode === 'LECTOR QR');
+      }
+
+      function getVarietyColor(name) {
+        const n = (name || "").toLowerCase();
+        if (n.includes('curva')) return '#6366f1';
+        if (n.includes('mayor')) return '#f59e0b';
+        if (n.includes('menor')) return '#10b981';
+        if (n.includes('docena')) return '#ec4899';
+        if (n.includes('pack')) return '#8b5cf6';
+        return '#64748b';
+      }
     } catch (e) {
       console.error("TPV_Fail_Critical:", e);
     }
 
-    // --- MEJORAS UI/UX (Paso 4) ---
-    
-    // Listener Global para Tecla Escape
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeTpvModal();
-        closeConfigModal();
-        closeCheckoutModal();
-      }
-    });
-
-    /**
-     * Actualiza la visibilidad de elementos del Header segÃºn la configuraciÃ³n
-     */
-    function updateTpvHeaderUI() {
-      const wrapper = document.getElementById('header-min-purchase-wrapper');
-      if (wrapper) {
-        // Mostrar solo si el tipo de registro es con recargo (MÃ­nima)
-        const t = (priceConfig.tipoRegistroPrecio || "").toUpperCase();
-        const show = t === 'RECARGO ESTANDAR' || t === 'RECARGO PERSONALIZADO';
-        wrapper.style.display = show ? 'flex' : 'none';
-      }
-    }
-
-    window.openConfigModal = function() {
-      const modal = document.getElementById('modal-config');
-      if (modal) {
-        modal.style.display = 'flex';
-        const rawMode = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
-        updateConfigModeButtons(rawMode);
-      }
-    };
-
-    window.closeConfigModal = function() {
-      const modal = document.getElementById('modal-config');
-      if (modal) modal.style.display = 'none';
-    };
-
-    function updateConfigModeButtons(mode) {
-      const btnButtons = document.getElementById('btn-mode-buttons-config');
-      const btnQr = document.getElementById('btn-mode-qr-config');
-      if (!btnButtons || !btnQr) return;
-      btnButtons.classList.toggle('active', mode === 'BOTONES DE FILTRADO');
-      btnQr.classList.toggle('active', mode === 'LECTOR QR');
-    }
-
-    window.openCheckoutModal = function() {
-      if (cart.length === 0) {
-        alert("El carrito está vacío");
-        return;
-      }
-      const isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
-      if (isQr) {
-        // En modo QR la venta se finaliza en el panel derecho, no necesita modal extra usualmente
-        // pero lo abrimos si el usuario lo invoca manualmente
-      }
-      const modal = document.getElementById('checkout-modal');
-      if (modal) {
-        modal.style.display = 'flex';
-        updateTpvTotals();
-      }
-    };
-
-    window.closeCheckoutModal = function() {
-      const modal = document.getElementById('checkout-modal');
-      if (modal) modal.style.display = 'none';
-    };
-
-    function getVarietyColor(name) {
-      const n = (name || "").toLowerCase();
-      if (n.includes('curva')) return '#6366f1'; 
-      if (n.includes('mayor')) return '#f59e0b'; 
-      if (n.includes('menor')) return '#10b981'; 
-      if (n.includes('docena')) return '#ec4899'; 
-      if (n.includes('pack')) return '#8b5cf6'; 
-      return '#64748b'; 
-    }
-    // --- FIN MEJORAS UI/UX ---
   })();
 </script>
