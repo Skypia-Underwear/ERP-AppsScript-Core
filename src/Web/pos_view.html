@@ -954,6 +954,29 @@
           <div id="size-options" class="variant-grid mt-2"></div>
         </div>
       </div>
+
+      <!-- MATRIZ DE CURVA (NUEVO) -->
+      <div id="curva-matrix-wrapper" style="display: none; margin-top: 1.5rem;">
+        <label class="text-[0.7rem] font-bold text-slate-400 uppercase mb-3 block text-center">Matriz de Selección (Curva)</label>
+        <div class="curva-matrix-container" style="max-height: 400px; overflow: auto; border-radius: 1rem; border: 1px solid var(--border-color); background: var(--bg-main);">
+          <table class="curva-table" style="width: 100%; border-collapse: collapse;">
+            <thead id="curva-matrix-head" class="sticky top-0 bg-slate-900 z-10"></thead>
+            <tbody id="curva-matrix-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="curva-summary-container" style="display: none; border-top: 1px dashed var(--border-color); margin-top: 1.5rem; padding-top: 1rem;">
+        <div class="flex justify-between items-center bg-slate-800/50 p-4 rounded-xl">
+          <div>
+            <p class="text-[0.6rem] uppercase font-black text-slate-500 mb-1">Total Seleccionado</p>
+            <p id="curva-total-qty" class="text-2xl font-black text-white">0 <span class="text-xs text-slate-500 font-normal">unidades</span></p>
+          </div>
+          <button id="btn-confirm-curva" onclick="confirmCurvaSelection()" class="tpv-btn-success-large py-3 px-8 opacity-50 cursor-not-allowed" disabled>
+            AÑADIR CURVA
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1698,9 +1721,17 @@
 
         document.getElementById('modal-product-title').innerText = product.model;
         
-        // Reset modal content
+        // Elementos del DOM
         const varietyOptions = document.getElementById('variety-options');
         const varietyContainer = document.getElementById('variety-container');
+        const standardContainer = document.getElementById('standard-variations-container');
+        const colorCont = document.getElementById('color-options');
+        const sizeContainer = document.getElementById('size-container');
+        const curvaWrapper = document.getElementById('curva-matrix-wrapper');
+        const curvaSummary = document.getElementById('curva-summary-container');
+
+        const isPrecioVariable = (priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
+        let _selectedVariety = preselectedVariety || (product.varieties && product.varieties[0]) || null;
 
         const initCurvaMode = (v) => {
           if (v && v.nombre.toLowerCase() === 'curva') {
@@ -1709,34 +1740,31 @@
             curvaState.variety = v;
             curvaState.selection = {};
             
-            // Talles Reales (excluyendo Surtido)
             curvaState.sizes = [...new Set(product.variations
               .filter(varItem => varItem.size !== 'Surtido')
               .map(varItem => varItem.size))];
             
-            // Colores
             curvaState.colors = [...new Set(product.variations.map(varItem => varItem.color))];
-            
             curvaState.targetTotal = curvaState.sizes.length;
             
-            // UI Matrix
             if (standardContainer) standardContainer.style.display = 'none';
-            sizeContainer.style.display = 'none';
+            if (sizeContainer) sizeContainer.style.display = 'none';
             if (curvaWrapper) curvaWrapper.style.display = 'block';
-            curvaSummary.style.display = 'block';
+            if (curvaSummary) curvaSummary.style.display = 'block';
             
-            renderCurvaMatrix();
+            window.renderCurvaMatrix();
           } else {
             curvaState.active = false;
             if (curvaWrapper) curvaWrapper.style.display = 'none';
-            curvaSummary.style.display = 'none';
+            if (curvaSummary) curvaSummary.style.display = 'none';
             if (standardContainer) standardContainer.style.display = 'block';
           }
         };
 
+        // Render Variedades (Precios)
         if (isPrecioVariable && product.varieties && product.varieties.length > 0) {
           varietyContainer.style.display = 'block';
-          varietyCont.innerHTML = '';
+          varietyOptions.innerHTML = '';
           product.varieties.forEach(function (v) {
             var vBtn = document.createElement('button');
             const isActive = _selectedVariety && _selectedVariety.variedad_id === v.variedad_id;
@@ -1744,7 +1772,7 @@
             vBtn.innerHTML =
               '<span>' + v.nombre + '</span>' +
               '<span class="variety-price-tag">$' + (v.precio_unitario || 0).toLocaleString() + '</span>' +
-              '<span class="variety-qty-tag">MÃ­n: ' + (v.cantidad_minima || 1) + ' u.</span>';
+              '<span class="variety-qty-tag">Mín: ' + (v.cantidad_minima || 1) + ' u.</span>';
             
             vBtn.onclick = function () {
               document.querySelectorAll('.variety-modal-btn').forEach(b => b.classList.remove('active'));
@@ -1752,11 +1780,11 @@
               _selectedVariety = v;
               initCurvaMode(v);
               if (!curvaState.active) {
-                const activeColor = document.querySelector('.color-btn.active');
+                const activeColor = colorCont.querySelector('.color-btn.active');
                 if (activeColor) renderTpvSizes(product, activeColor.innerText, () => _selectedVariety);
               }
             };
-            varietyCont.appendChild(vBtn);
+            varietyOptions.appendChild(vBtn);
           });
           
           if (_selectedVariety) initCurvaMode(_selectedVariety);
@@ -1765,6 +1793,8 @@
           curvaState.active = false;
         }
 
+        // Render Colores
+        colorCont.innerHTML = '';
         const colors = [...new Set(product.variations.map(v => v.color))];
         colors.forEach(color => {
           const btn = document.createElement('button');
@@ -1780,7 +1810,7 @@
           }
 
           btn.onclick = () => {
-            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            colorCont.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             renderTpvSizes(product, color, () => _selectedVariety);
           };
