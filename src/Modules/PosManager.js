@@ -884,12 +884,16 @@ function getInitialPosData(managedStoreId, userId) {
         const paymentMethods = sheetPagos ? convertirRangoAObjetos(sheetPagos).map(p => {
             let val = String(p.PORCENTAJE || "0").replace("%", "").replace(",", ".");
             let numeric = parseFloat(val);
-            // Si el valor literal incluía % o era mayor que 1, lo reducimos.
-            // Esto previene fallos con números que llegan exactos como 0.1 o 10.
             const percent = (numeric >= 1) ? numeric / 100 : numeric;
+            
+            // Si existe la columna METODO_PAGO, la usamos como ID principal para la UI (Nombre legible)
+            // de lo contrario usamos MOVIMIENTO_ID.
+            const methodId = p.METODO_PAGO || p.MOVIMIENTO_ID || "Desconocido";
+            
             return {
-                id: p.MOVIMIENTO_ID,
-                percent: percent
+                id: methodId,
+                percent: percent,
+                code: p.MOVIMIENTO_ID // Guardamos el código por si se necesita para la DB
             };
         }) : [];
 

@@ -1020,6 +1020,10 @@
             <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">MÃ©todo de Pago</label>
             <div id="qr-payment-methods-grid" class="payment-grid mt-2"></div>
             <select id="qr-tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
+            <div class="mt-4 flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700">
+               <input type="checkbox" id="qr-tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-primary focus:ring-primary">
+               <label for="qr-tpv-modal-deactivate-surcharge" class="text-[0.65rem] font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo Transferencia</label>
+            </div>
           </div>
           <div id="qr-tpv-transfer-account-container" style="display: none;">
             <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cuenta Destino</label>
@@ -1143,6 +1147,10 @@
             <label class="tpv-label-checkout">MÃ©todo de Pago</label>
             <div id="payment-methods-grid" class="payment-grid"></div>
             <select id="tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
+            <div class="mt-4 flex items-center gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+               <input type="checkbox" id="tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()" class="w-5 h-5 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+               <label for="tpv-modal-deactivate-surcharge" class="text-xs font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo (Cli001 / Especial)</label>
+            </div>
           </div>
           <div id="tpv-transfer-account-container" style="display: none;">
             <label class="tpv-label-checkout">Cuenta de Destino</label>
@@ -1310,11 +1318,18 @@
       function renderPaymentMethods(containerId) {
         const grid = document.getElementById(containerId);
         if (!grid) return;
+        
+        // Identificar el select oculto correspondiente
+        const isQr = containerId.includes('qr-');
+        const selectId = isQr ? 'qr-tpv-payment-method' : 'tpv-payment-method';
+        const select = document.getElementById(selectId);
+
         const allowed = (posMetadata.storeConfig && posMetadata.storeConfig.allowedPaymentMethods) || [];
         const methodsToRender = allowed.length > 0
           ? posMetadata.paymentMethods.filter(m => allowed.includes(m.id))
           : posMetadata.paymentMethods;
 
+        // Poblar el Grid de Botones
         grid.innerHTML = methodsToRender.map(function (m) {
           var icon = "ph-money";
           var idLower = m.id.toLowerCase();
@@ -1329,6 +1344,11 @@
             "</button>"
           );
         }).join('');
+
+        // NUEVO: Sincronizar con el Select Oculto (Vital para que updateTpvTotals lo lea)
+        if (select) {
+           select.innerHTML = methodsToRender.map(m => `<option value="${m.id}">${m.id}</option>`).join('');
+        }
       }
 
       window.closeCheckoutModal = function () {
