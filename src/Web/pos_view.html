@@ -2365,7 +2365,8 @@
             quantity: initQty,
             tipoPrecio: tipoPrecio,
             variedad_id: variety ? variety.variedad_id : '',
-            categoryName: product.categoryName
+            categoryName: product.categoryName,
+            minor_surcharge: product.minor_surcharge || 0
           });
         }
 
@@ -2424,8 +2425,16 @@
           const noMinorSurchargeId = isQr ? 'qr-tpv-modal-deactivate-minor-surcharge' : 'tpv-modal-deactivate-minor-surcharge';
           const noMinorSurcharge = document.getElementById(noMinorSurchargeId)?.checked || false;
 
-          if (totalUnitsSize > 0 && totalUnitsSize < selectedMinPurchase && !noMinorSurcharge) {
-            minorSurcharge = storeSurcharge * totalUnitsSize;
+          if (!noMinorSurcharge) {
+            if (storeSurcharge > 0) {
+              if (selectedMinPurchase > 0 && totalUnitsSize < selectedMinPurchase) {
+                minorSurcharge = storeSurcharge * totalUnitsSize;
+              }
+            } else if (storeSurcharge === 0) {
+              if (selectedMinPurchase > 1 && totalUnitsSize < selectedMinPurchase) {
+                minorSurcharge = cart.reduce((acc, i) => acc + ((parseFloat(i.minor_surcharge || 0)) * i.quantity), 0);
+              }
+            }
           }
         }
 
@@ -2461,9 +2470,14 @@
         const method = document.getElementById(methodId).value || 'Efectivo';
         const noPaymentSurchargeId = isQr ? 'qr-tpv-modal-deactivate-surcharge' : 'tpv-modal-deactivate-surcharge';
         const noPaymentSurcharge = document.getElementById(noPaymentSurchargeId)?.checked || false;
+        
+        const customerIdEl = isQr ? document.getElementById('qr-tpv-customer') : document.getElementById('tpv-customer');
+        const customerId = customerIdEl ? customerIdEl.value : '';
+        const isClientGeneral = customerId === 'CLIENTE_GENERAL' || customerId === 'Cli001';
+
         let paymentSurcharge = 0;
 
-        if (method !== 'Efectivo' && !noPaymentSurcharge) {
+        if (method !== 'Efectivo' && !noPaymentSurcharge && !isClientGeneral) {
           const m = posMetadata.paymentMethods.find(pm => pm.id === method);
           const percent = m ? m.percent : 0;
           paymentSurcharge = subtotalNeto * percent;
@@ -2527,11 +2541,11 @@
         const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount').value) || 0;
         const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account').value : '';
 
-        // Recuperar cÃ¡lculos finales ya procesados por updateTpvTotals
+        // Recuperar cálculos finales ya procesados por updateTpvTotals
         const minorSurcharge = parseFloat(document.getElementById(preModal + 'minor-surcharge')?.innerText.replace('$', '').replace('+', '').replace('.', '').trim()) || 0;
-        const paymentSurcharge = parseFloat(document.getElementById(preModal + 'payment-surcharge').innerText.replace('$', '').replace('+', '').replace('.', '').trim()) || 0;
-        const finalTotal = parseFloat(document.getElementById(preModal + 'final-total').innerText.replace('$', '').replace('.', '').trim()) || 0;
-        const subtotalNeto = parseFloat(document.getElementById(preModal + 'subtotal').innerText.replace('$', '').replace('.', '').trim()) || 0;
+        const paymentSurcharge = parseFloat(document.getElementById(preModal + 'payment-surcharge')?.innerText.replace('$', '').replace('+', '').replace('.', '').trim()) || 0;
+        const finalTotal = parseFloat(document.getElementById(preModal + 'final-total')?.innerText.replace('$', '').replace('.', '').trim()) || 0;
+        const subtotalNeto = parseFloat(document.getElementById(preModal + 'subtotal')?.innerText.replace('$', '').replace('.', '').trim()) || 0;
 
         // OBJETO DE VENTA
         var saleData = {
@@ -2686,6 +2700,10 @@
 
               if (res.updatesMap) {
                 Object.assign(realStockCache.map, res.updatesMap);
+              }
+              
+              if (res.cashRegisterId) {
+                posMetadata.activeCashRegisterId = res.cashRegisterId;
               }
 
               updateSyncUI();

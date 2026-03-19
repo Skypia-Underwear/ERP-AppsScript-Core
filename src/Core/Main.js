@@ -243,7 +243,7 @@ const SHEET_SCHEMA = {
   BLOGGER_SALES_DETAILS: ["VENTA_ID", "PRODUCTO_VARIACION", "DETALLE_JSON", "CANTIDAD", "PRECIO", "SUBTOTAL", "PRODUCTO_ID", "COLOR", "TALLE", "VARIEDAD_ID"],
   VENTAS_PEDIDOS: ["VENTA_ID", "TIENDA_ID", "ASESOR_ID", "FECHA", "HORA", "CLIENTE_ID", "TOTAL_VENTA", "ESTADO"],
   DETALLE_VENTAS: ["VENTA_ID", "VARIACION_ID", "PRODUCTO_ID", "CATEGORIA", "PRECIO", "CANTIDAD", "MONTO"],
-  GESTION_CAJA: ["CAJA_ID", "TIENDA_ID", "ASESOR_ID", "FECHA", "ESTADO"],
+  GESTION_CAJA: ["CAJA_ID", "TIENDA_ID", "ASESOR_ID", "FECHA", "CUENTA_TRANSFERENCIA", "ESTADO"],
   METODOS_PAGO: ["MOVIMIENTO_ID", "PORCENTAJE"],
   DATOS_TRANSFERENCIA: ["CUENTA_ID", "ALIAS", "NOMBRE_CUENTA"],
   USUARIOS_SISTEMAS: ["USER_ID", "NOMBRE"],
@@ -1133,7 +1133,7 @@ function ejecutarAccionDeImagen(params) {
           return { success: true, message: "✅ Relleno de miniaturas faltantes ejecutado." };
         case "generarCarpetaYVariaciones":
           if (!codigo) throw new Error("Se requiere código de producto.");
-          
+
           // BUCLE ANTI-CARRERA (Esperar a la latencia de AppSheet / Google Sheets)
           let intentos = 0;
           let productoEncontrado = false;
@@ -1142,10 +1142,10 @@ function ejecutarAccionDeImagen(params) {
             const sheetProd = getActiveSS().getSheetByName(SHEETS.PRODUCTS);
             const mapProd = HeaderManager.getMapping("PRODUCTS");
             if (!sheetProd || !mapProd) break; // Fallo de esquema, abortar bucle y tirar a la suerte
-            
+
             const colProdId = mapProd["CODIGO_ID"];
             const dataProdFlags = sheetProd.getDataRange().getValues();
-            
+
             if (dataProdFlags.some(row => String(row[colProdId]).trim() === String(codigo))) {
               productoEncontrado = true;
             } else {
@@ -1155,11 +1155,11 @@ function ejecutarAccionDeImagen(params) {
               HeaderManager.clearCache(); // Refrescar el caché
             }
           }
-          
+
           if (!productoEncontrado) {
-             throw new Error(`🛑 Producto ${codigo} no apareció en BD_PRODUCTOS tras 10 segundos de espera (lag extemo o mala configuración del Bot).`);
+            throw new Error(`🛑 Producto ${codigo} no apareció en BD_PRODUCTOS tras 10 segundos de espera (lag extemo o mala configuración del Bot).`);
           }
-          
+
           obtenerOCrearCarpetaProducto(codigo);
           generarInventarioPorProducto(codigo);
 

@@ -1001,6 +1001,40 @@ function processSale(saleData) {
         const fechaStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
         const horaStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss");
 
+        // --- LÓGICA DE CAJA ---
+        let activeCashRegisterId = saleData.cashRegisterId;
+        const sheetCaja = ss.getSheetByName(SHEETS.GESTION_CAJA);
+        
+        if (!activeCashRegisterId && sheetCaja) {
+            const cashData = convertirRangoAObjetos(sheetCaja);
+            const hoy = new Date().toLocaleDateString('es-AR');
+            
+            const cajaAbierta = cashData.find(c => 
+                new Date(c.FECHA).toLocaleDateString('es-AR') === hoy &&
+                String(c.ASESOR_ID) === String(saleData.userId) &&
+                String(c.TIENDA_ID) === String(saleData.storeId) &&
+                c.ESTADO === "ABIERTA"
+            );
+            
+            if (cajaAbierta) {
+                activeCashRegisterId = cajaAbierta.CAJA_ID;
+            } else {
+                activeCashRegisterId = `CR-${Utilities.getUuid()}`;
+                const mappingCaja = HeaderManager.getMapping("GESTION_CAJA");
+                if (mappingCaja && mappingCaja["CAJA_ID"] !== undefined) {
+                    const newRow = new Array(Object.keys(mappingCaja).length).fill('');
+                    newRow[mappingCaja["CAJA_ID"]] = activeCashRegisterId;
+                    newRow[mappingCaja["TIENDA_ID"]] = saleData.storeId;
+                    newRow[mappingCaja["ASESOR_ID"]] = saleData.userId;
+                    newRow[mappingCaja["FECHA"]] = now;
+                    newRow[mappingCaja["ESTADO"]] = 'ABIERTA';
+                    sheetCaja.appendRow(newRow);
+                    debugLog(`Nueva caja registradora abierta en TPV: ${activeCashRegisterId}`);
+                }
+            }
+        }
+        // --- FIN LÓGICA CAJA ---
+
         // 1.1 Generar DETALLE_JSON para optimización de Dashboard
         const detalleJson = JSON.stringify({
             detalle: saleData.cart.map(item => ({
@@ -1024,7 +1058,7 @@ function processSale(saleData) {
             now,                                // FECHA
             horaStr,                            // HORA
             saleData.customerId,                // CLIENTE_ID
-            saleData.cashRegisterId,            // CAJA_ID
+            activeCashRegisterId || "",         // CAJA_ID (reemplazando a saleData.cashRegisterId nulo)
             "DIRECTA",                          // TIPO_VENTA
             saleData.minimumPurchaseAmount || 0,// COMPRA_MINIMA
             saleData.isMixedPayment,            // PAGO_MIXTO
@@ -1092,6 +1126,7 @@ function processSale(saleData) {
         return {
             success: true,
             saleId: saleData.saleId,
+            cashRegisterId: activeCashRegisterId,
             updatesMap: updatesMap
         };
 
