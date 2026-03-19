@@ -2473,11 +2473,11 @@
         
         const customerIdEl = isQr ? document.getElementById('qr-tpv-customer') : document.getElementById('tpv-customer');
         const customerId = customerIdEl ? customerIdEl.value : '';
-        const isClientGeneral = customerId === 'CLIENTE_GENERAL' || customerId === 'Cli001';
+        const isClientWholesale = customerId === 'Cli001';
 
         let paymentSurcharge = 0;
 
-        if (method !== 'Efectivo' && !noPaymentSurcharge && !isClientGeneral) {
+        if (method !== 'Efectivo' && !noPaymentSurcharge && !isClientWholesale) {
           const m = posMetadata.paymentMethods.find(pm => pm.id === method);
           const percent = m ? m.percent : 0;
           paymentSurcharge = subtotalNeto * percent;
@@ -2557,7 +2557,7 @@
           isMixedPayment: cashAmount > 0,
           paymentMethod: method,
           transferAccountId: transferAccountId,
-          deactivateSurcharge: document.getElementById(pre + 'tpv-modal-deactivate-surcharge').checked,
+          deactivateSurcharge: document.getElementById(pre + 'tpv-modal-deactivate-surcharge')?.checked || false,
           totalProductAmount: subtotalProductos,
           cashPaymentAmount: cashAmount,
           subtotal: subtotalNeto,
