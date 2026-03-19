@@ -882,11 +882,11 @@ function getInitialPosData(managedStoreId, userId) {
         // 2. Cargar Métodos de Pago
         const sheetPagos = ss.getSheetByName(SHEETS.METODOS_PAGO);
         const paymentMethods = sheetPagos ? convertirRangoAObjetos(sheetPagos).map(p => {
-            let val = String(p.PORCENTAJE || "0").replace(",", ".");
+            let val = String(p.PORCENTAJE || "0").replace("%", "").replace(",", ".");
             let numeric = parseFloat(val);
-            // Si el valor es > 1 (ej: 10), asumimos que es el % entero. 
-            // Si es <= 1 y > 0 (ej: 0.1), asumimos que ya es el decimal de AppSheet/Sheets.
-            const percent = (numeric > 1) ? numeric / 100 : numeric;
+            // Si el valor literal incluía % o era mayor que 1, lo reducimos.
+            // Esto previene fallos con números que llegan exactos como 0.1 o 10.
+            const percent = (numeric >= 1) ? numeric / 100 : numeric;
             return {
                 id: p.MOVIMIENTO_ID,
                 percent: percent
@@ -1076,8 +1076,7 @@ function processSale(saleData) {
             "",                                 // CAMBIOS
             "",                                 // COMPROBANTE_FILE
             "",                                 // DETALLE_AUDITORIA_IA
-            "",                                 // Espacio para columna 25
-            detalleJson                         // 26: DETALLE_JSON
+            detalleJson                         // 25: DETALLE_JSON
         ];
         sheetVentas.appendRow(ventaRow);
 
