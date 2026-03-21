@@ -284,7 +284,6 @@ function extraerDetallesDeOrdenWC(order, ss, tiendaId, log) {
   });
   return detalles;
 }
-}
 
 /**
  * HANDLER: RECIBIR WEBHOOK DE WOOCOMMERCE
