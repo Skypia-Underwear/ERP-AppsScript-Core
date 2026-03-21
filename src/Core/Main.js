@@ -3,14 +3,62 @@
  * Manejador de solicitudes POST (Telegram, AppSheet, etc.)
  */
 function doPost(e) {
-  // LOG DE EMERGENCIA: Escribir directamente en la hoja si se detecta actividad
-  /* try {
-    SpreadsheetApp.getActiveSpreadsheet().getSheetByName("BD_APP_SCRIPT").appendRow([new Date(), "POST_HIT", JSON.stringify(e)]);
-  } catch (f) { } */
+  // --- RESPUESTA ULTRA-RÁPIDA PARA PINGS (Protocolo WooCommerce) ---
+  // Se hace ANTES del log para garantizar que no haya timeouts
+  try {
+    const rawData = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
+    const isWcPing = rawData.indexOf("webhook_id=") !== -1 || 
+                     (e.parameter && (e.parameter.webhook_id || e.parameter.source === "woocommerce" && rawData === ""));
+    
+    if (isWcPing) {
+      // Registrar log después de preparar la respuesta o de forma controlada
+      try { registrarRawWebhook(e); } catch(i){}
+      return ContentService.createTextOutput("ok").setMimeType(ContentService.MimeType.TEXT);
+    }
+  } catch (pingErr) {
+    console.warn("Error en detección ultra-recortada de ping: " + pingErr.message);
+  }
+
+  // --- CAPTURA DE EMERGENCIA (Para peticiones que no son Pings) ---
+  try {
+     registrarRawWebhook(e);
+  } catch (err) {
+     console.error("Fallo en logger raw: " + err.message);
+  }
+
+  const response = { success: true, message: "ok" };
 
   try {
-    if (!e || !e.postData || !e.postData.contents) return ContentService.createTextOutput("no data");
-    const contents = JSON.parse(e.postData.contents);
+    if (!e || !e.postData) {
+       return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const rawContents = e.postData.contents || "";
+    const headers = e.headers || {};
+    
+    // --- DETECCIÓN DE WOOCOMMERCE ORDEN ---
+    const topic = headers['X-Wc-Webhook-Topic'] || headers['x-wc-webhook-topic'] || "";
+    const isWcOrder = topic.includes("order") || 
+                       (e.parameter && e.parameter.source === "woocommerce" && rawContents.includes('"id":') && rawContents.includes('"line_items":'));
+
+    if (isWcOrder) {
+      try {
+        const orderData = JSON.parse(rawContents);
+        const result = handleWooCommerceWebhook(orderData);
+        return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+      } catch(ex) {
+        console.error("❌ Error en handleWooCommerceWebhook: " + ex.message);
+        return ContentService.createTextOutput(JSON.stringify({success: false, error: ex.message})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // --- RUTA: TELEGRAM / OTROS ---
+    let contents;
+    try {
+      contents = JSON.parse(rawContents);
+    } catch (f) {
+      return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // --- MANEJO DE TELEGRAM ---
     if (contents.message || contents.callback_query) {
@@ -70,6 +118,12 @@ function doPost(e) {
           respuestaBlogger = { status: "-1", message: "Operación Blogger no soportada" };
       }
       return ContentService.createTextOutput(JSON.stringify(respuestaBlogger)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- ACCIONES WOOCOMMERCE WEBHOOK (NUEVO) ---
+    if (e.parameter.source === 'woocommerce') {
+      const respuestaWC = handleWooCommerceWebhook(contents);
+      return ContentService.createTextOutput(JSON.stringify(respuestaWC)).setMimeType(ContentService.MimeType.JSON);
     }
 
   } catch (error) {
@@ -199,6 +253,8 @@ const GLOBAL_CONFIG = {
   },
 
   get PUBLICATION_TARGET() { return GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "AMBOS"; },
+  get BLOGGER_PUBLICATION_TARGET() { return GLOBAL_CONFIG.SCRIPT_CONFIG["BLOGGER_PUBLICATION_TARGET"] || "AMBOS"; },
+  get TPV_PUBLICATION_TARGET() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TPV_PUBLICATION_TARGET"] || "DRIVE"; },
 
   GITHUB: {
     get USER() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GITHUB_USER"] || ""; },
@@ -1191,13 +1247,6 @@ function ejecutarAccionDeImagen(params) {
   }
 }
 
-function FORZAR_PERMISOS() {
-  console.log("Probando conexión...");
-  // Esta línea no hace nada real, pero obliga a Google a pedir permiso de internet
-  UrlFetchApp.fetch("https://www.google.com");
-  console.log("Permisos OK");
-}
-
 /**
  * Valida las credenciales del usuario en el ERP.
  * Busca en BD_USUARIOS_SISTEMAS.
@@ -1272,18 +1321,7 @@ function validarPinPaid(pin) {
 
 /**
  * Función de utilidad para exportar la estructura actual de todas las hojas.
- * Ayuda al Agente a entender los encabezados reales del usuario.
- */
-function exportSheetStructure() {
-  const ss = getActiveSS();
-  const structure = {};
-
-  for (const alias in SHEETS) {
-    const sheet = ss.getSheetByName(SHEETS[alias]);
-    if (sheet) {
-      const lastCol = sheet.getLastColumn();
-      if (lastCol > 0) {
-        structure[alias] = {
+ * Ayuda al Agente a entender los encabe        structure[alias] = {
           sheetName: SHEETS[alias],
           headers: sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim())
         };
@@ -1343,4 +1381,50 @@ function guardarDescripcionEditadaIA(sku, data) {
  */
 function testSuccessNotification() {
   notificarTelegramSalud("🧪 Prueba de notificación de ÉXITO (Sticky). Si ves esto, la configuración es correcta.", "EXITO");
+}
+
+/**
+ * 🔍 DIAGNÓSTICO: Registra el contenido crudo de cualquier solicitud entrante.
+ */
+function registrarRawWebhook(e) {
+  if (!e) return;
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName("RAW_WEBHOOK_LOGS");
+    
+    // Crear hoja si no existe
+    if (!sheet) {
+      sheet = ss.insertSheet("RAW_WEBHOOK_LOGS");
+      const headersRow = ["FECHA", "SOURCE_PARAM", "TOPIC_HEADER", "ALL_HEADERS", "URL_PARAMS", "RAW_CONTENTS", "CONTENT_TYPE"];
+      sheet.appendRow(headersRow);
+      sheet.getRange(1, 1, 1, headersRow.length).setFontWeight("bold").setBackground("#673ab7").setFontColor("#ffffff");
+      sheet.setFrozenRows(1);
+    }
+
+    const fecha = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm:ss");
+    const source = (e.parameter && e.parameter.source) || "n/a";
+    const headObj = e.headers || {};
+    const topic = headObj['X-Wc-Webhook-Topic'] || headObj['x-wc-webhook-topic'] || "n/a";
+    const allHeaders = JSON.stringify(headObj);
+    const params = JSON.stringify(e.parameter || {});
+    const contents = e.postData ? e.postData.contents : "EMPTY_POST_DATA";
+    const postType = e.postData ? e.postData.type : "N/A";
+
+    // Asegurar que la hoja tenga suficientes columnas
+    if (sheet.getMaxColumns() < 7) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), 7 - sheet.getMaxColumns());
+    }
+    
+    // Insertar al inicio (después del header) para ver lo último primero
+    sheet.insertRowAfter(1);
+    const logRange = sheet.getRange(2, 1, 1, 7);
+    logRange.setValues([[fecha, source, topic, allHeaders, params, contents, postType]]);
+    
+    // Limitar a los últimos 500 registros para no saturar
+    if (sheet.getLastRow() > 505) {
+      sheet.deleteRows(502, sheet.getLastRow() - 501);
+    }
+  } catch (err) {
+    console.error("Fallo crítico en registrarRawWebhook: " + err.message);
+  }
 }

@@ -181,7 +181,9 @@ function inicializarEntorno() {
       { clave: "NOTIFICATION_PROVIDER", val: "TELEGRAM", desc: "Canal: TELEGRAM, EMAIL o NONE" },
       { clave: "NOTIFICATION_EMAIL", val: "", desc: "Email para notificaciones (si aplica)" },
       // --- CONFIGURACIÓN DE PUBLICACIÓN ---
-      { clave: "PUBLICATION_TARGET", val: "DONWEB", desc: "Destino: DONWEB o GITHUB" },
+      { clave: "PUBLICATION_TARGET", val: "DONWEB", desc: "Respaldo Global: DONWEB o GITHUB" },
+      { clave: "BLOGGER_PUBLICATION_TARGET", val: "AMBOS", desc: "Blogger Sync: DONWEB, GITHUB, AMBOS o NONE" },
+      { clave: "TPV_PUBLICATION_TARGET", val: "DRIVE", desc: "TPV Sync: DRIVE, DONWEB, GITHUB o AMBOS" },
       { clave: "GITHUB_USER", val: "", desc: "Usuario GitHub" },
       { clave: "GITHUB_REPO", val: "api-tienda", desc: "Repositorio" },
       { clave: "GITHUB_TOKEN", val: "", desc: "Token (repo scope)" },

@@ -20,7 +20,8 @@ function guardarRespaldoEnDrive() {
             if (!folderId) throw new Error("ID de carpeta JSON no configurado.");
 
             const catalogo = generarCatalogoJsonTPV();
-            catalogo.timestamp_ms = Date.now();
+            // Eliminamos timestamp_ms volátil para favorecer hash estable. 
+            // La frescura la determinará subirArchivoAGitHub/Donweb solo si cambia la data.
             const content = JSON.stringify(catalogo, null, 2);
             const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalog-tpv.json";
 
@@ -493,8 +494,9 @@ function publicarCatalogo() {
         console.log("💤 [Modo Nocturno] Sincronización suspendida por horario.");
         return { success: true, message: "Suspendido por horario nocturno." };
     }
-    // Leer interruptor de destino (por defecto: AMBOS)
-    const target = (GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "AMBOS").toUpperCase();
+    // Leer interruptores de destino (separados para TPV y Blogger)
+    const target = (GLOBAL_CONFIG.TPV_PUBLICATION_TARGET || "DRIVE").toUpperCase();
+    const useDrive = target === "DRIVE" || target === "AMBOS" || target === "DONWEB" || target === "GITHUB"; 
     const useDonweb = target === "DONWEB" || target === "AMBOS";
     const useGitHub = target === "GITHUB" || target === "AMBOS";
 
@@ -556,7 +558,7 @@ function tpv_procesarSubidasRemotas() {
     }
 
     try {
-        const target = (GLOBAL_CONFIG.SCRIPT_CONFIG["PUBLICATION_TARGET"] || "AMBOS").toUpperCase();
+        const target = (GLOBAL_CONFIG.TPV_PUBLICATION_TARGET || "DRIVE").toUpperCase();
         const useDonweb = target === "DONWEB" || target === "AMBOS";
         const useGitHub = target === "GITHUB" || target === "AMBOS";
 
@@ -649,24 +651,29 @@ function subirArchivoAGitHub(jsonData, filePath) {
             return { success: false, message: `Envío omitido temporalmente por protección del servidor.` };
         }
 
-        // --- Hash Check: omitir subida si el contenido no cambió ---
-        const hashKey = "LAST_HASH_GITHUB_" + filePath.replace(/[^a-zA-Z0-9]/g, "_");
-        const currentHash = _computeJsonHash(jsonData);
+        // --- Hash Check Estabilizado: omitir subida si el contenido NO CAMBIÓ ---
+        // Se calcula el hash ANTES de inyectar el timestamp dinámico.
+        const hashKey = "LAST_DATA_HASH_GITHUB_" + filePath.replace(/[^a-zA-Z0-9]/g, "_");
+        const dataHash = _computeJsonHash(jsonData);
         const props = PropertiesService.getScriptProperties();
-        if (props.getProperty(hashKey) === currentHash) {
-            debugLog("⏭️ GitHub: '" + filePath + "' sin cambios (hash idéntico). Subida omitida.");
-            return { success: true, message: "Sin cambios, subida omitida." };
+
+        if (props.getProperty(hashKey) === dataHash) {
+            debugLog("⏭️ GitHub: '" + filePath + "' sin cambios reales en data. Subida omitida.");
+            return { success: true, message: "Sin cambios en data, subida omitida." };
         }
 
+        // --- Configuración API GitHub ---
         const user = GLOBAL_CONFIG.GITHUB.USER;
         const repo = GLOBAL_CONFIG.GITHUB.REPO;
         const token = GLOBAL_CONFIG.GITHUB.TOKEN;
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${filePath}`;
 
         if (!user || !repo || !token) {
-            throw new Error("GitHub: Faltan credenciales (USER, REPO o TOKEN en BD_APP_SCRIPT)");
+            throw new Error("Configuración de GitHub incompleta (User, Repo o Token).");
         }
 
-        const url = `https://api.github.com/repos/${user}/${repo}/contents/${filePath}`;
+        // Si hay cambios, actualizamos el timestamp interno para el Frontend
+        jsonData.timestamp_ms = Date.now();
         const content = JSON.stringify(jsonData, null, 2);
         const contentBase64 = Utilities.base64Encode(content, Utilities.Charset.UTF_8);
 
@@ -710,8 +717,8 @@ function subirArchivoAGitHub(jsonData, filePath) {
 
             if (lastCode === 200 || lastCode === 201) {
                 if (attempt > 0) debugLog(`✅ GitHub: éxito en retry ${attempt}.`);
-                props.setProperty(hashKey, currentHash);
-                debugLog(`✅ GitHub: '${filePath}' subido correctamente.`);
+                props.setProperty(hashKey, dataHash); // Guardamos el hash de la data pura
+                debugLog(`✅ GitHub: '${filePath}' subido correctamente (data actualizada).`);
                 return { success: true, message: `GitHub '${filePath}' actualizado.` };
             }
 
@@ -766,14 +773,18 @@ function subirArchivoADonweb(jsonData, fileName) {
             return { success: false, message: `Envío omitido temporalmente por protección del servidor.` };
         }
 
-        // --- Hash Check: omitir subida si el contenido no cambió ---
-        const hashKey = "LAST_HASH_DONWEB_" + fileName.replace(/[^a-zA-Z0-9]/g, "_");
-        const currentHash = _computeJsonHash(jsonData);
+        // --- Hash Check Estabilizado ---
+        const hashKey = "LAST_DATA_HASH_DONWEB_" + fileName.replace(/[^a-zA-Z0-9]/g, "_");
+        const dataHash = _computeJsonHash(jsonData);
         const props = PropertiesService.getScriptProperties();
-        if (props.getProperty(hashKey) === currentHash) {
-            debugLog("⏭️ Donweb: '" + fileName + "' sin cambios (hash idéntico). Subida omitida.");
-            return { success: true, message: "Sin cambios, subida omitida." };
+
+        if (props.getProperty(hashKey) === dataHash) {
+            debugLog("⏭️ Donweb: '" + fileName + "' sin cambios reales en data. Subida omitida.");
+            return { success: true, message: "Sin cambios en data, subida omitida." };
         }
+
+        // Actualizar timestamp solo si la data cambió
+        jsonData.timestamp_ms = Date.now();
 
         const url = GLOBAL_CONFIG.DONWEB.WRITE_URL;
         if (!url) throw new Error("Falta configurar DONWEB_WRITE_URL en BD_APP_SCRIPT.");
@@ -804,7 +815,7 @@ function subirArchivoADonweb(jsonData, fileName) {
 
             if (lastCode === 200) {
                 if (attempt > 0) debugLog(`✅ Donweb: éxito en retry ${attempt}.`);
-                props.setProperty(hashKey, currentHash);
+                props.setProperty(hashKey, dataHash);
                 debugLog(`✅ Donweb: '${fileName}' guardado correctamente.`);
                 return { success: true, message: `Donweb '${fileName}' actualizado.` };
             }

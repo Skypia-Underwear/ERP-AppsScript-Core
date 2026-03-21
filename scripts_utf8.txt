@@ -1,0 +1,18 @@
+﻿Found 17 scripts.
+Calendar Time TrackÔÇª - https://script.google.com/d/1-n20wIm5xcJuWcTAHmHBMyWotAZxCUS-hC-0yKcsM7U5Lz9sgvVZL8zI/edit
+Headless_ERP_Blogger - https://script.google.com/d/1Mo-CR0BCDGEMx3BKd3Sp7UK7nVEmv0VZtr4yJUuj7hWwqhmUGEMKNc1x/edit
+PUNTO DE VENTA CAJAÔÇª - https://script.google.com/d/1-B5fW7m90KNLRFxNOXLjd5KLRNEUgfUm1rA53R_SW6TelRDv4aQVYfwK/edit
+BLOGGER MINOM        - https://script.google.com/d/15YIT0u9Sd9Txje3lj2azJ-LDSUJb_hHJYQ3Q4q4Aaw_AyAwZBD0zQ3vz/edit
+MACROS POST BLOGGER  - https://script.google.com/d/18ruYFdvvcftTY6l1zOleya5m6NBz9KC6d1H_emyfH-h3RGwDl2Yjp_2J/edit
+Comprobante de Venta - https://script.google.com/d/1fHALXxFaWem1ZaCknvKhVUDV3SlbPbrmAEmLKfje_YLj-wJTBQkN3zvd/edit
+Macros Blogger Web   - https://script.google.com/d/1Wb_72IETVfmlms1H0j41KlNbrqNE84BgzXIPa29bpPwemimKsj2zBjP8/edit
+Formulario Web       - https://script.google.com/d/1lNLEYF9qNuqCYuKWGYqpdhtv5zTnegJYqummtP5opt6l3gYXwG1tn1YK/edit
+Appsheet-Blogger V2  - https://script.google.com/d/1Hv_5myoAFCxc9sOnEnglncrth29kx4gmd4KkrRttAyt0Ynir8PNBA3Qa/edit
+MACROS TICKET        - https://script.google.com/d/1r8jzbb3Nufqt3qb_TrpIvYnGl7HfaJPL98iSSG9KoZpdZ0cEbfRbScSG/edit
+Rotulo de Envio      - https://script.google.com/d/1de0TILsgjzcuvDgvE3V6ew4cmQKPeIvhbpMI6R0FUSxhQPRWA4thpeDT/edit
+ubigeo Argentina     - https://script.google.com/d/1M6zdI2YNYDku1kDX79qz-6zQIQu7-U_bRkURuAFd7_yyu49azCwt-jAy/edit
+App script Appsheet  - https://script.google.com/d/14w_9dJWvRQIHDM_2yoY9pT5AdE0okw_qVEDDpB048mblHc8Bui3zSjcf/edit
+VCard Template       - https://script.google.com/d/1650iPmg-bl-wCnjU26MdripoVo9UBJC0wv6tazV62VQP3b3uD2HKg5kU/edit
+Ticket Texto Plano   - https://script.google.com/d/10HZYdH6BDkhIWhiBtyEnCMjbTn420nLf3a650Ynpb8kpVJWhrQp680go/edit
+Vcard Dinamico       - https://script.google.com/d/14dc58ChVBlOJEwQVbOxlW5KRBFA4wIjtjvC1keR4rKX_SaO_M1g0PviX/edit
+Formulario Web       - https://script.google.com/d/1FDZiy9sMTvwyDPuF71is8MCz6A9cUoAxgruS7Ud2oe93t5Waw3wM60_N/edit

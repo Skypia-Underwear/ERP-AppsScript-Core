@@ -20,6 +20,9 @@ function blogger_regenerarCacheConfiguracion() {
 
     try {
         const jo = blogger_listar_configuracion_sinCache();
+        // Eliminamos timestamp_ms del objeto base para que el hash en Drive sea estable.
+        // Las funciones de subida (GitHub/Donweb) lo re-inyectarán solo si hay cambios.
+        if (jo.timestamp_ms) delete jo.timestamp_ms; 
         const jsonFinal = JSON.stringify(jo);
 
         // --- PASO 1: Drive (primario, fuente de verdad local) ---
@@ -103,21 +106,31 @@ function blogger_procesarSubidasRemotas() {
         }, 3);
 
         // --- PASO 2: Donweb ---
-        const resDonweb = blogger_subirCacheADonweb(jo);
-        if (resDonweb.success) {
-            console.log("✅ [Blogger Cache] Donweb: JSON publicado.");
-        } else {
-            console.warn("⚠️ [Blogger Cache] Donweb falló (no crítico): " + resDonweb.message);
-            notificarTelegramSalud("⚠️ Blogger Donweb falló: " + resDonweb.message, "ERROR");
+        const targetDonweb = (GLOBAL_CONFIG.BLOGGER_PUBLICATION_TARGET || "AMBOS").toUpperCase();
+        const useDonweb = targetDonweb === "DONWEB" || targetDonweb === "AMBOS";
+
+        if (useDonweb) {
+            const resDonweb = blogger_subirCacheADonweb(jo);
+            if (resDonweb.success) {
+                console.log("✅ [Blogger Cache] Donweb: JSON publicado.");
+            } else {
+                console.warn("⚠️ [Blogger Cache] Donweb falló (no crítico): " + resDonweb.message);
+                notificarTelegramSalud("⚠️ Blogger Donweb falló: " + resDonweb.message, "ERROR");
+            }
         }
 
         // --- PASO 3: GitHub (respaldo 2, externo) ---
-        const resGitHub = blogger_subirCacheAGitHub(jo);
-        if (resGitHub.success) {
-            console.log("✅ [Blogger Cache] GitHub: JSON publicado como respaldo.");
-        } else {
-            console.warn("⚠️ [Blogger Cache] GitHub falló (no crítico): " + resGitHub.message);
-            notificarTelegramSalud("⚠️ Blogger GitHub falló: " + resGitHub.message, "ERROR");
+        const target = (GLOBAL_CONFIG.BLOGGER_PUBLICATION_TARGET || "AMBOS").toUpperCase();
+        const useGitHub = target === "GITHUB" || target === "AMBOS";
+
+        if (useGitHub) {
+            const resGitHub = blogger_subirCacheAGitHub(jo);
+            if (resGitHub.success) {
+                console.log("✅ [Blogger Cache] GitHub: JSON publicado como respaldo.");
+            } else {
+                console.warn("⚠️ [Blogger Cache] GitHub falló (no crítico): " + resGitHub.message);
+                notificarTelegramSalud("⚠️ Blogger GitHub falló: " + resGitHub.message, "ERROR");
+            }
         }
 
     } catch (e) {
