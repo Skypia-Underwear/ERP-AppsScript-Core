@@ -22,4 +22,4 @@ Sincroniza el código local con el proyecto de Apps Script del cliente usando su
    `Copy-Item .clasp-backup.json .clasp.json; Remove-Item .clasp-backup.json`
 
 > [!TIP]
-> Para sincronizar **ambos proyectos** (tuyo + cliente), ejecutá primero `/deploy` y luego `/deploy-client`.
+> Para sincronizar **ambos proyectos** (tuyo + cliente) en un solo paso, usá el nuevo flujo coordinado `/deploy-all`.

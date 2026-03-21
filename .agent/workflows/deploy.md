@@ -24,3 +24,4 @@ Este documento sirve como recordatorio y guía para asegurar que todos los cambi
 
 > [!TIP]
 > Realizar este proceso después de cada sesión de cambios para mantener la integridad del proyecto.
+> Para sincronizar **ambos proyectos** (tuyo + cliente) en un solo paso, usá el comando `/deploy-all`.
