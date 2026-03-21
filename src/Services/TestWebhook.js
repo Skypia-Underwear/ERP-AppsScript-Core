@@ -49,3 +49,49 @@ function test_handleWooCommerceWebhook() {
     console.log("❌ Prueba fallida.");
   }
 }
+/**
+ * TEST: Verificación de Multiplicadores de Stock (Fase 10)
+ */
+function test_multiplicadoresStock() {
+  const mockOrder = {
+    id: "TEST-MULT-001",
+    status: "processing",
+    total: "12000.00",
+    currency: "ARS",
+    date_created: new Date().toISOString(),
+    billing: {
+      first_name: "Test",
+      last_name: "Multiplicador",
+      email: "test.mult@example.com",
+      phone: "1100000000"
+    },
+    line_items: [
+      {
+        product_id: 1627,
+        name: "PANTALON CARGO (DOCENA)",
+        quantity: 1, // 1 pack de docena
+        price: "12000.00",
+        total: "12000.00",
+        sku: "PANT1627-Docena-SURTIDO", // SKU con variedad "Docena"
+        meta_data: [
+          { key: "Color", value: "Negro" },
+          { key: "Talle", value: "XL" }
+        ]
+      }
+    ]
+  };
+
+  console.log("🧪 Iniciando prueba de MULTIPLICADORES...");
+  console.log("ℹ️ SKU enviado: PANT1627-Docena-SURTIDO (Se espera que descuente 12 unidades)");
+  
+  const resultado = handleWooCommerceWebhook(mockOrder);
+  console.log("📊 Resultado:", JSON.stringify(resultado, null, 2));
+
+  if (resultado.success) {
+    console.log("✅ Prueba finalizada. Verifica:");
+    console.log("1. Hoja BD_DETALLE_VENTAS_WOOCOMMERCE -> Columna UNIDADES_PACK debe ser 12");
+    console.log("2. Hoja BD_INVENTARIO -> El stock debe haber disminuido en 12.");
+  } else {
+    console.log("❌ Prueba fallida: " + resultado.message);
+  }
+}

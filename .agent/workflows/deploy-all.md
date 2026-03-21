@@ -26,13 +26,19 @@ Usa este workflow para asegurar que tanto tu Macro Principal como el Proyecto de
    Copy-Item .clasp.json .clasp-backup.json
    Copy-Item .clasp-client.json .clasp.json
    
-   # 2. Push forzado al cliente
+   # 2. Push y Despliegue de Versión
    clasp push --force
+   # Nota: El Agente debe incrementar el número de versión manual o detectar el último
+   clasp version "Sincronización Global"
+   clasp deploy -i AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg -d "Sincronización Global"
    
    # 3. Restauración de ID Original
    Copy-Item .clasp-backup.json .clasp.json
    Remove-Item .clasp-backup.json
    ```
+
+> [!CAUTION]
+> Si el script del cliente solicita acceso después de un despliegue, el usuario debe entrar al editor y re-autorizar los permisos (Scropes) manualmente una vez.
 
 > [!TIP]
 > Ejecutar este flujo cada vez que se realicen cambios estructurales que afecten a ambos sistemas (ej: cambios en Main.js o WoocommerceOrders.js).

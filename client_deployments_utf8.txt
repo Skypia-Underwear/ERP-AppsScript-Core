@@ -1,4 +1,0 @@
-﻿Found 3 deployments.
-- AKfycbzr2YjyeEgEBh57ripD1_67RcFZrE5iCXmou0tu5E_5 @HEAD 
-- AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg @186 
-- AKfycby1hliHo2QJK__jbi6y8BEEBY2su6aMGv-cPs3sHUZCJA8NwUpzbaenoF8OHQjGYM8 @187 - GitHub Quota Fix & Separate Targets (Client)

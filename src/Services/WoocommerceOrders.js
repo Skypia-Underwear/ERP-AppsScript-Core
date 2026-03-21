@@ -155,8 +155,23 @@ function procesarUnaOrdenWC(order, ss, mapaClientes, log, sheetOrders, sheetDeta
     const dataSheet = sheetOrders.getDataRange().getValues();
     for (let i = 1; i < dataSheet.length; i++) {
       if (String(dataSheet[i][0]) === orderId) {
-        if (dataSheet[i][1] !== order.status) log(`🔄 Orden ${orderId}: Estado actualizado ${dataSheet[i][1]} -> ${order.status}`);
-        sheetOrders.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
+        const oldStatus = dataSheet[i][1];
+        if (oldStatus !== order.status) {
+          log(`🔄 Orden ${orderId}: Estado actualizado ${oldStatus} -> ${order.status}`);
+          sheetOrders.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
+
+          // Si el nuevo estado requiere stock y el anterior NO lo requería
+          const esNuevoValido = (order.status === 'processing' || order.status === 'completed');
+          const eraYaValido = (oldStatus === 'processing' || oldStatus === 'completed');
+
+          if (esNuevoValido && !eraYaValido) {
+            log(`      🚀 Gatillando descuento de stock por cambio de estado...`);
+            const detalles = extraerDetallesDeOrdenWC(order, ss, tiendaIdWeb, log);
+            const resultadoStock = procesarDescuentoDeStockPreciso(detalles, ss, log);
+            if (resultadoStock.procesados > 0) log(`      📦 Stock: ${resultadoStock.detalles.join(', ')}`);
+            if (resultadoStock.errores.length > 0) log(`      ⚠️ Alerta Stock: ${resultadoStock.errores.join(', ')}`);
+          }
+        }
         return { status: "updated", id: orderId };
       }
     }
@@ -168,74 +183,107 @@ function procesarUnaOrdenWC(order, ss, mapaClientes, log, sheetOrders, sheetDeta
     let msgCliente = clienteIdEncontrado ? `(Cliente ID: ${clienteRef})` : `(Cliente: ${clienteRef})`;
     log(`✨ Nueva orden: ${orderId} ${msgCliente}`);
 
-    const detallesNuevos = [];
-    order.line_items.forEach((item, index) => {
-      let skuFull = item.sku || ("ID-" + item.product_id);
-      
-      // Extraer atributos (Color, Talle, Precio)
-      let precioTipo = "";
-      
-      // Intentar extraer Precio del SKU si tiene formato SKU-Tipo (ej: BERM1416-Menor)
-      if (skuFull.includes('-') && !skuFull.startsWith('ID-')) {
-        const parts = skuFull.split('-');
-        precioTipo = parts[parts.length - 1]; // Tomar la última parte como tipo
-      }
+    const detallesNuevos = extraerDetallesDeOrdenWC(order, ss, tiendaIdWeb, log);
+    
+    // 4. REGISTRAR DETALLES
+    if (detallesNuevos.length > 0) {
+      sheetDetails.getRange(sheetDetails.getLastRow() + 1, 1, detallesNuevos.length, detallesNuevos[0].length).setValues(detallesNuevos);
+    }
 
-      let color = "";
-      let talle = "";
-      
-      if (item.meta_data && Array.isArray(item.meta_data)) {
-        item.meta_data.forEach(m => {
-          const key = String(m.key).toLowerCase();
-          const val = String(m.value);
-          // Si el meta-data trae el precio, sobreescribimos lo del SKU
-          if (key === "precio" || key === "tipo-de-precio" || key === "tipo_precio") precioTipo = val;
-          if (key === "color" || key.includes("pa_color")) color = val;
-          if (key === "talle" || key === "talla" || key.includes("pa_talle") || key.includes("pa_talla") || key === "size") talle = val;
-        });
-      }
-
-      // Para el ID de Inventario, usamos el SKU base (sin el -Menor) + Variaciones
-      let skuBase = skuFull;
-      if (skuFull.includes('-') && !skuFull.startsWith('ID-')) {
-        const parts = skuFull.split('-');
-        if (parts.length > 1) {
-          skuBase = parts.slice(0, -1).join('-');
-        }
-      }
-
-      const idDetalle = `${orderId}-${index + 1}`;
-      
-      // Mapeo de Inventario (Fase 5)
-      // Patrón: SKU-COLOR-TALLE-TIENDA
-      const colorLimpio = color || "Surtido";
-      const talleLimpio = talle || "Surtido";
-      const inventarioId = `${skuBase}-${colorLimpio}-${talleLimpio}-${tiendaIdWeb}`;
-
-      detallesNuevos.push([
-        idDetalle, 
-        orderId, 
-        skuBase, // SKU base (CODIGO_ID)
-        item.name, 
-        item.quantity, 
-        item.price, 
-        item.total,
-        skuFull, // TIPO_PRECIO ahora usa el SKU completo (Variedad ID) para referencia
-        colorLimpio,
-        talleLimpio,
-        inventarioId
-      ]);
-    });
-    if (detallesNuevos.length > 0) sheetDetails.getRange(sheetDetails.getLastRow() + 1, 1, detallesNuevos.length, detallesNuevos[0].length).setValues(detallesNuevos);
-
-    // --- STOCK (Fase 5: Descuento preciso) ---
+    // 5. STOCK (Fase 5: Descuento preciso)
     if (order.status === 'processing' || order.status === 'completed') {
-      const resultadoStock = procesarDescuentoDeStockPreciso(detallesNuevos, ss);
+      const resultadoStock = procesarDescuentoDeStockPreciso(detallesNuevos, ss, log);
       if (resultadoStock.procesados > 0) log(`      📦 Stock: ${resultadoStock.detalles.join(', ')}`);
       if (resultadoStock.errores.length > 0) log(`      ⚠️ Alerta Stock: ${resultadoStock.errores.join(', ')}`);
     }
     return { status: "inserted", id: orderId };
   }
+}
+
+/**
+ * EXTRAER DETALLES DE PRODUCTOS DESDE EL JSON DE WOOCOMMERCE
+ */
+function extraerDetallesDeOrdenWC(order, ss, tiendaId, log) {
+  // 1. Obtener Configuración Global (Fase 10)
+  let esProductoSimpleGlobal = false;
+  try {
+    const sheetConfig = ss.getSheetByName(SHEETS.GENERAL_CONFIG || "BD_CONFIGURACION_GENERAL");
+    const tipoReg = (sheetConfig.getRange("O2").getValue() || "").toString().trim().toUpperCase();
+    esProductoSimpleGlobal = (tipoReg === "PRODUCTO SIMPLE");
+  } catch(e) {
+    log(`      ⚠️ Error leyendo Config Global: ${e.message}`);
+  }
+
+  const detalles = [];
+  const orderId = order.id.toString();
+
+  order.line_items.forEach((item, index) => {
+    let skuFull = item.sku || ("ID-" + item.product_id);
+    let precioTipo = "";
+    
+    if (skuFull.includes('-') && !skuFull.startsWith('ID-')) {
+      const parts = skuFull.split('-');
+      precioTipo = parts[parts.length - 1];
+    }
+
+    let color = "";
+    let talle = "";
+    if (item.meta_data && Array.isArray(item.meta_data)) {
+      item.meta_data.forEach(m => {
+        const key = String(m.key).toLowerCase();
+        const val = String(m.value);
+        if (key === "precio" || key === "tipo-de-precio" || key === "tipo_precio") precioTipo = val;
+        if (key === "color" || key.includes("pa_color")) color = val;
+        if (key === "talle" || key === "talla" || key.includes("pa_talle") || key.includes("pa_talla") || key === "size") talle = val;
+      });
+    }
+
+    let skuBase = skuFull.split('-')[0];
+    const colorFinal = color || "Surtido";
+    const talleFinal = talle || "Surtido";
+    
+    let inventarioId;
+    if (esProductoSimpleGlobal) {
+      inventarioId = `${skuBase}-Surtido-Surtido-${tiendaId}`;
+    } else {
+      inventarioId = `${skuBase}-${colorFinal}-${talleFinal}-${tiendaId}`;
+    }
+
+    let unidadesPack = 1;
+    try {
+      const variedadMap = cargarMapaVariedades(ss);
+      const skuLimpio = skuFull.replace("-SURTIDO", "").replace("-Surtido", "");
+      if (variedadMap.has(skuLimpio)) {
+        unidadesPack = Number(variedadMap.get(skuLimpio)) || 1;
+      } else {
+        const parts = skuLimpio.split('-');
+        const tipoSolo = parts[parts.length - 1];
+        for (let [vid, cant] of variedadMap.entries()) {
+          if (vid.startsWith(skuBase) && vid.endsWith(tipoSolo)) {
+            unidadesPack = Number(cant) || 1;
+            break;
+          }
+        }
+      }
+    } catch (e) {}
+
+    detalles.push([
+      `${orderId}-${index + 1}`, 
+      orderId, 
+      skuBase,
+      item.name, 
+      item.quantity, 
+      item.price, 
+      item.total,
+      skuFull, 
+      unidadesPack, 
+      colorFinal,
+      talleFinal,
+      inventarioId
+    ]);
+  });
+  return detalles;
+}
 }
 
 /**
@@ -311,7 +359,7 @@ function prepararHojaDetalles(ss, log) {
   if (!sheet) sheet = ss.insertSheet(sheetName);
 
   if (sheet.getLastRow() === 0) {
-    const headers = ['ID_DETALLE', 'ID_ORDEN', 'SKU', 'PRODUCTO', 'CANTIDAD', 'PRECIO_UNIT', 'TOTAL_LINEA', 'PRECIO_TIPO', 'COLOR', 'TALLE', 'INVENTARIO_ID'];
+    const headers = ['ID_DETALLE', 'ID_ORDEN', 'SKU', 'PRODUCTO', 'CANTIDAD', 'PRECIO_UNIT', 'TOTAL_LINEA', 'PRECIO_TIPO', 'UNIDADES_PACK', 'COLOR', 'TALLE', 'INVENTARIO_ID'];
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#4caf50').setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
@@ -392,24 +440,29 @@ function registrarClienteNuevo(ss, order, log, dniWc) {
 /**
  * PARTE 2: LÓGICA DE DESCUENTO DE STOCK (PRECISO V2)
  */
-function procesarDescuentoDeStockPreciso(detalles, ss) {
+function procesarDescuentoDeStockPreciso(detalles, ss, logFunc = null) {
+  const log = logFunc || ((msg) => Logger.log(msg));
   if (!ss) ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
   const hojaInventario = ss.getSheetByName(SHEETS.INVENTORY);
   if (!hojaInventario) return { procesados: 0, detalles: [], errores: ["Falta hoja inventario"] };
 
   const datosInv = hojaInventario.getDataRange().getValues();
-  const headers = datosInv[0];
+  const mapping = HeaderManager.getMapping("INVENTORY");
 
-  const colInvId = headers.indexOf("INVENTARIO_ID");
-  const colVentasWeb = headers.indexOf("VENTAS_WEB");
-  const colStock = headers.indexOf("STOCK_ACTUAL");
+  if (!mapping) return { procesados: 0, detalles: [], errores: ["Error al mapear columnas de Inventario"] };
 
-  if (colInvId === -1 || colVentasWeb === -1 || colStock === -1) return { procesados: 0, detalles: [], errores: ["Columnas críticas no encontradas en Inventario"] };
+  const colInvId = mapping["INVENTARIO_ID"];
+  const colVentasWeb = mapping["VENTAS_WEB"];
+  const colStock = mapping["STOCK_ACTUAL"];
 
-  // Crear mapa de llave INVENTARIO_ID -> Fila
+  if (colInvId === undefined || colVentasWeb === undefined || colStock === undefined) {
+     return { procesados: 0, detalles: [], errores: ["Columnas críticas (ID, VENTAS_WEB, STOCK) no halladas"] };
+  }
+
+  // Crear mapa de llave INVENTARIO_ID -> Fila (Normalizado a mayúsculas)
   const mapaInv = new Map();
   for (let i = 1; i < datosInv.length; i++) {
-    const id = String(datosInv[i][colInvId]).trim();
+    const id = String(datosInv[i][colInvId]).trim().toUpperCase();
     if (id) mapaInv.set(id, i + 1);
   }
 
@@ -418,22 +471,40 @@ function procesarDescuentoDeStockPreciso(detalles, ss) {
   let errores = [];
 
   detalles.forEach(d => {
-    // d = [idDetalle, orderId, sku, name, qty, price, total, precioTipo, color, talle, inventarioId]
-    const qty = parseInt(d[4]);
-    const invId = d[10];
+    // d = [idDetalle, orderId, sku, name, qty, price, total, precioTipo, unidadesPack, color, talle, inventarioId]
+    const unidadesPack = parseInt(d[8]) || 1;
+    const qtyBase = parseInt(d[4]);
+    const qtyTotal = qtyBase * unidadesPack;
+    
+    let invId = d[11];
+    let invIdNorm = invId.toUpperCase();
+    
+    // Fallback Lógica (Fase 10 - Por si acaso el ID específico no existe)
+    if (!mapaInv.has(invIdNorm)) {
+      const skuBase = d[2];
+      const segments = invId.split('-');
+      const tiendaId = segments[segments.length - 1]; 
+      const fallbackId = `${skuBase}-Surtido-Surtido-${tiendaId}`.toUpperCase();
+      
+      if (mapaInv.has(fallbackId)) {
+        log(`      🔄 Fallback: ${invId} -> ${fallbackId}`);
+        invIdNorm = fallbackId;
+      }
+    }
 
-    if (mapaInv.has(invId)) {
-      const fila = mapaInv.get(invId);
+    if (mapaInv.has(invIdNorm)) {
+      const fila = mapaInv.get(invIdNorm);
+      
       const cellVentas = hojaInventario.getRange(fila, colVentasWeb + 1);
       const currentVentas = parseInt(cellVentas.getValue()) || 0;
-      cellVentas.setValue(currentVentas + qty);
+      cellVentas.setValue(currentVentas + qtyTotal);
 
       const cellStock = hojaInventario.getRange(fila, colStock + 1);
       const currentStock = parseInt(cellStock.getValue()) || 0;
-      cellStock.setValue(currentStock - qty);
+      cellStock.setValue(currentStock - qtyTotal);
 
       procesados++;
-      detallesLogs.push(`${invId} (-${qty})`);
+      detallesLogs.push(`${invIdNorm} (-${qtyTotal})`);
     } else {
       errores.push(`ID no hallado: ${invId}`);
     }
@@ -493,6 +564,29 @@ function actualizarEstadoEnWCDesdeSheet(e) {
   } catch (err) {
     e.range.setBackground('#f8d7da');
   }
+}
+
+/**
+ * Carga el mapa de VARIEDAD_ID -> CANTIDAD_MINIMA desde BD_VARIEDAD_PRODUCTOS.
+ */
+function cargarMapaVariedades(ss) {
+  const mapa = new Map();
+  const sheet = ss.getSheetByName(SHEETS.PRODUCT_VARIETIES || "BD_VARIEDAD_PRODUCTOS");
+  if (!sheet) return mapa;
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idxId = headers.indexOf("VARIEDAD_ID");
+  const idxCant = headers.indexOf("CANTIDAD_MINIMA");
+
+  if (idxId === -1 || idxCant === -1) return mapa;
+
+  for (let i = 1; i < data.length; i++) {
+    const id = String(data[i][idxId]).trim();
+    const cant = data[i][idxCant];
+    if (id) mapa.set(id, cant);
+  }
+  return mapa;
 }
 
 /**

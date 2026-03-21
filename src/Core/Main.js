@@ -1,8 +1,22 @@
 
 /**
+ * Manejador de solicitudes GET (Para pruebas de alcance)
+ */
+function doGet(e) {
+  const msg = "✅ Webhook URL alcanzó el script correctamente (GET).";
+  try {
+    registrarRawWebhook({ parameter: { source: "manual_browser_test" }, headers: {}, postData: { contents: "GET_TEST" } });
+  } catch(e){}
+  return ContentService.createTextOutput(msg).setMimeType(ContentService.MimeType.TEXT);
+}
+
+/**
  * Manejador de solicitudes POST (Telegram, AppSheet, etc.)
  */
 function doPost(e) {
+  // --- LOG DE ENTRADA UNIVERSAL ---
+  try { registrarRawWebhook(e); } catch(i){}
+
   // --- RESPUESTA ULTRA-RÁPIDA PARA PINGS (Protocolo WooCommerce) ---
   // Se hace ANTES del log para garantizar que no haya timeouts
   try {
@@ -19,12 +33,7 @@ function doPost(e) {
     console.warn("Error en detección ultra-recortada de ping: " + pingErr.message);
   }
 
-  // --- CAPTURA DE EMERGENCIA (Para peticiones que no son Pings) ---
-  try {
-     registrarRawWebhook(e);
-  } catch (err) {
-     console.error("Fallo en logger raw: " + err.message);
-  }
+  // (Movido al inicio para mayor seguridad)
 
   const response = { success: true, message: "ok" };
 
@@ -304,6 +313,7 @@ const SHEET_SCHEMA = {
   DATOS_TRANSFERENCIA: ["CUENTA_ID", "ALIAS", "NOMBRE_CUENTA"],
   USUARIOS_SISTEMAS: ["USER_ID", "NOMBRE"],
   WC_ORDERS: ["ID_ORDEN", "ESTADO", "CLIENTE", "TELEFONO", "DIRECCION_FACTURACION", "RESUMEN_PRODUCTOS", "TOTAL_VENTA", "FECHA", "ULTIMA_ACTUALIZACION"],
+  WC_ORDERS_DETAILS: ["ID_DETALLE", "ID_ORDEN", "SKU", "PRODUCTO", "CANTIDAD", "PRECIO_UNIT", "TOTAL_LINEA", "PRECIO_TIPO", "UNIDADES_PACK", "COLOR", "TALLE", "INVENTARIO_ID"],
   APP_SCRIPT_CONFIG: ["TIPO_CLAVE", "VALOR"], // Especificamente para BD_APP_SCRIPT (KV)
   GENERAL_CONFIG: ["GENERAL_ID", "RESPONSABLE"] // Para BD_CONFIGURACION_GENERAL (Wide)
 };

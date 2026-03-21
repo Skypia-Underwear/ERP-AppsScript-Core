@@ -1,3 +1,0 @@
-﻿Found 2 deployments.
-- AKfycbzr2YjyeEgEBh57ripD1_67RcFZrE5iCXmou0tu5E_5 @HEAD 
-- AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg @191 - Identity Management & DNI/CUIT Support (Client)
