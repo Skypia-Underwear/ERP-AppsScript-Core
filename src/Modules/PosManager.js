@@ -689,9 +689,14 @@ function subirArchivoAGitHub(jsonData, filePath) {
 
             // Obtener SHA para actualización dentro del loop para evitar el 409
             let sha = null;
+            const headers = { 
+                "Authorization": "token " + token,
+                "User-Agent": "ERP-AppsScript-Sync"
+            };
+
             const getResponse = UrlFetchApp.fetch(url, {
                 method: "get",
-                headers: { "Authorization": "token " + token },
+                headers: headers,
                 muteHttpExceptions: true
             });
             if (getResponse.getResponseCode() === 200) {
@@ -707,7 +712,7 @@ function subirArchivoAGitHub(jsonData, filePath) {
             const response = UrlFetchApp.fetch(url, {
                 method: "put",
                 contentType: "application/json",
-                headers: { "Authorization": "token " + token },
+                headers: headers,
                 payload: JSON.stringify(payload),
                 muteHttpExceptions: true
             });
@@ -803,11 +808,17 @@ function subirArchivoADonweb(jsonData, fileName) {
                 Utilities.sleep(waitMs);
             }
 
+            debugLog(`📤 Enviando a Donweb [${fileName}] (${payload.length} bytes) -> ${url}`);
+
             const response = UrlFetchApp.fetch(url, {
                 method: "post",
                 contentType: "application/json",
                 payload: payload,
-                muteHttpExceptions: true
+                muteHttpExceptions: true,
+                followRedirects: true,
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                }
             });
 
             lastCode = response.getResponseCode();
