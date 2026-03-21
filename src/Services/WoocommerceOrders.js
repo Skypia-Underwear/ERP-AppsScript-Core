@@ -138,8 +138,13 @@ function procesarUnaOrdenWC(order, ss, mapaClientes, log, sheetOrders, sheetDeta
   const tiendaIdWeb = obtenerTiendaPrincipal(ss);
 
   const productsStrForStock = order.line_items.map(item => {
-    let skuFull = item.sku || ("ID-" + item.product_id); // Preservar el SKU completo (ej: PANT1627-Menor)
-    return `[${skuFull}] ${item.name} (x${item.quantity})`;
+    let skuFull = item.sku || ("ID-" + item.product_id);
+    let skuBase = skuFull;
+    if (skuFull.includes('-') && !skuFull.startsWith('ID-')) {
+      const parts = skuFull.split('-');
+      if (parts.length > 1) skuBase = parts.slice(0, -1).join('-');
+    }
+    return `[${skuBase}] ${item.name} (x${item.quantity})`;
   }).join(' | ');
 
   let dateStr = order.date_created ? order.date_created.replace('T', ' ').split('.')[0] : '';
@@ -193,7 +198,10 @@ function procesarUnaOrdenWC(order, ss, mapaClientes, log, sheetOrders, sheetDeta
       // Para el ID de Inventario, usamos el SKU base (sin el -Menor) + Variaciones
       let skuBase = skuFull;
       if (skuFull.includes('-') && !skuFull.startsWith('ID-')) {
-        skuBase = skuFull.split('-')[0];
+        const parts = skuFull.split('-');
+        if (parts.length > 1) {
+          skuBase = parts.slice(0, -1).join('-');
+        }
       }
 
       const idDetalle = `${orderId}-${index + 1}`;
@@ -207,12 +215,12 @@ function procesarUnaOrdenWC(order, ss, mapaClientes, log, sheetOrders, sheetDeta
       detallesNuevos.push([
         idDetalle, 
         orderId, 
-        skuFull, // SKU completo
+        skuBase, // SKU base (CODIGO_ID)
         item.name, 
         item.quantity, 
         item.price, 
         item.total,
-        skuFull, // TIPO_PRECIO ahora usa el SKU completo (Variedad ID)
+        skuFull, // TIPO_PRECIO ahora usa el SKU completo (Variedad ID) para referencia
         colorLimpio,
         talleLimpio,
         inventarioId
