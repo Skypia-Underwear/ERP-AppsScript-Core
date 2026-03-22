@@ -666,11 +666,12 @@ function subirArchivoAGitHub(jsonData, filePath) {
         const user = GLOBAL_CONFIG.GITHUB.USER;
         const repo = GLOBAL_CONFIG.GITHUB.REPO;
         const token = GLOBAL_CONFIG.GITHUB.TOKEN;
-        const url = `https://api.github.com/repos/${user}/${repo}/contents/${filePath}`;
 
         if (!user || !repo || !token) {
             throw new Error("Configuración de GitHub incompleta (User, Repo o Token).");
         }
+
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${filePath}`;
 
         // Si hay cambios, actualizamos el timestamp interno para el Frontend
         jsonData.timestamp_ms = Date.now();
