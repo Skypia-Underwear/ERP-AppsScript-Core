@@ -78,10 +78,15 @@ function doPost(e) {
       }
     }
 
-    // --- ACCIONES ERP ---
+    // --- ACCIONES ERP / APPSHEET ---
     const accion = contents.accion || "";
     if (accion === "generarDescripcionIA") {
       const resultado = gestionarAccionEnriquecimiento(contents.codigo);
+      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (accion === "actualizarEstadoWooCommerce") {
+      const resultado = handleAppSheetStatusUpdate(contents);
       return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
     }
 

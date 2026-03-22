@@ -71,10 +71,87 @@ function importarOrdenesDesdeWC() {
     const resumen = `🏁 Fin. Realizado procesamiento por lotes.`;
     log(resumen);
     notificarTelegramSalud(`✅ Importación finalizada: ${ordenes.length} órdenes procesadas.`, "EXITO");
-    return { success: true, count: ordenes.length };
+    return { success: true, count: ordenes.length, logs: logArray };
+  } catch(ex) {
+    console.error("❌ Error en importarOrdenesDesdeWC: " + ex.message);
+    return { success: false, error: ex.message, logs: logArray };
+  }
+}
+
+/**
+ * ACCIÓN: ACTUALIZAR ESTADO DESDE APPSHEET
+ * Se usa cuando el usuario audita y aprueba en AppSheet.
+ */
+function handleAppSheetStatusUpdate(contents) {
+  const orderId = contents.idOrden;
+  const nuevoEstado = contents.nuevoEstado;
+  const logArray = [];
+  const log = (msg) => logArray.push(msg);
+
+  if (!orderId || !nuevoEstado) return { success: false, message: "Faltan parámetros (idOrden, nuevoEstado)" };
+
+  try {
+    const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    
+    // 1. OBTENER CREDENCIALES
+    const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
+    const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
+    const siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
+    const authHeader = 'Basic ' + Utilities.base64Encode(`${key}:${secret}`);
+
+    // LOG de inicio
+    log(`🛠️ AppSheet Sync: Orden #${orderId} -> ${nuevoEstado}`);
+
+    // 2. OBTENER ORDEN DE WOOCOMMERCE (Para traer ítems frescos)
+    const getUrl = `${siteUrl}wp-json/wc/v3/orders/${orderId}`;
+    const getResponse = UrlFetchApp.fetch(getUrl, { 
+      headers: { Authorization: authHeader },
+      muteHttpExceptions: true 
+    });
+    
+    if (getResponse.getResponseCode() !== 200) {
+      throw new Error(`No se pudo obtener la orden ${orderId} de WooCommerce.`);
+    }
+    const orderData = JSON.parse(getResponse.getContentText());
+
+    // 3. ACTUALIZAR ESTADO EN WOOCOMMERCE
+    const putUrl = `${siteUrl}wp-json/wc/v3/orders/${orderId}`;
+    const payload = { status: nuevoEstado };
+    const putResponse = UrlFetchApp.fetch(putUrl, {
+      method: 'put',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    if (putResponse.getResponseCode() !== 200) {
+      throw new Error(`Error actualizando estado en API WooCommerce: ${putResponse.getContentText()}`);
+    }
+
+    // 4. SI EL ESTADO ES PROCESABLE (PROCESSING/COMPLETED), DESCONTAR STOCK
+    let stockStatus = "No se requería proceso de stock";
+    if (nuevoEstado === 'processing' || nuevoEstado === 'completed') {
+       const tiendaId = obtenerTiendaPrincipal(ss);
+       const detalles = extraerDetallesDeOrdenWC(orderData, ss, tiendaId, log);
+       const resultadoStock = procesarDescuentoDeStockPreciso(detalles, ss, log);
+       
+       if (resultadoStock.procesados > 0) {
+         stockStatus = `✅ Stock descontado: ${resultadoStock.detalles.join(', ')}`;
+       } else {
+         stockStatus = `⚠️ Stock: ${resultadoStock.errores.join(', ')}`;
+       }
+    }
+
+    return { 
+      success: true, 
+      message: `Estado '${nuevoEstado}' sincronizado correctamente`,
+      stock: stockStatus,
+      logs: logArray
+    };
+
   } catch (e) {
-    log(`❌ ERROR CRÍTICO: ${e.message}`);
-    return { success: false, message: e.message, logs: logArray };
+    console.error("❌ Error en handleAppSheetStatusUpdate: " + e.message);
+    return { success: false, error: e.message, logs: logArray };
   }
 }
 
