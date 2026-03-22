@@ -87,9 +87,11 @@ function handleAppSheetStatusUpdate(contents) {
   // AppSheet a veces anida los datos o usa nombres de columna directo
   const orderId = contents.idOrden || contents.ID_ORDEN || (contents.data && contents.data.ID_ORDEN);
   const nuevoEstado = contents.nuevoEstado || contents.ESTADO || (contents.data && contents.data.ESTADO);
-  
   const logArray = [];
-  const log = (msg) => logArray.push(msg);
+  const log = (msg) => {
+    logArray.push(msg);
+    console.log(msg);
+  };
 
   if (!orderId || !nuevoEstado) {
     const errorMsg = `❌ AppSheet Sync falló: Faltan parámetros (idOrden:${orderId}, nuevoEstado:${nuevoEstado}). Recibido: ${JSON.stringify(contents)}`;
@@ -97,38 +99,70 @@ function handleAppSheetStatusUpdate(contents) {
     return { success: false, message: errorMsg, received: contents };
   }
 
-  log(`🛠️ AppSheet Sync: Orden #${orderId} -> ${nuevoEstado}`);
+  // --- PREVENCIÓN DE BUCLES (ECOS) ---
+  const cache = CacheService.getScriptCache();
+  const ecoKey = `eco_lock_${orderId}_${nuevoEstado}`;
+  if (cache.get(ecoKey)) {
+    log(`⏳ Ignorando petición duplicada (eco) para Orden #${orderId} -> ${nuevoEstado}`);
+    return { success: true, message: "Petición ignorada por eco reciente (prevención de bucles)" };
+  }
+  cache.put(ecoKey, "1", 15); // Bloqueo de 15 segundos para esta combinación
+
+  log(`🛠️ AppSheet Sync: Iniciando proceso para Orden #${orderId} -> ${nuevoEstado}`);
 
   try {
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    
+    // 1. CONFIGURACIÓN API
+    const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
+    const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
+    let siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
+    if (!siteUrl.endsWith('/')) siteUrl += '/';
+    
+    const authHeader = 'Basic ' + Utilities.base64Encode(`${key}:${secret}`);
+
+    // 2. OBTENER ORDEN DE WOOCOMMERCE
+    const getUrl = `${siteUrl}wp-json/wc/v3/orders/${orderId}`;
+    log(`📋 Fetching WC Order: ${getUrl}`);
+    
     const getResponse = UrlFetchApp.fetch(getUrl, { 
       headers: { Authorization: authHeader },
       muteHttpExceptions: true 
     });
     
+    log(`📥 Respuesta GET WC: ${getResponse.getResponseCode()}`);
     if (getResponse.getResponseCode() !== 200) {
-      throw new Error(`No se pudo obtener la orden ${orderId} de WooCommerce.`);
+      throw new Error(`WC API Error (GET ${orderId}): ${getResponse.getResponseCode()} - ${getResponse.getContentText()}`);
     }
     const orderData = JSON.parse(getResponse.getContentText());
 
     // 3. ACTUALIZAR ESTADO EN WOOCOMMERCE
-    const putUrl = `${siteUrl}wp-json/wc/v3/orders/${orderId}`;
-    const payload = { status: nuevoEstado };
-    const putResponse = UrlFetchApp.fetch(putUrl, {
-      method: 'put',
-      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
+    // Evitar actualizar si ya tiene ese estado
+    if (orderData.status === nuevoEstado) {
+      log(`✅ La orden ya tiene el estado '${nuevoEstado}'. Omitiendo actualización de API.`);
+    } else {
+      const putUrl = `${siteUrl}wp-json/wc/v3/orders/${orderId}`;
+      const payload = { status: nuevoEstado };
+      log(`📤 Actualizando WC Status: ${putUrl} -> ${JSON.stringify(payload)}`);
+      
+      const putResponse = UrlFetchApp.fetch(putUrl, {
+        method: 'put',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
 
-    if (putResponse.getResponseCode() !== 200) {
-      throw new Error(`Error actualizando estado en API WooCommerce: ${putResponse.getContentText()}`);
+      log(`📥 Respuesta PUT WC: ${putResponse.getResponseCode()}`);
+      if (putResponse.getResponseCode() !== 200) {
+        throw new Error(`WC API Error (PUT ${orderId}): ${putResponse.getResponseCode()} - ${putResponse.getContentText()}`);
+      }
     }
 
-    // 4. SI EL ESTADO ES PROCESABLE (PROCESSING/COMPLETED), DESCONTAR STOCK
+    // 4. SI EL ESTADO ES PROCESABLE, DESCONTAR STOCK
     let stockStatus = "No se requería proceso de stock";
     if (nuevoEstado === 'processing' || nuevoEstado === 'completed') {
        const tiendaId = obtenerTiendaPrincipal(ss);
+       log(`📦 Procesando descuento de stock para Tienda: ${tiendaId}`);
        const detalles = extraerDetallesDeOrdenWC(orderData, ss, tiendaId, log);
        const resultadoStock = procesarDescuentoDeStockPreciso(detalles, ss, log);
        
@@ -139,6 +173,7 @@ function handleAppSheetStatusUpdate(contents) {
        }
     }
 
+    log(`🏁 Sincronización exitosa.`);
     return { 
       success: true, 
       message: `Estado '${nuevoEstado}' sincronizado correctamente`,
@@ -147,7 +182,9 @@ function handleAppSheetStatusUpdate(contents) {
     };
 
   } catch (e) {
-    console.error("❌ Error en handleAppSheetStatusUpdate: " + e.message);
+    const errorMsg = "❌ Error en handleAppSheetStatusUpdate: " + e.message;
+    console.error(errorMsg);
+    log(errorMsg);
     return { success: false, error: e.message, logs: logArray };
   }
 }
