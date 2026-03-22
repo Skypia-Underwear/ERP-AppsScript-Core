@@ -7,7 +7,48 @@
 // =================================================================================
 
 /**
- * PARTE 1: IMPORTACIÓN DE VENTAS (MASTER)
+ * DIAGNÓSTICO: Prueba la conexión con WooCommerce y devuelve los datos de la última orden.
+ * Se puede ejecutar manualmente desde el editor de Apps Script.
+ */
+function testWooCommerceConnection() {
+  const log = (msg) => console.log(`[TEST-WC] ${msg}`);
+  try {
+    const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
+    const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
+    let siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
+    if (!siteUrl.endsWith('/')) siteUrl += '/';
+    
+    const authHeader = 'Basic ' + Utilities.base64Encode(`${key}:${secret}`);
+    const getUrl = `${siteUrl}wp-json/wc/v3/orders/?per_page=1`;
+    
+    log(`Conectando a: ${getUrl}`);
+    const response = UrlFetchApp.fetch(getUrl, { 
+      headers: { Authorization: authHeader },
+      muteHttpExceptions: true 
+    });
+    
+    const code = response.getResponseCode();
+    const body = response.getContentText();
+    
+    if (code === 200) {
+      log("✅ Conexión exitosa!");
+      const data = JSON.parse(body);
+      if (data.length > 0) {
+        log(`Última orden encontrada: #${data[0].id} (Status: ${data[0].status})`);
+      }
+      return "Conexión exitosa. Revisa los logs de ejecución.";
+    } else {
+      log(`❌ Error ${code}: ${body}`);
+      return `Error ${code}: Revisa los logs de ejecución.`;
+    }
+  } catch (e) {
+    log(`❌ Excepción: ${e.message}`);
+    return `Excepción: ${e.message}`;
+  }
+}
+
+/**
+ * PARTE 1: MANIPULACIÓN DE ESTADOS (AppSheet -> WooCommerce)
  */
 function importarOrdenesDesdeWC() {
   const logArray = [];

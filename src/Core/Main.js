@@ -14,19 +14,18 @@ function doGet(e) {
  * Manejador de solicitudes POST (Telegram, AppSheet, etc.)
  */
 function doPost(e) {
-  // --- LOG DE ENTRADA UNIVERSAL ---
-  try { registrarRawWebhook(e); } catch(i){}
+  let logId = null;
+  try { logId = registrarRawWebhook(e); } catch(i){}
 
   // --- RESPUESTA ULTRA-RÁPIDA PARA PINGS (Protocolo WooCommerce) ---
   // Se hace ANTES del log para garantizar que no haya timeouts
   try {
     const rawData = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
     const isWcPing = rawData.indexOf("webhook_id=") !== -1 || 
-                     (e.parameter && (e.parameter.webhook_id || e.parameter.source === "woocommerce" && rawData === ""));
+                     (e.parameter && (e.parameter.webhook_id || e.parameter.source === "woocommerce" && rawContents === ""));
     
     if (isWcPing) {
-      // Registrar log después de preparar la respuesta o de forma controlada
-      try { registrarRawWebhook(e); } catch(i){}
+      if (logId) actualizarResultadoWebhook(logId, "PONG (WooCommerce Check)");
       return ContentService.createTextOutput("ok").setMimeType(ContentService.MimeType.TEXT);
     }
   } catch (pingErr) {
@@ -54,9 +53,11 @@ function doPost(e) {
       try {
         const orderData = JSON.parse(rawContents);
         const result = handleWooCommerceWebhook(orderData);
+        if (logId) actualizarResultadoWebhook(logId, "WC_WEBHOOK: " + (result.success ? "OK" : "ERROR: " + result.message));
         return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
       } catch(ex) {
         console.error("❌ Error en handleWooCommerceWebhook: " + ex.message);
+        if (logId) actualizarResultadoWebhook(logId, "WC_WEBHOOK_CRASH: " + ex.message);
         return ContentService.createTextOutput(JSON.stringify({success: false, error: ex.message})).setMimeType(ContentService.MimeType.JSON);
       }
     }
@@ -86,6 +87,10 @@ function doPost(e) {
     
     if (accion === "actualizarEstadoWooCommerce") {
       const resultado = handleAppSheetStatusUpdate(contents);
+      if (logId) {
+        const logMsg = resultado.success ? "AS_SYNC: OK (" + resultado.stock + ")" : "AS_SYNC_ERROR: " + (resultado.error || "Desconocido");
+        actualizarResultadoWebhook(logId, logMsg);
+      }
       return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -1408,17 +1413,17 @@ function testSuccessNotification() {
 
 /**
  * 🔍 DIAGNÓSTICO: Registra el contenido crudo de cualquier solicitud entrante.
+ * Retorna el número de fila para permitir actualizaciones posteriores.
  */
 function registrarRawWebhook(e) {
-  if (!e) return;
+  if (!e) return null;
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName("RAW_WEBHOOK_LOGS");
     
-    // Crear hoja si no existe
     if (!sheet) {
       sheet = ss.insertSheet("RAW_WEBHOOK_LOGS");
-      const headersRow = ["FECHA", "SOURCE_PARAM", "TOPIC_HEADER", "ALL_HEADERS", "URL_PARAMS", "RAW_CONTENTS", "CONTENT_TYPE"];
+      const headersRow = ["FECHA", "SOURCE_PARAM", "TOPIC_HEADER", "ALL_HEADERS", "URL_PARAMS", "RAW_CONTENTS", "CONTENT_TYPE", "STATUS_PROCESO"];
       sheet.appendRow(headersRow);
       sheet.getRange(1, 1, 1, headersRow.length).setFontWeight("bold").setBackground("#673ab7").setFontColor("#ffffff");
       sheet.setFrozenRows(1);
@@ -1433,20 +1438,15 @@ function registrarRawWebhook(e) {
     const contents = e.postData ? e.postData.contents : "EMPTY_POST_DATA";
     const postType = e.postData ? e.postData.type : "N/A";
 
-    // Asegurar que la hoja tenga suficientes columnas
-    if (sheet.getMaxColumns() < 7) {
-      sheet.insertColumnsAfter(sheet.getMaxColumns(), 7 - sheet.getMaxColumns());
-    }
-    
-    // Insertar al inicio (después del header) para ver lo último primero
+    // Insertar al inicio
     sheet.insertRowAfter(1);
-    const logRange = sheet.getRange(2, 1, 1, 7);
-    logRange.setValues([[fecha, source, topic, allHeaders, params, contents, postType]]);
+    const logRange = sheet.getRange(2, 1, 1, 8);
+    logRange.setValues([[fecha, source, topic, allHeaders, params, contents, postType, "RECIBIDO"]]);
     
-    // Limitar a los últimos 500 registros para no saturar
     if (sheet.getLastRow() > 505) {
       sheet.deleteRows(502, sheet.getLastRow() - 501);
     }
+    return 2; // Siempre es la fila 2 porque insertamos arriba
   } catch (err) {
     console.error("Fallo crítico en registrarRawWebhook: " + err.message);
   }
