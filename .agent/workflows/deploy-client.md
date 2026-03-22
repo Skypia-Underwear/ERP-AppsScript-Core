@@ -27,8 +27,15 @@ Sincroniza el código local con el proyecto de Apps Script del cliente usando su
 2. Pushear al proyecto del cliente:
    `clasp push --force`
 // turbo
-3. Restaurar el `.clasp.json` original:
    `Copy-Item .clasp-backup.json .clasp.json; Remove-Item .clasp-backup.json`
+
+4. **Restauración Manual de Permisos (CRÍTICO)**
+   Para evitar el error "Necesitas acceso":
+   1. Abre el editor de **Apps Script del Cliente**.
+   2. Ve a **Implementar > Administrar implementaciones**.
+   3. Edita la última implementación activa.
+   4. Asegúrate de que el acceso esté en **"Cualquier persona"**.
+   5. Haz clic en **Implementar**.
 
 > [!TIP]
 > Para sincronizar **ambos proyectos** (tuyo + cliente) en un solo paso, usá el nuevo flujo coordinado `/deploy-all`.

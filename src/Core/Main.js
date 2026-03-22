@@ -61,12 +61,32 @@ function doPost(e) {
       }
     }
 
-    // --- RUTA: TELEGRAM / OTROS ---
-    let contents;
+    // --- RUTA: TELEGRAM / APPSHEET / OTROS ---
+    let contents = {};
     try {
-      contents = JSON.parse(rawContents);
+      if (rawContents) {
+        contents = JSON.parse(rawContents);
+      } else {
+        // Fallback: Si no hay contents, usar e.parameter (AppSheet a veces envía parámetros de URL)
+        contents = e.parameter || {};
+      }
     } catch (f) {
-      return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+      console.warn("⚠️ Error parseando JSON en doPost: " + f.message);
+      // Para AppSheet, a veces el body no es JSON puro. Intentamos usar e.parameter.
+      contents = e.parameter || {};
+    }
+
+    // --- ACCIONES ERP / APPSHEET ---
+    const accion = contents.accion || e.parameter.accion || "";
+    
+    if (accion === "generarDescripcionIA") {
+      const resultado = gestionarAccionEnriquecimiento(contents.codigo);
+      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (accion === "actualizarEstadoWooCommerce") {
+      const resultado = handleAppSheetStatusUpdate(contents);
+      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
     }
 
     // --- MANEJO DE TELEGRAM ---
@@ -76,18 +96,6 @@ function doPost(e) {
       } else {
         return ContentService.createTextOutput("ok");
       }
-    }
-
-    // --- ACCIONES ERP / APPSHEET ---
-    const accion = contents.accion || "";
-    if (accion === "generarDescripcionIA") {
-      const resultado = gestionarAccionEnriquecimiento(contents.codigo);
-      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    if (accion === "actualizarEstadoWooCommerce") {
-      const resultado = handleAppSheetStatusUpdate(contents);
-      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
     }
 
     const esAccionDeInventario = accion.toLowerCase().includes("inventario") ||

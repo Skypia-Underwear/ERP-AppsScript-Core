@@ -83,27 +83,24 @@ function importarOrdenesDesdeWC() {
  * Se usa cuando el usuario audita y aprueba en AppSheet.
  */
 function handleAppSheetStatusUpdate(contents) {
-  const orderId = contents.idOrden;
-  const nuevoEstado = contents.nuevoEstado;
+  // 0. DIAGNÓSTICO Y MAPEATIVO
+  // AppSheet a veces anida los datos o usa nombres de columna directo
+  const orderId = contents.idOrden || contents.ID_ORDEN || (contents.data && contents.data.ID_ORDEN);
+  const nuevoEstado = contents.nuevoEstado || contents.ESTADO || (contents.data && contents.data.ESTADO);
+  
   const logArray = [];
   const log = (msg) => logArray.push(msg);
 
-  if (!orderId || !nuevoEstado) return { success: false, message: "Faltan parámetros (idOrden, nuevoEstado)" };
+  if (!orderId || !nuevoEstado) {
+    const errorMsg = `❌ AppSheet Sync falló: Faltan parámetros (idOrden:${orderId}, nuevoEstado:${nuevoEstado}). Recibido: ${JSON.stringify(contents)}`;
+    console.error(errorMsg);
+    return { success: false, message: errorMsg, received: contents };
+  }
+
+  log(`🛠️ AppSheet Sync: Orden #${orderId} -> ${nuevoEstado}`);
 
   try {
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
-    
-    // 1. OBTENER CREDENCIALES
-    const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
-    const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
-    const siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
-    const authHeader = 'Basic ' + Utilities.base64Encode(`${key}:${secret}`);
-
-    // LOG de inicio
-    log(`🛠️ AppSheet Sync: Orden #${orderId} -> ${nuevoEstado}`);
-
-    // 2. OBTENER ORDEN DE WOOCOMMERCE (Para traer ítems frescos)
-    const getUrl = `${siteUrl}wp-json/wc/v3/orders/${orderId}`;
     const getResponse = UrlFetchApp.fetch(getUrl, { 
       headers: { Authorization: authHeader },
       muteHttpExceptions: true 

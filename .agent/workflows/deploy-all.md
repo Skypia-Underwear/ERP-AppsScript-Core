@@ -30,12 +30,20 @@ Usa este workflow para asegurar que tanto tu Macro Principal como el Proyecto de
    clasp push --force
    # Nota: El Agente debe incrementar el número de versión manual o detectar el último
    clasp version "Sincronización Global"
-   clasp deploy -i AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg -d "Sincronización Global"
+   clasp deploy -i AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-1pwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg -d "Sincronización Global"
    
    # 3. Restauración de ID Original
    Copy-Item .clasp-backup.json .clasp.json
    Remove-Item .clasp-backup.json
    ```
+
+4. **Restauración Manual de Permisos (CRÍTICO)**
+   Debido a limitaciones de `clasp`, después de cada despliegue automático podrías ver el error "Necesitas acceso". Para solucionarlo:
+   1. Abre el editor de **Apps Script** (tanto tuyo como del cliente).
+   2. Ve a **Implementar > Administrar implementaciones**.
+   3. Edita la implementación activa (la última).
+   4. Asegúrate de que en "Quién tiene acceso" diga **"Cualquier persona"**.
+   5. Haz clic en **Implementar** y autoriza los permisos si te lo solicita.
 
 > [!CAUTION]
 > Si el script del cliente solicita acceso después de un despliegue, el usuario debe entrar al editor y re-autorizar los permisos (Scropes) manualmente una vez.
