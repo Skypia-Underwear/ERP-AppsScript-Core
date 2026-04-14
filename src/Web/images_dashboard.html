@@ -21,6 +21,23 @@
         right: 1rem;
     }
 
+    /* Select Mode Styles */
+    #btnToggleSelectMode.active {
+        background-color: #6366f1;
+        color: white;
+        border-color: #818cf8;
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    }
+
+    .is-select-mode .img-card:hover {
+        border-color: #818cf8;
+        transform: scale(1.02);
+    }
+
+    .is-select-mode .img-card.selected {
+        border-width: 3px;
+    }
+
     #img-manager-root {
         display: flex;
         flex-direction: column;
@@ -1316,6 +1333,11 @@
                                     class="hidden text-[10px] text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-wide border border-emerald-500/30 px-2 py-1 rounded transition">
                                     Guardar Orden
                                 </button>
+                                <button id="btnToggleSelectMode" onclick="toggleSelectMode()"
+                                    class="btn-responsive text-[10px] text-slate-400 hover:text-white font-bold uppercase tracking-wide border border-slate-700 px-2 py-1 rounded transition flex items-center gap-1" title="Modo Selección: Haz click en cualquier parte de la foto para marcarla">
+                                    <span class="material-icons text-[10px]">checklist</span>
+                                    <span class="btn-responsive-text">Modo Select</span>
+                                </button>
                                 <button onclick="seleccionarTodos(currentTabState)" id="btnSelectAll"
                                     class="btn-responsive text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-wide border border-blue-500/30 px-2 py-1 rounded transition flex items-center gap-1">
                                     <span class="material-icons text-[10px]">done_all</span>
@@ -1579,6 +1601,7 @@
     var pendingBatchForensicFileIds = []; // --- NUEVO: Rastreo de archivos para auditoría post-sync ---
     var _reloadTimeout = null; // --- NUEVO: Debounce de recarga ---
     var _reloadSkipLog = false; // --- NUEVO: Silenciar logs de recarga ---
+    var isSelectMode = false; // --- NUEVO: Modo selección activa ---
 
 
 
@@ -2333,7 +2356,7 @@
             autoOpenId = null;
         }
 
-        // --- NUEVO: Disparo de Auditoría Post-Sync (Modo Batch) ---
+        // --- NUEVO: Disparo de Auditoría Post-Sync (Modo Batch Inteligente) ---
         if (pendingBatchForensicFileIds.length > 0) {
             const idsParaAuditar = [];
             
@@ -2345,8 +2368,18 @@
             });
 
             if (idsParaAuditar.length > 0) {
-                log(`🧠 Detectadas ${idsParaAuditar.length} imágenes nuevas. Iniciando análisis forense automático...`, 'info');
-                idsParaAuditar.forEach(id => lanzarAuditoriaIA(false, true, id));
+                log(`🧠 Detectadas ${idsParaAuditar.length} imágenes nuevas. Iniciando análisis forense secuencial...`, 'info');
+                
+                // Procesamiento secuencial para evitar 429 (Too Many Requests)
+                const procesarSiguienteIA = async (lista) => {
+                    for (const id of lista) {
+                        await new Promise(resolve => {
+                            lanzarAuditoriaIA(false, true, id);
+                            setTimeout(resolve, 1500); // 1.5s entre cada una para seguridad de la cuota
+                        });
+                    }
+                };
+                procesarSiguienteIA(idsParaAuditar);
             }
             pendingBatchForensicFileIds = []; // Limpiar para el siguiente lote
         }
@@ -2390,7 +2423,7 @@
                 <div class="card-checkbox" onclick="event.stopPropagation(); toggleSelection('${img.IMAGEN_ID}', this.parentElement, ${img.ESTADO})">
                     <span class="material-icons check-icon text-sm text-white font-bold">${isSelected ? 'check' : ''}</span>
                 </div>
-                <div onclick="abrirModal(${jsonSafe})" class="w-full h-full relative">
+                <div onclick="handleCardClick(${jsonSafe}, event)" class="w-full h-full relative cursor-pointer">
                     ${imgHTML}
                     
                     <div class="status-badges-container">
@@ -2417,6 +2450,33 @@
     }
 
     // --- SELECCION ---
+    function toggleSelectMode() {
+        isSelectMode = !isSelectMode;
+        const btn = document.getElementById('btnToggleSelectMode');
+        const root = document.getElementById('img-manager-root');
+        
+        if (isSelectMode) {
+            btn.classList.add('active');
+            root.classList.add('is-select-mode');
+            log("Modo Selección Activado. Haz click en las fotos para seleccionarlas.", "info");
+        } else {
+            btn.classList.remove('active');
+            root.classList.remove('is-select-mode');
+            log("Modo Selección Desactivado.", "info");
+        }
+    }
+
+    function handleCardClick(img, event) {
+        if (isSelectMode) {
+            event.preventDefault();
+            event.stopPropagation();
+            const card = document.getElementById(`card-${img.IMAGEN_ID}`);
+            toggleSelection(img.IMAGEN_ID, card, img.ESTADO);
+        } else {
+            abrirModal(img);
+        }
+    }
+
     function toggleSelection(id, card, estado) {
         if (currentSelectionState !== null && currentSelectionState !== estado && !selectedImages.has(id)) { if (!confirm("¿Limpiar selección anterior?")) return; limpiarSeleccion(); }
         currentSelectionState = estado;
@@ -2582,10 +2642,19 @@
 
         _syncRunning = true;
         _syncPending = false;
+        
+        const btn = document.getElementById('btnSyncProd');
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons text-sm animate-spin">sync</span>Sincronizando...';
+        
         log(`Sync Drive ${currentProduct.sku}...`, 'info');
 
         google.script.run.withSuccessHandler(res => {
             _syncRunning = false;
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+            
             log(res.message, res.success ? 'success' : 'error');
             if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info'));
             if (res.success) recargar();
@@ -2597,6 +2666,9 @@
             }
         }).withFailureHandler(err => {
             _syncRunning = false;
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+            
             log(`❌ Error sync: ${err.message}`, 'error');
 
             if (_syncPending) {
