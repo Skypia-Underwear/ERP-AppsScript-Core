@@ -278,6 +278,7 @@
     .mini-badge.prompt { background: #6366f1; border-color: #818cf8; }
     .mini-badge.forense { background: #ea580c; border-color: #f97316; }
     .mini-badge.sync { background: #059669; border-color: #10b981; }
+    .mini-badge.heavy { background: #be123c; border-color: #fb7185; }
 
     .mini-badge .material-icons {
         font-size: 10px !important;
@@ -988,6 +989,64 @@
         }
     }
 
+    /* ============ MANTENIMIENTO POPOVER ============ */
+    .popover-menu {
+        position: absolute;
+        top: 100%;
+        right: 12px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        width: 200px;
+        z-index: 50;
+        overflow: hidden;
+        margin-top: 5px;
+        animation: fadeInScale 0.2s ease-out;
+    }
+    
+    @keyframes fadeInScale {
+        from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .popover-header {
+        padding: 10px 15px;
+        background: rgba(15, 23, 42, 0.5);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #64748b;
+        border-bottom: 1px solid #334155;
+    }
+
+    .popover-item {
+        width: 100%;
+        padding: 12px 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #cbd5e1;
+        font-size: 11px;
+        font-weight: 600;
+        text-align: left;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .popover-item:hover {
+        background: #334155;
+        color: #fff;
+    }
+
+    .popover-item .material-icons {
+        color: #6366f1;
+        font-size: 18px;
+    }
+
     /* ============ MOBILE FABs ============ */
     .mobile-fabs {
         display: none;
@@ -1324,8 +1383,26 @@
                                     class="text-[9px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded-full font-mono">0</span>
                             </button>
                             <div class="tab-actions">
-                                <button id="btnToggleReorder" onclick="toggleReorderMode()"
+                                <button id="btnToggleTools" onclick="toggleMaintenanceMenu()"
                                     class="btn-responsive text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide border border-indigo-500/30 px-2 py-1 rounded transition flex items-center gap-1">
+                                    <span class="material-icons text-sm">settings</span>
+                                    <span class="btn-responsive-text">Herramientas</span>
+                                </button>
+                                <div id="maintenancePopover" class="popover-menu" style="display:none;">
+                                    <div class="popover-header">Mantenimiento</div>
+                                    <div class="popover-content">
+                                        <button onclick="abrirOptimizador()" class="popover-item">
+                                            <span class="material-icons text-sm">speed</span>
+                                            Optimizar Imágenes
+                                        </button>
+                                        <button onclick="ejecutarSincronizacion()" class="popover-item">
+                                            <span class="material-icons text-sm">sync</span>
+                                            Sincronizar Drive
+                                        </button>
+                                    </div>
+                                </div>
+                                <button id="btnToggleReorder" onclick="toggleReorderMode()"
+                                    class="btn-responsive text-[10px] text-amber-400 hover:text-amber-300 font-bold uppercase tracking-wide border border-amber-500/30 px-2 py-1 rounded transition flex items-center gap-1">
                                     <span class="material-icons text-[10px]">sort</span>
                                     <span class="btn-responsive-text">Reordenar</span>
                                 </button>
@@ -1391,6 +1468,43 @@
         <button onclick="document.getElementById('cameraInput').click()" class="fab fab-camera" title="Tomar Foto">
             <span class="material-icons">photo_camera</span>
         </button>
+    </div>
+
+    <!-- MODAL OPTIMIZACIÓN -->
+    <div id="optimizationModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <span class="material-icons">speed</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Herramienta de Optimización</h3>
+                        <p class="text-xs text-slate-400">Reduce el peso del catálogo para mejorar el rendimiento.</p>
+                    </div>
+                </div>
+                <button onclick="cerrarOptimizador()" class="p-2 hover:bg-slate-700 rounded-lg text-slate-400">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <div id="optListContainer" class="p-6 max-h-[60vh] overflow-y-auto">
+                <div class="flex flex-col items-center justify-center py-10 text-slate-500">
+                    <div class="w-12 h-12 border-4 border-slate-800 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+                    <p>Escaneando archivos en Drive...</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-800/30 border-t border-slate-800 flex justify-between items-center">
+                <span id="optSummary" class="text-[10px] text-indigo-400 uppercase tracking-widest font-bold"></span>
+                <div class="flex gap-3">
+                    <button onclick="cerrarOptimizador()" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancelar</button>
+                    <button id="btnOptAll" onclick="optimizarTodoLote()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-900/20 disabled:opacity-50">
+                        Optimizar Pesados
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div> <!-- /img-manager-root -->
@@ -1836,15 +1950,15 @@
 
     /**
      * Comprime una imagen usando Canvas HTML5.
-     * Redimensiona a maxPx en su lado más largo y convierte a JPEG quality%.
+     * Redimensiona a maxPx en su lado más largo y convierte a formato.
      * @param {File} file Archivo de imagen del input.
-     * @param {number} maxPx Máximo de píxeles en lado largo (default: 1536).
-     * @param {number} quality Calidad JPEG 0-1 (default: 0.9).
+     * @param {number} maxPx Máximo de píxeles en lado largo.
+     * @param {number} quality Calidad 0-1.
+     * @param {string} format Formato MIME.
      * @returns {Promise<{base64: string, mimeType: string, name: string}>}
      */
-    function compressImage(file, maxPx = 2560, quality = 0.9) {
+    function compressImage(file, maxPx, quality, format = 'image/webp') {
         return new Promise((resolve, reject) => {
-            // Si no es imagen, devolver sin comprimir
             if (!file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = e => resolve({
@@ -1869,7 +1983,6 @@
                     const ratio = maxPx / originalMax;
                     width = Math.round(width * ratio);
                     height = Math.round(height * ratio);
-                    log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px`, 'info');
                 }
 
                 const canvas = document.createElement('canvas');
@@ -1878,20 +1991,21 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                const dataUrl = canvas.toDataURL(format, quality);
                 const compressedSize = Math.round(dataUrl.length * 3 / 4 / 1024);
                 const originalSize = Math.round(file.size / 1024);
-                log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px | ${originalSize}KB → ${compressedSize}KB (JPEG ${Math.round(quality * 100)}%)`, 'info');
+                
+                const formatLabel = format.split('/')[1].toUpperCase();
+                log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px | ${originalSize}KB → ${compressedSize}KB (${formatLabel} ${Math.round(quality * 100)}%)`, 'info');
 
                 resolve({
                     base64: dataUrl.split(',')[1],
-                    mimeType: 'image/jpeg',
-                    name: file.name.replace(/\.[^.]+$/, '.jpg')
+                    mimeType: format,
+                    name: file.name.replace(/\.[^.]+$/, `.${format.split('/')[1]}`)
                 });
             };
             img.onerror = () => {
                 URL.revokeObjectURL(url);
-                // Fallback: enviar sin comprimir
                 const reader = new FileReader();
                 reader.onload = e => resolve({
                     base64: e.target.result.split(',')[1],
@@ -1921,8 +2035,12 @@
 
         Array.from(files).forEach(async file => {
             try {
-                // Comprimir imagen a 2560px JPEG 90% antes de enviar (Mayor nitidez para IA)
-                const compressed = await compressImage(file, 2560, 0.9);
+                // Generar versión optimizada (WebP 2560px 0.85)
+                const compressed = await compressImage(file, 2560, 0.85, 'image/webp');
+                
+                // Obtener original para respaldo en subcarpeta JPG
+                const originalBase64 = file.type.startsWith('image/') ? await getOriginalBase64(file) : null;
+                
                 const base64 = compressed.base64;
                 const noSync = true;
 
@@ -1953,7 +2071,7 @@
                     log(`❌ Error crítico ${compressed.name}: ${err.message}`, 'error');
                     chequearFinProceso();
                 })
-                    .procesarSubidaDesdeDashboard(currentProduct.sku, base64, compressed.name, compressed.mimeType, currentProduct.carpeta_id, noSync);
+                    .procesarSubidaDesdeDashboard(currentProduct.sku, base64, compressed.name, compressed.mimeType, currentProduct.carpeta_id, noSync, originalBase64);
             } catch (compErr) {
                 processedCount++;
                 errorCount++;
@@ -2454,6 +2572,7 @@
                         ${img.PROMPT ? '<div class="mini-badge prompt" title="Tiene Prompt"><span class="material-icons">auto_awesome</span></div>' : ''}
                         ${(img.ANALISIS_FORENSE && String(img.ANALISIS_FORENSE).length > 10) ? '<div class="mini-badge forense active" title="Auditada (Forense)"><span class="material-icons">biotech</span></div>' : ''}
                         ${img.SYNC_WC ? '<div class="mini-badge sync" title="Sincronizada WP"><span class="material-icons">cloud_done</span></div>' : ''}
+                        ${driveWeights[img.ARCHIVO_ID] && driveWeights[img.ARCHIVO_ID].tamanoBytes > 2 * 1024 * 1024 ? '<div class="mini-badge heavy" title="Pesado: ' + driveWeights[img.ARCHIVO_ID].tamanoTexto + '"><span class="material-icons">warning</span></div>' : ''}
                     </div>
 
                     <span class="index-badge-mini">${index + 1}</span>
@@ -4013,11 +4132,135 @@
     }
 
     // --- Ctrl+K Shortcut ---
-    document.addEventListener('keydown', function (e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) searchInput.focus();
-        }
     });
+
+    // ============ MANTENIMIENTO Y OPTIMIZACIÓN ============
+    function toggleMaintenanceMenu() {
+        const menu = document.getElementById('maintenancePopover');
+        const isOpen = menu.style.display === 'block';
+        menu.style.display = isOpen ? 'none' : 'block';
+    }
+
+    function abrirOptimizador() {
+        const modal = document.getElementById('optimizationModal');
+        modal.style.display = 'flex';
+        renderizarOptList();
+    }
+
+    function cerrarOptimizador() {
+        document.getElementById('optimizationModal').style.display = 'none';
+    }
+
+    function renderizarOptList() {
+        const container = document.getElementById('optListContainer');
+        const summary = document.getElementById('optSummary');
+        const btnAll = document.getElementById('btnOptAll');
+        
+        container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-slate-500">
+            <div class="w-12 h-12 border-4 border-slate-800 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+            <p>Escaneando archivos en Drive...</p>
+        </div>`;
+
+        google.script.run.withSuccessHandler(res => {
+            if (!res.success) {
+                container.innerHTML = `<p class="text-red-400 text-center py-10">${res.message}</p>`;
+                return;
+            }
+
+            const heavyOnes = res.archivos.filter(f => f.tamanoBytes > 0.5 * 1024 * 1024);
+            if (heavyOnes.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-emerald-400">
+                                            <span class="material-icons text-5xl mb-2">check_circle</span>
+                                            <p class="font-bold uppercase tracking-widest text-xs text-emerald-400">Galeria Optimizada</p>
+                                            <p class="text-slate-400 text-[10px] mt-1">No se detectaron archivos pesados.</p>
+                                       </div>`;
+                summary.innerText = "0 ARCHIVOS CANDIDATOS";
+                btnAll.disabled = true;
+                return;
+            }
+
+            btnAll.disabled = false;
+            summary.innerText = `${heavyOnes.length} ARCHIVOS CANDIDATOS`;
+
+            container.innerHTML = heavyOnes.map(f => {
+                const isVeryHeavy = f.tamanoBytes > 2 * 1024 * 1024;
+                return `<div id="opt-item-${f.id}" class="flex items-center justify-between p-4 bg-slate-800/20 rounded-xl mb-3 border border-slate-800 hover:border-slate-700 transition">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+                                    <span class="material-icons text-lg ${isVeryHeavy ? 'text-rose-400' : 'text-amber-400'}">image</span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-white truncate max-w-[200px]">${f.nombre}</p>
+                                    <p class="text-[10px] ${isVeryHeavy ? 'text-rose-400 font-bold' : 'text-slate-400'}">${f.tamanoTexto} ${isVeryHeavy ? '⚠️ CRÍTICO' : ''}</p>
+                                </div>
+                            </div>
+                            <button id="btn-opt-${f.id}" onclick="optimizarUnico('${f.id}', '${f.nombre}')" class="p-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-lg transition">
+                                <span class="material-icons">bolt</span>
+                            </button>
+                        </div>`;
+            }).join('');
+        }).obtenerDetallesArchivosDrive(currentProduct.sku);
+    }
+
+    async function optimizarUnico(fileId, nombre) {
+        const item = document.getElementById(`opt-item-${fileId}`);
+        const btn = document.getElementById(`btn-opt-${fileId}`);
+        
+        btn.disabled = true;
+        btn.innerHTML = `<div class="w-5 h-5 border-2 border-indigo-400/20 border-t-indigo-400 rounded-full animate-spin"></div>`;
+        
+        try {
+            log(`📥 Descargando original: ${nombre}...`, 'info');
+            const fileData = await new Promise((resolve, reject) => {
+                google.script.run.withSuccessHandler(res => res.success ? resolve(res) : reject(res.message)).obtenerArchivoBase64(fileId);
+            });
+
+            log(`⚡ Comprimiendo a WebP 2560px...`, 'info');
+            const resp = await fetch(`data:${fileData.mimeType};base64,${fileData.base64}`);
+            const blob = await resp.blob();
+            const webp = await compressImage(blob, 2560, 0.9, 'image/webp');
+
+            log(`📤 Guardando versiones (Dual-Save)...`, 'info');
+            const saveRes = await new Promise((resolve, reject) => {
+                google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).optimizarYRespaldarImagenExistente(currentProduct.sku, fileId, webp.base64, fileData.name);
+            });
+
+            if (saveRes.success) {
+                log(`✅ ${nombre} optimizada correctamente.`, 'success');
+                item.style.opacity = '0.5';
+                item.style.borderColor = '#10b981';
+                btn.innerHTML = `<span class="material-icons text-emerald-400">check_circle</span>`;
+                
+                if (driveWeights[fileId]) {
+                    driveWeights[saveRes.newId] = {...driveWeights[fileId], tamanoTexto: '< 1 MB', tamanoBytes: 500000 };
+                    delete driveWeights[fileId];
+                }
+            } else {
+                throw new Error(saveRes.message);
+            }
+        } catch (err) {
+            log(`❌ Fallo en ${nombre}: ${err.message}`, 'error');
+            btn.innerHTML = `<span class="material-icons text-rose-500">priority_high</span>`;
+            btn.disabled = false;
+        }
+    }
+
+    async function optimizarTodoLote() {
+        const items = Array.from(document.querySelectorAll('[id^="btn-opt-"]')).filter(b => !b.disabled);
+        if (!items.length) return;
+        
+        document.getElementById('btnOptAll').disabled = true;
+        log(`🚀 Iniciando optimización por lotes para ${currentProduct.sku}...`, 'info');
+        
+        for (const btn of items) {
+            const fid = btn.id.replace('btn-opt-', '');
+            const name = btn.closest('.flex').querySelector('p').innerText;
+            await optimizarUnico(fid, name);
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        
+        log("✅ Optimización por lotes finalizada. Sincronizando resultados...", 'success');
+        ejecutarSincronizacion();
+        cerrarOptimizador();
+    }
 </script>

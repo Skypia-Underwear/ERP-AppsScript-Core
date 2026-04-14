@@ -78,7 +78,7 @@ function continuarSincronizacionGlobal() {
 // --- 2. GESTIÓN DE SUBIDA (ANTI-DUPLICADOS)
 // -----------------------------------------------------------------
 
-function procesarSubidaDesdeDashboard(sku, fileData, fileName, mimeType, carpetaId, noSync = false) {
+function procesarSubidaDesdeDashboard(sku, fileData, fileName, mimeType, carpetaId, noSync = false, originalFileData = null) {
   try {
     if (!sku) throw new Error("Error crítico: No se recibió SKU.");
 
@@ -109,6 +109,25 @@ function procesarSubidaDesdeDashboard(sku, fileData, fileName, mimeType, carpeta
       throw new Error(`Error al procesar archivo (posiblemente corrupto o muy pesado): ${blobErr.message}`);
     }
     const file = folder.createFile(blob);
+
+    // 4. GUARDAR ORIGINAL EN SUB-CARPETA JPG (Si aplica y se recibe)
+    if (originalFileData && mimeType.startsWith('image/')) {
+      try {
+        const subFolder = obtenerOCrearSubcarpeta(folder, "JPG");
+        const decodedOri = Utilities.base64Decode(originalFileData);
+        const baseName = fileName.includes('.') ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+        const ext = fileName.includes('.') ? fileName.split('.').pop() : 'jpg';
+        const oriFileName = `${sku}-${baseName}-ORI.${ext}`;
+        
+        // Evitar duplicar originales si ya existen (opcional)
+        const oldOris = subFolder.getFilesByName(oriFileName);
+        if (!oldOris.hasNext()) {
+          subFolder.createFile(Utilities.newBlob(decodedOri, mimeType, oriFileName));
+        }
+      } catch (eOri) {
+        console.warn("No se pudo guardar respaldo original: " + eOri.message);
+      }
+    }
 
     // Sincronizar (con pequeño delay para que Drive indexe)
     if (!noSync) {
@@ -3522,5 +3541,147 @@ function img_marcarPendienteAuditoria(sku, cantidadNuevas) {
   } catch (e) {
     console.error(`Error en img_marcarPendienteAuditoria: ${e.message}`);
     return false;
+  }
+}
+/**
+ * Función de mantenimiento: Optimiza una imagen existente, mueve la pesada a JPG y actualiza la BD.
+ */
+function optimizarYRespaldarImagenExistente(sku, oldFileId, webpBase64, originalFileName) {
+  try {
+    const ss = getImagesSpreadsheet();
+    const sheet = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+    const col = HeaderManager.getMapping("PRODUCT_IMAGES");
+    
+    // 1. Obtener archivos y carpetas
+    const oldFile = DriveApp.getFileById(oldFileId);
+    const parentFolder = oldFile.getParents().next();
+    const subFolderJpg = obtenerOCrearSubcarpeta(parentFolder, "JPG");
+    
+    // 2. Mover archivo original a /JPG/ (si no está ya allí)
+    const baseName = originalFileName.includes('.') ? originalFileName.substring(0, originalFileName.lastIndexOf('.')) : originalFileName;
+    const ext = originalFileName.includes('.') ? originalFileName.split('.').pop() : 'jpg';
+    const newOriName = `${sku}-${baseName}-ORI.${ext}`;
+    
+    // Si ya existe un original con ese nombre, le ponemos un sufijo de tiempo para no borrar nada
+    let finalOriName = newOriName;
+    if (subFolderJpg.getFilesByName(newOriName).hasNext()) {
+      finalOriName = `${sku}-${baseName}-ORI-${Date.now()}.${ext}`;
+    }
+    
+    oldFile.setName(finalOriName);
+    oldFile.moveTo(subFolderJpg);
+    
+    // 3. Crear el nuevo archivo WebP en la raíz
+    const decodedWebp = Utilities.base64Decode(webpBase64);
+    const newWebpName = `${sku}-${baseName}.webp`;
+    const newWebpFile = parentFolder.createFile(Utilities.newBlob(decodedWebp, "image/webp", newWebpName));
+    const newFileId = newWebpFile.getId();
+    
+    // 4. ACTUALIZAR BASE DE DATOS (Prevención de Huérfanos)
+    const data = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][col["ARCHIVO_ID"]]) === oldFileId) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (rowIndex !== -1) {
+      const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME;
+      const sheetName = SHEETS.PRODUCT_IMAGES;
+      const relativePath = `${SHEETS.PRODUCT_IMAGES}_Images/${sku}/${newWebpName}`;
+      const publicUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${encodeURIComponent(appName)}&tableName=${encodeURIComponent(sheetName)}&fileName=${encodeURIComponent(relativePath)}`;
+      
+      sheet.getRange(rowIndex, col["ARCHIVO_ID"] + 1).setValue(newFileId);
+      sheet.getRange(rowIndex, col["IMAGEN_RUTA"] + 1).setValue(relativePath);
+      sheet.getRange(rowIndex, col["URL"] + 1).setValue(publicUrl);
+      sheet.getRange(rowIndex, col["TIPO_ARCHIVO"] + 1).setValue("imagen"); // Forzamos imagen (WebP)
+      
+      // Intentar actualizar Thumbnail si es necesario (el sync lo haría pero así es instantáneo)
+      if (col["THUMBNAIL_URL"] !== undefined) {
+          sheet.getRange(rowIndex, col["THUMBNAIL_URL"] + 1).setValue(publicUrl);
+      }
+      
+      SpreadsheetApp.flush();
+      return { success: true, message: "Imagen optimizada y registro actualizado correctamente.", newId: newFileId };
+    }
+    
+    return { success: false, message: "Se optimizó el archivo pero no se encontró el registro en la base de datos para actualizar." };
+    
+  } catch (e) {
+    return { success: false, message: "Error optimizando: " + e.message };
+  }
+}
+
+/**
+ * Helper para obtener o crear una subcarpeta (evita duplicados)
+ */
+function obtenerOCrearSubcarpeta(parentFolder, subFolderName) {
+  const folders = parentFolder.getFoldersByName(subFolderName);
+  if (folders.hasNext()) return folders.next();
+  return parentFolder.createFolder(subFolderName);
+}
+/**
+ * Escanea la carpeta de un producto en Drive y devuelve detalles de peso y nombre de todos los archivos.
+ * Útil para el Monitor de Peso sin saturar la base de datos principal.
+ */
+function obtenerDetallesArchivosDrive(sku) {
+  try {
+    const folder = obtenerOCrearCarpetaProducto(sku);
+    const files = folder.getFiles();
+    const detalles = [];
+    
+    while (files.hasNext()) {
+      const f = files.next();
+      if (f.getMimeType().includes('image')) {
+        detalles.push({
+          id: f.getId(),
+          nombre: f.getName(),
+          tamanoBytes: f.getSize(),
+          tamanoTexto: (f.getSize() / (1024 * 1024)).toFixed(2) + " MB"
+        });
+      }
+    }
+    
+    // También escanear carpeta JPG si existe
+    const subfolders = folder.getFoldersByName("JPG");
+    if (subfolders.hasNext()) {
+      const subJpg = subfolders.next();
+      const filesJpg = subJpg.getFiles();
+      while (filesJpg.hasNext()) {
+        const f = filesJpg.next();
+        detalles.push({
+          id: f.getId(),
+          nombre: `JPG/${f.getName()}`,
+          tamanoBytes: f.getSize(),
+          tamanoTexto: (f.getSize() / (1024 * 1024)).toFixed(2) + " MB",
+          esOriginal: true
+        });
+      }
+    }
+    
+    return { success: true, archivos: detalles };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
+/**
+ * Descarga una imagen de Drive y la devuelve en Base64 para que el navegador la procese.
+ */
+function obtenerArchivoBase64(fileId) {
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const blob = file.getBlob();
+    const base64 = Utilities.base64Encode(blob.getBytes());
+    return {
+      success: true,
+      base64: base64,
+      mimeType: blob.getContentType(),
+      name: file.getName()
+    };
+  } catch (e) {
+    return { success: false, message: e.message };
   }
 }
