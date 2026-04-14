@@ -118,7 +118,7 @@ function procesarSubidaDesdeDashboard(sku, fileData, fileName, mimeType, carpeta
         const baseName = fileName.includes('.') ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
         const ext = fileName.includes('.') ? fileName.split('.').pop() : 'jpg';
         const oriFileName = `${sku}-${baseName}-ORI.${ext}`;
-        
+
         // Evitar duplicar originales si ya existen (opcional)
         const oldOris = subFolder.getFilesByName(oriFileName);
         if (!oldOris.hasNext()) {
@@ -318,6 +318,7 @@ function eliminarCarpetaProducto(sku) {
 function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
   const log = logArray ? (msg) => logArray.push(msg) : (msg) => console.log(msg);
   const startTime = Date.now();
+  const timestamp = new Date(); // Definición global del timestamp para la sesión
   const MAX_EXECUTION_MS = 2 * 60 * 1000; // 2 minutos — margen de seguridad vs los 6 min de Apps Script
   const lock = LockService.getScriptLock();
   try { lock.waitLock(30000); } catch (e) { log('⚠️ Servidor ocupado.'); return; }
@@ -369,9 +370,22 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
     const nuevasFilas = [];
     const actualizaciones = []; // Array { rowIndex, rowData }
     const filasBorrar = [];
-    const timestamp = new Date();
-    const dbFilesMap = new Map();
     const existingRoutesMap = new Set();
+    const dbFilesMap = new Map();
+
+    // --- NUEVO: Asegurar columnas de metadatos ---
+    if (col['PESO_ARCHIVO'] === undefined || col['FORMATO_ARCHIVO'] === undefined) {
+      log("🛠 Expandiendo base de datos con columnas de metadatos...");
+      const lastC = sheetImg.getLastColumn();
+      const headers = sheetImg.getRange(1, 1, 1, lastC).getValues()[0];
+      const tipoIdx = headers.indexOf("TIPO_ARCHIVO");
+      if (tipoIdx !== -1) {
+        sheetImg.insertColumnsAfter(tipoIdx + 1, 2);
+        sheetImg.getRange(1, tipoIdx + 2, 1, 2).setValues([["PESO_ARCHIVO", "FORMATO_ARCHIVO"]]);
+        HeaderManager.clearCache(); // Regenerar mapeo
+        return sincronizarImagenes(productoIdFiltro, logArray); // Reiniciar sync con nuevo mapeo
+      }
+    }
 
     for (let i = 1; i < dataImg.length; i++) {
       const fId = String(dataImg[i][col['ARCHIVO_ID']]);
@@ -480,13 +494,11 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           }
 
           archivosVistosEnDrive.add(fileId);
-
+          const extension = fileName.includes('.') ? fileName.split('.').pop() : (mime.includes('video') ? 'mp4' : 'jpg');
           if (!mime.includes('folder')) {
-            const extension = fileName.includes('.') ? fileName.split('.').pop() : (mime.includes('video') ? 'mp4' : 'jpg');
-
             // ESTRATEGIA ESTABLE: SKU + Hash del ID. El nombre NO cambia si cambia el orden en la galería.
             const shortId = fileId.substring(0, 5);
-            const nuevoNombreBase = `${prod.sku}-${shortId}.${extension}`;
+            const nuevoNombreBase = prod.sku + '-' + shortId + '.' + extension;
 
             try {
               if (mime.includes('video')) {
@@ -578,6 +590,8 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           if (mime.includes('image')) tipoArchivo = 'imagen';
           else if (mime.includes('video')) tipoArchivo = 'video';
           setVal('TIPO_ARCHIVO', tipoArchivo);
+          setVal('PESO_ARCHIVO', file.getSize());
+          setVal('FORMATO_ARCHIVO', extension.toUpperCase());
           setVal('THUMBNAIL_URL', thumbnailUrl);
 
           if (yaExistePorId) {
@@ -600,26 +614,26 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
     // SEPARACIÓN DE CONCERNS: Solo auditar y borrar huérfanos en modo unitario (1 SKU)
     // En modo global, omitimos el borrado para maximizar velocidad con +7000 archivos (según diseño original)
     if (productoIdFiltro) {
-        // En lugar de usar dbFilesMap (que solo tiene registros con ARCHIVO_ID), 
-        // barremos dataImg para encontrar TODOS los registros que pertenecen a este SKU.
-        for (let i = 1; i < dataImg.length; i++) {
-            const pId = String(dataImg[i][col['PRODUCTO_ID']]).trim();
-            if (pId === String(productoIdFiltro)) {
-                const fId = String(dataImg[i][col['ARCHIVO_ID']]);
-                const rowIndex = i + 1;
-                // Si el ID de archivo no se vio en Drive (o si no tiene ID), es un huérfano
-                if (!archivosVistosEnDrive.has(fId)) {
-                    filasBorrar.push(rowIndex);
-                }
-            }
+      // En lugar de usar dbFilesMap (que solo tiene registros con ARCHIVO_ID), 
+      // barremos dataImg para encontrar TODOS los registros que pertenecen a este SKU.
+      for (let i = 1; i < dataImg.length; i++) {
+        const pId = String(dataImg[i][col['PRODUCTO_ID']]).trim();
+        if (pId === String(productoIdFiltro)) {
+          const fId = String(dataImg[i][col['ARCHIVO_ID']]);
+          const rowIndex = i + 1;
+          // Si el ID de archivo no se vio en Drive (o si no tiene ID), es un huérfano
+          if (!archivosVistosEnDrive.has(fId)) {
+            filasBorrar.push(rowIndex);
+          }
         }
+      }
     }
 
     if (nuevasFilas.length > 0) {
       sheetImg.getRange(sheetImg.getLastRow() + 1, 1, nuevasFilas.length, headersImg.length).setValues(nuevasFilas);
       const videos = nuevasFilas.filter(r => r[col['TIPO_ARCHIVO']] === 'video').length;
       log(`✅ +${nuevasFilas.length} nuevas${videos > 0 ? ` (incluye ${videos} video)` : ""}.`);
-      
+
       // ALERTA DE AUDITORÍA: Si es sincronización unitaria y hay nuevas, avisar
       if (productoIdFiltro) {
         try {
@@ -658,7 +672,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
         // Restaurar metadatos críticos de la IA y sincronización externa
         const setVal = (c, v) => { if (col[c] !== undefined && v !== undefined && v !== "") u.rowData[col[c]] = v; };
-        
+
         setVal('IMAGEN_ID', oldID);
         setVal('ESTADO', oldEstado);
         setVal('ANALISIS_FORENSE', oldAnalisis);
@@ -1291,14 +1305,14 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
       // Reglas de composición específicas para HERO y COLLAGE
       let compositionRules = "";
       if (estilo === 'hero') {
-          compositionRules = `
+        compositionRules = `
           HERO COMPOSITION MANDATE:
           - Layout: Commercial split-view or offset arrangement.
           - Primary Focus: One large, clear representation of the garment (The Hero).
           - Secondary Focus: Neatly arranged color variants or detail swatches positioned at the bottom or side.
           - Balance: Use clean negative space between the Hero and variants to avoid visual clutter.`;
       } else if (estilo === 'collage') {
-          compositionRules = `
+        compositionRules = `
           COLLAGE CATALOG MANDATE:
           - Layout: Professional multi-image grid (2x2 or 1+2).
           - Content: Harmonious assembly of all provided reference views in a single high-end catalog page.
@@ -1584,18 +1598,18 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
          ${prefixPrompt}
 
         ${(() => {
-          const isComposition = estiloSolicitadoL === 'hero' || estiloSolicitadoL === 'collage';
-          let colorMandate = "";
-          if (isComposition) {
-            colorMandate = `- MANDATO DE COLOR: Extraer y aplicar TODOS los colores y patrones técnicos visibles en las imágenes de referencia (pila/percha/variantes) sobre el molde del producto principal. Fidelidad absoluta a la paleta detectada.`;
-          } else {
-            colorMandate = `- MANDATO DE COLOR: Si la prenda es LISA, incluir: "La prenda es obligatoriamente de color [Nombre] con código HEX [HEX] exacto". Si tiene ESTAMPADOS, incluir: "La prenda presenta un diseño con la paleta de colores detectada, manteniendo fidelidad absoluta de la textura original".`;
-          }
-          return `FICHA TÉCNICA DE GENERACIÓN (OBLIGATORIA):
+        const isComposition = estiloSolicitadoL === 'hero' || estiloSolicitadoL === 'collage';
+        let colorMandate = "";
+        if (isComposition) {
+          colorMandate = `- MANDATO DE COLOR: Extraer y aplicar TODOS los colores y patrones técnicos visibles en las imágenes de referencia (pila/percha/variantes) sobre el molde del producto principal. Fidelidad absoluta a la paleta detectada.`;
+        } else {
+          colorMandate = `- MANDATO DE COLOR: Si la prenda es LISA, incluir: "La prenda es obligatoriamente de color [Nombre] con código HEX [HEX] exacto". Si tiene ESTAMPADOS, incluir: "La prenda presenta un diseño con la paleta de colores detectada, manteniendo fidelidad absoluta de la textura original".`;
+        }
+        return `FICHA TÉCNICA DE GENERACIÓN (OBLIGATORIA):
     ${colorMandate}
     - RELACIÓN DE ASPECTO: ${extraSpecs.aspectRatio || '3:4'} (Mandatorio).
     - MODELO OPTIMIZADO: ${extraSpecs.model || 'Imagen 3'}.`;
-        })()}
+      })()}
     `;
 
     // Modelos según cuenta: Free = Gemma 3 primero. Paid = Gemini solo.
@@ -1770,7 +1784,7 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     // --- NUEVO: Blindaje de Identidad Técnica (Forensic Accumulator) ---
     const allForensics = selectedRows.map(r => (r.ANALISIS_FORENSE || "").toUpperCase()).join("\n");
     const hasLogosDetected = allForensics.includes("LOGO: SÍ") || allForensics.includes("VISIBLE: SÍ") || allForensics.includes("RAYO") || allForensics.includes("LOGO");
-    
+
     let identitySanctityMandate = "";
     if (hasLogosDetected) {
       identitySanctityMandate = `
@@ -1887,13 +1901,13 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
           - You MUST describe a clean grid layout ("clean multi-shot catalog spread") that includes ALL provided perspectives.
           - NO OVERLAP: Use clean negative space (10-15%) to separate each angle. AVOIDING any merging or ghosting.
           - The prompt MUST explicitly mention: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo."` :
-        isSplitRequested ?
-          `SPLIT-VIEW COMPOSITION MODE (MANDATORY):
+          isSplitRequested ?
+            `SPLIT-VIEW COMPOSITION MODE (MANDATORY):
           - You MUST describe a synchronized SPLIT-VIEW composition (Front and Back).
           - The prompt MUST explicitly mention: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".` :
-          `SINGLE VIEW MODE:
+            `SINGLE VIEW MODE:
           - Describe a single high-end viewing angle based on the Master reference.`
-        }
+      }
 
         STYLE INSTRUCTIONS:
         ${promptRules}
@@ -2045,7 +2059,7 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
 
     const finalError = erroresAcumulados.join(" | ");
     const isSaturationError = finalError.includes("high demand") || finalError.includes("Quota") || finalError.includes("Spikes in demand");
-    
+
     let message = `Todos los modelos fallaron. Detalles: ${finalError}`;
     if (isSaturationError) {
       message = `⚠️ AVISO DE SATURACIÓN (GOOGLE CLOUD): Los servidores de Google están experimentando una alta demanda temporal. Esto NO es un error de código, es un cuello de botella externo. 🚀 Sugerencia: Reintenta en 2 minutos o reduce la cantidad de imágenes seleccionadas.`;
@@ -3245,7 +3259,7 @@ function checkNewProductsFlag(skusExistentes) {
     const idxNombre = mapping["MODELO"];
     const idxCarpeta = mapping["CARPETA_ID"];
     const idxCategoria = mapping["CATEGORIA"];
-    
+
     // Soporte para ambos nombres de columna (Alias)
     const idxCatPadre = (mapping["CATEGORIA_PADRE"] !== undefined) ? mapping["CATEGORIA_PADRE"] : mapping["CATEGORIA_GENERAL"];
     const idxWoo = mapping["WOO_ID"];
@@ -3257,12 +3271,12 @@ function checkNewProductsFlag(skusExistentes) {
       try {
         const row = data[i];
         if (idxSku === undefined) break; // Error crítico de mapeo
-        
+
         const sku = String(row[idxSku]).trim();
         if (sku && sku !== "" && !setExistentes.has(sku)) {
           // Extracción segura (si el índice no existe, devuelve cadena vacía en lugar de romper el script)
           const getVal = (idx) => (idx !== undefined && row[idx] !== undefined) ? String(row[idx]).trim() : "";
-          
+
           nuevosProductos.push({
             sku: sku,
             nombre: getVal(idxNombre) || "Sin Nombre",
@@ -3474,24 +3488,24 @@ function getPrecioGCP(skuId) {
 function descargarImagenesBatch(sku, ids) {
   try {
     const blobs = [];
-    for(const id of ids) {
+    for (const id of ids) {
       try {
         const f = DriveApp.getFileById(id);
         const b = f.getBlob();
         b.setName(sku + '/' + f.getName());
         blobs.push(b);
-      } catch(e) {}
+      } catch (e) { }
     }
-    if(!blobs.length) return {success: false, message: 'No se hallaron los archivos en Drive para armar el ZIP.'};
-    
+    if (!blobs.length) return { success: false, message: 'No se hallaron los archivos en Drive para armar el ZIP.' };
+
     const zipBlob = Utilities.zip(blobs, sku + '_export.zip');
     return {
-       success: true, 
-       base64: Utilities.base64Encode(zipBlob.getBytes()), 
-       filename: sku + '_export.zip'
+      success: true,
+      base64: Utilities.base64Encode(zipBlob.getBytes()),
+      filename: sku + '_export.zip'
     };
-  } catch(e) {
-    return {success: false, message: e.message};
+  } catch (e) {
+    return { success: false, message: e.message };
   }
 }
 
@@ -3502,13 +3516,13 @@ function descargarImagenUnica(sku, id) {
   try {
     const f = DriveApp.getFileById(id);
     return {
-       success: true, 
-       base64: Utilities.base64Encode(f.getBlob().getBytes()), 
-       filename: f.getName(), 
-       mimeType: f.getMimeType()
+      success: true,
+      base64: Utilities.base64Encode(f.getBlob().getBytes()),
+      filename: f.getName(),
+      mimeType: f.getMimeType()
     };
-  } catch(e) {
-    return {success: false, message: e.message};
+  } catch (e) {
+    return { success: false, message: e.message };
   }
 }
 
@@ -3524,11 +3538,11 @@ function img_marcarPendienteAuditoria(sku, cantidadNuevas) {
     const config = GLOBAL_CONFIG.TELEGRAM;
     if (config.BOT_TOKEN && config.CHAT_ID) {
       const msg = `📸 <b>NUEVAS IMÁGENES DETECTADAS</b>\n\n` +
-                  `• <b>Producto:</b> <code>${sku}</code>\n` +
-                  `• <b>Cantidad:</b> ${cantidadNuevas} archivos\n` +
-                  `• <b>Acción:</b> Sincronización AppSheet\n\n` +
-                  `🚀 El producto ha sido marcado como <b>PENDIENTE DE AUDITORÍA</b>. Revisa el Dashboard de Imágenes para generar contenido IA.`;
-      
+        `• <b>Producto:</b> <code>${sku}</code>\n` +
+        `• <b>Cantidad:</b> ${cantidadNuevas} archivos\n` +
+        `• <b>Acción:</b> Sincronización AppSheet\n\n` +
+        `🚀 El producto ha sido marcado como <b>PENDIENTE DE AUDITORÍA</b>. Revisa el Dashboard de Imágenes para generar contenido IA.`;
+
       const keyboard = {
         inline_keyboard: [
           [{ text: "🖼️ Ver en Dashboard", url: ScriptApp.getService().getUrl() + "?view=imagenes_manager" }]
@@ -3543,76 +3557,6 @@ function img_marcarPendienteAuditoria(sku, cantidadNuevas) {
     return false;
   }
 }
-/**
- * Función de mantenimiento: Optimiza una imagen existente, mueve la pesada a JPG y actualiza la BD.
- */
-function optimizarYRespaldarImagenExistente(sku, oldFileId, webpBase64, originalFileName) {
-  try {
-    const ss = getImagesSpreadsheet();
-    const sheet = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
-    const col = HeaderManager.getMapping("PRODUCT_IMAGES");
-    
-    // 1. Obtener archivos y carpetas
-    const oldFile = DriveApp.getFileById(oldFileId);
-    const parentFolder = oldFile.getParents().next();
-    const subFolderJpg = obtenerOCrearSubcarpeta(parentFolder, "JPG");
-    
-    // 2. Mover archivo original a /JPG/ (si no está ya allí)
-    const baseName = originalFileName.includes('.') ? originalFileName.substring(0, originalFileName.lastIndexOf('.')) : originalFileName;
-    const ext = originalFileName.includes('.') ? originalFileName.split('.').pop() : 'jpg';
-    const newOriName = `${sku}-${baseName}-ORI.${ext}`;
-    
-    // Si ya existe un original con ese nombre, le ponemos un sufijo de tiempo para no borrar nada
-    let finalOriName = newOriName;
-    if (subFolderJpg.getFilesByName(newOriName).hasNext()) {
-      finalOriName = `${sku}-${baseName}-ORI-${Date.now()}.${ext}`;
-    }
-    
-    oldFile.setName(finalOriName);
-    oldFile.moveTo(subFolderJpg);
-    
-    // 3. Crear el nuevo archivo WebP en la raíz
-    const decodedWebp = Utilities.base64Decode(webpBase64);
-    const newWebpName = `${sku}-${baseName}.webp`;
-    const newWebpFile = parentFolder.createFile(Utilities.newBlob(decodedWebp, "image/webp", newWebpName));
-    const newFileId = newWebpFile.getId();
-    
-    // 4. ACTUALIZAR BASE DE DATOS (Prevención de Huérfanos)
-    const data = sheet.getDataRange().getValues();
-    let rowIndex = -1;
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][col["ARCHIVO_ID"]]) === oldFileId) {
-        rowIndex = i + 1;
-        break;
-      }
-    }
-    
-    if (rowIndex !== -1) {
-      const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME;
-      const sheetName = SHEETS.PRODUCT_IMAGES;
-      const relativePath = `${SHEETS.PRODUCT_IMAGES}_Images/${sku}/${newWebpName}`;
-      const publicUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${encodeURIComponent(appName)}&tableName=${encodeURIComponent(sheetName)}&fileName=${encodeURIComponent(relativePath)}`;
-      
-      sheet.getRange(rowIndex, col["ARCHIVO_ID"] + 1).setValue(newFileId);
-      sheet.getRange(rowIndex, col["IMAGEN_RUTA"] + 1).setValue(relativePath);
-      sheet.getRange(rowIndex, col["URL"] + 1).setValue(publicUrl);
-      sheet.getRange(rowIndex, col["TIPO_ARCHIVO"] + 1).setValue("imagen"); // Forzamos imagen (WebP)
-      
-      // Intentar actualizar Thumbnail si es necesario (el sync lo haría pero así es instantáneo)
-      if (col["THUMBNAIL_URL"] !== undefined) {
-          sheet.getRange(rowIndex, col["THUMBNAIL_URL"] + 1).setValue(publicUrl);
-      }
-      
-      SpreadsheetApp.flush();
-      return { success: true, message: "Imagen optimizada y registro actualizado correctamente.", newId: newFileId };
-    }
-    
-    return { success: false, message: "Se optimizó el archivo pero no se encontró el registro en la base de datos para actualizar." };
-    
-  } catch (e) {
-    return { success: false, message: "Error optimizando: " + e.message };
-  }
-}
 
 /**
  * Helper para obtener o crear una subcarpeta (evita duplicados)
@@ -3622,66 +3566,4 @@ function obtenerOCrearSubcarpeta(parentFolder, subFolderName) {
   if (folders.hasNext()) return folders.next();
   return parentFolder.createFolder(subFolderName);
 }
-/**
- * Escanea la carpeta de un producto en Drive y devuelve detalles de peso y nombre de todos los archivos.
- * Útil para el Monitor de Peso sin saturar la base de datos principal.
- */
-function obtenerDetallesArchivosDrive(sku) {
-  try {
-    const folder = obtenerOCrearCarpetaProducto(sku);
-    const files = folder.getFiles();
-    const detalles = [];
-    
-    while (files.hasNext()) {
-      const f = files.next();
-      if (f.getMimeType().includes('image')) {
-        detalles.push({
-          id: f.getId(),
-          nombre: f.getName(),
-          tamanoBytes: f.getSize(),
-          tamanoTexto: (f.getSize() / (1024 * 1024)).toFixed(2) + " MB"
-        });
-      }
-    }
-    
-    // También escanear carpeta JPG si existe
-    const subfolders = folder.getFoldersByName("JPG");
-    if (subfolders.hasNext()) {
-      const subJpg = subfolders.next();
-      const filesJpg = subJpg.getFiles();
-      while (filesJpg.hasNext()) {
-        const f = filesJpg.next();
-        detalles.push({
-          id: f.getId(),
-          nombre: `JPG/${f.getName()}`,
-          tamanoBytes: f.getSize(),
-          tamanoTexto: (f.getSize() / (1024 * 1024)).toFixed(2) + " MB",
-          esOriginal: true
-        });
-      }
-    }
-    
-    return { success: true, archivos: detalles };
-  } catch (e) {
-    return { success: false, message: e.message };
-  }
-}
 
-/**
- * Descarga una imagen de Drive y la devuelve en Base64 para que el navegador la procese.
- */
-function obtenerArchivoBase64(fileId) {
-  try {
-    const file = DriveApp.getFileById(fileId);
-    const blob = file.getBlob();
-    const base64 = Utilities.base64Encode(blob.getBytes());
-    return {
-      success: true,
-      base64: base64,
-      mimeType: blob.getContentType(),
-      name: file.getName()
-    };
-  } catch (e) {
-    return { success: false, message: e.message };
-  }
-}
