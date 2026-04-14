@@ -188,6 +188,7 @@ function obtenerMetadataProductoActualizada(sku) {
   }
 }
 
+function obtenerOCrearCarpetaProducto(sku) {
   const ss = getImagesSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
   const mapping = HeaderManager.getMapping("PRODUCTS");
