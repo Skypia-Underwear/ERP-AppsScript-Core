@@ -1,13 +1,9 @@
-
 /**
  * Manejador de solicitudes GET (Para pruebas de alcance)
+ * Redirecciona al Router Principal (Línea 838+)
  */
 function doGet(e) {
-  const msg = "✅ Webhook URL alcanzó el script correctamente (GET).";
-  try {
-    registrarRawWebhook({ parameter: { source: "manual_browser_test" }, headers: {}, postData: { contents: "GET_TEST" } });
-  } catch(e){}
-  return ContentService.createTextOutput(msg).setMimeType(ContentService.MimeType.TEXT);
+  return doGet_MainRouter(e);
 }
 
 /**
@@ -15,15 +11,36 @@ function doGet(e) {
  */
 function doPost(e) {
   let logId = null;
-  try { logId = registrarRawWebhook(e); } catch(i){}
+
+  // --- PROTECCIÓN TEMPRANA CONTRA BUCLES DE TELEGRAM ---
+  try {
+    const rawData = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
+    if (rawData.includes('"update_id"')) {
+      const tgUpdate = JSON.parse(rawData);
+      if (tgUpdate.update_id) {
+        const cache = CacheService.getScriptCache();
+        const cacheKey = "msg_" + tgUpdate.update_id;
+        if (cache.get(cacheKey)) {
+          return ContentService.createTextOutput("ok").setMimeType(ContentService.MimeType.TEXT);
+        }
+        cache.put(cacheKey, "true", 86400);
+
+        if (tgUpdate.message && tgUpdate.message.pinned_message) {
+          return ContentService.createTextOutput("ok").setMimeType(ContentService.MimeType.TEXT);
+        }
+      }
+    }
+  } catch (err) { }
+
+  try { logId = registrarRawWebhook(e); } catch (i) { }
 
   // --- RESPUESTA ULTRA-RÁPIDA PARA PINGS (Protocolo WooCommerce) ---
   // Se hace ANTES del log para garantizar que no haya timeouts
   try {
     const rawData = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
-    const isWcPing = rawData.indexOf("webhook_id=") !== -1 || 
-                     (e.parameter && (e.parameter.webhook_id || e.parameter.source === "woocommerce" && rawContents === ""));
-    
+    const isWcPing = rawData.indexOf("webhook_id=") !== -1 ||
+      (e.parameter && (e.parameter.webhook_id || e.parameter.source === "woocommerce" && rawContents === ""));
+
     if (isWcPing) {
       if (logId) actualizarResultadoWebhook(logId, "PONG (WooCommerce Check)");
       return ContentService.createTextOutput("ok").setMimeType(ContentService.MimeType.TEXT);
@@ -38,16 +55,16 @@ function doPost(e) {
 
   try {
     if (!e || !e.postData) {
-       return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
     }
 
     const rawContents = e.postData.contents || "";
     const headers = e.headers || {};
-    
+
     // --- DETECCIÓN DE WOOCOMMERCE ORDEN ---
     const topic = headers['X-Wc-Webhook-Topic'] || headers['x-wc-webhook-topic'] || "";
-    const isWcOrder = topic.includes("order") || 
-                       (e.parameter && e.parameter.source === "woocommerce" && rawContents.includes('"id":') && rawContents.includes('"line_items":'));
+    const isWcOrder = topic.includes("order") ||
+      (e.parameter && e.parameter.source === "woocommerce" && rawContents.includes('"id":') && rawContents.includes('"line_items":'));
 
     if (isWcOrder) {
       try {
@@ -55,10 +72,10 @@ function doPost(e) {
         const result = handleWooCommerceWebhook(orderData);
         if (logId) actualizarResultadoWebhook(logId, "WC_WEBHOOK: " + (result.success ? "OK" : "ERROR: " + result.message));
         return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
-      } catch(ex) {
+      } catch (ex) {
         console.error("❌ Error en handleWooCommerceWebhook: " + ex.message);
         if (logId) actualizarResultadoWebhook(logId, "WC_WEBHOOK_CRASH: " + ex.message);
-        return ContentService.createTextOutput(JSON.stringify({success: false, error: ex.message})).setMimeType(ContentService.MimeType.JSON);
+        return ContentService.createTextOutput(JSON.stringify({ success: false, error: ex.message })).setMimeType(ContentService.MimeType.JSON);
       }
     }
 
@@ -66,25 +83,48 @@ function doPost(e) {
     let contents = {};
     try {
       if (rawContents) {
-        contents = JSON.parse(rawContents);
+        let rawStr = rawContents;
+        if (rawStr.startsWith('%7B') || rawStr.startsWith('%7b')) {
+          rawStr = decodeURIComponent(rawStr);
+        }
+        if (rawStr.endsWith('=')) {
+          rawStr = rawStr.slice(0, -1);
+        }
+        contents = JSON.parse(rawStr);
       } else {
-        // Fallback: Si no hay contents, usar e.parameter (AppSheet a veces envía parámetros de URL)
         contents = e.parameter || {};
       }
     } catch (f) {
       console.warn("⚠️ Error parseando JSON en doPost: " + f.message);
-      // Para AppSheet, a veces el body no es JSON puro. Intentamos usar e.parameter.
+      const params = e.parameter;
+      const accion = params.accion || e.parameter.accion || params.op || params.o || "";
+
+      if (accion && accion !== "none") {
+        debugLog(`🛠 [doPost] Acción: ${accion}`, true);
+      }
       contents = e.parameter || {};
     }
 
-    // --- ACCIONES ERP / APPSHEET ---
-    const accion = contents.accion || e.parameter.accion || "";
-    
+    const accion = contents.accion || e.parameter.accion || contents.op || "";
+
+    if (accion && accion !== "none") {
+      debugLog(`🛠 [doPost] Acción: ${accion}`, true);
+    }
+
+    // --- BLOQUE BLOGGER BRIDGE (Ruteador Centralizado) - PRIORIDAD ALTA ---
+    const bloggerOperations = ["p", "d", "e", "venta", "consultar_cliente", "cargar_venta", "pagar", "cancelar", "confirmar_pago_presencial", "pagar_con_comprobante", "configuracion"];
+    if (bloggerOperations.indexOf(contents.op || "") !== -1 || bloggerOperations.indexOf(accion || "") !== -1) {
+        const respuestaBlogger = blogger_router(contents);
+        if (logId) actualizarResultadoWebhook(logId, "BLOGGER_OP: " + (contents.op || accion));
+        return ContentService.createTextOutput(JSON.stringify(respuestaBlogger))
+            .setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (accion === "generarDescripcionIA") {
       const resultado = gestionarAccionEnriquecimiento(contents.codigo);
       return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
     }
-    
+
     if (accion === "actualizarEstadoWooCommerce") {
       const resultado = handleAppSheetStatusUpdate(contents);
       if (logId) {
@@ -103,48 +143,30 @@ function doPost(e) {
       }
     }
 
-    const esAccionDeInventario = accion.toLowerCase().includes("inventario") ||
-      accion.toLowerCase().includes("resetear") ||
-      accion.toLowerCase().includes("bartender");
+    // --- BLOQUE RESELLER (V3.0) ---
+    if (accion === "batch_sync_category") {
+      const res = reseller_sendBatchByCategory(contents.categoria_id);
+      return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (accion === "importar_reseller") {
+      const serverToken = GLOBAL_CONFIG.SCRIPT_CONFIG["RESELLER_SYNC_TOKEN"] || "RESELLER_SYNC_TOKEN_V1";
+      if (contents.token !== serverToken) {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Acceso denegado (Invalid Token)" })).setMimeType(ContentService.MimeType.JSON);
+      }
+      const res = reseller_handleImport(contents.data);
+      return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+
+    const esAccionDeInventario = (accion || "").toLowerCase().includes("inventario") ||
+      (accion || "").toLowerCase().includes("resetear") ||
+      (accion || "").toLowerCase().includes("bartender");
 
     if (esAccionDeInventario) {
       return handleInventoryRequest(contents);
-    } else if (accion || contents.codigo) {
+    } else if (accion === "enriquecer_imagen" || contents.codigo) {
       return handleImageRequest(contents);
-    }
-
-    // --- ACCIONES BLOGGER (NUEVO) ---
-    if (contents.op) {
-      let respuestaBlogger = {};
-      switch (contents.op) {
-        case "configuracion":
-          respuestaBlogger = blogger_listar_configuracion_sinCache();
-          if (contents.id) {
-            blogger_adjuntar_pedido_a_respuesta(respuestaBlogger, contents.id);
-          }
-          break;
-        case "venta":
-          respuestaBlogger = blogger_registrar_venta(e.postData.contents);
-          break;
-        case "cargar_venta":
-          respuestaBlogger = blogger_cargar_venta(e.postData.contents);
-          break;
-        case "pagar":
-          respuestaBlogger = blogger_pagar_venta(e.postData.contents);
-          break;
-        case "cancelar":
-          respuestaBlogger = blogger_cancelar_venta(e.postData.contents);
-          break;
-        case "pagar_con_comprobante":
-          respuestaBlogger = blogger_pagar_venta_con_comprobante(contents);
-          break;
-        case "confirmar_pago_presencial":
-          respuestaBlogger = blogger_confirmar_pago_presencial(contents);
-          break;
-        default:
-          respuestaBlogger = { status: "-1", message: "Operación Blogger no soportada" };
-      }
-      return ContentService.createTextOutput(JSON.stringify(respuestaBlogger)).setMimeType(ContentService.MimeType.JSON);
     }
 
     // --- ACCIONES WOOCOMMERCE WEBHOOK (NUEVO) ---
@@ -153,10 +175,28 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify(respuestaWC)).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // --- ACCIONES ERP / APPSHEET ---
+    if (accion === "generarDescripcionIA") {
+      const resultado = gestionarAccionEnriquecimiento(contents.codigo);
+      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (accion === "actualizarEstadoWooCommerce") {
+      const resultado = handleAppSheetStatusUpdate(contents);
+      if (logId) {
+        const logMsg = resultado.success ? "AS_SYNC: OK (" + resultado.stock + ")" : "AS_SYNC_ERROR: " + (resultado.error || "Desconocido");
+        actualizarResultadoWebhook(logId, logMsg);
+      }
+      return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
+    }
+
   } catch (error) {
     console.error("❌ Error en doPost: " + error.message);
+    return ContentService.createTextOutput(JSON.stringify({ status: "-1", message: "Error interno: " + error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  return ContentService.createTextOutput("ok");
+  return ContentService.createTextOutput(JSON.stringify({ status: "0", message: "Solicitud procesada (Fallback)" }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // 2. Obtención diferida (lazy) de configuración
@@ -232,6 +272,7 @@ function getAppScriptConfig() {
 const GLOBAL_CONFIG = {
   get SCRIPT_CONFIG() { return getAppScriptConfig(); },
   get SPREADSHEET_ID() { return getActiveSS() ? getActiveSS().getId() : ""; },
+  get SCRIPT_URL() { return ScriptApp.getService().getUrl(); },
 
   DRIVE: {
     get PARENT_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["DRIVE_PARENT_FOLDER_ID"] || ""; },
@@ -265,6 +306,7 @@ const GLOBAL_CONFIG = {
 
   GEMINI: {
     get API_KEY() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GM_IMAGE_API_KEY"] || ""; },
+    get FREE_API_KEY() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GM_FREE_API_KEY"] || ""; },
     get PAID_PIN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GM_PAID_PIN"] || "1234"; }
   },
 
@@ -305,36 +347,12 @@ const GLOBAL_CONFIG = {
     get END_HOUR() { return parseInt(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_END_HOUR"] || "23"); }
   },
 
-  ENABLE_BIGQUERY: false
+  ENABLE_BIGQUERY: true
 };
 
 /**
- * Esquema central del sistema. Define las columnas críticas para cada hoja.
- * Se puede expandir según sea necesario.
+ * Las constantes SHEETS y SHEET_SCHEMA ahora se encuentran en src/Core/Constants.js
  */
-const SHEET_SCHEMA = {
-  STORES: ["TIENDA_ID", "LOGOTIPO", "MODO_VENTA", "RECARGO_MENOR", "IP_IMPRESORA_LOCAL"],
-  PRODUCTS: ["CODIGO_ID", "MODELO", "PRECIO_COSTO", "RECARGO_MENOR", "CATEGORIA", "COLORES", "TALLES", "WOO_ID", "DESCRIPCION_IA"],
-  INVENTORY: ["INVENTARIO_ID", "TIENDA_ID", "PRODUCTO_ID", "COLOR", "TALLE", "STOCK_ACTUAL", "ENTRADAS", "SALIDAS", "VENTAS_LOCAL", "VENTAS_WEB"],
-  INVENTORY_MOVEMENTS: ["REGISTRO_ID", "USER_ID", "FECHA", "INVENTARIO_ID", "MOVIMIENTO", "ORIGEN", "DESTINO", "PRODUCTO_ID", "CANTIDAD", "REFERENCIA"],
-  CATEGORIES: ["CATEGORIA_ID", "CATEGORIA_GENERAL", "HTML", "ICONO"], // ICONO suele ser el ID del SVG
-  SVG_GALLERY: ["NOMBRE", "CODE"],
-  COLORS: ["COLOR_ID", "HEXADECIMAL", "TEXTO"],
-  PRODUCT_IMAGES: ["IMAGEN_ID", "PRODUCTO_ID", "IMAGEN_RUTA", "ARCHIVO_ID", "ESTADO", "PORTADA", "URL", "THUMBNAIL_URL", "COSTO", "ORDEN", "SYNC_WC"],
-  CLIENTS: ["CLIENTE_ID", "NOMBRE_COMPLETO", "CELULAR", "CORREO_ELECTRONICO", "CUIT_DNI", "AGENCIA_ENVIO", "TIPO_ENVIO", "CALLE", "NUMERO", "PISO", "DEPARTAMENTO", "CODIGO_POSTAL", "LOCALIDAD", "PROVINCIA", "OBSERVACION"],
-  BLOGGER_SALES: ["CODIGO", "FECHA", "HORA", "CAJA_ID", "METODO_PAGO", "DATOS_TRANSFERENCIA", "CLIENTE_ID", "DOCUMENTO", "CELULAR", "CORREO_ELECTRONICO", "DIRECCION", "AGENCIA", "TIEMPO_ENTREGA_AGENCIA", "MONEDA", "COSTO_ENVIO", "RECARGO_TRANSFERENCIA", "TOTAL_VENTA", "DETALLE_JSON", "ESTADO", "JSON_BACKUP", "URL_COMPROBANTE"],
-  BLOGGER_SALES_DETAILS: ["VENTA_ID", "PRODUCTO_VARIACION", "DETALLE_JSON", "CANTIDAD", "PRECIO", "SUBTOTAL", "PRODUCTO_ID", "COLOR", "TALLE", "VARIEDAD_ID"],
-  VENTAS_PEDIDOS: ["VENTA_ID", "TIENDA_ID", "ASESOR_ID", "FECHA", "HORA", "CLIENTE_ID", "CAJA_ID", "TIPO_VENTA", "COMPRA_MINIMA", "PAGO_MIXTO", "METODO_PAGO", "DATOS_TRANSFERENCIA", "DESACTIVAR_RECARGO_TRANSFERENCIA", "MONTO_TOTAL_PRODUCTOS", "PAGO_EFECTIVO", "SUBTOTAL", "RECARGO_MENOR", "COSTO_ENVIO", "RECARGO_TRANSFERENCIA", "TOTAL_VENTA", "ESTADO", "CAMBIOS", "COMPROBANTE_FILE", "DETALLE_AUDITORIA_IA", "DETALLE_JSON"],
-  DETALLE_VENTAS: ["VENTA_ID", "VARIACION_ID", "PRODUCTO_ID", "CATEGORIA", "PRECIO", "CANTIDAD", "MONTO"],
-  GESTION_CAJA: ["CAJA_ID", "TIENDA_ID", "ASESOR_ID", "FECHA", "CUENTA_TRANSFERENCIA", "ESTADO"],
-  METODOS_PAGO: ["MOVIMIENTO_ID", "PORCENTAJE"],
-  DATOS_TRANSFERENCIA: ["CUENTA_ID", "ALIAS", "NOMBRE_CUENTA"],
-  USUARIOS_SISTEMAS: ["USER_ID", "NOMBRE"],
-  WC_ORDERS: ["ID_ORDEN", "ESTADO", "CLIENTE", "TELEFONO", "DIRECCION_FACTURACION", "RESUMEN_PRODUCTOS", "TOTAL_VENTA", "FECHA", "ULTIMA_ACTUALIZACION"],
-  WC_ORDERS_DETAILS: ["ID_DETALLE", "ID_ORDEN", "SKU", "PRODUCTO", "CANTIDAD", "PRECIO_UNIT", "TOTAL_LINEA", "PRECIO_TIPO", "UNIDADES_PACK", "COLOR", "TALLE", "INVENTARIO_ID"],
-  APP_SCRIPT_CONFIG: ["TIPO_CLAVE", "VALOR"], // Especificamente para BD_APP_SCRIPT (KV)
-  GENERAL_CONFIG: ["GENERAL_ID", "RESPONSABLE"] // Para BD_CONFIGURACION_GENERAL (Wide)
-};
 
 /**
  * HeaderManager: Motor de escaneo dinámico de columnas.
@@ -355,7 +373,7 @@ const HeaderManager = {
     const sheet = ss.getSheetByName(sheetName);
 
     if (!sheet) {
-      debugLog(`❌ HeaderManager: Hoja '${sheetName}' no encontrada.`);
+      // debugLog(`❌ HeaderManager: Hoja '${sheetName}' no encontrada.`);
       return null;
     }
 
@@ -367,35 +385,52 @@ const HeaderManager = {
 
     headers.forEach((header, index) => {
       if (header) {
-        const h = String(header).trim().toUpperCase();
-        mapping[h] = index;
+        let rawH = String(header).trim().toUpperCase();
+        let fuzzyH = rawH.replace(/[\s_-]/g, ""); // Normalización difusa
+
+        mapping[rawH] = index;
+        mapping[fuzzyH] = index;
+
         // Alias para compatibilidad global
-        if (h.includes("MACRO_ID") || h.includes("CATEGORIA_ID") || h.includes("PROD_ID") || h.includes("PRODUCTO_ID")) mapping["ID"] = index;
-        if (h.includes("CLAVE")) mapping["CLAVE"] = index;
-        if (h.includes("VALOR")) mapping["VALOR"] = index;
-        if (h.includes("CORREO") || h.includes("MAIL") || h.includes("CORREO_ELECTRONICO")) mapping["EMAIL"] = index;
-        if (h.includes("ROL") || h.includes("ROL_TIENDA")) mapping["ROL"] = index;
-        if (h.includes("TIENDA_ADMINISTRADA") || h.includes("MANAGED_STORE")) mapping["MANAGED_STORE"] = index;
+        if (fuzzyH.includes("MACROID") || fuzzyH.includes("CATEGORIAID") || fuzzyH.includes("PRODID") || fuzzyH.includes("PRODUCTOID") || fuzzyH.includes("COLORID") || fuzzyH.includes("CLIENTEID") || fuzzyH.includes("VARIACIONID") || fuzzyH.includes("IDAGENCIA")) mapping["ID"] = index;
+        if (fuzzyH.includes("CLAVE")) mapping["CLAVE"] = index;
+        if (fuzzyH.includes("VALOR")) mapping["VALOR"] = index;
+        if (fuzzyH.includes("CORREO") || fuzzyH.includes("MAIL") || fuzzyH.includes("CORREOELECTRONICO")) mapping["EMAIL"] = index;
+        if (fuzzyH.includes("ROL") || fuzzyH.includes("ROLTIENDA")) mapping["ROL"] = index;
+        if (fuzzyH.includes("TIENDAADMINISTRADA") || fuzzyH.includes("MANAGEDSTORE")) mapping["MANAGED_STORE"] = index;
+        // Alias para Agencias (NUEVO)
+        if (fuzzyH === "AGENCIAID" || fuzzyH === "IDAGENCIA") mapping["ID"] = index;
+        if (fuzzyH.includes("COSTOENVIO") || fuzzyH === "COSTO") mapping["COSTO"] = index;
+        if (fuzzyH.includes("HORAENTREGA") || fuzzyH === "HORA") mapping["HORA"] = index;
         // Alias para SVG
-        if (h.includes("SVG_CODE") || h.includes("CODIGO_SVG") || h === "CODE") mapping["CODE"] = index;
-        if (h.includes("SVG_NOMBRE") || h === "NOMBRE") mapping["NOMBRE"] = index;
+        if (fuzzyH.includes("SVGCODE") || fuzzyH.includes("CODIGOSVG") || fuzzyH === "CODE") mapping["CODE"] = index;
+        if (fuzzyH.includes("SVGNOMBRE") || fuzzyH === "NOMBRE") mapping["NOMBRE"] = index;
         // Alias para Categorías
-        if (h.includes("CATEGORIA_GENERAL") || h.includes("CATEGORIA_PADRE") || h.includes("PADRE")) mapping["PADRE"] = index;
+        if (fuzzyH.includes("CATEGORIAGENERAL") || fuzzyH.includes("CATEGORIAPADRE") || fuzzyH.includes("PADRE")) mapping["CATEGORIA_PADRE"] = index;
+        if (fuzzyH.includes("CARPETA") || fuzzyH.includes("CARPETAID")) mapping["CARPETA_ID"] = index;
+        if (fuzzyH.includes("TEMPORADA") || fuzzyH.includes("TEMPORAL")) mapping["TEMPORADA"] = index;
         // Alias para WooCommerce / Pedidos
-        if (h.includes("ID ORDEN") || h.includes("ORDER_ID") || h.includes("NRO ORDEN") || h.includes("ID_ORDEN")) mapping["ID_ORDEN"] = index;
-        if (h.includes("ID CLIENTE") || h.includes("CUSTOMER_ID") || h.includes("CLIENTE")) mapping["CLIENTE"] = index;
-        if (h.includes("TELÉFONO") || h.includes("TELEFONO") || h.includes("PHONE") || h.includes("CELULAR")) mapping["TELEFONO"] = index;
-        if (h.includes("TOTAL_VENTA") || h.includes("TOTAL")) mapping["TOTAL_VENTA"] = index;
-        if (h.includes("ULTIMA_ACTUALIZACION") || h.includes("ULT. ACTUALIZACION")) mapping["ULTIMA_ACTUALIZACION"] = index;
+        if (fuzzyH.includes("IDORDEN") || fuzzyH.includes("ORDERID") || fuzzyH.includes("NROORDEN")) mapping["ID_ORDEN"] = index;
+        if (fuzzyH.includes("IDCLIENTE") || fuzzyH.includes("CUSTOMERID") || fuzzyH.includes("CLIENTE")) mapping["CLIENTE"] = index;
+        if (fuzzyH.includes("TELÉFONO") || fuzzyH.includes("TELEFONO") || fuzzyH.includes("PHONE") || fuzzyH.includes("CELULAR")) mapping["TELEFONO"] = index;
+        if (fuzzyH.includes("TOTALVENTA") || fuzzyH.includes("TOTAL")) mapping["TOTAL_VENTA"] = index;
+        if (fuzzyH.includes("ULTIMAACTUALIZACION") || fuzzyH.includes("ULTACTUALIZACION")) mapping["ULTIMA_ACTUALIZACION"] = index;
       }
     });
 
-    // Validación contra el esquema
+    // Validación y Traducción contra el Esquema (Crucial para estabilidad)
     const required = SHEET_SCHEMA[sheetAlias];
     if (required) {
       required.forEach(col => {
-        if (mapping[col.toUpperCase()] === undefined) {
-          debugLog(`⚠️ Columna crítica '${col}' no encontrada en la hoja '${sheetName}'.`, true);
+        let exactCol = col.toUpperCase();
+        let fuzzyCol = exactCol.replace(/[\s_-]/g, "");
+
+        // Si la hoja tiene esta columna (ej: "DETALLE JSON" -> "DETALLEJSON")
+        if (mapping[fuzzyCol] !== undefined) {
+          // Aseguramos que la macro pueda llamarla con su nombre de esquema oficial (ej: mS.DETALLE_JSON)
+          mapping[exactCol] = mapping[fuzzyCol];
+        } else {
+          // debugLog(`⚠️ Columna '${exactCol}' no detectada en '${sheetName}'.`);
         }
       });
     }
@@ -412,34 +447,7 @@ const HeaderManager = {
   }
 };
 
-const SHEETS = {
-  PRODUCT_IMAGES: "BD_PRODUCTO_IMAGENES",
-  PRODUCTS: "BD_PRODUCTOS",
-  CATEGORIES: "BD_CATEGORIAS",
-  STORES: "BD_TIENDAS",
-  INVENTORY: "BD_INVENTARIO",
-  INVENTORY_MOVEMENTS: "BD_MOVIMIENTOS_INVENTARIO",
-  DEPOSIT: "BD_DEPOSITO",
-  COLORS: "BD_COLORES",
-  GENERAL_CONFIG: "BD_CONFIGURACION_GENERAL",
-  SHIPPING_AGENCIES: "BD_AGENCIAS_ENVIO",
-  PRODUCT_VARIETIES: "BD_VARIEDAD_PRODUCTOS",
-  SVG_GALLERY: "BD_GALERIA_SVG",
-  BLOGGER_SALES: "BLOGGER_VENTAS",
-  BLOGGER_SALES_DETAILS: "BLOGGER_DETALLE_VENTAS",
-  BLOGGER_CONFIG: "BLOGGER_CONFIGURACION",
-  CLIENTS: "BD_CLIENTES",
-  VENTAS_PEDIDOS: "BD_VENTAS_PEDIDOS",
-  DETALLE_VENTAS: "BD_DETALLE_VENTAS",
-  GESTION_CAJA: "BD_GESTION_CAJA",
-  METODOS_PAGO: "BD_METODOS_PAGO",
-  DATOS_TRANSFERENCIA: "BD_DATOS_TRANSFERENCIA",
-  USUARIOS_SISTEMAS: "BD_USUARIOS_SISTEMAS",
-  APP_SCRIPT_CONFIG: "BD_APP_SCRIPT", // Mapeo crítico corregido
-  WC_ORDERS: "BD_VENTAS_WOOCOMMERCE",
-  BARTENDER_HISTORY: "BD_HISTORIAL_BARTENDER",
-  CLIENT_FORM_LOG: "BD_FORMULARIO_CLIENTE"
-};
+
 
 /**
  * Convierte un rango de datos a una lista de objetos.
@@ -781,13 +789,13 @@ function getCatalogJsonUrl() {
   const readUrl = GLOBAL_CONFIG.DONWEB.READ_URL;
   const fileName = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalogo.json";
 
-  if (readUrl) {
-    // Si hay URL de lectura específica, la usamos con el parámetro de archivo
+  if (readUrl && !readUrl.includes("drive.google.com")) {
     return `${readUrl}?file=${fileName}`;
   }
 
-  // Fallback hardcodeado si no hay configuración (Legacy)
-  return "https://castfer.com.ar/leer_json_hostingshop.php";
+  // Si no hay Donweb configurado, o se quiere usar Drive, devolver URL de GAS
+  // El frontend podrá llamar a esta URL con ?op=configuracion para obtener la data desde Drive
+  return `${GLOBAL_CONFIG.SCRIPT_URL}?op=configuracion`;
 }
 
 /**
@@ -804,13 +812,81 @@ function getCatalogFallbackUrl() {
   return "";
 }
 
-function doGet(e) {
+function doGet_MainRouter(e) {
   const params = e.parameter;
   const isEmbedded = params.embedded === 'true';
   const view = params.view || '';
-  const accion = params.accion || '';
+  let accion = params.accion || params.op || params.o || '';
+
+  // BLINDAJE EXTREMO: Si el Frontend omitió enviar la operación principal, la extraemos del payload anidado.
+  if (!accion && params.venta_data) {
+    try {
+      const vData = JSON.parse(params.venta_data);
+      accion = vData.o || vData.op || vData.accion || '';
+    } catch(e) {}
+  }
+
+  const mode = params.mode || '';
+
+  // --- APOYO BLOGGER: RUTEADOR CENTRALIZADO (Prioridad Máxima - JSONP Support) ---
+  const bloggerActions = ["p", "d", "e", "venta", "consultar_cliente", "cargar_venta", "pagar", "cancelar", "confirmar_pago_presencial", "pagar_con_comprobante", "configuracion"];
+  if (bloggerActions.indexOf(accion) !== -1 || bloggerActions.indexOf(params.op) !== -1) {
+    let respuestaObjeto;
+    try {
+      respuestaObjeto = blogger_router(params);
+    } catch (criticalErr) {
+      console.error("❌ Error Crítico en blogger_router: " + criticalErr.message);
+      respuestaObjeto = { status: "-1", message: "ERROR INTERNO ERP: " + criticalErr.message };
+    }
+
+    // Sanitización del nombre del callback
+    let callback = params.callback || params.prefix || params._ || "callback";
+    callback = callback.replace(/[^a-zA-Z0-9$_.]/g, "");
+
+    let payloadStr = "";
+    try {
+      const rawJson = (typeof respuestaObjeto === "string") ? respuestaObjeto : JSON.stringify(respuestaObjeto);
+      payloadStr = rawJson.replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+    } catch (e) {
+      payloadStr = JSON.stringify({ status: "-1", message: "Error serializando respuesta: " + e.message });
+    }
+
+    const jsonpResponse = `${callback}(${payloadStr})`;
+    return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  // --- MODO: GENERAR RÓTULO DE ENVÍO (Centralizado) ---
+  if (mode === "print_label") {
+    try {
+      const htmltemplate = HtmlService.createTemplateFromFile('Web/print_label');
+
+      // Definir valores por defecto para evitar ReferenceErrors en la plantilla
+      const camposBase = [
+        "logo", "telefono_tienda", "direccion_tienda", "remitente", "codigo_pedido", "fecha_hora",
+        "transporte", "destinatario", "direccion_envio", "localidad",
+        "provincia", "codigo_postal", "tipo_envio", "celular", "cuit", "email",
+        "zona_sucursal", "observaciones"
+      ];
+      camposBase.forEach(c => { htmltemplate[c] = ""; });
+
+      // Mapear los parámetros reales de la URL
+      Object.keys(params).forEach(key => { htmltemplate[key] = params[key] || ""; });
+
+      if (params.logo && params.logo.indexOf("{") !== -1) {
+        try { htmltemplate.logo = JSON.parse(params.logo).Url; } catch (i) { htmltemplate.logo = params.logo; }
+      }
+
+      return htmltemplate.evaluate()
+        .setTitle("Rótulo de Envío - " + (params.codigo_pedido || "HostingShop"))
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    } catch (err) {
+      return ContentService.createTextOutput("❌ Error en Rótulo: " + err.message);
+    }
+  }
 
   debugLog("📡 [doGet] Accion: " + accion + " | Params: " + JSON.stringify(params));
+
+
 
   // --- Acción: Actualizar IP Local (Desde Python TPV) ---
   if (accion === "actualizar_ip_local") {
@@ -851,25 +927,6 @@ function doGet(e) {
     return ContentService.createTextOutput("Tienda no encontrada").setMimeType(ContentService.MimeType.TEXT);
   }
 
-  // --- APOYO BLOGGER: CATÁLOGO (NUEVO) ---
-  if (params.op === "configuracion") {
-    // 1. Obtener configuración (usa el Bridge)
-    const respuestaObjeto = blogger_listar_configuracion_sinCache();
-
-    // 2. Adjuntar pedido si existe ID
-    if (params.id) {
-      blogger_adjuntar_pedido_a_respuesta(respuestaObjeto, params.id);
-    }
-
-    const respuestaJSON_string = JSON.stringify(respuestaObjeto);
-
-    // 3. Soporte JSONP para Blogger
-    const callback = params.callback || "callback";
-    const jsonpResponse = `${callback}(${respuestaJSON_string})`;
-
-    return ContentService.createTextOutput(jsonpResponse)
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
 
   if (view === 'imagenes_manager') {
     const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
@@ -917,6 +974,8 @@ function doGet(e) {
 
   // Pasamos parámetros limpios para evitar bucles en el frontend
   template.initialParams = JSON.stringify({ view: 'welcome' });
+  template.CATALOG_URL = getCatalogJsonUrl();
+  template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
 
   return template.evaluate()
     .setTitle('Sistema de Gestión ERP')
@@ -927,33 +986,38 @@ function doGet(e) {
 /**
  * API INTERNA SPA: Devuelve el HTML de las sub-vistas como texto.
  */
-function getPageContent(view, accion, codigo, fecha) {
+function getPageContent(view, accion, codigo, fecha, isEmbedded = false) {
   // Normalización
   if (view === 'inventario' || view === 'legacy_action') view = 'runner';
 
-  // 1. Dashboard Inventario
   if (view === 'inventory_dashboard') {
-    return HtmlService.createTemplateFromFile('Web/inventory_dashboard')
-      .evaluate().getContent();
-  }
-
-  // 2. Auditoría
-  if (view === 'auditoria') {
-    return HtmlService.createTemplateFromFile('Web/sale_dashboard')
-      .evaluate().getContent();
-  }
-
-  // --- NUEVO: Gestor de Imágenes ---
-  if (view === 'imagenes_manager') {
-    const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
+    const template = HtmlService.createTemplateFromFile('Web/inventory_dashboard');
+    template.isEmbedded = isEmbedded;
     template.CATALOG_URL = getCatalogJsonUrl();
     template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
     return template.evaluate().getContent();
   }
 
-  // --- NUEVO: Punto de Venta (TPV) ---
+  if (view === 'auditoria') {
+    const template = HtmlService.createTemplateFromFile('Web/sale_dashboard');
+    template.isEmbedded = isEmbedded;
+    template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    return template.evaluate().getContent();
+  }
+
+  // --- NUEVO: Gestor de Imágenes ---
+  if (view === 'imagenes_manager') {
+    const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
+    template.isEmbedded = isEmbedded;
+    template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    return template.evaluate().getContent();
+  }
+
   if (view === 'pos_manager') {
     const template = HtmlService.createTemplateFromFile('Web/pos_view');
+    template.isEmbedded = isEmbedded;
     template.CATALOG_URL = getCatalogJsonUrl();
     template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
     return template.evaluate().getContent();
@@ -961,8 +1025,9 @@ function getPageContent(view, accion, codigo, fecha) {
 
   // --- NUEVA: Vista de Registro de Cliente ---
   if (view === 'client_form') {
-    return HtmlService.createTemplateFromFile('Web/client_form_view')
-      .evaluate().getContent();
+    const template = HtmlService.createTemplateFromFile('Web/client_form_view')
+    template.isEmbedded = isEmbedded;
+    return template.evaluate().getContent();
   }
 
   // --- NUEVA: Vista de Login ---
@@ -989,19 +1054,20 @@ function getPageContent(view, accion, codigo, fecha) {
     }
 
     template.STORE_LOGO = logoUrl;
+    template.isEmbedded = isEmbedded;
     return template.evaluate().getContent();
   }
 
-  // 3. Runner (Reutilizamos la lógica centralizada)
   if (view === 'runner') {
-    const template = configurarTemplateRunner(accion, codigo, fecha);
+    const template = configurarTemplateRunner(accion, codigo, fecha, isEmbedded);
     return template.evaluate().getContent();
   }
 
   // 4. Bienvenida (Nuevo Panel de Control)
   if (view === 'welcome') {
-    return HtmlService.createTemplateFromFile('Web/home_dashboard')
-      .evaluate().getContent();
+    const template = HtmlService.createTemplateFromFile('Web/home_dashboard');
+    template.isEmbedded = isEmbedded;
+    return template.evaluate().getContent();
   }
 
   return `
@@ -1014,7 +1080,7 @@ function getPageContent(view, accion, codigo, fecha) {
 
 // --- HELPER CENTRALIZADO: Configura page_template ---
 // Evita duplicar el switch gigante
-function configurarTemplateRunner(accion, codigo, fecha) {
+function configurarTemplateRunner(accion, codigo, fecha, isEmbedded = false) {
   // Limpieza agresiva de duplicación de SKU (ej: "SKU SKU" o "SKUSKU")
   if (codigo) {
     codigo = String(codigo).trim();
@@ -1032,6 +1098,7 @@ function configurarTemplateRunner(accion, codigo, fecha) {
   template.fechaInicial = fecha || new Date().toISOString().split('T')[0];
   template.mostrarBotonPrompt = false;
   template.mostrarDatePicker = false;
+  template.isEmbedded = isEmbedded;
 
   switch (accion) {
     case "recibir_orden_wc":
@@ -1347,24 +1414,7 @@ function validarPinPaid(pin) {
   }
 }
 
-/**
- * Función de utilidad para exportar la estructura actual de todas las hojas.
- * Ayuda al Agente a entender los encabe        structure[alias] = {
-          sheetName: SHEETS[alias],
-          headers: sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim())
-        };
-      } else {
-        structure[alias] = { sheetName: SHEETS[alias], headers: [], status: "EMPTY" };
-      }
-    } else {
-      structure[alias] = { sheetName: SHEETS[alias], status: "NOT_FOUND" };
-    }
-  }
 
-  const json = JSON.stringify(structure, null, 2);
-  debugLog("📊 Estructura de Hojas Exportada:\n" + json, true);
-  return json;
-}
 
 /**
  * TEST: Verifica que todas las hojas tengan las columnas requeridas por el esquema.
@@ -1420,7 +1470,7 @@ function registrarRawWebhook(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName("RAW_WEBHOOK_LOGS");
-    
+
     if (!sheet) {
       sheet = ss.insertSheet("RAW_WEBHOOK_LOGS");
       const headersRow = ["FECHA", "SOURCE_PARAM", "TOPIC_HEADER", "ALL_HEADERS", "URL_PARAMS", "RAW_CONTENTS", "CONTENT_TYPE", "STATUS_PROCESO"];
@@ -1442,12 +1492,30 @@ function registrarRawWebhook(e) {
     sheet.insertRowAfter(1);
     const logRange = sheet.getRange(2, 1, 1, 8);
     logRange.setValues([[fecha, source, topic, allHeaders, params, contents, postType, "RECIBIDO"]]);
-    
+
     if (sheet.getLastRow() > 505) {
       sheet.deleteRows(502, sheet.getLastRow() - 501);
     }
     return 2; // Siempre es la fila 2 porque insertamos arriba
   } catch (err) {
     console.error("Fallo crítico en registrarRawWebhook: " + err.message);
+  }
+}
+
+/**
+ * Actualiza el estado de un registro en RAW_WEBHOOK_LOGS.
+ * @param {number} row Fila a actualizar.
+ * @param {string} status Nuevo estado o mensaje de resultado.
+ */
+function actualizarResultadoWebhook(row, status) {
+  if (!row) return;
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("RAW_WEBHOOK_LOGS");
+    if (sheet) {
+      sheet.getRange(row, 8).setValue(status);
+    }
+  } catch (err) {
+    console.error("Error en actualizarResultadoWebhook: " + err.message);
   }
 }

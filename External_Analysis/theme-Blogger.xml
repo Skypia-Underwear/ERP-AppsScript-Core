@@ -3,16 +3,18 @@
 <html lang='en' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
 
 <head>
-    <meta content='CASTFER STYLE' property='og:title'/>
-    <meta content='https://castfer-style.blogspot.com' property='og:url'/>
+    <!-- Open Graph -->
+    <meta content='Skypia Underwear' property='og:title'/>
+    <meta content='https://skypia-underwear.blogspot.com' property='og:url'/>
     <meta content='website' property='og:type'/>
     <meta content='Tienda de Ropa Nacional e Importada de la mejor Calidad y Precio, Envio a todo el Pais' property='og:description'/>
-    <meta content='https://www.appsheet.com/template/gettablefileurl?appName=CASTFERSYSTEMV1-201513855&amp;tableName=BD_TIENDAS&amp;fileName=BD_TIENDAS_Images%2FCASTFER.LOGOTIPO.023342.png' property='og:image'/>
-    <meta content='Tienda de Ropa Jacional e Importada de la mejor calidad y precio.' name='description'/>
+    <meta content='https://cdn.filestackcontent.com/A96uIBVEaSfSGzSE1ZpmVz/border%3Dwidth%3A4%2Ccolor%3A1E90FFFF/shadow%3Dopacity%3A90%2Cvector%3A%5B4%2C4%5D%2Ccolor%3A1E90FFFF%2Cbackground%3AF0F8FFFF/resize%3Dwidth%3A545/cache=expiry:max/auto_image/https://www.appsheet.com/template/gettablefileurl?appName=TiendaOnlineBlogger-337846396&amp;tableName=Info%20Tienda&amp;fileName=Info%20Tienda_Images%2FSkypia%20Underwear.Logotipo.012135.png' property='og:image'/>
+    <meta content='Tienda de Ropa Nacional e Importada de la mejor calidad y precio.' name='description'/>
     <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
     <meta content='width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=yes' name='viewport'/>
     <b:skin version='1.3.0'><![CDATA[
         
+    
     ]]></b:skin>
 
     <!-- CONFIGURACIÓN DE INSTALACIÓN ERP; buscar esto para configurar
@@ -21,21 +23,21 @@
         //<![CDATA[
 
         // ── 1. APPS SCRIPT (ID del deployment de la macro/ERP) ───────────────
-        var GAS_DEPLOYMENT_ID = 'AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg';
-        var GAS_BASE_URL = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/';
+        var GAS_DEPLOYMENT_ID = 'AKfycbyNBifMp803od61SuOQx6MtnlzCPyFO-famdi_3QIXYuOeQxkVCmqjWUypoWEkJlHkn';
+        var GAS_BASE_URL = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/exec';
 
         // ── 2. HOSTING / DONWEB ──────────────────────────────────────────────
-        var DONWEB_BASE_URL = 'https://www.castfer.com.ar/';
+        var DONWEB_BASE_URL = 'https://castfer.com.ar/';
         var DONWEB_READ_SCRIPT = 'api_json_read.php';   // script lector ya existente en el server
 
         // ── 3. GITHUB ────────────────────────────────────────────────────────
-        var GITHUB_USER = 'CastferADM';
+        var GITHUB_USER = 'Skypia-Underwear';
         var GITHUB_REPO = 'api-tienda';
         var GITHUB_BRANCH = 'main';
 
         // ── 4. ARCHIVOS JSON DE ESTA TIENDA ──────────────────────────────────
-        var BLOGGER_JSON_FILE = 'castfersystemv1-201513855-blogger-config.json';
-        var TPV_JSON_FILE = 'castfersystemv1-201513855-catalog-tpv.json';
+        var BLOGGER_JSON_FILE = 'skypia-underwear-blogger-config.json';
+        var TPV_JSON_FILE = 'skypia-underwear-catalog-tpv.json';
 
         // ── URLs construidas automáticamente (no editar debajo de esta línea) ─
         var url_final_venta = GAS_BASE_URL;   // alias de compatibilidad con código existente
@@ -44,12 +46,34 @@
         var DONWEB_TPV_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + TPV_JSON_FILE;
         var GITHUB_TPV_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + TPV_JSON_FILE;
 
+        function gestionarBloqueoCampos(bloquear) {
+            const selectores = [
+                '#txt_correo', '#txt_nombre_real', '#txt_telefono', 
+                '#txt_rut', '#txt_condicion_fiscal',
+                '#txt_provincia', '#txt_municipio', '#txt_localidad',
+                '#txt_codigo_postal', '#txt_calle', '#txt_numero',
+                '#txt_piso', '#txt_departamento', '#txt_observacion'
+            ];
+            
+            selectores.forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) {
+                    if (el.tagName === 'SELECT') {
+                        el.disabled = bloquear;
+                    } else {
+                        el.readOnly = bloquear;
+                    }
+                }
+            });
+        }
+
         //]]>
     </script>
 
     <!-- CSS -->
-    <title>CASTFER</title>
+    <title>Skypia Underwear</title>
     <link id='manifest' rel='manifest'/>
+    <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&amp;display=swap' rel='stylesheet'/>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'/>
     <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css' rel='stylesheet'/>
     <link href='https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.0/dist/fancybox/fancybox.css' rel='stylesheet'/>
@@ -57,6 +81,25 @@
     <link href='https://cdn.datatables.net/buttons/2.3.2/css/buttons.dataTables.min.css' rel='stylesheet'/>
 </head>
 <style>
+    :root {
+        --primary-cobalt: #002b5c;
+        --secondary-cobalt: #004085;
+        --accent-cobalt: #001a35;
+        --premium-shadow: 0 10px 30px rgba(0, 43, 92, 0.08);
+        --premium-shadow-hover: 0 15px 45px rgba(0, 43, 92, 0.15);
+        --premium-radius: 12px;
+        --premium-radius-lg: 20px;
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-blur: blur(10px);
+        --outfit-font: 'Outfit', sans-serif;
+    }
+
+    body {
+        font-family: var(--outfit-font);
+        background-color: #f8fbff;
+        color: #1a1a1a;
+    }
+
     .tiktok-button {
         display: inline-block;
         background-color: black;
@@ -543,41 +586,300 @@
     }
 
     .plato_nombre {
-        font-size: 20px;
+        font-family: var(--outfit-font);
+        font-size: 1.15rem;
         font-weight: 700;
         font-style: italic;
-        text-transform: uppercase;
-        background: linear-gradient(to right, #001f3f 0%, #001f3f 100%, transparent 30%);
-        -webkit-background-clip: text;
-        text-shadow: 0 0 5px #001f3f;
+        color: var(--primary-cobalt);
         cursor: pointer;
         position: relative;
-        margin-top: 5px;
-        transition: color 0.3s, text-shadow 0.3s;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+        letter-spacing: -0.02em;
     }
 
     .plato_nombre:hover {
-        color: #ff8c00;
-        text-shadow: 0 0 10px #ff8c00;
+        color: var(--accent-orange);
+        text-shadow: 0 0 8px rgba(255, 140, 0, 0.2);
     }
 
-    .plato_nombre::after {
-        content: &#39;
-        &#39;
-        ;
-        position: absolute;
+    .text-whatsapp { color: #25D366 !important; }
+
+    .estrellas {
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+    }
+
+    .estrella {
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .estrella:hover {
+        transform: scale(1.2);
+    }
+
+    /* 🏷️ Etiquetas Premium (Pills) */
+    .price-tag-premium-pill {
+        background: white;
+        color: var(--primary-cobalt);
+        border: 1px solid rgba(0, 43, 92, 0.15);
+        border-radius: 50px;
+        padding: 6px 14px;
+        font-weight: 700;
+        font-size: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 43, 92, 0.05);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .price-tag-premium-pill .variant-label {
+        font-size: 0.65rem;
+        font-weight: 400;
+        opacity: 0.7;
+        text-transform: uppercase;
+    }
+
+    .attr-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+        color: #4a5568;
+    }
+
+    .attr-row i {
+        width: 16px;
+        text-align: center;
+        color: var(--secondary-cobalt);
+        opacity: 0.8;
+    }
+
+    .attr-label {
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .badge-premium-id {
+        background: rgba(0, 43, 92, 0.05);
+        color: var(--primary-cobalt);
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        border: 1px solid rgba(0, 43, 92, 0.1);
+    }
+
+    .badge-row-id {
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 0.75rem;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        font-weight: 700;
+        border: 1px solid #e2e8f0;
+    }
+
+    .toggle-mini-cart-link {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--primary-cobalt);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 8px;
+        padding: 4px 0;
+        transition: all 0.2s ease;
+    }
+
+    .toggle-mini-cart-link:hover {
+        color: var(--accent-orange);
+    }
+
+    .description-parent {
+        width: 65%;
+    }
+
+    .image-parent {
+        width: 35%;
+        min-width: 140px;
+    }
+
+    .toggle-mini-cart-link {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--primary-cobalt);
+        text-decoration: none;
+        display: inline-flex !important;
+        align-items: center;
+        gap: 4px;
+        margin-top: 8px;
+        padding: 8px 12px !important;
+        background: rgba(0, 43, 92, 0.05);
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        min-height: 36px;
+    }
+
+    .toggle-mini-cart-link:hover {
+        background: rgba(0, 43, 92, 0.1);
+        color: var(--accent-orange);
+    }
+
+    /* 📱 Ajustes de Rescate Responsivo (Luxury v2.3) */
+    @media (max-width: 575.98px) {
+        .producto-item {
+            flex-direction: column !important;
+            padding-top: 0 !important;
+        }
+        .description-parent {
+            width: 100% !important;
+            padding: 1.5rem 1rem !important;
+            order: 2 !important;
+        }
+        .image-parent {
+            width: 100% !important;
+            min-height: 280px !important;
+            max-height: 380px !important;
+            order: 1 !important;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        .image-parent img {
+            border-radius: 12px 12px 0 0 !important;
+        }
+        
+        /* Ajuste de botones superiores */
+        .navbar-brand-img { height: 35px !important; }
+        .navbar .btn-sm { padding: 4px 6px !important; font-size: 10px !important; }
+    }
+        
+        /* Optimización de Cabecera Móvil */
+        .navbar .btn-sm {
+            padding: 4px 8px !important;
+            font-size: 11px !important;
+        }
+        #txt_search {
+            font-size: 14px !important;
+        }
+    }
+
+    /* 🛒 Estilo Premium: Selector de Variedad Unificado y Mini Carrito */
+    .variety-selector-unified {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(0, 43, 92, 0.1) !important;
+        position: relative;
+    }
+
+    .variety-selector-unified:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 43, 92, 0.12) !important;
+        border-color: var(--primary-cobalt) !important;
+        background: white !important;
+    }
+
+    .variety-selector-unified .price-tag-premium-pill {
         width: 100%;
-        height: 2px;
-        background: #ff8c00;
-        left: 0;
-        bottom: -5px;
-        transform: scaleX(0);
-        transition: transform 0.3s ease;
+        justify-content: center;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        padding: 4px 30px; /* Espacio para flechas */
     }
 
+    /* Flechas del carrusel de precios */
+    .price-carousel-control {
+        width: 25px !important;
+        opacity: 0.3;
+        transition: opacity 0.2s;
+        z-index: 3;
+    }
+    .variety-selector-unified:hover .price-carousel-control {
+        opacity: 0.8;
+    }
+    .price-carousel-control-icon {
+        width: 12px !important;
+        height: 12px !important;
+        filter: invert(15%) sepia(50%) saturate(1000%) hue-rotate(190deg); /* Color cobalto */
+    }
 
-    .plato_nombre:hover::after {
-        transform: scaleX(1);
+    .mini-cart-container {
+        position: relative;
+    }
+
+    .mini-cart-container .btn {
+        transition: all 0.2s ease;
+        color: var(--primary-cobalt);
+        background: white;
+        position: relative;
+    }
+
+    .mini-cart-container .btn:hover {
+        background: #f1f5f9 !important;
+        color: #f5a623 !important;
+        transform: scale(1.05);
+    }
+
+    .mini-cart-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ef4444; /* Rojo vibrante */
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 700;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .mini-cart-container .btn i {
+        font-size: 1.2rem;
+    }
+
+    /* 🎭 Efecto de Capas (Fade) Suave para Precios */
+    .carousel-precios.carousel-fade .carousel-item {
+        transition: opacity 0.8s ease-in-out;
+    }
+
+    /* Sticker de Portada en Carrusel */
+    .sticker-portada {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(4px);
+        color: var(--primary-cobalt);
+        padding: 4px 10px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        z-index: 2;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,43,92,0.1);
+    }
+
+    .variant-label {
+        font-size: 0.65rem;
+        display: block;
+        opacity: 0.8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
 
     .carrito-icono {
@@ -1660,6 +1962,149 @@
         border-radius: 6px;
     }
 
+    /* --- REDISEÑO PREMIUM DE TARJETAS DE PRODUCTO --- */
+    .producto-item {
+        background: white !important;
+        border: none !important;
+        border-radius: var(--premium-radius) !important;
+        margin-bottom: 1.5rem !important;
+        padding: 1.5rem !important;
+        box-shadow: var(--premium-shadow) !important;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+    }
+
+    .producto-item:hover {
+        transform: translateY(-5px) scale(1.01) !important;
+        box-shadow: var(--premium-shadow-hover) !important;
+    }
+
+    .producto_id {
+        background: rgba(0, 43, 92, 0.05);
+        color: var(--primary-cobalt);
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+    }
+
+    .plato_nombre {
+        color: var(--primary-cobalt) !important;
+        font-weight: 700 !important;
+        font-size: 1.25rem !important;
+        letter-spacing: -0.2px;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+    .plato_nombre:hover {
+        color: var(--secondary-cobalt) !important;
+    }
+
+    .badge-premium {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .separator-premium {
+        height: 1px;
+        background: linear-gradient(to right, rgba(0, 43, 92, 0.1), transparent);
+        margin: 1.5rem 0;
+    }
+
+    /* Carrusel Premium */
+    .carousel-inner {
+        border-radius: var(--premium-radius);
+        overflow: hidden;
+    }
+
+    .carousel-item img {
+        transition: transform 0.6s ease;
+    }
+
+    .producto-item:hover .carousel-item img {
+        transform: scale(1.05);
+    }
+
+    /* Botones Premium */
+    .btn-buy-premium {
+        background: var(--primary-cobalt) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 12px 20px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.9rem !important;
+        box-shadow: 0 4px 12px rgba(0, 43, 92, 0.2) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .btn-buy-premium:hover {
+        background: var(--secondary-cobalt) !important;
+        transform: scale(1.02);
+        box-shadow: 0 6px 15px rgba(0, 43, 92, 0.3) !important;
+    }
+
+    .btn-outline-premium {
+        border: 2px solid var(--primary-cobalt) !important;
+        color: var(--primary-cobalt) !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .btn-outline-premium:hover {
+        background: var(--primary-cobalt) !important;
+        color: white !important;
+    }
+
+    /* Sticker de Portada */
+    .sticker-portada {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: var(--primary-cobalt);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        z-index: 10;
+        text-transform: uppercase;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .price-tag-premium {
+        background: var(--primary-cobalt);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 0 12px 0 12px;
+        font-weight: 800;
+        font-size: 1.2rem;
+        display: inline-block;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        z-index: 10;
+        box-shadow: -4px -4px 10px rgba(0,0,0,0.1);
+    }
+
+    .description-premium {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: #4b5563;
+    }
+
     @keyframes resaltarBloque {
         0% {
             background-color: #fff3cd;
@@ -1693,9 +2138,10 @@
     #mostrarFooterBtn {
         display: none;
         position: fixed;
-        bottom: 100px;
-        /* un poco más arriba que el navbar oculto */
-        left: 20px;
+        bottom: 80px;
+        /* v16.0 - Ajustado de 100px a 80px para mejor integración */
+        right: 20px;
+        /* v16.0 - Movido de left a right para accesibilidad móvil */
         z-index: 1050;
         background-color: #0d6efd;
         color: white;
@@ -1824,6 +2270,99 @@
     }
 
     #info-actualizacion {
+    }
+
+    /* --- REDISEÑO PREMIUM DE ACORDEONES (CATEGORÍAS) --- */
+    .accordion-item {
+        border: none;
+        background: transparent;
+        margin-bottom: 1rem;
+        border-radius: var(--premium-radius) !important;
+        overflow: hidden;
+        box-shadow: var(--premium-shadow);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .accordion-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--premium-shadow-hover);
+    }
+
+    .accordion-header {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border-bottom: 1px solid rgba(0, 43, 92, 0.05);
+    }
+
+    .accordion-button {
+        background: transparent !important;
+        color: var(--primary-cobalt) !important;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 1.25rem 1.5rem;
+        box-shadow: none !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: rgba(0, 43, 92, 0.03) !important;
+        color: var(--primary-cobalt) !important;
+    }
+
+    .accordion-button::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23002b5c'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
+    }
+
+    /* Badge de conteo de productos */
+    .badge-count {
+        background: var(--primary-cobalt);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+
+    /* Título de la sección */
+    .titulo-productos-container {
+        padding: 2rem 0;
+        background-color: transparent;
+    }
+
+    .titulo-productos {
+        font-family: var(--outfit-font);
+        font-size: 1.5rem;
+        letter-spacing: 1px;
+        color: var(--primary-cobalt);
+        position: relative;
+        padding-bottom: 10px;
+        border: none;
+    }
+
+    .titulo-productos::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: var(--primary-cobalt);
+        border-radius: 10px;
+    }
+
+    .accordion-flush .accordion-item {
+        border-radius: var(--premium-radius) !important;
+    }
+    
+    .accordion-body {
+        padding: 1rem;
+        background-color: rgba(255, 255, 255, 0.5);
+    }
         font-family: Arial, sans-serif;
         font-size: 16px;
         margin: 20px;
@@ -2304,7 +2843,7 @@
 
                 <!-- Contenedor responsivo para el iframe -->
                 &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; <div style='width: 100%;height: 360px;overflow: hidden;position: relative;border-style: groove;'>
-                    &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; <iframe allowfullscreen='' loading='lazy' referrerpolicy='no-referrer-when-downgrade' src='https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3283.0256931720983!2d-58.47131280000001!3d-34.628791!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcc90e344d15a9%3A0x8acfceb05a3b1543!2sCast-Fer!5e0!3m2!1ses-419!2sar!4v1737034039329!5m2!1ses-419!2sar' style='width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0;'>
+                    &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; <iframe allowfullscreen='' loading='lazy' referrerpolicy='no-referrer-when-downgrade' src='https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3282.312845527815!2d-58.69493702494112!3d-34.646801359773605!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcbf9ff0b6a2d9%3A0xb4f996804ed70413!2sCnel.%20Jos%C3%A9%20Mar%C3%ADa%20Vilela%202206%2C%20B1714JWT%20Ituzaing%C3%B3%2C%20Provincia%20de%20Buenos%20Aires!5e0!3m2!1ses!2sar!4v1774482037554!5m2!1ses!2sar' style='width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0;'>
                         &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; </iframe>
                     &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; </div>
 
@@ -2401,7 +2940,7 @@
                             <div class='mb-3' id='carrito_resumen_total'>
                             </div>
 
-                            <button class='btn btn-success w-100 fw-bold' data-bs-target='#modalPedido' data-bs-toggle='modal' type='button'>
+                            <button class='btn btn-success w-100 fw-bold' onclick='iniciarCheckout()' type='button'>
                                 Finalizar Pedido
                             </button>
                         </div>
@@ -2508,7 +3047,7 @@
                 <a aria-label='Abrir WhatsApp' class='whatsapp-floating-button' href='#' onclick='abrir_whatsapp();'>
                     <img alt='' height='70' src='https://importadorasaletodo.com/img/whatsapp-icon.svg' width='70'/>
                 </a>
-                <button class='btn btn-dark btn-sm' data-bs-target='#modalPedido' data-bs-toggle='modal' id='btn_nuevo' type='button'>
+                <button class='btn btn-dark btn-sm' id='btn_nuevo' onclick='iniciarCheckout()' type='button'>
                     <i class='fa fa-whatsapp'/>
                     Clic aquí para Enviar pedido por WhatsApp
                 </button>
@@ -2576,7 +3115,7 @@
                                 <label class='form-label text-primary fw-bold' for='txt_correo'>
                                     <i class='fa fa-envelope'/> Correo Electrónico:
                                 </label>
-                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_correo' placeholder='Ingrese Correo Gmail' required='required' type='email'/>
+                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_correo' placeholder='Ingrese Correo Gmail' type='email'/>
                                 <small class='form-text text-muted'>
                                     <i class='fa fa-info-circle'/> Necesario para validar tu usuario.
                                 </small>
@@ -2585,16 +3124,30 @@
                                 <label class='form-label text-primary fw-bold' for='txt_nombre'>
                                     <i class='fa fa-user'/> <span id='label_nombre'>ID de Cliente:</span>
                                 </label>
-                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_nombre' placeholder='Ingrese su ID' required='required' type='text'/>
+                                <div class='input-group input-group-sm'>
+                                    <input class='form-control border-primary shadow-sm' id='txt_nombre' placeholder='Ingrese su ID' type='text'/>
+                                    <button class='btn btn-success shadow-sm' id='btn_validar_api' onclick='handleValidarCliente()' type='button'>
+                                        <i class='fa fa-search'/> Validar
+                                    </button>
+                                </div>
                                 <small class='form-text text-muted' id='small_nombre'>
                                     <i class='fa fa-info-circle'/> Identificación necesaria.
+                                </small>
+                            </div>
+                            <div class='col-6 small mb-3' id='campo_nombre_real' style='display:none;'>
+                                <label class='form-label text-primary fw-bold' for='txt_nombre_real'>
+                                    <i class='fa fa-user-plus'/> Nombre y Apellido:
+                                </label>
+                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_nombre_real' placeholder='Ingrese su Nombre Completo' type='text'/>
+                                <small class='form-text text-muted'>
+                                    <i class='fa fa-info-circle'/> Se usará para el registro del pedido.
                                 </small>
                             </div>
                             <div class='col-6 small mb-3' id='campo_celular' style='display:none;'>
                                 <label class='form-label text-primary fw-bold' for='txt_telefono'>
                                     <i class='fa fa-phone'/> Celular:
                                 </label>
-                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_telefono' placeholder='Ingrese su Celular (+54)' required='required' type='number'/>
+                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_telefono' placeholder='Ingrese su Celular (+54)' type='number'/>
                                 <small class='form-text text-muted'>
                                     <i class='fa fa-info-circle'/> Necesario para confirmar el pedido por WhatsApp.
                                 </small>
@@ -2603,10 +3156,22 @@
                                 <label class='form-label text-primary fw-bold' for='txt_rut'>
                                     <i class='fa fa-folder'/> Documento DNI o CUIT:
                                 </label>
-                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_rut' placeholder='Ingrese su CUIT' required='required' type='number'/>
+                                <input class='form-control form-control-sm border-primary shadow-sm' id='txt_rut' placeholder='Ingrese su CUIT' type='number'/>
                                 <small class='form-text text-muted'>
                                     <i class='fa fa-info-circle'/> Obligatorio para el rótulo de envío.
                                 </small>
+                            </div>
+
+                            <div class='col-6 small campo-extra mb-3' id='campo_condicion_fiscal' style='display:none;'>
+                                <label class='form-label text-primary fw-bold' for='txt_condicion_fiscal'>
+                                    <i class='fa fa-file-text'/> Condición Fiscal:
+                                </label>
+                                <select class='form-control form-control-sm border-primary shadow-sm' id='txt_condicion_fiscal'>
+                                    <option value='Consumidor Final'>Consumidor Final</option>
+                                    <option value='Responsable Inscripto'>Responsable Inscripto</option>
+                                    <option value='Monotributista'>Monotributista</option>
+                                    <option value='Exento'>Exento</option>
+                                </select>
                             </div>
 
                             <div class='col-12 text-center mb-3' id='tipo_compra_section' required='required' style='display:none;'>
@@ -2625,7 +3190,7 @@
                                 </div>
                             </div>
 
-                            <div class='col-12 small campo-extra' id='campo_agencia' required='required' style='display:none;'>
+                            <div class='col-12 small campo-extra' id='campo_agencia' style='display:none;'>
                                 <div class='mb-3'>
                                     <label class='form-label text-primary fw-bold' for='txt_agencia'>
                                         <i class='fa fa-building'/> Agencia de Envío:
@@ -2658,7 +3223,7 @@
                                 <div class='mb-3'>
                                     <label class='form-label' for='txt_provincia'><i class='fa fa-map-marker'/>
                                         Provincia:</label>
-                                    <select class='form-control form-control-sm' id='txt_provincia' required='required'>
+                                    <select class='form-control form-control-sm' id='txt_provincia'>
                                         <option value=''>Cargando provincias...</option>
                                     </select>
                                 </div>
@@ -2668,7 +3233,7 @@
                                 <div class='mb-3'>
                                     <label class='form-label' for='txt_municipio'><i class='fa fa-map'/>
                                         Municipio:</label>
-                                    <select class='form-control form-control-sm' disabled='disabled' id='txt_municipio' required='required'>
+                                    <select class='form-control form-control-sm' disabled='disabled' id='txt_municipio'>
                                         <option value=''>Seleccione una provincia primero</option>
                                     </select>
                                 </div>
@@ -2678,7 +3243,7 @@
                                 <div class='mb-3'>
                                     <label class='form-label' for='txt_localidad'><i class='fa fa-location-arrow'/>
                                         Localidad:</label>
-                                    <select class='form-control form-control-sm' disabled='disabled' id='txt_localidad' required='required'>
+                                    <select class='form-control form-control-sm' disabled='disabled' id='txt_localidad'>
                                         <option value=''>Seleccione un municipio primero</option>
                                     </select>
                                 </div>
@@ -2688,7 +3253,7 @@
                                     <label class='form-label' for='txt_codigo_postal'>
                                         <i class='fa fa-envelope'/> Código Postal :
                                     </label>
-                                    <input class='form-control form-control-sm' id='txt_codigo_postal' placeholder='Ingrese su Código Postal' required='required' type='number'/>
+                                    <input class='form-control form-control-sm' id='txt_codigo_postal' placeholder='Ingrese su Código Postal' type='number'/>
                                 </div>
                             </div>
                             <div class='col-6 small campo-extra campo-domicilio' id='campo_calle' style='display: none;'>
@@ -2704,7 +3269,7 @@
                                     <label class='form-label' for='txt_numero'>
                                         <i class='fa fa-sort-numeric-asc'/> Número :
                                     </label>
-                                    <input class='form-control form-control-sm' id='txt_numero' placeholder='Ingrese Número' required='required' type='number'/>
+                                    <input class='form-control form-control-sm' id='txt_numero' placeholder='Ingrese Número' type='number'/>
                                 </div>
                             </div>
                             <div class='col-6 small campo-extra campo-domicilio' id='campo_piso' style='display: none;'>
@@ -2738,6 +3303,22 @@
                                     </label>
                                     <input class='form-control form-control-sm' id='txt_direccion' placeholder='Dirección completa' readonly='readonly' type='text'/>
                                     <small class='form-text' id='direccion_tipo_envio'/>
+                                </div>
+                            </div>
+                            <!-- Se movió tipo_compra_section arriba por UX -->
+                            <!-- Botón para permitir edición de datos validados -->
+                            <div class='col-12 text-center mb-3' id='container_permitir_edicion' style='display:none;'>
+                                <button class='btn btn-sm btn-outline-warning' id='btn_permitir_edicion' onclick='permitirEdicionDatos()' type='button'>
+                                    <i class='fa fa-edit'/> Mis datos son antiguos, quiero cambiarlos
+                                </button>
+                            </div>
+                            <!-- Checkbox para actualización permanente -->
+                            <div class='col-12 mb-3' id='container_actualizar_permanente' style='display:none;'>
+                                <div class='form-check form-switch'>
+                                    <input class='form-check-input' id='chk_actualizar_permanente' type='checkbox'/>
+                                    <label class='form-check-label text-danger fw-bold' for='chk_actualizar_permanente'>
+                                        Guardar estos cambios de forma permanente en mi ficha de cliente
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -2874,7 +3455,7 @@
     <!-- Elfsight: dejar como async -->
     <script async='async' src='https://static.elfsight.com/platform/platform.js'/>
 
-    <script type='text/javascript'>
+        <script type='text/javascript'>
         //<![CDATA[
         var operacion = "";
         var idpedido = "";
@@ -2922,7 +3503,7 @@
 
                 toggleLoader(true);
                 makeAjaxCall(
-                    `${url_final_venta}exec`,
+                    url_final_venta,
                     { op: "cargar_venta", id: idpedido },
                     function (respuesta) {
                         // Ocultar loader si aplica
@@ -2966,7 +3547,7 @@
                     }).then(result => {
                         if (!result.isConfirmed) return;
                         makeAjaxCall(
-                            `${url_final_venta}exec`,
+                            url_final_venta,
                             { op: "confirmar_pago_presencial", idpedido },
                             function (respuesta) {
                                 Swal.fire("Éxito!", respuesta.message, "success");
@@ -2990,7 +3571,7 @@
 
                 // ── Lógica Original (Fallback / Otros casos) ──
                 makeAjaxCall(
-                    `${url_final_venta}exec`,
+                    url_final_venta,
                     { op: "pagar", idpedido },
                     function (respuesta) {
                         Swal.fire("Éxito!", respuesta.message, "success");
@@ -3014,7 +3595,7 @@
 
             $('#btn_cancelar').click(function () {
                 makeAjaxCall(
-                    `${url_final_venta}exec`,
+                    url_final_venta,
                     { op: "cancelar", idpedido },
                     function (respuesta) {
                         Swal.fire("Éxito!", respuesta.message, "success");
@@ -3069,7 +3650,7 @@
                     // Ocultar acciones globales inmediatamente
                     $("#btn_pagar, #btn_cancelar, #btn_editar").addClass("d-none");
 
-                    fetch(GAS_BASE_URL + "exec", {
+                    fetch(GAS_BASE_URL, {
                         method: "POST",
                         body: JSON.stringify({ op: "confirmar_pago_presencial", idpedido })
                     })
@@ -3144,7 +3725,7 @@
                     };
 
                     // Llamada directa a GAS (fetch POST - no JSONP porque enviamos base64 grande)
-                    fetch(GAS_BASE_URL + 'exec', {
+                    fetch(GAS_BASE_URL, {
                         method: 'POST',
                         body: JSON.stringify(payload)
                     })
@@ -3222,7 +3803,7 @@
         }
 
         function setupPrincipalUI(operacion) {
-            estaEnVistaDetalle = false; // 👉 Estamos fuera de la vista de detalle
+            AppState.estaEnVistaDetalle = false; // 👉 Sincronizado con AppState
 
             $("#navbarfooter").show();
             $(".detalle_pedido_page").hide();
@@ -3243,7 +3824,7 @@
         }
 
         function setupDetalleUI(operacion) {
-            estaEnVistaDetalle = true; // 👉 Activar bandera
+            AppState.estaEnVistaDetalle = true; // 👉 Sincronizado con AppState
 
             $(".detalle_pedido_page").show();
             $("#navbarfooter").hide();
@@ -3264,7 +3845,15 @@
             const esPublicoGeneral = !venta.nombre_entrega && !venta.correo_entrega;
 
             return {
-                detalle: venta.detalle || [],
+                detalle: (venta.detalle || []).map(item => {
+                    // OPTIMIZACIÓN LITE (v11.11): Solo enviamos la imagen de portada (la primera)
+                    // para aligerar el DETALLE_JSON y mejorar el rendimiento del visor.
+                    const clonedItem = JSON.parse(JSON.stringify(item));
+                    if (clonedItem.descripcion && clonedItem.descripcion.imagenes && Array.isArray(clonedItem.descripcion.imagenes)) {
+                        clonedItem.descripcion.imagenes = clonedItem.descripcion.imagenes.slice(0, 1);
+                    }
+                    return clonedItem;
+                }),
                 op: venta.op || "venta",
                 operacion: venta.operacion || "",
                 id: venta.id || "",
@@ -3291,67 +3880,187 @@
                 costo_agencia: venta.costo_agencia || 0,
                 hora_entrega_agencia: venta.hora_entrega_agencia || "",
 
-                url: venta.url || "",
-                nombre_entrega_mostrado: venta.nombre_entrega_mostrado || (esPublicoGeneral ? "Público General (CLI001)" : "")
+                // v14.0 - Metadatos de Identidad
+                id_cliente: venta.id_cliente,
+                nombre_enviado: venta.nombre_enviado,
+                actualizar_datos: venta.actualizar_datos,
+
+                url: venta.url || ""
             };
         }
 
+        // --- VARIABLES DE CONTROL v14.0 ---
+        var intentosValidacion = 0;
+        var manualEditActive = false;
+        
+        /**
+         * Provoca un cambio en un select y espera a que el hijo se cargue.
+         * v15.8.2 - Motor Inteligente con Reintentos y Emparejamiento por Texto
+         */
+        function provocarCambioYEsperar(selector, valor) {
+            return new Promise((resolve) => {
+                const el = $(selector);
+                if (!el.length || !valor) return resolve();
+
+                let reintentos = 0;
+                const maxReintentos = 15; // 1.5 segundos máx
+                
+                const intentarSeleccion = () => {
+                    // v15.8.4 - Asegurar que el elemento sea editable para el motor
+                    el.prop('disabled', false);
+                    
+                    // 1. Intentar por Valor (ID)
+                    el.val(valor);
+                    
+                    // 2. Si falló, intentar por Texto (Case-Insensitive)
+                    if (!el.val() || el.val() === "") {
+                        const targetOption = el.find('option').filter(function() {
+                            return $(this).text().trim().toLowerCase() === String(valor).trim().toLowerCase();
+                        });
+                        if (targetOption.length) {
+                            el.val(targetOption.val());
+                        }
+                    }
+
+                    if (el.val() && el.val() !== "") {
+                        el.trigger('change');
+                        setTimeout(() => resolve(), 300); // Margen post-trigger
+                    } else if (reintentos < maxReintentos) {
+                        reintentos++;
+                        setTimeout(intentarSeleccion, 100);
+                    } else {
+                        console.warn(`No se pudo seleccionar ${valor} en ${selector} tras varios intentos.`);
+                        resolve();
+                    }
+                };
+
+                intentarSeleccion();
+            });
+        }
 
         function handleFormSubmit(event) {
+            event.preventDefault();
+
             var venta = JSON.parse(localStorage.getItem('venta'));
-
             if (venta.detalle.length === 0) {
-                Swal.fire("Warning!", "Debe agregar productos al pedido!", "warning");
-                event.preventDefault();
+                Swal.fire("Atención", "Debe agregar productos al pedido antes de confirmar.", "warning");
                 return false;
-            } else {
-                var config = JSON.parse(localStorage.getItem('configuracion_pagina'));
-
-                // Añadir campos extra al objeto original
-                Object.assign(venta, {
-                    op: "venta",
-                    operacion,
-                    id: idpedido,
-                    nombre_entrega: $('#txt_nombre').val(),
-                    rut_entrega: $('#txt_rut').val(),
-                    telefono_entrega: $('#txt_telefono').val(),
-                    correo_entrega: $('#txt_correo').val(),
-                    direccion_entrega: $('#txt_direccion').val(),
-                    agencia_entrega: $('#txt_agencia').val(),
-                    url: config.pagina_url,
-                    item: {} // Limpiar item antes de enviar
-                });
-
-                // Ordenar las claves del objeto antes de enviarlo
-                const venta_ordenada = ordenarVentaFinal(venta);
-
-                makeAjaxCall(
-                    `${url_final_venta}exec`,
-                    venta_ordenada,
-                    function (respuesta) {
-                        postFormSubmitActions(respuesta);
-                    }
-                );
             }
+
+            var config = JSON.parse(localStorage.getItem('configuracion_pagina'));
+            const tipoCliente = localStorage.getItem('tipo_cliente') || 'Sin Registro';
+            const esValidado = tipoCliente === 'Validar Datos';
+            const esSinRegistro = tipoCliente === 'Sin Registro';
+
+            // Determinar ID y Nombre Final (v15.8 - Desacoplado)
+            // txt_nombre es para Credenciales (ID), txt_nombre_real es para Identidad (Nombre)
+            let idFinal = esSinRegistro ? "CLI001" : $('#txt_nombre').val();
+            let nombreFinal = $('#txt_nombre_real').val() || "Público General";
+            
+            // Inteligencia de Costo de Envío: Si es Retiro, forzar a $0
+            const tipoCompraActual = $('input[name="tipo_compra"]:checked').val();
+            if (tipoCompraActual === 'Retiro') {
+                venta.costo_agencia = 0;
+                venta.costo_envio = 0;
+            }
+
+            // Inyectar metadatos v14.0
+            Object.assign(venta, {
+                op: "venta",
+                operacion,
+                id: idpedido,
+                id_cliente: idFinal,
+                nombre_enviado: nombreFinal,
+                actualizar_datos: $('#chk_actualizar_permanente').is(':checked'),
+                nombre_entrega: nombreFinal, // v15.7 - Ahora envía el nombre real como respaldo
+                rut_entrega: $('#txt_rut').val() || (venta.rut_entrega || ""),
+                telefono_entrega: $('#txt_telefono').val() || (venta.telefono_entrega || ""),
+                correo_entrega: $('#txt_correo').val(),
+                direccion_entrega: $('#txt_direccion').val(),
+                agencia_entrega: $('#txt_agencia').val(),
+                url: config.pagina_url,
+                // Ubicaciones
+                provincia: $('#txt_provincia option:selected').text(),
+                municipio: $('#txt_municipio option:selected').text(),
+                localidad: $('#txt_localidad option:selected').text(),
+                codigo_postal: $('#txt_codigo_postal').val()
+            });
+
+            const venta_ordenada = ordenarVentaFinal(venta);
+            
+            // v15.7.1 - Cerrar modal, carrito y mostrar loader global inmediatamente
+            $('#modalPedido').modal('hide');
+            if (typeof closeSidebarCarrito === 'function') closeSidebarCarrito();
+            toggleLoader(true);
+
+            fetch(url_final_venta, {
+                method: "POST",
+                body: JSON.stringify(venta_ordenada),
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            })
+            .then(res => res.json())
+            .then(respuesta => {
+                if (respuesta.status === "0") {
+                    postFormSubmitActions(respuesta);
+                } else {
+                    Swal.fire("Error ERP", respuesta.message || "Error al procesar la venta", "error");
+                }
+            })
+            .catch(err => {
+                console.error("Error POST:", err);
+                Swal.fire("Error Red", "No se pudo conectar con el ERP.", "error");
+            })
+            .finally(() => toggleLoader(false));
         }
 
 
+
+
         function postFormSubmitActions(respuesta) {
+            // 1. Cerrar loader antes de mostrar Swal (evitar conflicto de overlays)
+            toggleLoader(false);
             regresar_principal();
             inicializarVenta();
             total_pedido();
             $('#btn_cerrar').click();
             $("#form_pedido").trigger("reset");
-            Swal.fire("Éxito!", respuesta.message, "success");
 
-            if (respuesta.message_whatsapp) {
-                redirectToWhatsApp(respuesta.message_whatsapp);
+            // 2. Comprobar si el método fue "Sin Registro" (v15.7 - Uso de localStorage para evitar fallos por controles disabled)
+            const tipoCliente = localStorage.getItem('tipo_cliente');
+            const esSinRegistro = tipoCliente === 'Sin Registro';
+
+            if (esSinRegistro) {
+                if (respuesta.message_whatsapp) {
+                    // Redirección inmediata, sin confirmación.
+                    redirectToWhatsApp(respuesta.message_whatsapp);
+                } else {
+                    console.warn("No se recibió message_whatsapp del servidor para la redirección.");
+                    Swal.fire("Warning!", "Fallo la redirección automática a WhatsApp", "warning");
+                }
+                return;
             }
+
+            // Mostrar modal de éxito — al cerrarlo, abrir WhatsApp
+            Swal.fire({
+                title: "¡Pedido Registrado! 🎉",
+                text: respuesta.message || "Tu pedido ha sido recibido con éxito.",
+                icon: "success",
+                confirmButtonText: "📲 Enviar pedido por WhatsApp",
+                allowOutsideClick: false
+            }).then(() => {
+                if (respuesta.message_whatsapp) {
+                    redirectToWhatsApp(respuesta.message_whatsapp);
+                } else {
+                    console.warn("No se recibió message_whatsapp del servidor.");
+                }
+            });
         }
 
         function redirectToWhatsApp(message) {
             var config = JSON.parse(localStorage.getItem('configuracion_pagina'));
-            window.location.href = `https://wa.me/${config.contactabilidad}?text=${encodeURIComponent(message)}`;
+            // Usar api.whatsapp.com/send para mayor compatibilidad con todos los navegadores
+            var phone = (config.contactabilidad || "").replace(/\D/g, ""); // solo dígitos
+            window.location.href = `https://api.whatsapp.com/send/?phone=${phone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
         }
 
         function toggleLoader(show = true) {
@@ -3374,31 +4083,50 @@
             observer.observe(document.body, { childList: true, subtree: true });
         }
 
-        function makeAjaxCall(url, data, onSuccess, onError = null, method = "POST") {
+        function makeAjaxCall(url, data, onSuccess, onError = null, method = "GET") {
             toggleLoader(true);
+            
+            // Usamos formato JSONP estricto para sobrellevar el bug de redirección agresiva CORS nativa (Chrome 302 Native Body Drop)
+            // Las URL tienen un límite estable de ~8kb en Google, permitiendo envíos de pedidos 100% íntegros.
+            const payloadJSONP = {
+                op: data.op || data.accion || data.o || "",
+                venta_data: JSON.stringify(data)
+            };
+
             $.ajax({
                 url,
+                type: "GET",
+                dataType: "jsonp",
                 jsonp: "callback",
-                method,
-                data: JSON.stringify(data),
+                data: payloadJSONP,
                 async: true,
                 success: function (response) {
-                    if (response.status === '0') {
-                        onSuccess(response);
+                    var respObj = response;
+                    if (typeof response === "string") {
+                        try { respObj = JSON.parse(response); } catch (e) {}
+                    }
+
+                    if (respObj && respObj.status === '0') {
+                        onSuccess(respObj);
                     } else {
-                        Swal.fire("Warning!", response.message, "warning");
-                        if (onError) onError(response);
+                        let errStr = "Respuesta incompleta del servidor.";
+                        if (response) {
+                           errStr = typeof response === "string" ? response.substring(0, 100) : (respObj.message || JSON.stringify(respObj).substring(0, 100));
+                        }
+                        Swal.fire("Warning!", errStr, "warning");
+                        if (onError) onError(respObj);
                     }
                 },
                 error: function (error) {
-                    Swal.fire("Error!", "Ocurrió un problema con la conexión.", "error");
-                    console.error(error);
+                    Swal.fire("Error!", "Ocurrió un problema con la conexión externa JSONP.", "error");
+                    console.error("[makeAjaxCall] Red/JSONP:", error);
                 },
                 complete: function () {
                     toggleLoader(false);
                 }
             });
         }
+
 
         document.addEventListener("DOMContentLoaded", function () {
             const header = document.querySelector("header");
@@ -3492,31 +4220,29 @@
                 const esRetiroTienda = agencia === "RETIRO TIENDA";
                 etiquetaHora = esRetiroTienda ? 'HORA LIMITE DE RETIRO' : 'HORA ENTREGA';
 
-                // tiempo_entrega en JSON a veces es "13:00" o fecha completa
-                // En Ventas.js map: venta.hora_entrega_agencia -> tiempo_entrega
-                const tiempoAgencia = pedido.tiempo_entrega || pedido.hora_entrega_agencia;
-
-                if (tiempoAgencia) {
-                    let horaStr = "";
-                    if (tiempoAgencia.match(/^\d{1,2}:\d{2}/)) {
-                        horaStr = tiempoAgencia.substring(0, 5);
-                    } else if (tiempoAgencia.includes("T")) {
-                        const dt = new Date(tiempoAgencia);
-                        horaStr = dt.getHours().toString().padStart(2, '0') + ":" + dt.getMinutes().toString().padStart(2, '0');
-                    }
-
-                    if (horaStr) {
-                        const [hh, mm] = horaStr.split(":").map(Number);
-                        const ahora = new Date();
-                        // Usamos fecha del pedido o fecha actual?
-                        // La lógica original comparaba con AHORA.
-                        let fechaLimite = new Date();
-                        fechaLimite.setHours(hh, mm, 0, 0);
-
-                        if (fechaLimite < ahora) {
-                            fechaLimite.setDate(fechaLimite.getDate() + 1); // Si ya pasó, es mañana
+                if (pedido.hora_limite_precalculada) {
+                    horaLimiteTexto = pedido.hora_limite_precalculada;
+                } else {
+                    const tiempoAgencia = pedido.tiempo_entrega || pedido.hora_entrega_agencia;
+                    if (tiempoAgencia) {
+                        let horaStr = "";
+                        if (tiempoAgencia.match(/^\d{1,2}:\d{2}/)) {
+                            horaStr = tiempoAgencia.substring(0, 5);
+                        } else if (tiempoAgencia.includes("T")) {
+                            const dt = new Date(tiempoAgencia);
+                            horaStr = dt.getHours().toString().padStart(2, '0') + ":" + dt.getMinutes().toString().padStart(2, '0');
                         }
-                        horaLimiteTexto = formatearFechaEspanol(fechaLimite);
+
+                        if (horaStr) {
+                            const [hh, mm] = horaStr.split(":").map(Number);
+                            let fechaLimite = new Date();
+                            fechaLimite.setHours(hh, mm, 0, 0);
+
+                            if (fechaLimite < new Date()) {
+                                fechaLimite.setDate(fechaLimite.getDate() + 1);
+                            }
+                            horaLimiteTexto = formatearFechaEspanol(fechaLimite);
+                        }
                     }
                 }
             } catch (e) { console.error("Error fecha:", e); }
@@ -3527,7 +4253,8 @@
     <div class="cliente-info border rounded p-4 bg-white shadow-sm mb-4">
       <div class="alert alert-secondary border-0 shadow-sm mb-3">
           <p class="mb-1">📅 <strong>FECHA DEL PEDIDO:</strong> ${fechaPedidoTexto}</p>
-          <p class="mb-1">👤 <strong>CLIENTE:</strong> ${pedido.nombre_entrega_mostrado || pedido.nombre_entrega || "Público General"}</p>
+          <p class="mb-1">👤 <strong>CLIENTE:</strong> ${pedido.nombre_enviado || pedido.nombre_entrega_mostrado || pedido.nombre_entrega || "Público General"}</p>
+          <p class="mb-1">📞 <strong>CELULAR:</strong> ${pedido.telefono_entrega || "n/a"}</p>
           <p class="mb-1">🚚 <strong>FORMA DE ENVIO:</strong> ${pedido.agencia_entrega || "-"}</p>
           <p class="mb-0">⏳ <strong>${etiquetaHora}:</strong> ${horaLimiteTexto}</p>
       </div>
@@ -4088,57 +4815,92 @@
                     console.warn("⚠️ Error parseando caché, recargando...");
                 }
             }
-            // 3. MODO NORMAL: Cascada de fuentes con fallback progresivo
-            $("#loader-categorias span").text("Cargando Categorías y Productos...");
-            $("#loader-categorias").show();
-            $("#productos-container").hide();
+            // 3. MODO NORMAL: Cascada de fuentes Inteligente (Donweb > GitHub > Drive)
+            $("#loader-categorias span").text("Conectando con el catálogo...");
             $(".loader-wrapper").fadeIn("slow", function () {
-                console.time("configuracion");
-                // Intento 1: Donweb (primario)
-                cargarDesdeServidorPrimario()
-                    .done((respuesta) => {
-                        console.timeEnd("configuracion");
-                        console.log("✅ [Fuente 1] Donweb OK");
-                        guardarConfiguracionEnLocal(respuesta);
-                        procesarConfiguracion(respuesta, idpedido, operacion);
+                const urlGAS = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/exec';
+
+                const fuentes = [
+                    { nombre: 'Donweb', url: DONWEB_BLOGGER_URL, type: 'json' },
+                    { nombre: 'GitHub', url: GITHUB_BLOGGER_URL, type: 'json' },
+                    { nombre: 'Drive (Fast-Pass)', url: urlGAS, type: 'jsonp' }
+                ];
+
+                const intentarCargar = (index) => {
+                    if (index >= fuentes.length) {
+                        Swal.fire("Error!", "No se pudo conectar con ninguna fuente de datos tras varios intentos.", "error");
                         finalizeUI();
-                    })
-                    .fail(() => {
-                        console.warn("⚠️ [Fuente 1] Donweb falló → intentando GitHub...");
-                        // Intento 2: GitHub (respaldo)
-                        cargarDesdeGitHub()
-                            .done((respuesta) => {
-                                console.timeEnd("configuracion");
-                                console.log("✅ [Fuente 2] GitHub OK");
-                                guardarConfiguracionEnLocal(respuesta);
-                                procesarConfiguracion(respuesta, idpedido, operacion);
-                                finalizeUI();
-                            })
-                            .fail(() => {
-                                console.warn("⚠️ [Fuente 2] GitHub falló → intentando GAS (emergencia)...");
-                                // Intento 3: GAS (emergencia)
-                                cargarDesdeAppsScript(idpedido)
-                                    .done((respuesta) => {
-                                        console.timeEnd("configuracion");
-                                        console.log("✅ [Fuente 3] GAS OK");
-                                        if (respuesta.status == '0') {
-                                            guardarConfiguracionEnLocal(respuesta);
-                                            procesarConfiguracion(respuesta, idpedido, operacion);
-                                        } else {
-                                            Swal.fire("Alerta!", respuesta.message || "Error en emergencia", "warning");
-                                        }
-                                    })
-                                    .fail(() => {
-                                        console.error("❌ Fallaron las 3 fuentes de datos");
-                                        Swal.fire("Error Crítico", "No se pudo cargar la configuración de la tienda.", "error");
-                                    })
-                                    .always(finalizeUI);
-                            });
+                        return;
+                    }
+
+                    const f = fuentes[index];
+                    console.log(`📡 [Sync] Intentando Fuente ${index + 1}: ${f.nombre}...`);
+
+                    $.ajax({
+                        url: f.url,
+                        data: f.type === 'jsonp' ? { op: "configuracion" } : {},
+                        dataType: f.type,
+                        timeout: 8000,
+                        success: function(response) {
+                            console.log(`✅ [${f.nombre}] Cargado con éxito.`);
+                            const config = typeof response === 'string' ? JSON.parse(response) : response;
+                            procesarConfiguracion(config, idpedido, operacion);
+                            finalizeUI();
+                        },
+                        error: function() {
+                            console.warn(`⚠️ [${f.nombre}] Falló. Probando respaldo...`);
+                            intentarCargar(index + 1);
+                        }
                     });
+                };
+
+                intentarCargar(0);
             });
         }
 
+        /**
+         * Lógica de respaldo para cuando Google Drive no está disponible.
+         */
+        function caer_en_backups_externos(idpedido, operacion) {
+            console.time("configuracion_backup");
+            // Intento 2: Donweb
+            cargarDesdeServidorPrimario()
+                .done((res) => {
+                    console.timeEnd("configuracion_backup");
+                    console.log("✅ [Fuente B] Donweb OK");
+                    guardarConfiguracionEnLocal(res);
+                    procesarConfiguracion(res, idpedido, operacion);
+                })
+                .fail(() => {
+                    console.warn("⚠️ [Fuente B] Donweb falló -> Intentando GitHub...");
+                    // Intento 3: GitHub
+                    cargarDesdeGitHub()
+                        .done((res) => {
+                            console.timeEnd("configuracion_backup");
+                            console.log("✅ [Fuente C] GitHub OK");
+                            guardarConfiguracionEnLocal(res);
+                            procesarConfiguracion(res, idpedido, operacion);
+                        })
+                        .fail(() => {
+                            console.error("❌ Todas las fuentes de datos fallaron.");
+                            Swal.fire("Error Crítico", "No se pudo cargar la configuración desde Drive, Donweb ni GitHub.", "error");
+                        });
+                });
+        }
+
         function procesarConfiguracion(respuesta, idpedido, operacion) {
+            // --- VALIDACIÓN DE INTEGRIDAD ---
+            if (!respuesta || !respuesta.content || !respuesta.pagina_tienda) {
+                console.error("❌ [Config] El JSON recibido es inválido o está incompleto.");
+                console.log("Respuesta recibida:", respuesta);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Fallo de Configuración',
+                    text: 'El servidor respondió pero los datos están incompletos. Por favor, reintenta o contacta a soporte.',
+                });
+                return; // Detenemos el proceso para evitar el TypeError
+            }
+
             if (respuesta.aplicar_marca_agua === true && respuesta.pagina_tienda?.tienda_id) {
                 document.body.classList.add('watermark-enabled');
                 // Llamamos a la nueva función para que cree el CSS dinámico
@@ -4599,6 +5361,10 @@
                 });
         }
 
+        // --- NUEVO: Variables globales para la sincronización inteligente ---
+        let actualizacionEnProgreso = false;
+        let dataNuevaPendiente = null;
+
         function mostrarTiempoUltimaActualizacion() {
             const contenedor = document.getElementById('info-actualizacion');
             if (!contenedor) return;
@@ -4619,17 +5385,124 @@
             const minutosFaltan = Math.max(0, Math.floor(msParaProxima / 60000));
             const segundosFaltan = Math.max(0, Math.floor((msParaProxima % 60000) / 1000));
 
-            if (minutosFaltan === 0 && segundosFaltan === 0) {
-                contenedor.innerHTML = `<button id="btnActualizar">🔄 Haz click para actualizar la página</button>`;
-                document.getElementById('btnActualizar').addEventListener('click', () => location.reload());
-            } else {
-                if (minutosFaltan === 0 && segundosFaltan <= 15) {
-                    contenedor.style.color = "red";
-                } else {
-                    contenedor.style.color = "";
-                }
-                contenedor.textContent = `🕒 Última actualización: hace ${minutos} min ${segundos} seg | ⏳ Próxima actualización en ${minutosFaltan} min ${segundosFaltan} seg`;
+            // FALTANDO 30 SEGUNDOS: Pre-cargamos data de Drive en segundo plano (Sincronización Silenciosa)
+            if (minutosFaltan === 0 && (segundosFaltan >= 25 && segundosFaltan <= 35) && !actualizacionEnProgreso && !dataNuevaPendiente) {
+                preCargarDataFrescadeDrive();
             }
+
+            if (minutosFaltan === 0 && segundosFaltan === 0) {
+                if (dataNuevaPendiente) {
+                    contenedor.innerHTML = `<button id="btnActualizar" style="background:#28a745; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold; box-shadow: 0 0 10px rgba(40,167,69,0.5);">✨ ¡Cambios detectados! Actualizar Precios</button>`;
+                } else {
+                    contenedor.innerHTML = `<button id="btnActualizar">🔄 Haz click para actualizar la página</button>`;
+                }
+                
+                const btn = document.getElementById('btnActualizar');
+                if (btn) {
+                    btn.onclick = () => {
+                        if (dataNuevaPendiente) {
+                            aplicarDataNuevaSinRecargar(); 
+                        } else {
+                            location.reload();
+                        }
+                    };
+                }
+            } else {
+                contenedor.style.color = (minutosFaltan === 0 && segundosFaltan <= 15) ? "red" : "";
+                const msgEstado = dataNuevaPendiente ? " (🔥 ¡Data fresca lista!)" : "";
+                contenedor.textContent = `🕒 Última actualización: hace ${minutos} min ${segundos} seg | ⏳ Próxima consulta en ${minutosFaltan} min ${segundosFaltan} seg${msgEstado}`;
+            }
+        }
+
+        function preCargarDataFrescadeDrive() {
+            actualizacionEnProgreso = true;
+            const urlGAS = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/exec';
+            console.log("🛰️ [Sync] Consultando novedades en Drive...");
+            
+            $.ajax({
+                url: urlGAS,
+                data: { op: "configuracion" },
+                dataType: "jsonp",
+                success: function(response) {
+                    if (response && response.timestamp_ms) {
+                        const localTS = Number(localStorage.getItem('configuracion_pagina_timestamp')) || 0;
+                        const driveTS = Number(response.timestamp_ms);
+                        
+                        if (driveTS > localTS) {
+                            console.log("✅ [Sync] ¡Cambios detectados! Iniciando auto-sincronización segura.");
+                            dataNuevaPendiente = response;
+                            intentarAutoSincronizacion();
+                        } else {
+                            console.log("💤 [Sync] Sin cambios en Drive.");
+                        }
+                    }
+                },
+                error: function(err) { console.error("❌ [Sync] Error pre-carga:", err); },
+                complete: function() { actualizacionEnProgreso = false; }
+            });
+        }
+
+        /**
+         * Intenta aplicar la data nueva solo si el usuario no está en medio de una acción crítica
+         */
+        function intentarAutoSincronizacion() {
+            if (!dataNuevaPendiente) return;
+
+            // Verificamos si hay algún modal de Bootstrap o SweetAlert abierto
+            const modalAbierto = document.querySelector('.modal.show') || document.querySelector('.swal2-container');
+            
+            if (!modalAbierto) {
+                console.log("✨ [Sync] Entorno seguro detectado. Aplicando cambios automáticamente.");
+                aplicarDataNuevaSinRecargar();
+            } else {
+                console.log("⏳ [Sync] Usuario en medio de una compra. Postergando actualización 10 segundos...");
+                setTimeout(intentarAutoSincronizacion, 10000); // Reintentar en 10 seg
+            }
+        }
+
+        function refrescarRenderizadoTienda() {
+            console.log("🎨 [Sync] Refrescando vistas abiertas con nueva data...");
+            
+            // 1. Quitamos los flags de renderizado para permitir que se vuelvan a cargar
+            document.querySelectorAll('[data-renderizado="true"]').forEach(el => {
+                el.removeAttribute('data-renderizado');
+            });
+
+            // 2. Refrescamos solo los que están actualmente visibles (Abiertos)
+            document.querySelectorAll(".accordion-collapse.show").forEach(acordeon => {
+                const categoria = acordeon.getAttribute("data-categoria");
+                
+                // Buscamos el contenedor específico de productos dentro del acordeón abierto
+                const contenedorProductos = acordeon.querySelector(`#contenedor-productos-${categoria}`);
+                
+                if (contenedorProductos && window.renderizarProductosPorCategoria) {
+                    contenedorProductos.innerHTML = '<div class="text-center p-3 w-100"><i class="fa fa-sync fa-spin"></i> Sincronizando precios...</div>';
+                    // Pequeño delay para que el usuario note el cambio y el DOM se estabilice
+                    setTimeout(() => renderizarProductosPorCategoria(categoria), 400);
+                }
+            });
+
+            mostrarTiempoUltimaActualizacion();
+        }
+
+        function aplicarDataNuevaSinRecargar() {
+            if (!dataNuevaPendiente) return;
+            
+            // Guardamos localmente
+            localStorage.setItem('configuracion_pagina', JSON.stringify(dataNuevaPendiente));
+            localStorage.setItem('configuracion_pagina_timestamp', dataNuevaPendiente.timestamp_ms);
+            
+            // Actualizamos variables globales
+            if (typeof config_pagina !== 'undefined') config_pagina = dataNuevaPendiente;
+            if (typeof configuracion_sitio !== 'undefined') configuracion_sitio = dataNuevaPendiente;
+            
+            refrescarRenderizadoTienda();
+            
+            dataNuevaPendiente = null;
+            
+            // Un pequeño aviso discreto en consola o un Toast si tuvieras librería, 
+            // pero para no molestar al usuario, solo lo dejamos en el log y el cronómetro.
+            console.log("🚀 [Sync] ¡Catálogo actualizado con éxito!");
         }
 
         // Actualizar cada segundo
@@ -5165,13 +6038,13 @@
         function inicializarCarruselesPrecios() {
             document.querySelectorAll('.carousel-precios:not([data-initialized="true"])').forEach(carrusel => {
                 new bootstrap.Carousel(carrusel, {
-                    interval: 2000,
+                    interval: 5000,
                     ride: 'carousel',
                     pause: false,
                     wrap: true
                 });
                 carrusel.setAttribute('data-initialized', 'true');
-                console.log("💲 Carrusel de precios activado:", carrusel.id);
+                console.log("💲 Carrusel de precios automáticos (5s) activado:", carrusel.id);
             });
         }
 
@@ -5308,513 +6181,297 @@
             const isHighlighted = highlightCategoria === categoria.codigo && highlightProducto === producto.codigo;
             const esAndroid = /Android/i.test(navigator.userAgent);
 
+            // 📸 Imágenes ordenadas (Portada primero)
             const imagenesOrdenadas = Array.isArray(producto.imagen) && producto.imagen.length > 0
                 ? [...producto.imagen].sort((a, b) => {
-                    // 1° Portada siempre primero
                     if (a.portada && !b.portada) return -1;
                     if (!a.portada && b.portada) return 1;
-                    // 2° Orden numérico ascendente
                     const ordenA = parseInt(a.orden) || 999;
                     const ordenB = parseInt(b.orden) || 999;
-                    if (ordenA !== ordenB) return ordenA - ordenB;
-                    // 3° Fecha de carga descendente (más recientes primero)
-                    return new Date(b.fecha_carga || 0) - new Date(a.fecha_carga || 0);
-                })
-                : [];
+                    return (ordenA !== ordenB) ? ordenA - ordenB : new Date(b.fecha_carga || 0) - new Date(a.fecha_carga || 0);
+                }) : [];
 
             const textoBotonCompra = producto.variedad.length > 1 ? "Elegir Variedad" : "🛒 Añadir al carrito";
 
-            const botonesCarrusel = imagenesOrdenadas.length > 1 ? `
-        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls_${producto.codigo}" data-bs-slide="prev" style="background-color: rgb(220, 225, 240);">
-            <span class="carousel-control-prev-icon"></span>
-            <span class="visually-hidden">Anterior</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls_${producto.codigo}" data-bs-slide="next" style="background-color: rgb(220, 225, 240);">
-            <span class="carousel-control-next-icon"></span>
-            <span class="visually-hidden">Siguiente</span>
-        </button>` : '';
+            // 🎡 Carrusel de Precios por Variedad (PRE-RENDER)
+            const preciosCarrusel = producto.variedad.length > 1 ? `
+                <div id="carouselPrecios_${producto.codigo}" class="carousel slide carousel-fade carousel-precios" data-bs-ride="carousel" data-bs-interval="5000">
+                    <div class="carousel-inner text-center">
+                        ${producto.variedad.map((v, i) => `
+                            <div class="carousel-item ${i === 0 ? 'active' : ''}">
+                                <div class="price-tag-premium-pill">
+                                    ${formatMoneda(v.precio * (v.minima || 1), v.moneda)}
+                                    <span class="variant-label">${v.variedad || 'Personal.'}</span>
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                    <!-- Controles del Caroussel de Precios -->
+                    <button class="carousel-control-prev price-carousel-control" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="prev" onclick="event.stopPropagation()">
+                        <span class="carousel-control-prev-icon price-carousel-control-icon"></span>
+                    </button>
+                    <button class="carousel-control-next price-carousel-control" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="next" onclick="event.stopPropagation()">
+                        <span class="carousel-control-next-icon price-carousel-control-icon"></span>
+                    </button>
+                </div>` : `
+                <div class="price-tag-premium-pill">
+                    ${formatMoneda(producto.precio, producto.moneda || "$")}
+                </div>`;
 
-            const preciosCarrusel = `
-        <div id="carouselPrecios_${producto.codigo}" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
-            <div class="carousel-inner text-center">
-                ${producto.variedad.map((v, i) => `
-                    <div class="carousel-item ${i === 0 ? 'active' : ''}">
-                        <div style="font-size: 1.2rem; font-weight: bold;">${formatMoneda(v.precio * (v.minima || 1), v.moneda)}</div>
-                        <div class="small mt-1" style="color: ${obtenerColor(v.variedad)}; font-weight: bold;">${v.variedad} (x${v.minima || 1})</div>
-                    </div>`).join('')}
-            </div>
-            ${producto.variedad.length > 1 ? `
-                <button class="carousel-control-prev" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="prev" style="background: rgba(0,0,0,0.2); border-radius: 50%;">
-                    <span class="carousel-control-prev-icon"></span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="next" style="background: rgba(0,0,0,0.2); border-radius: 50%;">
-                    <span class="carousel-control-next-icon"></span>
-                </button>` : ''}
-        </div>`;
-
-            /**
-             * Renderiza la descripción del producto con lógica condicional para móviles.
-             */
-            function renderDescripcion(descripcion, esDispositivoAndroid) {
+            // 📋 Renderizador de Descripción (HELPER INTERNO)
+            const renderDescripcion = (descripcion, esAndroid) => {
                 if (!descripcion || typeof descripcion !== "object") return "";
+                const omitidas = ["stock", "ultima_actualizacion", "video", "whatsapp", "talles", "colores"];
+                
+                // Mapeo de Iconos Premium
+                const iconMap = {
+                    modelo: "fa-tag",
+                    marca: "fa-certificate",
+                    genero: "fa-venus-mars",
+                    material: "fa-cube",
+                    temporada: "fa-sun-o",
+                    estilo: "fa-paint-brush",
+                    grupo_edad: "fa-users"
+                };
 
-                // --- LÓGICA PARA MÓVILES (ANDROID) ---
-                if (esDispositivoAndroid) {
-                    const omitidas = ["stock", "ultima_actualizacion", "video", "whatsapp", "talles", "colores"];
-                    let htmlGenerado = "";
+                let mainHtml = Object.entries(descripcion)
+                    .filter(([key, value]) => !omitidas.includes(key) && value && (typeof value === 'object' ? value.valor : value))
+                    .map(([key, value]) => {
+                        const label = (typeof value === 'object' && value.label) ? value.label : key;
+                        const valor = (typeof value === 'object' && value.valor) ? value.valor : value;
+                        return `
+                        <div class="attr-row">
+                            <i class="fa ${iconMap[key] || 'fa-info-circle'}"></i>
+                            <span class="attr-label">${label}:</span> 
+                            <span>${valor}</span>
+                        </div>`;
+                    })
+                    .join("");
 
-                    // Renderiza los atributos normales (Modelo, Estilo, etc.)
-                    htmlGenerado += Object.entries(descripcion)
-                        .filter(([key]) => !omitidas.includes(key))
-                        .map(([key, value]) => {
-                            const label = value.label || key;
-                            const icono = value.icono ? ` ${value.icono}` : "";
-                            const valor = value.valor || "";
-                            return `<div class="mb-1"><strong>${label}:</strong> ${valor}${icono}</div>`;
-                        }).join("");
-
+                if (esAndroid) {
                     const hayTalles = descripcion.talles && Array.isArray(descripcion.talles.valores) && descripcion.talles.valores.length > 0;
                     const hayColores = descripcion.colores && Array.isArray(descripcion.colores.valores) && descripcion.colores.valores.length > 0;
-
-                    // Si hay talles o colores, genera el botón para el modal de SweetAlert
                     if (hayTalles || hayColores) {
-                        const tallesData = hayTalles ? JSON.stringify(descripcion.talles.valores).replace(/'/g, "&apos;") : "[]";
-                        const coloresData = hayColores ? JSON.stringify(descripcion.colores.valores).replace(/'/g, "&apos;") : "[]";
-
-                        htmlGenerado += `
-                    <div class="mt-2">
-                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="mostrarTallesyColores(this)"
-                            data-talles='${tallesData}'
-                            data-colores='${coloresData}'>
-                            Ver Talles y Colores
-                        </button>
-                    </div>
-                `;
+                        mainHtml += `<div class="mt-2 text-center"><button class="btn btn-outline-secondary btn-sm w-100" style="border-radius: 8px; font-weight: 600;" onclick="mostrarTallesyColores(this)" data-talles='${JSON.stringify(descripcion.talles?.valores || [])}' data-colores='${JSON.stringify(descripcion.colores?.valores || [])}'>Detalles de Talles / Colores</button></div>`;
                     }
-                    return `<div class="descripcion-detalle text-start mt-2">${htmlGenerado}</div>`;
+                } else {
+                    if (descripcion.talles?.valores?.length) {
+                        mainHtml += `<div class="attr-row"><i class="fa fa-arrows-alt"></i><span class="attr-label">Talles:</span> <span>${descripcion.talles.valores.join(', ')}</span></div>`;
+                    }
+                    if (descripcion.colores?.valores?.length) {
+                        mainHtml += `
+                        <div class="attr-row align-items-start">
+                            <i class="fa fa-tint mt-1"></i>
+                            <span class="attr-label">Colores:</span>
+                            <div class="d-flex flex-wrap gap-1 ms-1">
+                                ${descripcion.colores.valores.map(c => {
+                                    const isSurtido = (c.nombre || c).toLowerCase().includes("surtido");
+                                    const estilo = isSurtido
+                                        ? "background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff); color: white;"
+                                        : `background: ${c.hex || '#ccc'}; color: ${getContrastingTextColor(c.hex || '#ccc')};`;
+                                    return `<span class="badge" style="${estilo} border:1px solid rgba(0,0,0,0.1); padding:3px 8px; border-radius:6px; font-size:0.7rem;">${c.nombre || c}</span>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                    }
                 }
 
-                // --- LÓGICA PARA ESCRITORIO (tu código original agrupado) ---
-                const omitidasDesktop = ["stock", "ultima_actualizacion", "video", "whatsapp"];
-                return `
-          <div class="descripcion-detalle text-start mt-2">
-            ${Object.entries(descripcion).filter(([key]) => !omitidasDesktop.includes(key)).map(([key, value]) => {
-                    const label = value.label || key;
-                    const icono = value.icono ? ` ${value.icono}` : "";
-                    const valor = value.valor || "";
-                    if (Array.isArray(value.valores)) {
-                        if (key === "colores") {
-                            return `
-                    <div class="mb-1"><strong>${label}:</strong> 
-                      ${value.valores.map(c => {
-                                const isSurtido = c.nombre.toLowerCase().includes("surtido");
-                                const estilo = isSurtido
-                                    ? "background: linear-gradient(to right, #ff0000, #00ff00, #0000ff); color: white;"
-                                    : `background: ${c.hex}; color: ${getContrastingTextColor(c.hex)};`;
-                                return `<span class="badge me-1" style="${estilo} border:1px solid #ccc; padding:4px 8px; border-radius:6px;">${c.nombre}</span>`;
-                            }).join('')}
-                    </div>`;
-                        } else { // Asumimos que es 'talles'
-                            return `
-                    <div class="mb-1"><strong>${label}:</strong> 
-                      ${value.valores.map(v => `<span class="badge bg-light border text-dark me-1">${v.trim()}</span>`).join('')}
-                    </div>`;
-                        }
-                    }
-                    return `<div class="mb-1"><strong>${label}:</strong> ${valor}${icono}</div>`;
-                }).join("")}
-          </div>`;
-            }
+                // Fila de Stock y Actualización
+                mainHtml += `
+                <div class="mt-2 pt-2 border-top" style="color: #64748b; font-size: 0.75rem; display: flex; gap: 12px; opacity: 0.9;">
+                    <span><i class="fa fa-cubes me-1"></i>Stock: ${descripcion.stock?.valor || "-"}</span>
+                    <span><i class="fa fa-clock-o me-1"></i>Act: ${descripcion.ultima_actualizacion?.valor || "-"}</span>
+                </div>`;
 
-            // Obtenemos el mensaje original (sin cambios)
-            let mensajeWhatsApp = producto.descripcion?.whatsapp?.mensaje || '';
+                return `<div class="descripcion-detalle text-start mt-1">${mainHtml}</div>`;
+            };
+
+            let mensajeWhatsApp = producto.descripcion?.whatsapp?.mensaje || `Hola! Me interesa este producto: ${producto.nombre}`;
             mensajeWhatsApp = mensajeWhatsApp.includes('https://hostingshop-v2.blogspot.com/')
                 ? mensajeWhatsApp.replace(/https:\/\/hostingshop-v2\.blogspot\.com\/\?categoria=.*?&producto=.*?/g, productoURL)
                 : `${mensajeWhatsApp}\n\nPodés verlo aquí: ${productoURL}`;
-            const urlWhatsApp = producto.descripcion?.whatsapp?.telefono
-                ? `https://wa.me/549${producto.descripcion.whatsapp.telefono}?text=${encodeURIComponent(mensajeWhatsApp)}`
-                : '';
+
+            const urlWhatsApp = (producto.descripcion?.whatsapp?.telefono)
+                ? `https://wa.me/549${producto.descripcion.whatsapp.telefono}?text=${encodeURIComponent(mensajeWhatsApp)}` : '';
 
             return `
-    <li class="list-group-item producto-item d-flex justify-content-between align-items-center ${isHighlighted ? 'highlight' : ''}" 
+    <li class="list-group-item producto-item d-flex flex-column flex-sm-row-reverse justify-content-between align-items-stretch ${isHighlighted ? 'highlight' : ''}" 
         id="producto-${categoria.codigo}-${producto.codigo}" 
         data-categoria="${categoria.codigo}"
         data-precio="${producto.precio}"
         data-variedades='${JSON.stringify(producto.variedad.map(v => v.variedad))}'
-        data-variedad-principal='${producto.variedad[0]?.variedad || ''}'
-        data-variedades_completo='${JSON.stringify(producto.variedad)}'
         data-json='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}'>
       
-      <div>
-        <div class="producto_id fw-bold mb-1">Código ID: ${producto.codigo}</div>
-    
-        <div class="estrellas mb-2 text-start" id="estrellas-${producto.codigo}">
-          ${[1, 2, 3, 4, 5].map(r => `
-            <span class="estrella" data-value="${r}" onclick="registrarPuntuacion('${producto.codigo}', ${r})">
-              <i class="fa fa-star-o"></i>
-            </span>`).join('')}
-        </div>
-        <p class="resultado-puntuacion small text-center mb-2" id="resultado-puntuacion-${producto.codigo}" 
-           style="display: none; color: #6c757d; font-style: italic;">
-          Total votos: 0. Promedio: 0
-        </p>
-    
-        <div 
-          class="plato_nombre fw-bold fs-5 text-uppercase text-center mb-2" 
-          data-producto='${JSON.stringify(producto).replace(/'/g, "&apos;")}' 
-          data-categoria='${categoria.codigo}'
-          onclick="copiarDatosProducto(this)">
-          ${producto.nombre} 
-          <span class="carrito-icono"><i class="fa fa-copy ms-2"></i></span>
-        </div>
-    
-        <div class="plato_descripcion">
-          ${renderDescripcion(producto.descripcion, esAndroid)}
-        </div>
-    
-        <div class="small mt-2" style="color: #6c757d; font-size: 0.85rem;">
-          <span><i class="fa fa-cubes"></i> Stock: ${producto.descripcion?.stock?.valor || "-"}</span>
-          <span class="ms-2"><i class="fa fa-clock-o"></i> UPD: ${producto.descripcion?.ultima_actualizacion?.valor || "-"}</span>
-        </div>
-    
-        <div class="separador mt-2"></div>
-    
-        <button class="btn btn-link btn-sm" id="toggle_button_${producto.codigo}" onclick="mostrarDetalleEnCarrito(${producto.codigo})">
-          Mini carrito vacío <i class="fa fa-chevron-down"></i>
-        </button>
-      </div>
-    
+      <!-- 📸 Imagen -->
       <div class="image-parent position-relative">
-        <div id="carouselExampleControls_${producto.codigo}" class="carousel slide" data-bs-ride="manual" data-initialized="false">
-<div class="carousel-inner">
-    ${imagenesOrdenadas.length
-                    ? imagenesOrdenadas.map((img, i) => {
-                        return `
-                <div class="carousel-item ${i === 0 ? 'active' : ''}">
-                    <a 
-                        href="${img.url}" 
-                        data-fancybox="gallery-${producto.nombre}" 
-                        data-caption="${producto.nombre}" 
-                        data-type="image" 
-                        data-carpeta-id="${img.carpeta_id}" 
-                        data-download-src="${img.url}" 
-                        download="${producto.nombre}_imagen_${i + 1}.webp"
-                    >
-                        <img src="${img.url}" class="img-fluid lazyload" alt="imagen" loading="lazy"
-                             onerror="this.src='https://placehold.co/250x300/0088f2/white?text=Imagen+No+Disponible';">
-                    </a>
-                    ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
+        <div id="carouselExampleControls_${producto.codigo}" class="carousel slide h-100" data-bs-ride="manual">
+            <div class="carousel-inner h-100">
+                ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
+                    <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
+                        <a href="${img.url}" data-fancybox="gallery-${producto.codigo}" class="h-100 d-block">
+                            <img src="${img.url}" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="${producto.nombre}">
+                        </a>
+                        ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
+                    </div>`).join('') : `
+                    <div class="carousel-item active h-100">
+                        <img src="https://placehold.co/400x500/002b5c/white?text=No+Disponible" class="img-fluid h-100 w-100" style="object-fit: cover;">
+                    </div>`}
+            </div>
+            ${imagenesOrdenadas.length > 1 ? `
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls_${producto.codigo}" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls_${producto.codigo}" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>` : ''}
+        </div>
+      </div>
+
+      <!-- 📝 Descripción e Info -->
+      <div class="description-parent flex-grow-1 p-3 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start mb-0">
+            <div class="flex-grow-1">
+                <h5 class="plato_nombre mb-1" style="font-style: italic;" onclick="copiarDatosProducto(this)" 
+                    data-producto='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}' 
+                    data-categoria="${categoria.codigo}">
+                    ${producto.nombre} <i class="fa fa-copy ms-1 small opacity-50"></i>
+                </h5>
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div class="d-flex gap-2">
+                        <span class="badge-premium-id">Código SKU</span>
+                        <span class="badge-row-id" title="Número de Fila">${producto.codigo || '-'}</span>
+                    </div>
                 </div>
-            `;
-                    }).join('')
-                    : `<div class="carousel-item active">
-               <img src="https://placehold.co/250x300/0088f2/white?text=No+Disponible" class="img-fluid">
-           </div>`
-                }
-</div>
-          ${botonesCarrusel}
+                <!-- ⭐ Bloque de Puntuaciones -->
+                <div class="estrellas mb-1 text-start" id="estrellas-${producto.codigo}" style="font-size: 0.9rem;">
+                    ${[1, 2, 3, 4, 5].map(r => `
+                        <span class="estrella" data-value="${r}" onclick="registrarPuntuacion('${producto.codigo}', ${r})">
+                            <i class="fa fa-star-o" style="color: #f5a623;"></i>
+                        </span>`).join('')}
+                    <span class="resultado-puntuacion ms-2" id="resultado-puntuacion-${producto.codigo}" style="display: none; font-size: 0.7rem; color: #64748b;"></span>
+                </div>
+            </div>
         </div>
-    
-        <div class="carousel-caption">
-          ${preciosCarrusel}
-          <div class="mt-2">
-            <button class="btn btn-success w-100 fw-bold py-2" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
-              ${textoBotonCompra}
-            </button>
-          </div>
+        
+        ${renderDescripcion(producto.descripcion, esAndroid)}
+        
+        <!-- 🛒 Fila Unificada: Precio/Variedad y Mini Carrito -->
+        <div class="mt-auto pt-3 d-flex align-items-center gap-2">
+            <div class="variety-selector-unified flex-grow-1 shadow-sm" style="cursor: pointer; border-radius: 12px; overflow: hidden; height: 48px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1px solid #e2e8f0;" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
+                ${preciosCarrusel}
+            </div>
+            <div class="mini-cart-container">
+                <button class="btn btn-link toggle-mini-cart-link p-0" id="toggle_button_${producto.codigo}" onclick="mostrarDetalleEnCarrito(${producto.codigo})" style="height: 48px; width: 48px; border: 1px solid #e2e8f0; border-radius: 12px; display: flex !important; align-items: center; justify-content: center; background: white;">
+                    <i class="fa fa-shopping-cart"></i>
+                    <span class="mini-cart-badge" style="display: none;">0</span>
+                </button>
+            </div>
         </div>
-    
-        <div class="acciones mt-2 px-2 pb-2">
-          <div class="d-flex gap-2 mb-2">
-            <button class="btn btn-outline-secondary btn-sm w-100" title="Compartir"
-                    onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
-              ${!esAndroid ? 'Share ' : ''}<i class="fa fa-share-alt"></i>
+
+        <!-- 🚀 Acciones Rápidas -->
+        <div class="mt-3 d-flex flex-wrap gap-2 border-top pt-3">
+            <button class="btn btn-sm btn-outline-light text-dark flex-grow-1 border" style="background: #f8fafc; border-radius: 8px;" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
+                <i class="fa fa-share-alt"></i> Compartir
             </button>
-    
-            ${urlWhatsApp
-                    ? `<button class="btn btn-outline-info btn-sm w-100" title="Consulta por WhatsApp"
-                    style="background-color: #25D366; color: white; font-weight: bold;"
-                    onclick="window.open('${urlWhatsApp}', '_blank')">
-                      ${!esAndroid ? 'Info ' : ''}<i class="fa fa-whatsapp"></i>
-                  </button>`
-                    : ''
-                }
-    
-            ${producto.descripcion?.video?.url ? `
-            <a class="btn btn-outline-danger btn-sm w-100" title="Ver Video" 
-               data-fancybox 
-               href="${producto.descripcion.video.url}"
-               data-thumb="${producto.descripcion.video.thumbnail}">
-              ${!esAndroid ? 'Ver ' : ''}<i class="fa fa-play-circle"></i>
+            ${urlWhatsApp ? `<button class="btn btn-sm btn-outline-light text-whatsapp flex-grow-1 border" style="background: #f0fdf4; border-radius: 8px;" onclick="window.open('${urlWhatsApp}', '_blank')">
+                <i class="fa fa-whatsapp"></i> Consulta
+            </button>` : ''}
+            ${producto.descripcion?.video?.url ? `<a class="btn btn-sm btn-outline-light text-danger flex-grow-1 border" style="background: #fff1f2; border-radius: 8px;" data-fancybox href="${producto.descripcion.video.url}">
+                <i class="fa fa-play-circle"></i> Video
             </a>` : ''}
-          </div>
         </div>
       </div>
     </li>`;
         }
 
-        function copiarDatosProducto(el) {
-            try {
-                const producto = JSON.parse(el.getAttribute('data-producto'));
-                const categoriaCodigo = el.getAttribute('data-categoria');
-
-                if (!producto || !categoriaCodigo) {
-                    Swal.fire('Error', 'No se pudo obtener la información del producto.', 'error');
-                    return;
-                }
-
-                mostrarOpcionesCopiar(producto, categoriaCodigo);
-
-            } catch (e) {
-                console.error(e);
-                Swal.fire('Error', 'Error al procesar los datos del producto.', 'error');
-            }
-        }
-
-        // --- Función para mostrar Swal con opciones ---
-        function mostrarOpcionesCopiar(producto, categoriaCodigo) {
-            Swal.fire({
-                title: `Copiar datos de ${producto.nombre}`,
-                showDenyButton: true,
-                showCancelButton: true,
-                confirmButtonText: `WhatsApp`,
-                denyButtonText: `Texto Plano`,
-                cancelButtonText: `Cancelar`,
-                preConfirm: () => copiarDatosWhatsApp(producto, categoriaCodigo),
-                preDeny: () => copiarDatosTextoPlano(producto, categoriaCodigo)
-            });
-        }
-
-        // --- Copiar formato WhatsApp (con asteriscos) ---
-        function copiarDatosWhatsApp(producto, categoriaCodigo) {
-            const talles = producto.descripcion?.talles?.valores || [];
-            const colores = producto.descripcion?.colores?.valores || [];
-
-            // Intentar obtener nombres de categoría
-            let nombrePadre = '-';
-            let nombreHija = '-';
-            try {
-                const config = JSON.parse(localStorage.getItem('configuracion_pagina'));
-                if (config && config.content) {
-                    for (const padre of config.content) {
-                        const hija = padre.categorias.find(c => c.codigo == categoriaCodigo);
-                        if (hija) {
-                            nombrePadre = padre.nombre_padre;
-                            nombreHija = hija.nombre;
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn("No se pudo obtener info de categoría para copia", e);
-            }
-
-            const texto = `
-*${producto.nombre}*
-*Categoría:* ${nombrePadre}
-*Variedad:* ${nombreHija}
-*Modelo:* ${producto.descripcion?.modelo?.valor || '-'}
-*Estilo:* ${producto.descripcion?.estilo?.valor || '-'}
-*Marca:* ${producto.descripcion?.marca?.valor || '-'}
-*Género:* ${producto.descripcion?.genero?.valor || '-'}
-*Edad:* ${producto.descripcion?.grupo_edad?.valor || '-'}
-*Material:* ${producto.descripcion?.material?.valor || '-'}
-*Temporada:* ${producto.descripcion?.temporada?.valor || '-'}
-*Talles:* ${talles.length ? talles.join(', ') : '-'}
-*Colores:* ${colores.length ? colores.map(c => c.nombre || c).join(', ') : '-'}
-*Precio:* ${formatMoneda(producto.variedad?.[0]?.precio || 0, producto.variedad?.[0]?.moneda || '$')}
-*Stock:* ${producto.descripcion?.stock?.valor || '-'}
-*Actualización:* ${producto.upd ? new Date(producto.upd).toLocaleDateString() : '-'}
-*WhatsApp Pedidos:* ${producto.descripcion?.whatsapp?.telefono ? `https://wa.me/54${producto.descripcion.whatsapp.telefono}` : '-'}
-*Video:* ${producto.descripcion?.video?.url || '-'}
-*Imagen:* ${producto.imagen?.[0]?.url || '-'}
-  `.trim();
-
-            navigator.clipboard.writeText(texto).then(() => {
-                Swal.fire('Copiado!', 'El texto para WhatsApp fue copiado.', 'success');
-            });
-        }
-
-        // --- Copiar formato Texto Plano (sin asteriscos ni negrita) ---
-        function copiarDatosTextoPlano(producto, categoriaCodigo) {
-            const talles = producto.descripcion?.talles?.valores || [];
-            const colores = producto.descripcion?.colores?.valores || [];
-
-            const texto = `
-${producto.nombre}
-Modelo: ${producto.descripcion?.modelo?.valor || '-'}
-Estilo: ${producto.descripcion?.estilo?.valor || '-'}
-Marca: ${producto.descripcion?.marca?.valor || '-'}
-Género: ${producto.descripcion?.genero?.valor || '-'}
-Material: ${producto.descripcion?.material?.valor || '-'}
-Temporada: ${producto.descripcion?.temporada?.valor || '-'}
-Talles: ${talles.length ? talles.join(', ') : '-'}
-Colores: ${colores.length ? colores.map(c => c.nombre || c).join(', ') : '-'}
-Precio: ${formatMoneda(producto.variedad?.[0]?.precio || 0, producto.variedad?.[0]?.moneda || '$')}
-Stock: ${producto.descripcion?.stock?.valor || '-'}
-Actualización: ${producto.upd ? new Date(producto.upd).toLocaleDateString() : '-'}
-WhatsApp Pedidos: ${producto.descripcion?.whatsapp?.telefono ? `https://wa.me/54${producto.descripcion.whatsapp.telefono}` : '-'}
-Video: ${producto.descripcion?.video?.url || '-'}
-Ver producto: ${location.origin + location.pathname}?categoria=${categoriaCodigo}&producto=${producto.codigo}
-Imagen: ${producto.imagen?.[0]?.url || '-'}
-  `.trim();
-
-            navigator.clipboard.writeText(texto).then(() => {
-                Swal.fire('Copiado!', 'El texto plano fue copiado.', 'success');
-            });
-        }
-
-        // --- JS para asignar el evento a todos los elementos con clase .plato_nombre ---
-        document.querySelectorAll('.plato_nombre').forEach(el => {
-            el.addEventListener('click', () => {
-                const productoJSON = el.getAttribute('data-producto');
-                const categoriaCodigo = el.getAttribute('data-categoria');
-
-                if (productoJSON) {
-                    const producto = JSON.parse(productoJSON);
-                    mostrarOpcionesCopiar(producto, categoriaCodigo);
-                }
-            });
-        });
-
         function crearProductoHTMLCompacto(categoria, producto) {
-            const productoURL = `${location.origin}${location.pathname} ? categoria = ${categoria.codigo} & producto=${producto.codigo}`;
+            const productoURL = `${location.origin}${location.pathname}?categoria=${categoria.codigo}&producto=${producto.codigo}`;
             const esAndroid = /Android/i.test(navigator.userAgent);
+            const isHighlighted = highlightCategoria === categoria.codigo && highlightProducto === producto.codigo;
 
             const imagenesOrdenadas = Array.isArray(producto.imagen) && producto.imagen.length > 0
-                ? [...producto.imagen].sort((a, b) => {
-                    // 1° Portada siempre primero
-                    if (a.portada && !b.portada) return -1;
-                    if (!a.portada && b.portada) return 1;
-                    // 2° Orden numérico ascendente
-                    const ordenA = parseInt(a.orden) || 999;
-                    const ordenB = parseInt(b.orden) || 999;
-                    if (ordenA !== ordenB) return ordenA - ordenB;
-                    // 3° Fecha de carga descendente (más recientes primero)
-                    return new Date(b.fecha_carga || 0) - new Date(a.fecha_carga || 0);
-                })
-                : [];
+                ? [...producto.imagen].sort((a, b) => (a.portada ? -1 : 1)) : [];
 
-            const textoBotonCompra = producto.variedad.length > 1 ? "Elegir Variedad" : "🛒 Añadir al carrito";
+            const preciosHtml = producto.variedad.length > 1 ? `
+                <div class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000" id="prices-comp-${producto.codigo}">
+                    <div class="carousel-inner shadow-sm" style="border-radius:30px;">
+                        ${producto.variedad.map((v, i) => `
+                            <div class="carousel-item ${i === 0 ? 'active' : ''}">
+                                <div class="price-tag-premium-pill w-100 justify-content-center" style="font-size: 0.85rem; padding: 4px 10px;">
+                                    ${formatMoneda(v.precio * (v.minima || 1), v.moneda)}
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                </div>` : `
+                <div class="price-tag-premium-pill w-100 justify-content-center" style="font-size: 0.9rem; padding: 4px 10px;">
+                    ${formatMoneda(producto.precio, producto.moneda || "$")}
+                </div>`;
 
-            const botonesCarrusel = imagenesOrdenadas.length > 1 ? `
-            <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls_${producto.codigo}" data-bs-slide="prev" style="filter: invert(1);">
-                <span class="carousel-control-prev-icon" aria-hidden="true" style="width: 1.5rem; height: 1.5rem;"></span>
-                <span class="visually-hidden">Anterior</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls_${producto.codigo}" data-bs-slide="next" style="filter: invert(1);">
-                <span class="carousel-control-next-icon" aria-hidden="true" style="width: 1.5rem; height: 1.5rem;"></span>
-                <span class="visually-hidden">Siguiente</span>
-            </button>` : '';
-
-            const preciosCarrusel = `
-        <div id="carouselPrecios_${producto.codigo}" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
-            <div class="carousel-inner text-center">
-                ${(producto.variedad || []).map((v, i) => `
-                    <div class="carousel-item ${i === 0 ? 'active' : ''}">
-                        <div style="font-size: 1.2rem; font-weight: bold;">${formatMoneda(v.precio * (v.minima || 1), v.moneda)}</div>
-                        <div class="small mt-1" style="color: ${obtenerColor(v.variedad)}; font-weight: bold;">${v.variedad} (x${v.minima || 1})</div>
-                    </div>`).join('')}
-            </div>
-             ${(producto.variedad || []).length > 1 ? `
-            <button class="carousel-control-prev" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="prev" style="filter: invert(1);">
-                <span class="carousel-control-prev-icon" style="width: 1.5rem; height: 1.5rem;"></span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="next" style="filter: invert(1);">
-                <span class="carousel-control-next-icon" style="width: 1.5rem; height: 1.5rem;"></span>
-            </button>` : ''}
-        </div>`;
-
-            // Obtenemos el mensaje original
-            let mensajeWhatsApp = producto.descripcion?.whatsapp?.mensaje || '';
-
-            // Reemplazamos solo si ya existe una URL dentro del mensaje original
+            let mensajeWhatsApp = producto.descripcion?.whatsapp?.mensaje || `Hola! Me interesa este producto: ${producto.nombre}`;
             mensajeWhatsApp = mensajeWhatsApp.includes('https://hostingshop-v2.blogspot.com/')
                 ? mensajeWhatsApp.replace(/https:\/\/hostingshop-v2\.blogspot\.com\/\?categoria=.*?&producto=.*?/g, productoURL)
-                : `${mensajeWhatsApp} \n\nPodés verlo aquí: ${productoURL} `;
+                : `${mensajeWhatsApp}\n\nPodés verlo aquí: ${productoURL}`;
 
-            // Generamos la URL de WhatsApp con el mensaje codificado
-            const urlWhatsApp = producto.descripcion?.whatsapp?.telefono
-                ? `https://wa.me/549${producto.descripcion.whatsapp.telefono}?text=${encodeURIComponent(mensajeWhatsApp)}`
-                : '';
+            const urlWhatsApp = (producto.descripcion?.whatsapp?.telefono)
+                ? `https://wa.me/549${producto.descripcion.whatsapp.telefono}?text=${encodeURIComponent(mensajeWhatsApp)}` : '';
 
             return `
-<li class="producto-item compacto col-6 col-md-4 col-lg-3 mb-3"
-    id="producto-${categoria.codigo}-${producto.codigo}"
-    data-categoria="${categoria.codigo}"
-    data-precio="${producto.precio}"
-    data-variedades='${JSON.stringify(producto.variedad.map(v => v.variedad))}'
-    data-variedad-principal='${producto.variedad[0]?.variedad || ''}'
-    data-variedades_completo='${JSON.stringify(producto.variedad)}'
+<li class="producto-item compacto col-6 col-md-4 col-lg-3 mb-3 ${isHighlighted ? 'highlight' : ''}" 
+    id="producto-${categoria.codigo}-${producto.codigo}" 
     data-json='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}'>
-  <div class="card h-100 shadow-sm text-center">
-    <div class="image-parent">
-      <div class="plato_nombre" data-producto='${JSON.stringify(producto).replace(/'/g, "&apos;")}' style="display:none;"></div>
-      <div id="carouselExampleControls_${producto.codigo}" class="carousel slide" data-bs-ride="manual" data-initialized="false">
-<div class="carousel-inner">
-    ${imagenesOrdenadas.length
-                    ? imagenesOrdenadas.map((img, i) => {
-                        return `
-                <div class="carousel-item ${i === 0 ? 'active' : ''}">
-                    <a 
-                        href="${img.url}" 
-                        data-fancybox="gallery-${producto.nombre}" 
-                        data-caption="${producto.nombre}" 
-                        data-type="image" 
-                        data-carpeta-id="${img.carpeta_id}" 
-                        data-download-src="${img.url}" 
-                        download="${producto.nombre}_imagen_${i + 1}.webp"
-                    >
-                        <img src="${img.url}" class="img-fluid lazyload" style="object-fit: contain; max-height: 100%; width: 100%;" alt="imagen" loading="lazy"
-                             onerror="this.src='https://placehold.co/250x300/0088f2/white?text=Imagen+No+Disponible';">
-                    </a>
-                    ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
+    
+    <div class="card h-100 premium-card">
+        <div class="position-relative overflow-hidden" style="padding-top: 120%;">
+            <div id="carouselComp_${producto.codigo}" class="carousel slide position-absolute top-0 start-0 w-100 h-100">
+                <div class="carousel-inner h-100">
+                    ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
+                        <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
+                            <a href="${img.url}" data-fancybox="gallery-compact-${producto.codigo}">
+                                <img src="${img.url}" class="d-block w-100 h-100" style="object-fit: cover;">
+                            </a>
+                        </div>`).join('') : `
+                        <div class="carousel-item active h-100"><img src="https://placehold.co/200x240/002b5c/white?text=SF" class="w-100 h-100"></div>`}
                 </div>
-            `;
-                    }).join('')
-                    : `<div class="carousel-item active">
-               <img src="https://placehold.co/250x300/0088f2/white?text=No+Disponible" class="img-fluid">
-           </div>`
-                }
-</div>
-        ${botonesCarrusel}
-      </div>
-
-      <div class="carousel-caption">
-        ${preciosCarrusel}
-        <div class="mt-2">
-          <button class="btn btn-success w-100 fw-bold py-2" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
-            ${textoBotonCompra}
-          </button>
+            </div>
+            <div class="position-absolute top-0 end-0 p-1 d-flex flex-column align-items-end gap-1">
+                <span class="badge bg-premium-glass-dark" style="font-size: 0.6rem;">${producto.codigo || 'S/C'}</span>
+                <span class="badge-row-id" style="width: 18px; height: 18px; font-size: 0.6rem;">${producto.codigo || '-'}</span>
+            </div>
         </div>
-      </div>
 
-<div class="acciones mt-2 px-2 pb-2">
-  <div class="d-flex gap-2 mb-2">
-    <button class="btn btn-outline-secondary btn-sm w-100" title="Compartir"
-            onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
-      ${!esAndroid ? 'Share ' : ''}<i class="fa fa-share-alt"></i>
-    </button>
+        <div class="card-body p-2 d-flex flex-column text-center">
+            <h6 class="product-title-compact text-truncate mb-1" style="font-style: italic; cursor: pointer;" 
+                onclick="copiarDatosProducto(this)" 
+                data-producto='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}' 
+                data-categoria="${categoria.codigo}">
+                ${producto.nombre}
+            </h6>
+            
+            <div class="estrellas mb-1" id="estrellas-${producto.codigo}" style="font-size: 0.75rem;">
+                ${[1, 2, 3, 4, 5].map(r => `<i class="fa fa-star-o" style="color: #f5a623;"></i>`).join('')}
+            </div>
 
-    ${urlWhatsApp
-                    ? `<button class="btn btn-outline-info btn-sm w-100" title="Consulta por WhatsApp"
-            style="background-color: #25D366; color: white; font-weight: bold;"
-            onclick="window.open('${urlWhatsApp}', '_blank')">
-              ${!esAndroid ? 'Info ' : ''}<i class="fa fa-whatsapp"></i>
-          </button>`
-                    : ''
-                }
+            <div class="mb-2">
+                ${preciosHtml}
+            </div>
 
-    ${producto.descripcion?.video?.url ? `
-    <a class="btn btn-outline-danger btn-sm w-100" title="Ver Video" 
-       data-fancybox 
-       href="${producto.descripcion.video.url}"
-       data-thumb="${producto.descripcion.video.thumbnail}">
-      ${!esAndroid ? 'Ver ' : ''}<i class="fa fa-play-circle"></i>
-    </a>` : ''}
-  </div>
- </div>
-</div>
+            <div class="mt-auto">
+                <div class="d-flex gap-1 mb-2">
+                    <button class="btn btn-sm btn-outline-secondary flex-grow-1 p-1" style="font-size: 0.7rem; border-radius: 6px;" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
+                        <i class="fa fa-share-alt"></i>
+                    </button>
+                    ${urlWhatsApp ? `<button class="btn btn-sm btn-outline-success flex-grow-1 p-1" style="font-size: 0.7rem; border-radius: 6px;" onclick="window.open('${urlWhatsApp}', '_blank')">
+                        <i class="fa fa-whatsapp"></i>
+                    </button>` : ''}
+                </div>
+                <button class="btn btn-primary btn-sm w-100 fw-bold premium-btn-action" style="border-radius: 8px; font-size: 0.75rem;" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
+                    🛒 Comprar
+                </button>
+                <div class="mt-1" style="font-size: 0.65rem; color: #94a3b8;">
+                    Stock: ${producto.descripcion?.stock?.valor || "-"}
+                </div>
+            </div>
+        </div>
+    </div>
 </li>`;
         }
 
@@ -5880,6 +6537,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 });
 
                 if (typeof cargarPuntuaciones === 'function') cargarPuntuaciones();
+                inicializarCarruselesPrecios();
             });
 
             console.log("🔁 Todas las categorías fueron re-renderizadas");
@@ -5950,9 +6608,9 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 // Guardar esta categoría para renderizado inmediato (esto queda igual)
                 categoriasFiltradasParaRender.push({ ...categoria, producto: productos });
 
-                // Crear acordeón vacío (esto queda igual)
+                // Crear acordeón vacío (v16.0 Premium)
                 lstProductos += `
-        <div class="accordion-item">
+        <div class="accordion-item shadow-sm border-0 mb-3" style="border-radius: var(--premium-radius);">
           <h2 class="accordion-header" id="flush-heading-${categoria.codigo}">
             <div class="d-flex justify-content-between align-items-center">
               <button class="accordion-button collapsed text-center desplegar_acordeon" type="button"
@@ -6329,19 +6987,19 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
         function actualizarEstadoBoton(id, isDelete = false) {
             const boton = $(`#toggle_button_${id}`);
+            const badge = boton.find('.mini-cart-badge');
             const productosRelacionados = $(`#sidebarCarritoContenido #contenedor_producto_${id} .detalle-cantidad-item`);
             const cantidadItems = productosRelacionados.length;
 
             if (cantidadItems === 0) {
-                boton.html(`Mini carrito vacío <i class='fa fa-chevron-down'></i>`);
+                badge.hide().text('0');
+                boton.css('border-color', '#e2e8f0');
                 return;
             }
 
-            if (isDelete) {
-                boton.html(`Mini <i class='fa fa-shopping-cart'></i> (${cantidadItems}) Modificado <i class='fa fa-refresh'></i>`);
-            } else {
-                boton.html(`Ver mini <i class='fa fa-shopping-cart'></i> (${cantidadItems}) <i class='fa fa-eye'></i>`);
-            }
+            // Actualizar Badge y estilo
+            badge.text(cantidadItems).show();
+            boton.css('border-color', '#f5a623'); // Color naranja para resaltar que hay items
 
             boton.addClass('boton-actualizado');
             setTimeout(() => boton.removeClass('boton-actualizado'), 1500);
@@ -6508,6 +7166,114 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 title: 'Gracias por tu puntuación!',
                 text: 'Tu puntuación ha sido registrada.',
                 icon: 'success'
+            });
+        }
+
+        function copiarDatosProducto(el) {
+            try {
+                const producto = JSON.parse(el.getAttribute('data-producto'));
+                const categoriaCodigo = el.getAttribute('data-categoria');
+
+                if (!producto || !categoriaCodigo) {
+                    Swal.fire('Error', 'No se pudo obtener la información del producto.', 'error');
+                    return;
+                }
+
+                mostrarOpcionesCopiar(producto, categoriaCodigo);
+
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Error', 'Error al procesar los datos del producto.', 'error');
+            }
+        }
+
+        function mostrarOpcionesCopiar(producto, categoriaCodigo) {
+            Swal.fire({
+                title: `Copiar datos de ${producto.nombre}`,
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: `WhatsApp`,
+                denyButtonText: `Texto Plano`,
+                cancelButtonText: `Cancelar`,
+                preConfirm: () => copiarDatosWhatsApp(producto, categoriaCodigo),
+                preDeny: () => copiarDatosTextoPlano(producto, categoriaCodigo)
+            });
+        }
+
+        function copiarDatosWhatsApp(producto, categoriaCodigo) {
+            const talles = producto.descripcion?.talles?.valores || [];
+            const colores = producto.descripcion?.colores?.valores || [];
+
+            let nombrePadre = '-';
+            let nombreHija = '-';
+            try {
+                const config = JSON.parse(localStorage.getItem('configuracion_pagina'));
+                if (config && config.content) {
+                    for (const padre of config.content) {
+                        const hija = padre.categorias.find(c => c.codigo == categoriaCodigo);
+                        if (hija) {
+                            nombrePadre = padre.nombre_padre;
+                            nombreHija = hija.nombre;
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("No se pudo obtener info de categoría para copia", e);
+            }
+
+            const texto = `
+*${producto.nombre}*
+*Categoría:* ${nombrePadre}
+*Variedad:* ${nombreHija}
+*Modelo:* ${producto.descripcion?.modelo?.valor || '-'}
+*Estilo:* ${producto.descripcion?.estilo?.valor || '-'}
+*Marca:* ${producto.descripcion?.marca?.valor || '-'}
+*Género:* ${producto.descripcion?.genero?.valor || '-'}
+*Edad:* ${producto.descripcion?.grupo_edad?.valor || '-'}
+*Material:* ${producto.descripcion?.material?.valor || '-'}
+*Temporada:* ${producto.descripcion?.temporada?.valor || '-'}
+*Talles:* ${talles.length ? talles.join(', ') : '-'}
+*Colores:* ${colores.length ? colores.map(c => c.nombre || c).join(', ') : '-'}
+*Precio:* ${formatMoneda(producto.variedad?.[0]?.precio || 0, producto.variedad?.[0]?.moneda || '$')}
+*Stock:* ${producto.descripcion?.stock?.valor || '-'}
+*Actualización:* ${producto.upd ? new Date(producto.upd).toLocaleDateString() : '-'}
+*WhatsApp Pedidos:* ${producto.descripcion?.whatsapp?.telefono ? `https://wa.me/54${producto.descripcion.whatsapp.telefono}` : '-'}
+*Video:* ${producto.descripcion?.video?.url || '-'}
+*Imagen:* ${producto.imagen?.[0]?.url || '-'}
+  `.trim();
+
+            navigator.clipboard.writeText(texto).then(() => {
+                Swal.fire('Copiado!', 'El texto para WhatsApp fue copiado.', 'success');
+            });
+        }
+
+        function copiarDatosTextoPlano(producto, categoriaCodigo) {
+            const talles = producto.descripcion?.talles?.valores || [];
+            const colores = producto.descripcion?.colores?.valores || [];
+            const productoURL = `${location.origin}${location.pathname}?categoria=${categoriaCodigo}&producto=${producto.codigo}`;
+
+            const texto = `
+${producto.nombre}
+Modelo: ${producto.descripcion?.modelo?.valor || '-'}
+Estilo: ${producto.descripcion?.estilo?.valor || '-'}
+Marca: ${producto.descripcion?.marca?.valor || '-'}
+Género: ${producto.descripcion?.genero?.valor || '-'}
+Material: ${producto.descripcion?.material?.valor || '-'}
+Temporada: ${producto.descripcion?.temporada?.valor || '-'}
+Talles: ${talles.length ? talles.join(', ') : '-'}
+Colores: ${colores.length ? colores.map(c => c.nombre || c).join(', ') : '-'}
+Precio: ${formatMoneda(producto.variedad?.[0]?.precio || 0, producto.variedad?.[0]?.moneda || '$')}
+Stock: ${producto.descripcion?.stock?.valor || '-'}
+Actualización: ${producto.upd ? new Date(producto.upd).toLocaleDateString() : '-'}
+WhatsApp Pedidos: ${producto.descripcion?.whatsapp?.telefono ? `https://wa.me/54${producto.descripcion.whatsapp.telefono}` : '-'}
+Video: ${producto.descripcion?.video?.url || '-'}
+Ver producto: ${productoURL}
+Imagen: ${producto.imagen?.[0]?.url || '-'}
+  `.trim();
+
+            navigator.clipboard.writeText(texto).then(() => {
+                Swal.fire('Copiado!', 'El texto plano fue copiado.', 'success');
             });
         }
 
@@ -6834,9 +7600,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 }
             }
 
-            if (Array.isArray(desc.talles?.valores)) {
+           if (Array.isArray(desc.talles?.valores)) {
                 desc.talles.valores.forEach(talle => {
-                    const limpio = talle.trim();
+                    // Forzamos que 'talle' sea un string antes de usar trim()
+                    const limpio = String(talle).trim(); 
                     if (limpio) {
                         resaltados["Talles"].add(limpio);
                         contador.Talles[limpio] = (contador.Talles[limpio] || 0) + 1;
@@ -8000,12 +8767,12 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 "Presupuesto": "📋"
             };
 
-            const metodosFiltrados = config.formas_pago.filter(f => {
+            const metodosFiltrados = (config && config.formas_pago) ? config.formas_pago.filter(f => {
                 if (tipoCliente === 'Sin Registro') {
                     return ['Efectivo', 'Transferencia', 'Presupuesto'].includes(f.nombre);
                 }
                 return true;
-            });
+            }) : [];
 
             metodosFiltrados.forEach((forma, index) => {
                 const id = `pago_${index}`;
@@ -8195,19 +8962,20 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const campoAgencia = document.getElementById('campo_agencia');
             const tipoEnvioSection = document.getElementById('tipo_envio_section');
             const infoEnvioContainer = document.getElementById('info_envio_container');
+            const direccionContainer = document.getElementById('direccion_tipo_envio_container');
 
             if (this.value === 'Retiro') {
                 campoAgencia.style.display = 'none';
                 tipoEnvioSection.style.display = 'none';
+                if (direccionContainer) direccionContainer.style.display = 'none';
                 hideDireccionFields();
 
-                // Ocultar detalle de agencia si estaba visible
                 if (infoEnvioContainer) infoEnvioContainer.style.display = 'none';
             } else {
                 campoAgencia.style.display = 'block';
-                tipoEnvioSection.style.display = 'none';
-                hideDireccionFields();
-
+                tipoEnvioSection.style.display = 'block';
+                if (direccionContainer) direccionContainer.style.display = 'block';
+                
                 // Mostrar detalle de agencia si corresponde
                 const agenciaSelect = document.querySelector('#campo_agencia select');
                 const config = JSON.parse(localStorage.getItem('configuracion_pagina') || '{}');
@@ -8222,21 +8990,20 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const selectMunicipio = document.getElementById('txt_municipio');
             const selectLocalidad = document.getElementById('txt_localidad');
 
-            let UBIGEO = [];
+            window.UBIGEO = []; // v15.8.7 - Globalizado para hidratación sincrónica
 
             // 🔹 Cargar archivo JSON desde tu servidor
             try {
                 const response = await fetch('https://www.castfer.com.ar/ubigeo_json.php');
-                UBIGEO = await response.json();
-                console.log(`✅ Ubigeo cargado (${UBIGEO.length} provincias)`);
+                window.UBIGEO = await response.json();
+                console.log(`✅ Ubigeo cargado (${window.UBIGEO.length} provincias)`);
             } catch (error) {
                 console.error('❌ Error al cargar el archivo ubigeo.json:', error);
                 return;
             }
-
             // 🔹 Cargar provincias
             let provOptions = '<option value="">Seleccione una provincia</option>';
-            UBIGEO.forEach(p => {
+            window.UBIGEO.forEach(p => {
                 provOptions += `<option value="${p.id}">${p.nombre}</option>`;
             });
             selectProvincia.innerHTML = provOptions;
@@ -8245,7 +9012,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             // 🔹 Al cambiar provincia → cargar municipios
             selectProvincia.addEventListener('change', function () {
                 const provinciaId = this.value;
-                const provincia = UBIGEO.find(p => p.id === provinciaId);
+                const provincia = window.UBIGEO.find(p => p.id === provinciaId);
 
                 selectMunicipio.innerHTML = '<option value="">Seleccione un municipio</option>';
                 selectLocalidad.innerHTML = '<option value="">Seleccione una localidad</option>';
@@ -8263,7 +9030,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             selectMunicipio.addEventListener('change', function () {
                 const provinciaId = selectProvincia.value;
                 const municipioId = this.value;
-                const provincia = UBIGEO.find(p => p.id === provinciaId);
+                const provincia = window.UBIGEO.find(p => p.id === provinciaId);
                 const municipio = provincia?.municipios.find(m => m.id === municipioId);
 
                 selectLocalidad.innerHTML = '<option value="">Seleccione una localidad</option>';
@@ -8280,8 +9047,51 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             console.log("🌎 Selector de ubicación inicializado correctamente.");
         });
 
+        /**
+         * v15.5 - Limpia estados de bloqueo y requeridos previos para evitar 
+         * herencia de restricciones entre modos de checkout.
+         */
+        function reiniciarEstadoFormulario() {
+            // 1. Habilitar todos los inputs y selects
+            document.querySelectorAll('#modalPedido input, #modalPedido select, #modalPedido textarea').forEach(el => {
+                el.disabled = false;
+                el.readOnly = false;
+                el.required = false; // Limpieza total de validación HTML5
+            });
+
+            // 2. Especial: Habilitar radios de tipo_compra (corrige bloqueo persistente)
+            document.querySelectorAll('input[name="tipo_compra"]').forEach(r => r.disabled = false);
+            
+            // 3. Ocultar contenedores de dirección y edición por defecto
+            if (typeof hideDireccionFields === 'function') hideDireccionFields();
+            $('#container_permitir_edicion').hide();
+            $('#campo_condicion_fiscal').hide();
+        }
+
+        /**
+         * v15.5 - Asigna dinámicamente el atributo required solo a campos visibles
+         * para evitar errores de foco del navegador.
+         */
+        function actualizarRequeridos(modo) {
+            const fields = {
+                'Registro': ['txt_nombre_real', 'txt_telefono', 'txt_correo', 'txt_rut'],
+                'Validar Datos': ['txt_nombre', 'txt_correo'],
+                'Sin Registro': ['txt_nombre_real', 'txt_telefono']
+            };
+
+            const selected = fields[modo] || [];
+            selected.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.required = true;
+            });
+        }
+
         function handleClientTypeChange(selectedValue) {
             localStorage.setItem('tipo_cliente', selectedValue);
+            
+            // v15.5 - Resetear estados previos y requeridos
+            reiniciarEstadoFormulario();
+            actualizarRequeridos(selectedValue);
 
             const configGuardada = localStorage.getItem('configuracion_pagina');
             let config = null;
@@ -8303,105 +9113,266 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const campoCelular = document.getElementById('campo_celular');
             const campoRut = document.getElementById('campo_rut');
             const campoAgencia = document.getElementById('campo_agencia');
+            const campoCondicionFiscal = document.getElementById('campo_condicion_fiscal');
             const tipoEnvioSection = document.getElementById('tipo_envio_section');
             const agenciaSelect = document.querySelector('#campo_agencia select');
+            const btnValidarApi = document.getElementById('btn_validar_api');
 
             if (selectedValue === 'Registro') {
-                document.getElementById('label_nombre').innerText = 'Nombre y Apellidos :';
-                document.getElementById('small_nombre').innerText = 'Ingrese su nombre completo.';
-                nombreInput.placeholder = 'Ingrese Nombre';
-                nombreInput.required = true;
-                nombreInput.maxLength = 30;
-                nombreInput.removeAttribute('pattern');
-                nombreInput.removeAttribute('title');
+                document.getElementById('label_nombre').innerText = 'DNI / Identificación :';
+                document.getElementById('small_nombre').innerText = 'Ingrese su documento para el registro.';
+                nombreInput.placeholder = 'Ingrese DNI/RUT';
+                nombreInput.maxLength = 15;
 
                 campoNombre.style.display = 'block';
+                document.getElementById('campo_nombre_real').style.display = 'block';
                 campoCorreo.style.display = 'block';
                 campoCelular.style.display = 'block';
                 campoRut.style.display = 'block';
-                correoInput.required = true;
-                telefonoInput.required = true;
-                direccionInput.required = true;
+                campoCondicionFiscal.style.display = 'block';
 
                 document.getElementById('tipo_compra_section').style.display = 'block';
                 document.querySelector('input[name="tipo_compra"][value="Retiro"]').checked = true;
 
                 if (agenciaSelect) {
                     agenciaSelect.value = 'RETIRO TIENDA';
-
-                    // Forzar evento change para mostrar info
-                    if (typeof cargarInfoAgenciaSeleccionada === 'function' && config) {
-                        setTimeout(() => {
-                            agenciaSelect.dispatchEvent(new Event('change'));
-                        }, 200);
-                    }
+                    setTimeout(() => { agenciaSelect.dispatchEvent(new Event('change')); }, 200);
                 }
 
                 campoAgencia.style.display = 'none';
-
-                document.querySelectorAll('input[name="tipo_compra"]').forEach(function (radio) {
-                    radio.removeEventListener('change', handleTipoCompraChange); // evitar duplicados
-                    radio.addEventListener('change', handleTipoCompraChange);
-                });
+                if (btnValidarApi) btnValidarApi.style.display = 'none';
 
             } else if (selectedValue === 'Validar Datos') {
                 campoNombre.style.display = 'block';
+                document.getElementById('campo_nombre_real').style.display = 'none'; // Se muestra post-validación
                 campoCorreo.style.display = 'block';
                 campoCelular.style.display = 'none';
                 campoRut.style.display = 'none';
                 campoAgencia.style.display = 'none';
+                campoCondicionFiscal.style.display = 'none';
                 tipoEnvioSection.style.display = 'none';
 
-                const infoEnvioContainer = document.getElementById('info_envio_container');
-                if (infoEnvioContainer && selectedValue === 'Validar Datos') {
-                    infoEnvioContainer.style.display = 'none';
+                document.getElementById('label_nombre').innerText = 'ID del Cliente :';
+                document.getElementById('small_nombre').innerText = 'Controle su ID en AppSheet o ERP.';
+                nombreInput.placeholder = 'Ej: CLI003';
+                nombreInput.maxLength = 10;
+                nombreInput.readOnly = false;
+                nombreInput.classList.remove('bg-light');
+                
+                correoInput.readOnly = false;
+                correoInput.classList.remove('bg-light');
+
+                document.getElementById('tipo_compra_section').style.display = 'none';
+                hideDireccionFields();
+                
+                $('#btn_confirmar').prop('disabled', true);
+                
+                if (btnValidarApi) {
+                    btnValidarApi.style.display = 'block';
+                    btnValidarApi.className = 'btn btn-success shadow-sm';
+                    btnValidarApi.innerHTML = '<i class="fa fa-search"></i> Validar';
                 }
 
-                document.getElementById('label_nombre').innerText = 'ID del Cliente :';
-                document.getElementById('small_nombre').innerText = 'Si es cliente registrado, sino Registrese.';
-                nombreInput.placeholder = 'Ingrese ID de Cliente';
-                nombreInput.required = true;
-                nombreInput.maxLength = 6;
-                nombreInput.setAttribute('pattern', 'cli\\d{3}|CLI\\d{3}');
-                nombreInput.setAttribute('title', 'El ID debe comenzar con "CLI" o "cli" seguido de 3 números.');
-                correoInput.required = true;
-                telefonoInput.required = false;
-                direccionInput.required = false;
-
-                document.querySelectorAll('.campo-extra').forEach(function (campo) {
-                    campo.style.display = 'none';
-                    campo.querySelector('input, select, textarea').required = false;
-                });
-
-                document.getElementById('tipo_compra_section').style.display = 'none';
-                hideDireccionFields();
-
             } else {
-                campoNombre.style.display = 'none';
-                campoCorreo.style.display = 'none';
-                campoCelular.style.display = 'none';
+                // MODO: Sin Registro (Blogger Standard CLI001)
+                campoNombre.style.display = 'none'; 
+                document.getElementById('campo_nombre_real').style.display = 'block';
+                campoCorreo.style.display = 'none'; // v15.0 - Innecesario para CLI001
+                campoCelular.style.display = 'block';
                 campoRut.style.display = 'none';
 
-                document.getElementById('label_nombre').innerText = 'Nombre * :';
-                document.getElementById('small_nombre').innerText = 'Ingrese su nombre.';
-                nombreInput.placeholder = 'Ingrese Nombre';
-                nombreInput.required = false;
-                nombreInput.maxLength = 20;
-                nombreInput.removeAttribute('pattern');
-                nombreInput.removeAttribute('title');
+                document.getElementById('txt_nombre_real').required = true;
+                document.getElementById('txt_telefono').required = true;
+                
+                // Configuración Default: RETIRO (Forzado)
+                const sectionCompra = document.getElementById('tipo_compra_section');
+                sectionCompra.style.display = 'block';
+                
+                // Forzar Retiro y deshabilitar cambio
+                const radioEnvio = document.getElementById('compra_envio');
+                const radioRetiro = document.getElementById('compra_retiro');
+                
+                if(radioRetiro) radioRetiro.checked = true;
+                if(radioEnvio) radioEnvio.disabled = true;
+                if(radioRetiro) radioRetiro.disabled = true;
+                
+                // Sincronizar con lógica de agencia
+                if (agenciaSelect) {
+                    agenciaSelect.value = 'RETIRO TIENDA';
+                    agenciaSelect.dispatchEvent(new Event('change'));
+                }
 
-                correoInput.required = false;
-                telefonoInput.required = false;
-                direccionInput.required = false;
-
-                document.querySelectorAll('.campo-extra').forEach(function (campo) {
-                    campo.style.display = 'none';
-                    campo.querySelector('input, select, textarea').required = false;
-                });
-
-                document.getElementById('tipo_compra_section').style.display = 'none';
-                hideDireccionFields();
+                if (btnValidarApi) btnValidarApi.style.display = 'none';
+                $('#btn_confirmar').prop('disabled', false); 
             }
+        }
+
+        function permitirEdicionDatos() {
+            manualEditActive = true;
+            $('#campo_celular').fadeIn();
+            $('#campo_rut').fadeIn();
+            $('#tipo_compra_section').fadeIn();
+            $('#container_actualizar_permanente').fadeIn();
+            $('#direccion_tipo_envio_container').fadeIn();
+            
+            // v15.0 - Desbloquear campos
+            gestionarBloqueoCampos(false);
+            
+            Swal.fire("Modo edición activado", "Ahora puedes actualizar tus datos. Si marcas el interruptor rojo, se guardarán permanentemente.", "info");
+        }
+
+        /**
+         * Realiza la consulta al ERP para validar los datos del cliente.
+         */
+        async function handleValidarCliente() {
+            const id = document.getElementById('txt_nombre').value.trim();
+            const email = document.getElementById('txt_correo').value.trim();
+            const btn = document.getElementById('btn_validar_api');
+
+            if (!id || !email) {
+                Swal.fire("Atención", "Por favor, complete el ID y correo registrado.", "warning");
+                return;
+            }
+
+            btn.disabled = true;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            makeAjaxCall(url_final_venta, { op: "consultar_cliente", id: id, email: email }, async function(res) {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+
+                if (res.status === "0" && res.cliente) {
+                    intentosValidacion = 0;
+                    const c = res.cliente;
+                    
+                    // 1. Sincronizar Objeto Venta inmediatamente para evitar 'Identity Overwrite'
+                    var venta = JSON.parse(localStorage.getItem('venta') || '{}');
+                    venta.id_cliente = c.CLIENTE_ID;
+                    venta.nombre_entrega = c.NOMBRE_COMPLETO;
+                    venta.telefono_entrega = c.CELULAR;
+                    venta.correo_entrega = c.CORREO_ELECTRONICO;
+                    localStorage.setItem('venta', JSON.stringify(venta));
+
+                    // 2. Bloquear credenciales (Inmutabilidad solicitada por USER)
+                    document.getElementById('txt_nombre').readOnly = true;
+                    document.getElementById('txt_nombre').classList.add('bg-light');
+                    document.getElementById('txt_correo').readOnly = true;
+                    document.getElementById('txt_correo').classList.add('bg-light');
+
+                    // 3. Mostrar campo de nombre real recuperado
+                    const campoNombreReal = $('#campo_nombre_real');
+                    campoNombreReal.show();
+                    $('#txt_nombre_real').val(c.NOMBRE_COMPLETO || "").prop('readOnly', true).addClass('bg-light');
+
+                    // 4. Hidratar el resto de los campos (usando jQuery para seguridad de nulos)
+                    $('#txt_telefono').val(c.CELULAR || "");
+                    $('#txt_rut').val(c.CUIT_DNI || "");
+                    
+                    if (c.CONDICION_FISCAL) {
+                        $('#txt_condicion_fiscal').val(c.CONDICION_FISCAL);
+                        $('#campo_condicion_fiscal').fadeIn();
+                    }
+                    
+                    $('#tipo_compra_section').fadeIn();
+
+                    // 5. Iniciar Motor de Hidratación Secuencial (Ubigeo y Envío)
+                    try {
+                        if (c.TIPO_ENVIO === "RETIRO TIENDA") {
+                            $('#compra_retiro').prop('checked', true).trigger('change');
+                            hideDireccionFields();
+                        } else {
+                            $('#compra_envio').prop('checked', true).trigger('change');
+                            $('#campo_agencia').fadeIn();
+                            
+                            // Determinar Radio secundario Sucursal/Domicilio
+                            const modoEnvio = (c.TIPO_ENVIO === "SUCURSAL" || c.TIPO_ENVIO === "DOMICILIO") ? c.TIPO_ENVIO : "DOMICILIO";
+                            const radioTipoId = 'envio_' + modoEnvio.toLowerCase();
+                            $('#' + radioTipoId).prop('checked', true).trigger('change');
+
+                            $('#tipo_envio_section').fadeIn();
+                            $('#direccion_tipo_envio_container').show();
+                            toggleDireccionFieldsBasedOnEnvio(modoEnvio === "SUCURSAL" ? "Sucursal" : "Domicilio");
+
+                            // v15.8.7 - Blindaje de visibilidad masiva
+                            $('#campo_provincia, #campo_municipio, #campo_localidad, #campo_codigo_postal, #campo_calle, #campo_numero, #campo_piso, #campo_departamento, #campo_observacion').show();
+
+                            // Esperar a que window.UBIGEO esté poblado (Barrera de Sincronización)
+                            let limitWait = 0;
+                            while ((!window.UBIGEO || window.UBIGEO.length === 0) && limitWait < 25) {
+                                await new Promise(res => setTimeout(res, 100));
+                                limitWait++;
+                            }
+
+                            // Carga Síncrona de Ubigeo
+                            if (c.PROVINCIA) {
+                                await provocarCambioYEsperar('#txt_provincia', c.PROVINCIA_ID || c.PROVINCIA);
+                                if (c.MUNICIPIO) {
+                                    await provocarCambioYEsperar('#txt_municipio', c.MUNICIPIO_ID || c.MUNICIPIO);
+                                    if (c.LOCALIDAD) {
+                                        await provocarCambioYEsperar('#txt_localidad', c.LOCALIDAD_ID || c.LOCALIDAD);
+                                    }
+                                }
+                            }
+
+                            // Selección de Agencia (Garantizando que el SELECT esté poblado)
+                            const agenciaSelect = $('#campo_agencia select');
+                            if (agenciaSelect.length && c.AGENCIA_ENVIO) {
+                                agenciaSelect.val(c.AGENCIA_ENVIO).trigger('change');
+                                // v15.8.2 - Cargar info (costo/horarios) tras hidratar
+                                if (typeof cargarInfoAgenciaSeleccionada === 'function') {
+                                    cargarInfoAgenciaSeleccionada(JSON.parse(localStorage.getItem('configuracion_pagina') || '{}'));
+                                }
+                            }
+                            
+                            // Bloquear agencia tras validar
+                            agenciaSelect.prop('disabled', true);
+
+                            // Campos adicionales de dirección (jQuery safe)
+                            $('#txt_calle').val(c.CALLE || "");
+                            $('#txt_numero').val(c.NUMERO || "");
+                            $('#txt_piso').val(c.PISO || "");
+                            $('#txt_departamento').val(c.DEPARTAMENTO || ""); // ID corregido v15.8.7
+                            $('#txt_codigo_postal').val(c.CODIGO_POSTAL || ""); // ID corregido
+                            $('#txt_observacion').val(c.OBSERVACION || "");
+                        }
+                    } catch (err) {
+                        console.error("Fallo en hidratación secuencial:", err);
+                    }
+
+                    $('#btn_confirmar').prop('disabled', false);
+                    $('#container_permitir_edicion').fadeIn();
+                    gestionarBloqueoCampos(true);
+
+                    btn.className = 'btn btn-outline-success shadow-sm';
+                    btn.innerHTML = '<i class="fa fa-check"></i> Verificado';
+
+                    Swal.fire("¡Bienvenido!", `${c.NOMBRE_COMPLETO}, tus datos se cargaron con éxito.`, "success");
+
+                } else {
+                    intentosValidacion++;
+                    if (intentosValidacion >= 3) {
+                        Swal.fire({
+                            title: "¿No encuentras tus datos?",
+                            text: "Parece que hay problemas para identificarte. ¿Deseas registrarte como nuevo cliente?",
+                            icon: "question",
+                            showCancelButton: true,
+                            confirmButtonText: "Sí, registrarme",
+                            cancelButtonText: "Seguir intentando"
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                document.querySelector('input[name="tipo_cliente"][value="Registro"]').click();
+                            }
+                        });
+                    } else {
+                        Swal.fire("No encontrado", "Verifique su ID de cliente o correo.", "error");
+                    }
+                }
+            }, function() {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                Swal.fire("Error", "Error de comunicación con el ERP.", "error");
+            });
         }
 
         //Ocultar los campos de dirección:
@@ -8436,6 +9407,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     if (campoPiso) campoPiso.style.display = 'block';
                     if (campoDepartamento) campoDepartamento.style.display = 'block';
                 }
+
+                // v15.8 - Asegurar visibilidad de agencia si hay un valor seleccionado
+                const campoAgencia = document.getElementById('campo_agencia');
+                if (campoAgencia) campoAgencia.style.display = 'block';
 
                 // Llamamos a la función para cargar las provincias si es necesario
                 if (typeof window.cargarProvincias === 'function') {
@@ -8478,25 +9453,25 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     // Para los <select>, obtenemos el TEXTO de la opción seleccionada.
                     // Esto corrige el error de mostrar el ID numérico ("06") en lugar del nombre.
                     const provinciaSelect = document.getElementById('txt_provincia');
-                    const provincia = (provinciaSelect.selectedIndex > 0) ? provinciaSelect.options[provinciaSelect.selectedIndex].text : 'Sin especificar';
+                    const provincia = (provinciaSelect.selectedIndex > 0) ? provinciaSelect.options[provinciaSelect.selectedIndex].text : '';
 
                     const municipioSelect = document.getElementById('txt_municipio');
-                    const municipio = (municipioSelect.selectedIndex > 0) ? municipioSelect.options[municipioSelect.selectedIndex].text : 'Sin especificar';
+                    const municipio = (municipioSelect.selectedIndex > 0) ? municipioSelect.options[municipioSelect.selectedIndex].text : '';
 
                     const localidadSelect = document.getElementById('txt_localidad');
-                    const localidad = (localidadSelect.selectedIndex > 0) ? localidadSelect.options[localidadSelect.selectedIndex].text : 'Sin especificar';
+                    const localidad = (localidadSelect.selectedIndex > 0) ? localidadSelect.options[localidadSelect.selectedIndex].text : '';
 
-                    // Para los campos de texto, usamos el valor o un fallback
-                    const calle = document.getElementById('txt_calle').value.trim() || 'Sin especificar';
-                    const numero = document.getElementById('txt_numero').value.trim() || 'Sin especificar';
-                    const codigoPostal = document.getElementById('txt_codigo_postal').value.trim() || 'Sin especificar';
+                    // Para los campos de texto, usamos el valor o vacío
+                    const calle = document.getElementById('txt_calle').value.trim() || '';
+                    const numero = document.getElementById('txt_numero').value.trim() || '';
+                    const codigoPostal = document.getElementById('txt_codigo_postal').value.trim() || '';
                     const piso = document.getElementById('txt_piso').value.trim(); // Opcional
                     const departamento = document.getElementById('txt_departamento').value.trim(); // Opcional
                     const observacion = document.getElementById('txt_observacion').value.trim(); // Opcional
 
                     const tipoEnvio = document.querySelector('input[name="tipo_envio"]:checked') ?
                         document.querySelector('input[name="tipo_envio"]:checked').value :
-                        'Sin especificar';
+                        '';
 
                     // --- 2. CONSTRUCCIÓN DE LA DIRECCIÓN CON EL FORMATO DEL BACKEND ---
 
@@ -8538,98 +9513,30 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const formPedido = document.getElementById('form_pedido');
-            const btnConfirmar = document.getElementById('btn_confirmar');
-
-            btnConfirmar.disabled = true; // Deshabilitar inicialmente
-
-            // Muestra errores en los campos
-            function marcarError(campo, mensaje = '') {
-                let errorSpan = campo.nextElementSibling;
-                if (!errorSpan || errorSpan.tagName !== 'SPAN') {
-                    errorSpan = document.createElement('span');
-                    errorSpan.classList.add('error-message');
-                    campo.parentNode.insertBefore(errorSpan, campo.nextSibling);
-                }
-                campo.classList.toggle('is-invalid', Boolean(mensaje));
-                errorSpan.textContent = mensaje;
-            }
-
-            // Validar dinámicamente
-            function validarFormulario() {
-                const tipoCliente = document.querySelector('input[name="tipo_cliente"]:checked')?.value || '';
-                const tipoCompra = document.querySelector('input[name="tipo_compra"]:checked')?.value || '';
-                const campos = {
-                    nombre: document.getElementById('txt_nombre'),
-                    correo: document.getElementById('txt_correo'),
-                    celular: document.getElementById('txt_telefono'),
-                    rut: document.getElementById('txt_rut'),
-                    provincia: document.getElementById('txt_provincia'),
-                    codigoPostal: document.getElementById('txt_codigo_postal'),
-                    localidad: document.getElementById('txt_localidad'),
-                    calle: document.getElementById('txt_calle'),
-                    numero: document.getElementById('txt_numero'),
-                };
-
-                let valid = true;
-                Object.keys(campos).forEach(key => marcarError(campos[key]));
-
-                if (tipoCliente === 'Sin Registro') {
-                    valid = true;
-                } else if (tipoCliente === 'Validar Datos') {
-                    const cliValid = /^cli\d{3}$/i.test(campos.nombre.value.trim());
-                    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(campos.correo.value.trim());
-                    valid = cliValid && emailValid;
-
-                    marcarError(campos.nombre, cliValid ? '' : 'Requiere un ID de Cliente válido.');
-                    marcarError(campos.correo, emailValid ? '' : 'Requiere un correo electrónico válido.');
-
-                } else if (tipoCompra === 'Retiro') {
-                    ['nombre', 'correo', 'celular', 'rut'].forEach(key => {
-                        const campo = campos[key];
-                        const esValido = Boolean(campo.value.trim());
-                        valid = valid && esValido;
-                        marcarError(campo, esValido ? '' : 'Requerido.');
-                    });
-                } else if (tipoCompra === 'Envio') {
-                    Object.keys(campos).forEach(key => {
-                        const campo = campos[key];
-                        const esValido = Boolean(campo.value.trim());
-                        valid = valid && esValido;
-                        marcarError(campo, esValido ? '' : 'Requerido.');
-                    });
-                }
-
-                btnConfirmar.disabled = !valid;
-            }
-
-            // Preseleccionar tipo de cliente
-            document.querySelector('input[name="tipo_cliente"][value="Sin Registro"]').checked = true;
-            validarFormulario();
-
-            // Eventos
-            formPedido.addEventListener('input', validarFormulario);
-            formPedido.addEventListener('submit', function (event) {
-                event.preventDefault();
-                if (!btnConfirmar.disabled) {
-                    alert('Formulario enviado correctamente.');
-                    cerrarModal();
+        // v15.0 - Listener dedicado para Tipo de Compra
+        document.querySelectorAll('input[name="tipo_compra"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                if (this.value === 'Envio') {
+                    // Si el cliente está verificado, mostrar campos bloqueados
+                    if (document.getElementById('btn_validar_api')?.innerHTML.includes('Verificado')) {
+                        // Forzar visibilidad de campos de dirección según el tipo de envío guardado
+                        const tipoEnvioChecked = document.querySelector('input[name="tipo_envio"]:checked')?.value || 'Sucursal';
+                        toggleDireccionFieldsBasedOnEnvio(tipoEnvioChecked);
+                    }
+                } else {
+                    hideDireccionFields();
+                    document.getElementById('tipo_envio_section').style.display = 'none';
                 }
             });
-
-            function cerrarModal() {
-                const modalElement = document.querySelector('#modalPedido');
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                if (modal) modal.hide();
-            }
         });
+
 
         //Funcion para Inciar una Nueva Venta
 
         function inicializarVenta() {
             var venta = {};
             venta.item = {};
+            venta.url = window.location.origin + window.location.pathname;
             venta.item.total = 0.00;
             venta.item.precio = 0.00;
             venta.item.cantidad = 0.00;
@@ -8679,12 +9586,15 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     talles = rawTalles;
                 }
 
-                const tallesProcesados = Array.isArray(talles) && talles.length > 0
+                 const tallesProcesados = Array.isArray(talles) && talles.length > 0
                     ? talles.map(talleObj => {
-                        const valorTalle = typeof talleObj === "string" ? talleObj : talleObj.talle;
+                        // Cambiamos la condición para que si es objeto busque '.talle', 
+                        // y si no lo es (ya sea string o número), lo tome directamente.
+                        const valorTalle = typeof talleObj === "object" ? talleObj.talle : talleObj;
                         const stock = typeof talleObj === "object" && talleObj.stock ? talleObj.stock : "0"; // agrega stock
 
-                        const identificadorUnico = valorTalle.trim();
+                        // Forzamos que sea texto para evitar el error de '.trim()'
+                        const identificadorUnico = String(valorTalle).trim();
 
                         const etiqueta = identificadorUnico.includes("-")
                             ? identificadorUnico.split("-")[1].trim()
@@ -10234,6 +11144,82 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     Swal.fire("Error", err.message || "Error al procesar", "error");
                 }
             );
+        }
+
+        function iniciarCheckout() {
+            // v15.0 - Checkout Anatómico
+            Swal.fire({
+                title: '¿Cómo deseas finalizar tu pedido?',
+                text: 'Elige una opción para continuar con el proceso de compra',
+                icon: 'question',
+                showCancelButton: true,
+                cancelButtonText: 'Cancelar',
+                showDenyButton: true,
+                confirmButtonText: '<i class="fa fa-user"></i> Con Registro',
+                denyButtonText: '<i class="fa fa-user-times"></i> Sin Registro',
+                confirmButtonColor: '#0d6efd',
+                denyButtonColor: '#dc3545',
+                footer: '<button id="btn_modo_validar" class="btn btn-success w-100"><i class="fa fa-check-circle"></i> Soy Cliente Registrado (Validar Datos)</button>',
+                didOpen: () => {
+                    const btnValidar = document.getElementById('btn_modo_validar');
+                    if (btnValidar) {
+                        btnValidar.addEventListener('click', () => {
+                            configurarYAbrirModal('Validar Datos');
+                        });
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    configurarYAbrirModal('Registro');
+                } else if (result.isDenied) {
+                    configurarYAbrirModal('Sin Registro');
+                }
+            });
+        }
+
+        function configurarYAbrirModal(modo) {
+            Swal.close();
+            // 1. Persistir elección
+            localStorage.setItem('tipo_cliente', modo);
+            
+            // 2. Aplicar lógica de UI
+            handleClientTypeChange(modo);
+            
+            // 3. Forzar el Radio Check del modal para consistencia visual interna
+            const radio = document.querySelector(`input[name="tipo_cliente"][value="${modo}"]`);
+            if (radio) radio.checked = true;
+
+            // v15.7 - Blindaje UI: Inhabilitar selector para evitar inconsistencias lógicas
+            document.querySelectorAll('input[name="tipo_cliente"]').forEach(r => r.disabled = true);
+
+            // 4. Abrir Modal Físico
+            $('#modalPedido').modal('show');
+        }
+
+        function gestionarBloqueoCampos(bloquear) {
+            const selectores = [
+                '#txt_nombre_real', '#txt_telefono', 
+                '#txt_rut', '#txt_condicion_fiscal',
+                '#txt_provincia', '#txt_municipio', '#txt_localidad',
+                '#txt_codigo_postal', '#txt_calle', '#txt_numero',
+                '#txt_piso', '#txt_departamento', '#txt_observacion',
+                '#campo_agencia select'
+            ];
+            
+            // v15.7 - Bloquear además los selectores de tipo de compra y envío
+            document.querySelectorAll('input[name="tipo_compra"]').forEach(r => r.disabled = bloquear);
+            document.querySelectorAll('input[name="tipo_envio"]').forEach(r => r.disabled = bloquear);
+            
+            selectores.forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) {
+                    if (el.tagName === 'SELECT') {
+                        el.disabled = bloquear;
+                    } else {
+                        el.readOnly = bloquear;
+                    }
+                }
+            });
         }
 
         //]]>

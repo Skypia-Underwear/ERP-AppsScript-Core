@@ -100,8 +100,12 @@ function procesarAjusteMasivoStock(cambios, storeId, userId, opcionesMovimiento,
       recalcularStockDeProducto(sku, logArray);
     });
 
-    // Sincronizar catálogo
+    // Sincronizar catálogo y caché de stock (Fast Path)
     publicarCatalogo();
+    if (typeof generateInventoryCache === 'function') {
+      generateInventoryCache();
+      log(`⚡ Caché de stock regenerado.`);
+    }
     log(`🔄 Catálogo sincronizado.`);
 
     return { success: true, message: `Se procesaron ${nuevasFilas.length} ajustes exitosamente.`, logs: logArray };
@@ -233,7 +237,8 @@ function generarInventarioInicial(logArray = null) {
 
   // Procesar BD_INVENTARIO
   const inventarioSheetData = hojaInventario.getDataRange().getValues();
-  const inventarioActualIds = new Set(inventarioSheetData.slice(1).map(row => row[0]).filter(String));
+  const invMapping = HeaderManager.getMapping("INVENTORY");
+  const inventarioActualIds = new Set(inventarioSheetData.slice(1).map(row => row[invMapping["INVENTARIO_ID"]]).filter(String));
   log(`   - Inventario Actual (post-limpieza): ${inventarioActualIds.size} registros.`);
 
   const nuevasFilasInventario = [];
@@ -250,7 +255,7 @@ function generarInventarioInicial(logArray = null) {
 
   let huerfanosEliminadosInv = 0;
   for (let i = inventarioSheetData.length - 1; i >= 1; i--) {
-    const inventarioId = inventarioSheetData[i][0];
+    const inventarioId = inventarioSheetData[i][invMapping["INVENTARIO_ID"]];
     if (inventarioId && !masterInventoryIds.has(inventarioId)) {
       hojaInventario.deleteRow(i + 1);
       huerfanosEliminadosInv++;
@@ -262,7 +267,8 @@ function generarInventarioInicial(logArray = null) {
 
   // Procesar BD_DEPOSITO
   const depositoSheetData = hojaDeposito.getDataRange().getValues();
-  const depositoActualIds = new Set(depositoSheetData.slice(1).map(row => row[0]).filter(String));
+  const depMapping = HeaderManager.getMapping("DEPOSIT");
+  const depositoActualIds = new Set(depositoSheetData.slice(1).map(row => row[depMapping["PRODUCTO_ID"]]).filter(String));
   log(`   - Depósito Actual (post-limpieza): ${depositoActualIds.size} registros.`);
 
   const nuevasFilasDeposito = [];
@@ -371,9 +377,13 @@ function generarInventarioPorProducto(PRODUCTO_ID, logArray = null) {
   const inventarioActualDeProducto = new Set();
   const filasParaEliminar = [];
 
+  // Mapeos Dinámicos
+  const invMap = HeaderManager.getMapping("INVENTORY");
+  const pMap = HeaderManager.getMapping("PRODUCTS");
+
   for (let i = 1; i < inventarioSheetData.length; i++) {
-    if (inventarioSheetData[i][3] === productoIdStr) { // Columna D = PRODUCTO_ID
-      const inventarioId = inventarioSheetData[i][0];
+    if (String(inventarioSheetData[i][invMap["PRODUCTO_ID"]]) === productoIdStr) { 
+      const inventarioId = inventarioSheetData[i][invMap["INVENTARIO_ID"]];
       inventarioActualDeProducto.add(inventarioId);
       if (!masterProductInventoryIds.has(inventarioId)) {
         filasParaEliminar.push(i + 1);
@@ -409,13 +419,16 @@ function generarInventarioPorProducto(PRODUCTO_ID, logArray = null) {
   // --- 2. Auditar BD_DEPOSITO ---
   log("--- Auditando BD_DEPOSITO...");
   const depositoData = hojaDeposito.getDataRange().getValues();
-  const depositoExiste = depositoData.slice(1).some(row => row[0] === productoIdStr);
-
-  if (depositoExiste) {
-    log(`   - 👍 El producto ya existe en BD_DEPOSITO.`);
-  } else {
-    hojaDeposito.appendRow([productoIdStr, 0, 0, 0, 0, fechaHoy]);
-    log(`   - ✅ Registro creado en BD_DEPOSITO.`);
+  // 2. AUDITORÍA DE DPÓSITO
+  const depMap = HeaderManager.getMapping("DEPOSIT");
+  const depositoExiste = depositoData.slice(1).some(row => String(row[depMap["PRODUCTO_ID"]]) === productoIdStr);
+    
+  if (!depositoExiste) {
+    log(`   - ⚠️ Producto no encontrado en BD_DEPOSITO. Creando registro...`);
+    const nuevaFilaDep = new Array(Object.keys(depMap).length).fill("");
+    if (depMap["PRODUCTO_ID"] !== undefined) nuevaFilaDep[depMap["PRODUCTO_ID"]] = productoIdStr;
+    if (depMap["STOCK_ACTUAL"] !== undefined) nuevaFilaDep[depMap["STOCK_ACTUAL"]] = 0;
+    hojaDeposito.appendRow(nuevaFilaDep);
   }
 
   log(`🎯 Finalizó la auditoría para: ${productoIdStr}`);
@@ -1423,5 +1436,36 @@ function getInventoryHydrationData() {
   } catch (e) {
     debugLog("❌ Error en getInventoryHydrationData: " + e.message);
     return { success: false, message: e.message };
+  }
+}
+
+/**
+ * Actualiza un campo específico de un producto en BD_PRODUCTOS de forma Mapping-Aware.
+ */
+function actualizarMetadatoProducto(sku, campo, valor) {
+  try {
+    const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
+    const mapping = HeaderManager.getMapping("PRODUCTS");
+
+    if (!sheet || !mapping) throw new Error("No se pudo acceder a la hoja de productos o su mapeo.");
+
+    const data = sheet.getDataRange().getValues();
+    const idxSku = mapping["CODIGO_ID"];
+    const idxCampo = mapping[campo];
+
+    if (idxSku === undefined) throw new Error("Falta columna CODIGO_ID en BD_PRODUCTOS.");
+    if (idxCampo === undefined) throw new Error(`Campo '${campo}' no encontrado en el mapeo de BD_PRODUCTOS.`);
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idxSku]).trim() === String(sku).trim()) {
+        sheet.getRange(i + 1, idxCampo + 1).setValue(valor);
+        return { success: true };
+      }
+    }
+    throw new Error(`Producto '${sku}' no encontrado.`);
+  } catch (e) {
+    console.error(`Error en actualizarMetadatoProducto: ${e.message}`);
+    throw e;
   }
 }

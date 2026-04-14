@@ -117,6 +117,22 @@ function procesarSubidaDesdeDashboard(sku, fileData, fileName, mimeType, carpeta
       sincronizarImagenes(sku);
     }
 
+    // NUEVO: Recuperar el IMAGEN_ID generado en el sync para devolverlo al dashboard
+    let registeredId = null;
+    try {
+      if (!noSync) {
+        const ss = getImagesSpreadsheet();
+        const imgMap = HeaderManager.getMapping("PRODUCT_IMAGES");
+        const sheet = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+        if (imgMap && sheet) {
+          const fid = file.getId();
+          const data = sheet.getDataRange().getValues();
+          const row = data.find(r => String(r[imgMap["ARCHIVO_ID"]]) === fid);
+          if (row) registeredId = row[imgMap["IMAGEN_ID"]];
+        }
+      }
+    } catch (errSync) { console.warn("Error recuperando ID tras subida: " + errSync.message); }
+
     return {
       success: true,
       message: "Carga completada.",
@@ -124,7 +140,8 @@ function procesarSubidaDesdeDashboard(sku, fileData, fileName, mimeType, carpeta
         `📂 Carpeta: ${folder.getName()}`,
         `📄 Archivo: ${fileName} (${(blob.getBytes().length / 1024).toFixed(1)} KB)`
       ],
-      fileId: file.getId()
+      fileId: file.getId(),
+      imagenId: registeredId // Este ID permite disparar el análisis forense inmediatamente
     };
 
   } catch (e) {
@@ -164,10 +181,10 @@ function obtenerOCrearCarpetaProducto(sku) {
         // 4. Triple verificación (Drive)
         const parentId = GLOBAL_CONFIG.DRIVE.PARENT_FOLDER_ID;
         const parent = DriveApp.getFolderById(parentId);
-        
+
         const existingFolders = parent.getFoldersByName(String(sku));
         let theFolder;
-        
+
         if (existingFolders.hasNext()) {
           theFolder = existingFolders.next();
           console.log(`⏳ Carpeta rescatada desde Drive (Sync Bypass): ${sku}`);
@@ -178,10 +195,11 @@ function obtenerOCrearCarpetaProducto(sku) {
 
         // 5. Guardado Atomizado
         if (idxFolder !== undefined) {
-           sheet.getRange(i + 1, idxFolder + 1).setValue(theFolder.getId());
-           SpreadsheetApp.flush(); // Forzar cache global
+          sheet.getRange(i + 1, idxFolder + 1).setValue(theFolder.getId());
+          // Actualizamos en local para coherencia inmediata
+          if (data && data[i]) data[i][idxFolder] = theFolder.getId();
         }
-        
+        SpreadsheetApp.flush(); // Forzar cache global
         return theFolder;
       } catch (e) {
         throw new Error("Lock timeout o fallo de concurrencia en carpeta: " + e.message);
@@ -533,6 +551,16 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
       sheetImg.getRange(sheetImg.getLastRow() + 1, 1, nuevasFilas.length, headersImg.length).setValues(nuevasFilas);
       const videos = nuevasFilas.filter(r => r[col['TIPO_ARCHIVO']] === 'video').length;
       log(`✅ +${nuevasFilas.length} nuevas${videos > 0 ? ` (incluye ${videos} video)` : ""}.`);
+      
+      // ALERTA DE AUDITORÍA: Si es sincronización unitaria y hay nuevas, avisar
+      if (productoIdFiltro) {
+        try {
+          img_marcarPendienteAuditoria(productoIdFiltro, nuevasFilas.length);
+          log(`🔔 Notificación de auditoría enviada.`);
+        } catch (eNotif) {
+          log(`⚠️ No se pudo enviar notificación: ${eNotif.message}`);
+        }
+      }
     }
 
     // APLICAR ACTUALIZACIONES (Lote o Individual)
@@ -557,11 +585,16 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         const oldPrompt = originalRowData[col['PROMPT']];
         const oldCosto = originalRowData[col['COSTO']];
         const oldFuente = originalRowData[col['FUENTE']];
+        const oldAnalisis = originalRowData[col['ANALISIS_FORENSE']];
+        const oldSyncWc = originalRowData[col['SYNC_WC']];
 
-        // Restaurar metadatos críticos de la IA para no perderlos durante el sync
-        const setVal = (c, v) => { if (col[c] !== undefined) u.rowData[col[c]] = v; };
+        // Restaurar metadatos críticos de la IA y sincronización externa
+        const setVal = (c, v) => { if (col[c] !== undefined && v !== undefined && v !== "") u.rowData[col[c]] = v; };
+        
         setVal('IMAGEN_ID', oldID);
         setVal('ESTADO', oldEstado);
+        setVal('ANALISIS_FORENSE', oldAnalisis);
+        setVal('SYNC_WC', oldSyncWc);
 
         // Prevenir reseteo indiscriminado de Portada en el ciclo de DB Update
         const oldPortada = originalRowData[col['PORTADA']];
@@ -590,7 +623,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
     // Esto previene errores de "Imagen no encontrada" cuando se intenta generar IA inmediatamente después de sincronizar
     SpreadsheetApp.flush();
 
-  } catch (e) { log(`âŒ Error: ${e.message}`); }
+  } catch (e) { log(`❌ Error: ${e.message}`); }
   finally { SpreadsheetApp.flush(); lock.releaseLock(); }
 }
 
@@ -685,7 +718,7 @@ function buscarProductosParaSidebar(busqueda) {
 }
 
 function obtenerImagenesDeProducto(sku, carpetaId) {
-  const logPrefix = `🔍 [obtenerImagenesDeProducto]`;
+  const logPrefix = `🔍  [obtenerImagenesDeProducto]`;
   console.log(`${logPrefix} Buscando imágenes. SKU: "${sku}", CarpetaID: "${carpetaId}"`);
 
   if (!sku && !carpetaId) {
@@ -702,7 +735,7 @@ function obtenerImagenesDeProducto(sku, carpetaId) {
     console.warn(`${logPrefix} 🔄 Hoja '${SHEETS.PRODUCT_IMAGES}' no hallada. Probando '${fallbackName}'...`);
     sheet = ss.getSheetByName(fallbackName);
     if (!sheet) {
-      console.error(`${logPrefix} âŒ Error Crítico: No se encontró la hoja de imágenes.`);
+      console.error(`${logPrefix} ❌ Error Crítico: No se encontró la hoja de imágenes.`);
       throw new Error(`Hoja de imágenes no encontrada (Probado: ${SHEETS.PRODUCT_IMAGES}, ${fallbackName})`);
     } else {
       console.log(`${logPrefix} ✅ Usando hoja alternativa: '${fallbackName}'`);
@@ -759,7 +792,7 @@ function convertirRangoAObjetos_IMAGENES(sheet) {
   const headers = data[0].map(h => String(h).trim().toUpperCase()); // FORZAR MAYÚSCULAS
 
   // Debug de headers para verificar si CARPETA_ID existe
-  console.log(`ðŸ› [convertirRangoAObjetos_IMAGENES] Headers detectados: ${headers.join(", ")}`);
+  // console.log(`📦 [convertirRangoAObjetos_IMAGENES] Headers detectados: ${headers.join(", ")}`);
 
   return data.slice(1).map(row => {
     let obj = {};
@@ -906,14 +939,14 @@ function DIAGNOSTICO_IA() {
   const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
   const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
 
-  console.log("🔍 Probando llave...");
+  console.log("🔍  Probando llave...");
 
   try {
     const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
     const json = JSON.parse(response.getContentText());
 
     if (json.error) {
-      console.log("âŒ ERROR DE CUENTA: " + json.error.message);
+      console.log("❌ ERROR DE CUENTA: " + json.error.message);
     } else if (json.models) {
       console.log("✅ CONEXIÓN EXITOSA. Modelos disponibles:");
       json.models.forEach(m => {
@@ -950,8 +983,17 @@ const GEMINI_SAFETY_SETTINGS = [
  * @param {string} displayName Nombre para identificación.
  * @returns {{uri: string, mimeType: string}} URI del archivo en Gemini.
  */
-function subirArchivoGeminiFileAPI(blob, displayName) {
-  const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
+/**
+ * Sube un archivo a la File API de Gemini y retorna la URI.
+ * @param {Blob} blob El blob del archivo.
+ * @param {string} displayName Nombre para identificación.
+ * @param {string} [apiKeyOverride] Llave opcional (para dual-key).
+ * @returns {{uri: string, mimeType: string}} URI del archivo en Gemini.
+ */
+function subirArchivoGeminiFileAPI(blob, displayName, apiKeyOverride = null) {
+  const apiKey = apiKeyOverride || GLOBAL_CONFIG.GEMINI.API_KEY;
+  const keyMask = apiKey ? `...${apiKey.slice(-4)}` : "NOT_FOUND";
+  console.log(`📁 [File API|Upload] Iniciando para ${displayName} con llave ${keyMask}`);
   const mimeType = blob.getContentType();
   const blobBytes = blob.getBytes();
   const numBytes = blobBytes.length;
@@ -1035,43 +1077,313 @@ function subirArchivoGeminiFileAPI(blob, displayName) {
 }
 
 /**
- * Optimiza un blob de Drive para subida a Gemini.
- * Si el archivo > 2MB, obtiene el thumbnail de 1536px de Drive (sweet spot de mosaicos).
- * Luego sube a la File API y retorna la referencia fileData.
- * @param {string} archivoId ID del archivo en Drive.
- * @param {string} displayName Nombre descriptivo.
- * @returns {{ fileData: { mimeType: string, fileUri: string } }}
+ * Optimiza un blob de Drive para subida a Gemini File API.
+ * @param {string} archivoId   ID del archivo en Drive.
+ * @param {string} displayName Nombre descriptivo para logs.
+ * @param {string} [prioridad='alta']
+ *   - 'alta'  → Análisis Forense (cuenta gratuita): siempre thumbnail a 2560px para máximo detalle.
+ *   - 'media' → Renderizado (cuenta pago): thumbnail a 1024px solo si el archivo supera 2MB,
+ *               para reducir tokens sin sacrificar la referencia visual mínima necesaria.
+ * @param {string} [apiKeyOverride=null] Llave opcional para asociar la subida al dueño correcto.
+ * @param {boolean} [usarBase64=false] Si true, retorna inlineData (Base64) en lugar de fileData (File API).
+ * @returns {{ fileData: Object } | { inlineData: Object }}
  */
-function prepararBlobOptimizado(archivoId, displayName) {
+function prepararBlobOptimizado(archivoId, displayName, prioridad = 'alta', apiKeyOverride = null, usarBase64 = false) {
   const file = DriveApp.getFileById(archivoId);
   let blob = file.getBlob();
   const originalSize = blob.getBytes().length;
 
-  // Optimización: si > 5MB, usar thumbnail 2560px de Drive (Fidelidad superior para IA)
-  if (originalSize > 5 * 1024 * 1024) {
+  // --- Resolución Dinámica según prioridad ---
+  const esPrioridadAlta = (prioridad === 'alta');
+  const sz = esPrioridadAlta ? '2560' : '1024';
+  const umbralBytes = esPrioridadAlta
+    ? (0)                   // 'alta': SIEMPRE usar thumbnail para máxima fidelidad de análisis
+    : (2 * 1024 * 1024);    // 'media': solo si el archivo pesa más de 2MB
+
+  if (originalSize > umbralBytes) {
     try {
-      const thumbUrl = `https://drive.google.com/thumbnail?id=${archivoId}&sz=w2560`;
+      const thumbUrl = `https://drive.google.com/thumbnail?id=${archivoId}&sz=w${sz}`;
       const thumbResp = UrlFetchApp.fetch(thumbUrl, {
         headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
         muteHttpExceptions: true
       });
       if (thumbResp.getResponseCode() === 200) {
         blob = thumbResp.getBlob();
-        console.log(`⚡ [Optimize] ${displayName}: ${(originalSize / 1024 / 1024).toFixed(1)}MB → ${(blob.getBytes().length / 1024).toFixed(0)}KB`);
+        console.log(`⚡ [Optimize|${prioridad}] ${displayName}: ${(originalSize / 1024 / 1024).toFixed(1)}MB → ${(blob.getBytes().length / 1024).toFixed(0)}KB (sz=w${sz})`);
       }
     } catch (e) {
       console.warn(`⚡ [Optimize] Thumb fallback falló para ${displayName}: ${e.message}`);
     }
   }
 
-  // Subir a File API
-  const gemFile = subirArchivoGeminiFileAPI(blob, displayName);
+  // --- OPCIÓN A: BYPASS BASE64 (Ideal para thumbnails / llaves con 403) ---
+  if (usarBase64) {
+    const base64 = Utilities.base64Encode(blob.getBytes());
+    console.log(`⚡ [Bypass|Base64] ${displayName} embebido directamente (${(base64.length / 1024).toFixed(0)}KB)`);
+    return {
+      "inlineData": {
+        "mimeType": blob.getContentType(),
+        "data": base64
+      }
+    };
+  }
+
+  // --- OPCIÓN B: FILE API (Ideal para múltiples imágenes / alta resolución) ---
+  const gemFile = subirArchivoGeminiFileAPI(blob, displayName, apiKeyOverride);
   return {
     "fileData": {
       "mimeType": gemFile.mimeType,
       "fileUri": gemFile.uri
     }
   };
+}
+
+// =================================================================
+// ===  CAPA 0 — MOTOR DE DIRECTIVAS ESTÉTICAS (SOT)             ===
+// =================================================================
+/**
+ * Fuente de Verdad Única para las reglas de estilo de la IA.
+ * Centraliza la lógica de Ecommerce, Ghost, Lifestyle, Folded y Hanger.
+ */
+function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment = 'Studio', prodRow = null) {
+  const estilo = (estiloSolicitado || 'ecommerce').toLowerCase();
+  let promptRules = "";
+  let modelAdaptation = "";
+
+  // 1. Configuración de Reglas por Estilo
+  switch (estilo) {
+    case 'ghost':
+      const focus = extraSpecs.focus || "";
+      let focusMandate = "";
+      if (focus === 'waist') focusMandate = "- PRIORITY MANDATE: Show the inside of the waistband with a slight downward angle, highlighting the elastic.";
+      else if (focus === 'legs') focusMandate = "- PRIORITY MANDATE: Show the inside of the leg openings with a clean cut.";
+
+      promptRules = `
+        GHOST MANNEQUIN EFFECT:
+        - Display the item as a 3D volume worn by an invisible body.
+        ${focusMandate}
+        - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
+        - SYMMETRY MANDATE: Ensure both sleeve/leg openings and overall shape are geometrically symmetrical and balanced.
+        - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
+        - CONTACT SHADOW: Add a extremely subtle, realistic contact shadow on the ground to provide floor-plane reference.
+        - OPENINGS: Show hollow openings with visible inner fabric.
+        - INNER CUT MANDATE: The inner fabric cut must follow clean geometric perspective, AVOIDING distorted rear fabric.
+        - TEXTURE FIDELITY: Maintain all technical fabric details (mesh, stitching, prints).
+        - Background: Pure solid white #FFFFFF. 
+        - Lighting: High-end multi-point studio setup to define shape and volume.
+        - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.
+      `;
+      modelAdaptation = "- GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.";
+      break;
+
+    case 'lifestyle':
+      promptRules = `
+        HIGH-END LIFESTYLE EDITORIAL:
+        - High-quality fashion model wearing the garment in a natural environment.
+        - ENVIRONMENT/CONTEXT: ${environment}.
+        - Lighting: Cinematic natural light with professional highlights.
+        - Composition: Medium or full-body shot with soft bokeh depth of field.
+      `;
+      modelAdaptation = `- Replace source substrate with a fit model.
+        - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.`;
+      break;
+
+    case 'hanger':
+    case 'folded':
+    case 'hero':
+    case 'collage':
+      const isStillLifeStudio = environment === 'studio_minimalist';
+      const isMarble = environment === 'luxury_marble';
+      const isOak = environment === 'dark_oak';
+      const isConcrete = environment === 'industrial_concrete';
+      const isLinen = environment === 'soft_linen';
+
+      const genero = (prodRow ? prodRow.GENERO : 'UNISEX').toUpperCase();
+
+      // Props sugeridos por género (contexto de fondo opcional o sutil)
+      let genderProps = "";
+      if (genero === 'FEMENINO' || genero === 'MUJER') {
+        genderProps = "- GENDER CONTEXT: Subtly signal a feminine target audience with soft-focus props in the distance, like a minimalist vase or a high-end fashion Lookbook.";
+      } else if (genero === 'MASCULINO' || genero === 'HOMBRE') {
+        genderProps = "- GENDER CONTEXT: Subtly signal a masculine target audience using sober industrial surfaces or minimalist dark accents in the distance.";
+      }
+
+      // Definición de superficie según entorno seleccionado
+      let surfaceInstruction = "a professional studio surface";
+      if (isMarble) surfaceInstruction = "a polished luxury white marble surface with soft, realistic reflections";
+      else if (isOak) surfaceInstruction = "a textured natural dark oak wood surface with a warm boutique feel";
+      else if (isConcrete) surfaceInstruction = "a matte industrial concrete surface for a modern, high-contrast look";
+      else if (isLinen) surfaceInstruction = "a soft, organic linen fabric background with natural folds";
+
+      // Reglas de composición específicas para HERO y COLLAGE
+      let compositionRules = "";
+      if (estilo === 'hero') {
+          compositionRules = `
+          HERO COMPOSITION MANDATE:
+          - Layout: Commercial split-view or offset arrangement.
+          - Primary Focus: One large, clear representation of the garment (The Hero).
+          - Secondary Focus: Neatly arranged color variants or detail swatches positioned at the bottom or side.
+          - Balance: Use clean negative space between the Hero and variants to avoid visual clutter.`;
+      } else if (estilo === 'collage') {
+          compositionRules = `
+          COLLAGE CATALOG MANDATE:
+          - Layout: Professional multi-image grid (2x2 or 1+2).
+          - Content: Harmonious assembly of all provided reference views in a single high-end catalog page.
+          - Aesthetic: Consistent lighting and color grading across all grid elements.`;
+      }
+
+      promptRules = `
+        STILL LIFE PRODUCT PHOTOGRAPHY (PROFESSIONAL BOUTIQUE):
+        ${compositionRules}
+        - Background: ${isStillLifeStudio ? 'High-end photography studio (Neutral Soft Gray or Professional Off-White)' : 'Professional minimalist environment'}.
+        - Surface: Set the garment(s) on ${surfaceInstruction}.
+        - Lighting: Softbox multi-point lighting with professional highlights and soft falloff. Highlight technical fabric details.
+        - Subject: ONLY the garment(s) in a professionally arranged composition.
+        - REALISM MANDATE: Maintain realistic garment characteristics like seams, stitches, and natural fabric volume.
+        - BOUTIQUE QUALITY: The garment MUST appear professionally steamed and neatly arranged. Remove any sloppy wrinkles or tags.
+        - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.
+        - Style: High-fidelity advertising for premium catalogs.
+      `;
+      modelAdaptation = `- ABSOLUTELY NO HUMANS, MODELS, OR VISIBLE MANNEQUINS.
+        - SUBJECT: Focus exclusively on the physical arrangement of the garment(s) as a Technical Still Life.`;
+      break;
+
+    case 'ecommerce':
+    default:
+      promptRules = `
+        PREMIUM E-COMMERCE CATALOG:
+        - Background: Neutral professional studio (Light Gray #F2F2F2).
+        - Subject: Professional fashion model wearing the garment (on-body).
+        - Lighting: Uniform high-key studio softbox lighting.
+        - Style: Commercial catalog photography. NO "flat lay" or "flat surface" mentions allowed.
+      `;
+      modelAdaptation = `- Replace source substrate with a fit model.
+        - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.`;
+      break;
+  }
+
+  // 2. Prefijo de Respuesta (Para anclar la intención de la IA)
+  let prefix = '[Descripción narrativa fotográfica definitiva en español, enfocada puramente en lo visual].';
+  if (estilo === 'folded') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment perfectly folded on a professional surface, focusing entirely on texture and material, with NO human presence."';
+  else if (estilo === 'hanger') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment professionally hanging on a luxury hanger, with NO human presence."';
+
+  return { promptRules, modelAdaptation, prefix };
+}
+
+// =================================================================
+// ===  CAPA 1 — ANÁLISIS FORENSE (Gratis, por imagen)           ===
+// =================================================================
+/**
+ * Inspecciona UNA foto con la cuenta gratuita y guarda sus atributos físicos
+ * en la columna ANALISIS_FORENSE de BD_IMAGENES.
+ */
+function escanearPrenda(imagenId, forzar = false) {
+  try {
+    const ss = getImagesSpreadsheet();
+    const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+    const dataImg = convertirRangoAObjetos_IMAGENES(sheetImg);
+    const imgRow = dataImg.find(r => String(r.IMAGEN_ID).trim() === String(imagenId).trim());
+
+    if (!imgRow) throw new Error(`Imagen no encontrada: ${imagenId}`);
+
+    // Si ya tiene análisis forense y no se fuerza, retornar el existente
+    if (imgRow.ANALISIS_FORENSE && !forzar) {
+      return JSON.stringify({ success: true, text: imgRow.ANALISIS_FORENSE, model: "cached", skipped: true });
+    }
+
+    const freeKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
+    const apiKey = freeKey || GLOBAL_CONFIG.GEMINI.API_KEY;
+    if (!apiKey) throw new Error("Falta API Key (Free o Paid).");
+
+    // --- NUEVO: Inyectar Metadata de BD_PRODUCTOS ---
+    const sku = imgRow.PRODUCTO_ID;
+    const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+    const dataProd = convertirRangoAObjetos_IMAGENES(sheetProd);
+    const prodRow = dataProd.find(p => String(p.CODIGO_ID || p.SKU).trim() === String(sku).trim());
+
+    let contextoProducto = "";
+    if (prodRow) {
+      contextoProducto = `
+      REFERENCE PRODUCT DATA (TRUTH):
+      - Brand: ${prodRow.MARCA || "Unknown"}
+      - Model: ${prodRow.PRODUCTO || prodRow.MODELO || "Unknown"}
+      - Category: ${prodRow.CATEGORIA || "Clothing"}
+      - Material: ${prodRow.MATERIAL || "Textile"}
+      - Gender: ${prodRow.GENERO || "Unisex"}
+      `;
+    }
+
+    // Subir imagen vía Base64 para evitar errores 403 en File API
+    const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `forense_${imagenId}`, 'alta', apiKey, true);
+
+    const promptForense = `
+      You are a forensic garment analyst. Describe the physical attributes of the garment in the photo.
+      
+      CRITICAL INSTRUCTION: PIXEL SOVEREIGNTY
+      Ignore any external color metadata. You must report ONLY what you see in the pixels of the photo. 
+      If there is a conflict between the Reference Data and the Photo, the Photo MANDATES the reality.
+
+      ${contextoProducto}
+      Instructions:
+      Analyze the actual photo and report the following in SPANISH:
+
+      TIPO_PRENDA: [e.g., Remera, Pantalón, Campera, Short]
+      POSICIÓN_DETECTADA: [FRENTE / ESPALDA / LATERAL / PLANO / GHOST_MANNEQUIN / PILA_O_DOBLADO / INDETERMINADO]
+      SOPORTE_O_CONTEXTO: [FOTO_ESTUDIO / COLGADA_EN_PERCHA / DOBLADA_EN_SUPERFICIE / SOBRE_MANIQUÍ / EN_PERCHERO_MULTIPLE]
+      COLOR_PRINCIPAL:
+        - Nombre técnico: [e.g., Azul Marino]
+        - Código HEX: [e.g., #1A2B5C]
+        - Tipo: [LISO / ESTAMPADO / SUBLIMADO / RAYADO / JASPEADO]
+        - Si es estampado: describir el patrón brevemente.
+      MATERIAL_ESTIMADO: [e.g., Jersey de algodón, Trama Dri-FIT, Cordura, Punto]
+      LOGO_O_MARCA:
+        - Visible: [SÍ / NO]
+        - Si SÍ: Descripción exacta, posición y tamaño aproximado.
+      DETALLES_CONSTRUCTIVOS:
+        - Costuras: [e.g., Flatlock, Overlock, Doble aguja]
+        - Cierres: [e.g., Cierre YKK frontal, Sin cierre, Botones a presión]
+        - Bolsillos: [e.g., 2 laterales con cierre, Sin bolsillos]
+        - Elásticos: [e.g., Cintura elástica con cordón, Sin elástico]
+      AVISOS_DE_LIMPIEZA_VISIBLES: [SÍ / NO]
+      ESTADO_VISUAL: [LIMPIO y PRESENTABLE / Con etiquetas visibles que deben retocarse / Con maniquí visible]
+    `;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${apiKey}`;
+    const payload = { contents: [{ parts: [{ text: promptForense }, fileDataRef] }] };
+    const response = UrlFetchApp.fetch(url, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() === 200) {
+      const json = JSON.parse(response.getContentText());
+      const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        garantizarColumnaANALISIS(sheetImg);
+        actualizarCeldaPorHeader(imagenId, 'ANALISIS_FORENSE', text);
+        console.log(`✅ [Forense|OK] ${imagenId} con gemma-3-27b-it.`);
+        return JSON.stringify({ success: true, text: text, model: "gemma-3-27b-it" });
+      }
+      throw new Error("IA no devolvió texto.");
+    }
+    throw new Error(`Error API (${response.getResponseCode()})`);
+
+  } catch (e) {
+    console.error(`[escanearPrenda] ${e.message}`);
+    return JSON.stringify({ success: false, error: e.message });
+  }
+}
+
+/**
+ * Asegura que la columna ANALISIS_FORENSE exista en la hoja de imágenes.
+ */
+function garantizarColumnaANALISIS(sheet) {
+  const headers = sheet.getDataRange().getValues()[0];
+  if (headers.map(h => String(h).trim().toUpperCase()).indexOf("ANALISIS_FORENSE") === -1) {
+    sheet.getRange(1, headers.length + 1).setValue("ANALISIS_FORENSE");
+    SpreadsheetApp.flush();
+    console.log("🆕 Columna ANALISIS_FORENSE creada.");
+  }
 }
 
 function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpecs = {}, pin = null) {
@@ -1115,73 +1427,42 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         `;
     }
 
-    // Subir imagen a File API (desacople de carga)
-    const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `prompt_${imagenId}`);
-    const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
-
-    if (!apiKey) throw new Error("Falta API Key.");
-
-    // Unificamos las reglas de estilo y el prompt del sistema con la versión masiva refinada
-    const forcedAngle = extraSpecs.angle || "";
-    let promptRules = "";
-    const estilo = (estiloSolicitado || 'ecommerce').toLowerCase();
-    const environment = extraSpecs.environment || (prodRow ? prodRow.CATEGORIA_PADRE : 'Urban');
-
-    switch (estilo) {
-      case 'ghost':
-        const hasFocus = !!extraSpecs.focus;
-        let focusMandateNormal = "";
-        if (extraSpecs.focus === 'waist') {
-          focusMandateNormal = "- PRIORITY MANDATE: Show the inside of the waistband with a slight downward angle, highlighting the elastic.";
-        } else if (extraSpecs.focus === 'legs') {
-          focusMandateNormal = "- PRIORITY MANDATE: Show the inside of the leg openings with a clean cut.";
-        }
-
-        promptRules = `
-          GHOST MANNEQUIN EFFECT:
-          - Display the item as a 3D volume worn by an invisible body.
-          ${focusMandateNormal}
-          - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
-          - SYMMETRY MANDATE: Ensure both sleeve/leg openings and overall shape are geometrically symmetrical and balanced.
-          - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
-          - CONTACT SHADOW: Add a extremely subtle, realistic contact shadow on the ground to provide floor-plane reference and avoid a "floating" look.
-          - OPENINGS (Neck, Sleeves${!hasFocus ? ', Waist, Legs' : ''}): Show hollow openings with visible inner fabric. ${hasFocus ? '(Concentrate visual detail on the priority focus mentioned above) ' : ''}
-          - INNER CUT MANDATE: The inner fabric cut must follow clean geometric perspective, AVOIDING distorted rear fabric.
-          - TEXTURE FIDELITY: Maintain all technical fabric details, including mesh, perforations, stitching, and complex prints without over-smoothing.
-          - Background: Pure solid white #FFFFFF. 
-          - Lighting: High-end multi-point studio setup to define shape and volume.
-          - Strictly remove: hangers, labels, tags, or stickers.
-          - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.
-                    `;
-        break;
-
-      case 'lifestyle':
-        promptRules = `
-          HIGH-END LIFESTYLE EDITORIAL:
-          - High-quality fashion model wearing the garment in a natural, high-contrast environment.
-          - ENVIRONMENT/CONTEXT: ${environment}.
-          - Lighting: Cinematic, directional natural light with professional highlights and shadows.
-          - Composition: Medium or full-body shot with soft bokeh depth of field.
-          - RAW MASTER PROTOCOL: The source image is your physical evidence. Do NOT hallucinate different cuts or textures.
-          `;
-        break;
-
-      case 'ecommerce':
-      default:
-        promptRules = `
-          PREMIUM E-COMMERCE CATALOG:
-          - Background: Neutral professional studio (Light Gray #F2F2F2).
-          - Subject: Professional fashion model wearing the garment (on-body).
-          - Lighting: Uniform high-key studio softbox lighting.
-          - Style: Commercial catalog photography. NO "flat lay" or "flat surface" mentions allowed.
-          `;
-        break;
+    // --- NUEVO: Inyectar Ficha Técnica Forense (Si existe) ---
+    let fichaForensePrompt = "";
+    if (imgRow.ANALISIS_FORENSE) {
+      fichaForensePrompt = `
+      TECHNICAL AUDIT DATA (PRE-VERIFIED):
+      ${imgRow.ANALISIS_FORENSE}
+      - MANDATE: Use these technical details (HEX colors, construction, materials) as the definitive visual guide.
+      `;
     }
+
+    // --- ENRUTAMIENTO DUAL-KEY (Capa 2) ---
+    // Si existe la llave gratuita, la usamos para análisis.
+    // Si no existe, usamos la de pago con resolución menor para ahorrar tokens.
+    const freeKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
+    const apiKey = freeKey || GLOBAL_CONFIG.GEMINI.API_KEY;
+    if (!apiKey) throw new Error("Falta API Key (Free o Paid).");
+
+    const prioridadAnalisis = freeKey ? 'alta' : 'media';
+    // Usar Base64 (true) para prompts individuales para garantizar éxito inmediato sin depender de File API
+    const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `prompt_${imagenId}`, prioridadAnalisis, apiKey, true);
+
+    // Unificamos las reglas de estilo usando el Motor de Directivas (SOT)
+    const forcedAngle = extraSpecs.angle || "";
+    const estiloSolicitadoL = (estiloSolicitado || 'ecommerce').toLowerCase();
+    const environment = extraSpecs.environment || (prodRow ? prodRow.CATEGORIA_PADRE : 'Urban');
+    const directiva = _getAiArtDirectionRules(estiloSolicitadoL, extraSpecs, environment, prodRow);
+    const promptRules = directiva.promptRules;
+    const modelAdaptation = directiva.modelAdaptation;
+    const prefixPrompt = directiva.prefix;
 
     let extraSpecsPrompt = "";
     if (extraSpecs.skinTone) extraSpecsPrompt += `\n- MODEL SKIN TONE: ${extraSpecs.skinTone}.`;
     if (extraSpecs.accessory) extraSpecsPrompt += `\n- ACCESSORIES: ${extraSpecs.accessory}.`;
     if (extraSpecs.footwear) extraSpecsPrompt += `\n- FOOTWEAR: ${extraSpecs.footwear.type} in ${extraSpecs.footwear.color} color.`;
+    if (extraSpecs.aspectRatio) extraSpecsPrompt += `\n- ASPECT RATIO: ${extraSpecs.aspectRatio} (Mandatorio).`;
+    if (extraSpecs.model) extraSpecsPrompt += `\n- TARGET GENERATION MODEL: ${extraSpecs.model}.`;
 
     // PROTOCOLO ANTI-MEZCLA (Poses)
     let poseProtocol = "";
@@ -1198,7 +1479,8 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
     const promptSystem = `
         You are an expert Art Director for fashion catalogs. Your mission is to create a master ART DIRECTIVE to generate a high-fidelity commercial image.
 
-        VISUAL AUTHORITY: The attached image is the absolute source of truth. Ignore any contradictory text metadata.
+        VISUAL AUTHORITY: The attached image is the absolute source of truth. 
+        ${fichaForensePrompt}
         
         CRITICAL FIDELITY PROTOCOL (RAW MASTER):
         1. **STRICT VISUAL AUDIT**: Forensic-audit the image for branding, logos, stitching, and unique textures.
@@ -1212,11 +1494,8 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         5. **ANATOMICAL ISOLATION**:
            - NEVER describe details from a side that is not visible. If Orientation = BACK, do NOT add a front fly, buttons, or zipper.
            - GHOST SOURCE AWARENESS: Use the Ghost Mannequin's 3D volume as the absolute master.
-        6. **MODEL ADAPTATION**:
-           ${estilo !== 'ghost' ? `
-           - Replace source substrate with a fit model.
-           - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.` : `
-           - GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.`}
+        6. **MODEL ADAPTATION & SUBJECT SELECTION**:
+            ${modelAdaptation}
         7. **TECHNICAL COLOR & TEXTURE EXTRACTION**: 
            - Analyze the pixels of the reference garment (ignoring extreme shadows and highlights).
            - Identify if the garment has complex patterns, sublimation, gradients, or all-over prints.
@@ -1228,23 +1507,28 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         ${promptRules}
         ${poseProtocol ? `\n${poseProtocol}` : ""}
         
-        INPUT METADATA:
-        ${contextoTecnico}
-        ${extraSpecsPrompt ? `\nEXTRA SPECIFICATIONS:${extraSpecsPrompt}` : ""}
-
-        OUTPUT REQUIREMENT (MANDATORY SPANISH):
-        All your final output responses MUST be written strictly in SPANISH following this format:
-        
-        RAZONAMIENTO: [Brief explanation in Spanish of why this orientation was chosen based on pixels].
-        AUDITORÍA VISUAL: [GARMENT TYPE] - [DETECTED ORIENTATION]. [Technical breakdown of real details detected].
-        
         PROMPT MAESTRO (PARA IMAGEN 4 ULTRA): 
-        [Final photographic narrative directive in Spanish, starting with the detected view angle. 
-        MANDATO DE COLOR: Si la prenda es LISA, DEBE incluir: "La prenda es obligatoriamente de color [Nombre] con código HEX [HEX] exacto". 
-        Si tiene ESTAMPADOS/SUBLIMADOS, DEBE incluir: "La prenda presenta un diseño sublimado/estampado con la paleta de colores detectada, manteniendo la fidelidad absoluta de la textura y el patrón original de las referencias"].
+         ${prefixPrompt}
+
+        ${(() => {
+          const isComposition = estiloSolicitadoL === 'hero' || estiloSolicitadoL === 'collage';
+          let colorMandate = "";
+          if (isComposition) {
+            colorMandate = `- MANDATO DE COLOR: Extraer y aplicar TODOS los colores y patrones técnicos visibles en las imágenes de referencia (pila/percha/variantes) sobre el molde del producto principal. Fidelidad absoluta a la paleta detectada.`;
+          } else {
+            colorMandate = `- MANDATO DE COLOR: Si la prenda es LISA, incluir: "La prenda es obligatoriamente de color [Nombre] con código HEX [HEX] exacto". Si tiene ESTAMPADOS, incluir: "La prenda presenta un diseño con la paleta de colores detectada, manteniendo fidelidad absoluta de la textura original".`;
+          }
+          return `FICHA TÉCNICA DE GENERACIÓN (OBLIGATORIA):
+    ${colorMandate}
+    - RELACIÓN DE ASPECTO: ${extraSpecs.aspectRatio || '3:4'} (Mandatorio).
+    - MODELO OPTIMIZADO: ${extraSpecs.model || 'Imagen 3'}.`;
+        })()}
     `;
 
-    const modelos = ["gemma-3-27b-it", "gemma-3-12b-it", "gemini-2.5-flash"];
+    // Modelos según cuenta: Free = Gemma 3 primero. Paid = Gemini solo.
+    const modelos = freeKey
+      ? ["gemma-3-27b-it", "gemma-3-12b-it", "gemini-2.5-flash"]
+      : ["gemini-2.5-flash", "gemini-2.0-flash"];
     let erroresAcumulados = [];
 
     for (let i = 0; i < modelos.length; i++) {
@@ -1252,6 +1536,8 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
 
       // Payload condicional: Gemini soporta systemInstruction, Gemma no
+      const mainText = `${promptSystem}\n\nINPUT METADATA:\n${contextoTecnico}\n${extraSpecsPrompt}`;
+
       let payload;
       if (modelo.startsWith('gemini')) {
         payload = {
@@ -1261,7 +1547,7 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
         };
       } else {
         payload = {
-          "contents": [{ "parts": [{ "text": promptSystem }, fileDataRef] }],
+          "contents": [{ "parts": [{ "text": mainText }, fileDataRef] }],
           "safetySettings": GEMINI_SAFETY_SETTINGS
         };
       }
@@ -1284,14 +1570,14 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
             if (modo === 'image' && pin) {
               try {
                 console.log(`🎨 [Core-Flow] Renderizando imagen para ${imagenId} con especificaciones:`, extraSpecs);
-                const resImgRaw = generarImagenDesdePrompt([imagenId], promptGenerado, pin, null, null, extraSpecs);
-                const resImg = resImgRaw;
+                const resImg = generarImagenDesdePrompt([imagenId], promptGenerado, pin, null, null, extraSpecs);
 
                 if (resImg.success) {
                   resObj.imageSuccess = true;
                   resObj.imageFileId = resImg.fileId;
                   resObj.imagenId = resImg.imagenId;
-                  resObj.text += "\n\n✅ IMAGEN GENERADA EXITOSAMENTE.";
+                  resObj.renderModel = resImg.modelUsed;
+                  resObj.text += `\n\n✅ IMAGEN GENERADA EXITOSAMENTE CON ${resImg.modelUsed}.`;
                 } else {
                   throw new Error(resImg.message || resImg.error);
                 }
@@ -1395,59 +1681,64 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     // Parte 1: El System Prompt
     // Construimos dinámicamente el prompt según estilo (Reutilizamos lógica)
     // Unificamos las reglas de estilo y el prompt del sistema
-    let promptRules = "";
-    const estilo = estiloSolicitado || 'ecommerce';
+    // Unificamos las reglas de estilo usando el Motor de Directivas (SOT)
+    const estiloSolicitadoL = (estiloSolicitado || 'ecommerce').toLowerCase();
     const environment = extraSpecs.environment || (prodRow ? prodRow.CATEGORIA_PADRE : 'Urban');
+    const directiva = _getAiArtDirectionRules(estiloSolicitadoL, extraSpecs, environment, prodRow);
+    const promptRules = directiva.promptRules;
+    const modelAdaptation = directiva.modelAdaptation;
+    const prefixPrompt = directiva.prefix;
 
-    switch (estilo) {
-      case 'ghost':
-        const hasFocusM = !!extraSpecs.focus;
-        let focusMandateMasivo = "";
-        if (extraSpecs.focus === 'waist') {
-          focusMandateMasivo = "- PRIORITY MANDATE: Show the inside of the waistband with a slight downward angle, highlighting the elastic.";
-        } else if (extraSpecs.focus === 'legs') {
-          focusMandateMasivo = "- PRIORITY MANDATE: Show the inside of the leg openings with a clean cut.";
-        }
+    // --- NUEVO: Inteligencia de Composición (Master + Variants) ---
+    const hasGhostMaster = selectedRows.some(r => (r.ANALISIS_FORENSE || "").includes("GHOST_MANNEQUIN"));
+    const hasEcommerceMaster = selectedRows.some(r => (r.ANALISIS_FORENSE || "").includes("FOTO_ESTUDIO") && !(r.ANALISIS_FORENSE || "").includes("PILA_O_DOBLADO"));
+    const hasFoldedVariant = selectedRows.some(r => (r.ANALISIS_FORENSE || "").includes("PILA_O_DOBLADO") || (r.ANALISIS_FORENSE || "").includes("PERCHERO"));
 
-        promptRules = `
-          GHOST MANNEQUIN EFFECT:
-          - Display the item as a 3D volume worn by an invisible body.
-          ${focusMandateMasivo}
-          - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
-          - SYMMETRY MANDATE: Ensure both sleeve/leg openings and overall shape are geometrically symmetrical and balanced.
-          - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
-          - CONTACT SHADOW: Add a extremely subtle, realistic contact shadow on the ground to provide floor-plane reference.
-          - OPENINGS (Neck, Sleeves${!hasFocusM ? ', Waist, Legs' : ''}): Show hollow openings with visible inner fabric. ${hasFocusM ? '(Concentrate visual detail on the priority focus mentioned above) ' : ''}
-          - INNER CUT MANDATE: The inner fabric cut must follow clean geometric perspective, AVOIDING distorted rear fabric.
-          - TEXTURE FIDELITY: Maintain all technical fabric details, including mesh, perforations, stitching, and complex prints without over-smoothing.
-          - Background: Pure solid white #FFFFFF. 
-          - Lighting: High-end multi-point studio setup to define shape and volume.
-          - Strictly remove: hangers, labels, tags, or stickers.
-          - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.
-          `;
-        break;
+    // --- NUEVO: Blindaje de Identidad Técnica (Forensic Accumulator) ---
+    const allForensics = selectedRows.map(r => (r.ANALISIS_FORENSE || "").toUpperCase()).join("\n");
+    const hasLogosDetected = allForensics.includes("LOGO: SÍ") || allForensics.includes("VISIBLE: SÍ") || allForensics.includes("RAYO") || allForensics.includes("LOGO");
+    
+    let identitySanctityMandate = "";
+    if (hasLogosDetected) {
+      identitySanctityMandate = `
+      CRITICAL BRANDING & LOGO FIDELITY:
+      - LOGOS DETECTED: Forensic analysis confirms specific branding (lines, logos, or patterns) exists on this product.
+      - MANDATE: You ARE FORBIDDEN from stating "No logo is visible". Look closer at the Master and replicate its exact branding/graphics on the generated Hero.
+      - INTEGRITY: The logo or distinctive pattern (e.g. thunderbolt/bolt) is the SOLE authority for brand identity. Reproduce it accurately.
+      `;
+    }
 
-      case 'lifestyle':
-        promptRules = `
-          HIGH-END LIFESTYLE EDITORIAL:
-          - High-quality fashion model wearing the garment in a natural, high-contrast environment.
-          - ENVIRONMENT/CONTEXT: ${environment}.
-          - Lighting: Cinematic, directional natural light with professional highlights and shadows.
-          - Composition: Medium or full-body shot with soft bokeh depth of field.
-          - RAW MASTER PROTOCOL: The source images are your physical evidence. Do NOT hallucinate different cuts or textures.
-          `;
-        break;
+    let compositionIntelligence = "";
+    if (hasGhostMaster || hasEcommerceMaster) {
+      const masterType = hasGhostMaster ? "GHOST_MANNEQUIN" : "FOTO_ESTUDIO (On-body)";
+      compositionIntelligence = `
+      COMPOSITION AUTHORITY PROTOCOL (MASTER + VARIANTS):
+      - Visual Authority Detected: You have a "MASTER" image (${masterType}).
+      - IDENTITY SANCTITY: ${identitySanctityMandate}
+      - HARDWARE MANDATE: Replicate the Master's exact hardware (zippers, drawstrings, hood toggles, and pocket architecture). Do NOT simplify.
+      - MANDATE: Use the MASTER image as the SOLE authority for the SHAPE, CUT, and FIT of the garment.
+      - REFERENCE IMAGES: Use any images of folded clothes or hangers ONLY as technical references for COLOR, TEXTURE, and PRINTS.
+      - DO NOT hallucinate the shape of the folded garment; transfer the colors/textures from the folded garment ONTO the Master's shape.
+      `;
+    } else if (hasFoldedVariant && selectedRows.length === 1) {
+      compositionIntelligence = `
+      SINGLE-IMAGE ENHANCEMENT PROTOCOL (FOLDED/HANGER):
+      - Source Detected: Single image of a folded or hanging garment.
+      - MISSION: Generate a professional, high-end commercial version of THIS EXACT ARRANGEMENT.
+      - IMPROVEMENTS: Enhance lighting, remove distracting background, polish fabric textures, and ensure the garment looks premium.
+      - MANDATORY STILL LIFE: The generated image must NOT contain any high-end fashion models or mannequins. Focus ONLY on the garment as presented.
+      `;
+    }
 
-      case 'ecommerce':
-      default:
-        promptRules = `
-          PREMIUM E-COMMERCE CATALOG:
-          - Background: Neutral professional studio (Light Gray #F2F2F2).
-          - Subject: Professional fashion model wearing the garment (on-body).
-          - Lighting: Uniform high-key studio softbox lighting.
-          - Style: Commercial catalog photography. NO "flat lay" or "flat surface" mentions allowed.
-          `;
-        break;
+    // --- NUEVO: Mandatos de Espacio Negativo según Aspect Ratio ---
+    let framingMandate = "";
+    const ratio = extraSpecs.aspectRatio || '3:4';
+    if (ratio === '16:9' || ratio === '4:1') {
+      framingMandate = "- FRAMING: Use extreme horizontal negative space. Place the garment slightly off-center for a cinematic look, ensuring no parts are cropped.";
+    } else if (ratio === '1:4') {
+      framingMandate = "- FRAMING: Vertical banner composition. Ensure the full length of the garment is visible with ample top/bottom margin.";
+    } else {
+      framingMandate = "- FRAMING: Balanced commercial centering with 15% negative space margin on all sides.";
     }
 
     // 6.5 ESPECIFICACIONES EXTRA
@@ -1458,25 +1749,20 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
 
     // PROTOCOLO ANTI-MEZCLA (Poses)
     let poseProtocol = "";
-    if (forcedAngle) {
+    if (forcedAngle && !['hero', 'collage'].includes(estiloSolicitadoL)) {
       poseProtocol = `
        ANGLE ENFORCEMENT PROTOCOL:
        - The user has requested a specific orientation: **${forcedAngle}**.
-       - IMPORTANT: IGNORE the body poses or physical orientations of the reference images if they conflict with the requested angle.
-       - Extraction mode: Use imagery ONLY for color, texture, fit, and materials.
-       - RENDER the final output strictly in the **${forcedAngle}** position.
-       `;
+       - RENDERING MANDATE: Create the output strictly in the **${forcedAngle}** position.`;
     }
 
     const esMultiVista = selectedRows.length > 1;
 
-    // Nueva lógica: Detectar si pidió Hero + Colores
-    const isHeroColorsRequested = forcedAngle.toLowerCase().includes("hero") || forcedAngle.toLowerCase().includes("colores");
+    // Detectar Estilos de Composición (Priorizados por estiloSolicitadoL)
+    const isHeroColorsRequested = estiloSolicitadoL === 'hero';
+    const isCollageRequested = estiloSolicitadoL === 'collage';
 
-    // Nueva lógica: Detectar si pidió Collage específicamente (y no es Hero)
-    const isCollageRequested = !isHeroColorsRequested && (forcedAngle.toLowerCase().includes("collage") || forcedAngle.toLowerCase().includes("catálogo"));
-
-    // Lógica original: Solo hacemos Split si el usuario NO pidió Collage ni Hero, y (NO pidió un ángulo específico o pidió Split explícitamente).
+    // Lógica original: Solo hacemos Split si NO es Hero/Collage y es Multi o Split explícito.
     const isSplitRequested = !isHeroColorsRequested && !isCollageRequested && (forcedAngle.toLowerCase().includes("split") || (esMultiVista && !forcedAngle));
 
     const promptSystem = `
@@ -1485,6 +1771,7 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
         VISUAL AUTHORITY: The attached images are the absolute source of truth. Ignore any contradictory text metadata.
 
         CRITICAL FIDELITY PROTOCOL (RAW MASTER):
+        ${compositionIntelligence}
         1. **STRICT VISUAL AUDIT**: Forensic-audit the images for branding, logos, stitching, and unique textures.
         2. **LOGO FIDELITY**: If NO logo is visible, do NOT add one. If a logo exists, describe its exact position and size.
         3. **RAW EVIDENCE**: The garment in the photos is the MASTER. Maintain every physical detail across all views.
@@ -1496,67 +1783,80 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
         5. **ANATOMICAL ISOLATION**:
            - NEVER leak details from one side to another. If a photo is BACK view, do NOT add front buttons or zippers in its description.
            - GHOST SOURCE AWARENESS: If input is Ghost Mannequin, use its 3D volume as the MASTER.
-        6. **MODEL ADAPTATION**:
-           ${estilo !== 'ghost' ? `
-           - Replace source substrate with a fit model.
-           - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.` : `
-           - GENDER MANDATE: ABSOLUTELY NO HUMANS. Invisible Mannequin only.`}
+        6. **MODEL ADAPTATION (HUMAN EXCLUSION)**:
+           ${['ghost', 'hero', 'collage', 'hanger', 'folded'].includes(estiloSolicitadoL) ? `
+           - GENDER MANDATE: ABSOLUTELY NO HUMANS, MODELS, OR VISIBLE MANNEQUINS.
+           - MISSION: Focused strictly on high-end commercial product photography / Still Life.` : `
+           - Replace source substrate with a professional fit model.
+           - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.`}
         7. **TECHNICAL COLOR & TEXTURE EXTRACTION**: 
-           - Analyze the pixels of the reference garments for each variant or angle (ignoring extreme shadows and highlights).
+           - Analyze the pixels of the reference garments for each variant or angle.
            - Identify if the garments have complex patterns, sublimation, gradients, or all-over prints.
            - If complex: Prioritize 'TEXTURE FIDELITY' over a single color. Describe colors and technical patterns accurately.
            - If solid: Extract the exact predominant HEXADECIMAL code (e.g. #FF5733) and technical name.
         8. **UNIVERSAL CLEANUP**: Mandatory removal of all physical tags, labels, cardboard hangtags, and hangers.
+        ${framingMandate}
         
         ${isHeroColorsRequested ?
-        `HERO + COLORS COMPOSITION MODE (MANDATORY):
-          - The reference images include a main product view (Hero) and an image with multiple colors/variants.
-          - You MUST describe a commercial layout where the "Hero" view takes up most of the canvas.
-          - The color variants MUST be arranged cleanly and neatly at the bottom or side (like e-commerce catalogs).
-          - STRICT SEPARATION RULE: Separate the main view from the secondary variants using clean negative space, without merging. "Ghosting" in-between is FORBIDDEN.
-          - COLOR FIDELITY RULE: The secondary variants MUST exactly match the colors and textures visible in the references. DO NOT hallucinate colors.
-          - The prompt MUST explicitly mention: "Composición comercial con vista principal Hero destacada y opciones de color ordenadas inferior/lateralmente".` :
+        `HERO + COLORS MASTER COMPOSITION (ULTRA-PREMIUM CATALOG):
+          - HERO DOMINANCE: The MASTER garment (Hero) MUST occupy approximately 80% of the canvas. It is the absolute protagonist.
+          - EXHAUSTIVE COLOR AUDIT: Perform a total count of all layers in the reference pile/hanger. Include ALL colors (e.g., Gray, Navy, etc.) detected visually.
+          - STRICT NON-OVERLAPPING RULE: The Hero and the variants MUST be physically separated by clean negative space. NO "GHOSTING" OR MERGING.
+          - FOLDING STYLE (WAISTBAND STAIRCASE):
+            * Represent the color variants using a "staircase fold" where only the waistband and the top part of the garment are visible.
+            * These variants MUST be significantly smaller than the Hero.
+          - LAYOUT ARCHITECTURE: 
+            * If Aspect Ratio is 3:4 (Vertical): Hero at center-top, variants in a single horizontal row at the very bottom.
+            * If Aspect Ratio is 4:3 (Horizontal): Hero at center-left, variants in a single vertical column on the right.
+          - THE PROMPT MUST explicitly mention: "Fotografía publicitaria de alta gama con el producto principal (Hero) dominando el encuadre y una serie de variantes de color en formato miniatura, ordenadas y sin superposiciones."` :
         isCollageRequested ?
           `MULTI-VIEW COLLAGE COMPOSITION MODE (MANDATORY):
-          - You MUST describe a clean side-by-side or grid layout ("clean multi-shot catalog spread") that includes ALL perspectives.
-          - STRICT SEPARATION RULE: The different views MUST NOT touch, overlap, or merge. 
-          - NO GHOSTING: Do not use low opacity, blurred edges, or faded backgrounds between garments. Use clean negative space to separate each angle.
-          - The prompt MUST explicitly mention: "Composición de catálogo fotográfico multipantalla limpio, prendas enteras separadas sin superposición".` :
-          isSplitRequested ?
-            `SPLIT-VIEW COMPOSITION MODE (MANDATORY):
-          - You MUST describe a synchronized SPLIT-VIEW composition.
-          - The prompt MUST explicitly mention: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".
-          - Ensure that the scale of details is identical in both views.` :
-            `SINGLE VIEW MODE (PREDOMINANT):
-          - Exclusively describe a SINGLE viewing angle.
-          - Use the reference images solely to extract technical details (color, fabric, logos).
-          - Ignore any pose in the references that does not match the requested angle.`
-      }
+          - You MUST describe a clean grid layout ("clean multi-shot catalog spread") that includes ALL provided perspectives.
+          - NO OVERLAP: Use clean negative space (10-15%) to separate each angle. AVOIDING any merging or ghosting.
+          - The prompt MUST explicitly mention: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo."` :
+        isSplitRequested ?
+          `SPLIT-VIEW COMPOSITION MODE (MANDATORY):
+          - You MUST describe a synchronized SPLIT-VIEW composition (Front and Back).
+          - The prompt MUST explicitly mention: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada".` :
+          `SINGLE VIEW MODE:
+          - Describe a single high-end viewing angle based on the Master reference.`
+        }
 
         STYLE INSTRUCTIONS:
         ${promptRules}
         ${poseProtocol ? `\n${poseProtocol}` : ""}
-        ${extraSpecsPrompt ? `\nEXTRA SPECIFICATIONS (IF APPLICABLE):${extraSpecsPrompt}` : ""}
+        ${extraSpecsPrompt ? `\nEXTRA SPECIFICATIONS:${extraSpecsPrompt}` : ""}
 
         OUTPUT REQUIREMENT (MANDATORY SPANISH):
-        All your final output responses MUST be written strictly in SPANISH following this format:
+        All final responses MUST follow this format:
         
-        RAZONAMIENTO: [Brief justification in Spanish of the detected orientation for each photo].
-        AUDITORÍA VISUAL: [GARMENT TYPE]. [Technical breakdown of real details detected per photo, specifying ORIENTATION (FRONT/BACK)].
+        RAZONAMIENTO: [Justificación técnica de la orientación detectada en cada foto].
+        AUDITORÍA VISUAL: [TIPO PRENDA]. [Detalles reales detectados por foto, especificando ORIENTACIÓN (FRONT/BACK)].
         
         PROMPT MAESTRO (PARA IMAGEN 4 ULTRA): 
-        ${isHeroColorsRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía publicitaria mostrando el producto principal destacado (Hero) junto a una disposición ordenada de las variantes de color." Y DEBE INCLUIR EL MANDATO DE COLOR: Si las prendas son LISAS, incluya "Las prendas son de color [Nombres] con códigos HEX [HEX] exactos". Si tienen ESTAMPADOS/SUBLIMADOS, incluya "Las prendas presentan diseños con la paleta de colores y patrones detectados, manteniendo fidelidad absoluta de la textura original".' : isCollageRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo, sin superposiciones ni desvanecimientos." Y DEBE INCLUIR EL MANDATO DE COLOR: Si las prendas son LISAS, incluya "Las prendas son de color [Nombres] con códigos HEX [HEX] exactos". Si tienen ESTAMPADOS/SUBLIMADOS, incluya "Las prendas presentan diseños con la paleta de colores y patrones detectados, manteniendo fidelidad de la textura original".' : isSplitRequested ? 'Usted DEBE iniciar su respuesta con la frase: "Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada". Y DEBE INCLUIR EL MANDATO DE COLOR: Si es LISA, incluya "La prenda es de color [Nombre] con código HEX [HEX] exacto". Si tiene ESTAMPADOS, incluya "La prenda presenta un diseño sublimado con la paleta de colores y patrones detectados, manteniendo fidelidad de la textura".' : '[Directiva narrativa fotográfica definitiva en español, iniciando con el ángulo de vista detectado. MANDATO DE COLOR: Si la prenda es LISA, DEBE incluir: "La prenda es obligatoriamente de color [Nombre] con código HEX [HEX] exacto". Si tiene ESTAMPADOS/SUBLIMADOS, DEBE incluir: "La prenda presenta un diseño sublimado/estampado con la paleta de colores y patrones detectados, manteniendo la fidelidad absoluta de la textura original"].'}
+        ${isHeroColorsRequested ? 'Fotografía publicitaria de alta gama con el producto principal (Hero) dominando el encuadre y una serie de variantes de color en formato miniatura, ordenadas y sin superposiciones.' : isCollageRequested ? 'Fotografía de catálogo editorial en formato collage limpio, mostrando múltiples ángulos separados por espacio negativo.' : isSplitRequested ? 'Composición split-view de alta fidelidad mostrando vista frontal y trasera sincronizada.' : '[Descripción narrativa final en español enfocada en composición e iluminación].'}
+
+        FICHA TÉCNICA DE GENERACIÓN (OBLIGATORIA):
+        ${isHeroColorsRequested || isCollageRequested ? `- MANDATO DE COLOR: Extraer y aplicar la PALETA COMPLETA (incluyendo grises y tonos sutiles) detectada visualmente en el análisis de la(s) imagen(es) de referencia. Fidelidad absoluta al conteo físico.` : `- MANDATO DE COLOR: Si las prendas son LISAS, incluya "De color [Color] con HEX [HEX] exacto". Si tiene ESTAMPADOS, incluya "Diseño con la paleta de colores detectada".`}
+        - RELACIÓN DE ASPECTO: ${extraSpecs.aspectRatio || '3:4'} (Mandatorio).
+        - MODELO OPTIMIZADO: ${extraSpecs.model || 'Imagen 3'}.
     `;
 
     // Separamos system prompt de las partes de imagen para control condicional
     const imagePartsArray = [];
+
+    // --- ENRUTAMIENTO DUAL-KEY (Capa 2) ---
+    const freeKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
+    const apiKey = freeKey || GLOBAL_CONFIG.GEMINI.API_KEY;
+    if (!apiKey) throw new Error("Falta API Key (Free o Paid).");
+    const prioridadAnalisis = freeKey ? 'alta' : 'media';
 
     // Parte 2: Las Imágenes
     let imagenesProcesadas = 0;
     for (const row of selectedRows) {
       try {
         if (!row.ARCHIVO_ID) continue;
-        const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `masivo_${row.IMAGEN_ID}`);
+        const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `masivo_${row.IMAGEN_ID}`, prioridadAnalisis, apiKey);
         imagePartsArray.push(fileDataPart);
         imagenesProcesadas++;
       } catch (errImg) {
@@ -1566,17 +1866,10 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
 
     if (imagenesProcesadas === 0) throw new Error("No se pudo leer ninguna imagen válida de Drive.");
 
-    // 4. LLAMADA A GEMINI
-    const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
-    if (!apiKey) throw new Error("Falta API Key.");
-
-    // Usamos modelo Flash por defecto para velocidad/contexto
-    // 4. LISTA DE MODELOS (Con Fallback)
-    const modelos = [
-      "gemma-3-27b-it",    // PRIORIDAD 1: Visión potente + 14k cupo
-      "gemma-3-12b-it",    // PRIORIDAD 2: Rápido
-      "gemini-2.5-flash"   // PRIORIDAD 3: Emergencia
-    ];
+    // Modelos según cuenta: Free = Gemma 3 primero. Paid = Gemini solo.
+    const modelos = freeKey
+      ? ["gemma-3-27b-it", "gemma-3-12b-it", "gemini-2.5-flash"]
+      : ["gemini-2.5-flash", "gemini-2.0-flash"];
 
     let erroresAcumulados = [];
 
@@ -1642,7 +1935,8 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
                     resObj.imageSuccess = true;
                     resObj.imageFileId = resImg.fileId;
                     resObj.imagenId = resImg.imagenId;
-                    resObj.text += "\n\n✅ IMAGEN MAESTRA GENERADA EXITOSAMENTE.";
+                    resObj.renderModel = resImg.modelUsed;
+                    resObj.text += `\n\n✅ IMAGEN MAESTRA GENERADA EXITOSAMENTE CON ${resImg.modelUsed}.`;
                   } else {
                     throw new Error(resImg.message || resImg.error);
                   }
@@ -1676,7 +1970,15 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
       }
     }
 
-    throw new Error(`Todos los modelos fallaron. Detalles: ${erroresAcumulados.join(" | ")}`);
+    const finalError = erroresAcumulados.join(" | ");
+    const isSaturationError = finalError.includes("high demand") || finalError.includes("Quota") || finalError.includes("Spikes in demand");
+    
+    let message = `Todos los modelos fallaron. Detalles: ${finalError}`;
+    if (isSaturationError) {
+      message = `⚠️ AVISO DE SATURACIÓN (GOOGLE CLOUD): Los servidores de Google están experimentando una alta demanda temporal. Esto NO es un error de código, es un cuello de botella externo. 🚀 Sugerencia: Reintenta en 2 minutos o reduce la cantidad de imágenes seleccionadas.`;
+    }
+
+    throw new Error(message);
 
   } catch (e) {
     console.error(`${logPrefix} Error Fatal: ${e.message}`);
@@ -2159,7 +2461,9 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
       const row = dataImg.find(r => String(r.IMAGEN_ID).trim() === String(id).trim());
       if (row && row.ARCHIVO_ID) {
         try {
-          const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `render_ref_${id}`);
+          // Renderizado Pago: resolución 'media' (1024px) para ahorrar tokens de entrada
+          // sin perder la referencia visual mínima necesaria para no alucinar.
+          const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `render_ref_${id}`, 'media', apiKey);
           partsReferencia.push(fileDataPart);
         } catch (e) { console.warn(`Error ref ${id}: ${e.message}`); }
       }
@@ -2264,7 +2568,19 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
               if (resJson.usageMetadata) {
                 const promptTokens = resJson.usageMetadata.promptTokenCount || 0;
                 const candidatesTokens = resJson.usageMetadata.candidatesTokenCount || 0;
-                costoEstimado = (promptTokens * 2 / 1000000) + (candidatesTokens * 12 / 1000000);
+
+                // --- NUEVO: Tarifario Dinámico ---
+                const skuMap = {
+                  'gemini-3.1-flash-image-preview': { in: 'A44E-F89C-67C0', out: '1BD4-2AB9-AEFB' },
+                  'gemini-3-pro-image-preview': { in: '621F-B428-5221', out: '096D-0370-0236' },
+                  'gemini-2.5-flash-image': { in: '74A0-9E74-BEDC', out: '2A8D-CD62-0E04' }
+                };
+
+                const pricing = skuMap[modelo] || { in: '621F-B428-5221', out: '096D-0370-0236' }; // Default Pro
+                const pIn = getPrecioGCP(pricing.in) || (modelo.includes('flash') ? 0.50 : 2.00);
+                const pOut = getPrecioGCP(pricing.out) || (modelo.includes('flash') ? 60.00 : 120.0);
+
+                costoEstimado = (promptTokens * pIn / 1000000) + (candidatesTokens * pOut / 1000000);
               }
 
               const fileName = `IM3_MASTER_${targetRow.PRODUCTO_ID}_${Date.now()}.png`;
@@ -2304,6 +2620,8 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
                   if (estadoIdx !== undefined) freshSheetImg.getRange(targetRowIdx, estadoIdx + 1).setValue(true);
                   const fuenteIdx = colMapping["FUENTE"];
                   if (fuenteIdx !== undefined) freshSheetImg.getRange(targetRowIdx, fuenteIdx + 1).setValue('IA_Gemini');
+                  const tipoIdx = colMapping["TIPO_ARCHIVO"];
+                  if (tipoIdx !== undefined) freshSheetImg.getRange(targetRowIdx, tipoIdx + 1).setValue('image');
                 }
 
                 return {
@@ -2688,12 +3006,16 @@ function obtenerResumenGastosIA() {
     let totalVideo = 0;
 
     data.forEach(row => {
-      const costo = parseFloat(String(row.COSTO || "0").replace(",", ".")) || 0;
-      const tipo = String(row.TIPO_ARCHIVO || "").toLowerCase();
+      // Intentar obtener el costo de varias formas para mayor robustez heredada
+      let costoRaw = row.COSTO || row.COSTO_IA || "0";
+      const costo = parseFloat(String(costoRaw).replace(",", ".")) || 0;
 
-      if (tipo === 'video') {
+      const tipo = String(row.TIPO_ARCHIVO || "").toLowerCase();
+      const esVideo = tipo.includes('video') || tipo.includes('veo');
+
+      if (esVideo) {
         totalVideo += costo;
-      } else {
+      } else if (costo > 0) {
         totalImagen += costo;
       }
     });
@@ -2850,24 +3172,36 @@ function checkNewProductsFlag(skusExistentes) {
     const idxNombre = mapping["MODELO"];
     const idxCarpeta = mapping["CARPETA_ID"];
     const idxCategoria = mapping["CATEGORIA"];
-    const idxCatPadre = mapping["CATEGORIA_GENERAL"];
+    
+    // Soporte para ambos nombres de columna (Alias)
+    const idxCatPadre = (mapping["CATEGORIA_PADRE"] !== undefined) ? mapping["CATEGORIA_PADRE"] : mapping["CATEGORIA_GENERAL"];
     const idxWoo = mapping["WOO_ID"];
 
     const nuevosProductos = [];
     const setExistentes = new Set((skusExistentes || []).map(String));
 
     for (let i = 1; i < data.length; i++) {
-      const sku = String(data[i][idxSku]).trim();
-      if (sku && !setExistentes.has(sku)) {
-        nuevosProductos.push({
-          sku: sku,
-          nombre: String(data[i][idxNombre] || "Sin Nombre").trim(),
-          carpeta_id: String(data[i][idxCarpeta] || "").trim(),
-          category: String(data[i][idxCategoria] || "").trim(),
-          parentCategory: String(data[i][idxCatPadre] || "").trim(),
-          woo_id: String(data[i][idxWoo] || "").trim(),
-          thumbnail: "" // No tiene fotos aún
-        });
+      try {
+        const row = data[i];
+        if (idxSku === undefined) break; // Error crítico de mapeo
+        
+        const sku = String(row[idxSku]).trim();
+        if (sku && sku !== "" && !setExistentes.has(sku)) {
+          // Extracción segura (si el índice no existe, devuelve cadena vacía en lugar de romper el script)
+          const getVal = (idx) => (idx !== undefined && row[idx] !== undefined) ? String(row[idx]).trim() : "";
+          
+          nuevosProductos.push({
+            sku: sku,
+            nombre: getVal(idxNombre) || "Sin Nombre",
+            carpeta_id: getVal(idxCarpeta),
+            category: getVal(idxCategoria),
+            parentCategory: getVal(idxCatPadre),
+            woo_id: getVal(idxWoo),
+            thumbnail: ""
+          });
+        }
+      } catch (eRow) {
+        console.error(`Error procesando fila ${i} en checkNewProductsFlag: ${eRow.message}`);
       }
     }
 
@@ -2957,12 +3291,12 @@ function obtenerReferenciaMaestra(sku) {
   const ss = getImagesSpreadsheet();
   const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
   const data = convertirRangoAObjetos_IMAGENES(sheetImg);
-  
+
   const SKU_NORM = String(sku).trim().toUpperCase();
-  
+
   // Buscar imagen que sea PORTADA y tenga PROMPT
-  return data.find(r => 
-    String(r.PRODUCTO_ID).trim().toUpperCase() === SKU_NORM && 
+  return data.find(r =>
+    String(r.PRODUCTO_ID).trim().toUpperCase() === SKU_NORM &&
     (String(r.PORTADA).toUpperCase() === 'TRUE' || r.PORTADA === true) &&
     (r.PROMPT && String(r.PROMPT).trim() !== "")
   );
@@ -2973,7 +3307,7 @@ function obtenerReferenciaMaestra(sku) {
  */
 function prepararPromptDescripcionIA(referencia, prodObj) {
   const visualContext = referencia.PROMPT || "Sin descripción visual detallada.";
-  
+
   const prompt = `
     ESTRES DE ROL: Eres un experto en Copywriting para E-commerce de moda y calzado.
     TU OBJETIVO: Crear una descripción de producto irresistible y una guía de talles técnica basada en datos y contexto visual.
@@ -2999,6 +3333,140 @@ function prepararPromptDescripcionIA(referencia, prodObj) {
     - La tabla de talles debe ser estándar para su categoría si no se especifica.
     - El tono debe ser profesional pero cercano.
   `;
-  
+
   return prompt;
+}
+/**
+ * Importa el tarifario de Google Cloud desde un CSV
+ * @param {string} csvData Contenido del CSV
+ */
+function importarTarifarioGCP(csvData) {
+  const logPrefix = `📊 [Tarifario-GCP]`;
+  try {
+    if (!csvData) throw new Error("No se recibieron datos.");
+    const ss = getImagesSpreadsheet();
+    let sheet = ss.getSheetByName(SHEETS.TARIFARIO_GCP);
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEETS.TARIFARIO_GCP);
+      sheet.appendRow(["SKU_ID", "SKU_DESC", "UNIDAD", "CANTIDAD_BASE", "PRECIO_LISTA", "ULTIMA_ACTUALIZACION"]);
+      sheet.setFrozenRows(1);
+    }
+
+    const rows = Utilities.parseCsv(csvData);
+    if (rows.length < 2) throw new Error("CSV inválido.");
+    const headers = rows[0];
+    const idxSkuId = headers.findIndex(h => h.includes("ID de SKU") || h.includes("SKU_ID"));
+    const idxDesc = headers.findIndex(h => h.includes("Descripción del SKU") || h.includes("SKU_DESC"));
+    const idxUnidad = headers.findIndex(h => h.includes("Descripción de la unidad") || h === "UNIDAD");
+    const idxPrecio = headers.findIndex(h => h.includes("Precio de lista") || h === "PRECIO_LISTA");
+
+    const finalRows = [];
+    const fecha = new Date();
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r[idxSkuId]) continue;
+      const p = parseFloat(String(r[idxPrecio]).replace(/[$,]/g, '')) || 0;
+      finalRows.push([r[idxSkuId], r[idxDesc], r[idxUnidad], 1000000, p, fecha]);
+    }
+
+    if (finalRows.length > 0) {
+      if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).clearContent();
+      sheet.getRange(2, 1, finalRows.length, 6).setValues(finalRows);
+      return { success: true, message: `Importadas ${finalRows.length} tarifas de Google Cloud.` };
+    }
+    return { success: false, error: "No se encontraron filas válidas." };
+  } catch (e) { return { success: false, error: e.message }; }
+}
+
+/**
+ * Obtiene el precio de lista para un SKU específico desde la DB local
+ * @param {string} skuId El ID del SKU de Google Cloud
+ * @returns {number|null} El precio por 1.000.000 unidades
+ */
+function getPrecioGCP(skuId) {
+  try {
+    const ss = getImagesSpreadsheet();
+    const sheet = ss.getSheetByName(SHEETS.TARIFARIO_GCP);
+    if (!sheet) return null;
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === String(skuId).trim()) return parseFloat(data[i][4]);
+    }
+  } catch (e) { }
+}
+
+/**
+ * Descarga masiva de imágenes empacadas en un ZIP (.zip)
+ */
+function descargarImagenesBatch(sku, ids) {
+  try {
+    const blobs = [];
+    for(const id of ids) {
+      try {
+        const f = DriveApp.getFileById(id);
+        const b = f.getBlob();
+        b.setName(sku + '/' + f.getName());
+        blobs.push(b);
+      } catch(e) {}
+    }
+    if(!blobs.length) return {success: false, message: 'No se hallaron los archivos en Drive para armar el ZIP.'};
+    
+    const zipBlob = Utilities.zip(blobs, sku + '_export.zip');
+    return {
+       success: true, 
+       base64: Utilities.base64Encode(zipBlob.getBytes()), 
+       filename: sku + '_export.zip'
+    };
+  } catch(e) {
+    return {success: false, message: e.message};
+  }
+}
+
+/**
+ * Descarga de una sola imagen cruda
+ */
+function descargarImagenUnica(sku, id) {
+  try {
+    const f = DriveApp.getFileById(id);
+    return {
+       success: true, 
+       base64: Utilities.base64Encode(f.getBlob().getBytes()), 
+       filename: f.getName(), 
+       mimeType: f.getMimeType()
+    };
+  } catch(e) {
+    return {success: false, message: e.message};
+  }
+}
+
+/**
+ * Marca un producto como 'PENDIENTE_AUDITORIA' y notifica por Telegram.
+ */
+function img_marcarPendienteAuditoria(sku, cantidadNuevas) {
+  try {
+    // 1. Actualizar estado en BD_PRODUCTOS
+    actualizarMetadatoProducto(sku, "ESTADO_SINCRONIZACION", "PENDIENTE_AUDITORIA");
+
+    // 2. Notificar por Telegram
+    const config = GLOBAL_CONFIG.TELEGRAM;
+    if (config.BOT_TOKEN && config.CHAT_ID) {
+      const msg = `📸 <b>NUEVAS IMÁGENES DETECTADAS</b>\n\n` +
+                  `• <b>Producto:</b> <code>${sku}</code>\n` +
+                  `• <b>Cantidad:</b> ${cantidadNuevas} archivos\n` +
+                  `• <b>Acción:</b> Sincronización AppSheet\n\n` +
+                  `🚀 El producto ha sido marcado como <b>PENDIENTE DE AUDITORÍA</b>. Revisa el Dashboard de Imágenes para generar contenido IA.`;
+      
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "🖼️ Ver en Dashboard", url: ScriptApp.getService().getUrl() + "?view=imagenes_manager" }]
+        ]
+      };
+
+      enviarMensajeTelegramCompleto(config.CHAT_ID, msg, keyboard);
+    }
+    return true;
+  } catch (e) {
+    console.error(`Error en img_marcarPendienteAuditoria: ${e.message}`);
+    return false;
+  }
 }

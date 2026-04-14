@@ -1,4 +1,7 @@
-<?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
+  <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+<? } ?>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
 <style>
@@ -226,6 +229,55 @@
         background: #6366f1;
         border-color: #6366f1;
         color: white;
+    }
+
+    /* --- NUEVO: SISTEMA DE MINI-BADGES (ESTILO TPV) --- */
+    .status-badges-container {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        z-index: 30;
+        pointer-events: none;
+    }
+
+    .mini-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        background: rgba(15, 23, 42, 0.85); /* Slate 900 semi */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        transition: all 0.2s;
+    }
+
+    .mini-badge.portada { background: #f59e0b; border-color: #fbbf24; }
+    .mini-badge.prompt { background: #6366f1; border-color: #818cf8; }
+    .mini-badge.forense { background: #ea580c; border-color: #f97316; }
+    .mini-badge.sync { background: #059669; border-color: #10b981; }
+
+    .mini-badge .material-icons {
+        font-size: 10px !important;
+    }
+
+    .index-badge-mini {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        background: rgba(15, 23, 42, 0.8);
+        color: #94a3b8;
+        font-size: 8px;
+        font-weight: 800;
+        padding: 1px 4px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        z-index: 10;
     }
 
     /* --- CONSOLE PANEL (FIXED FULL-WIDTH) --- */
@@ -1190,10 +1242,14 @@
                                     title="Toggle sidebar">
                                     <span class="material-icons text-xl">menu_open</span>
                                 </button>
-                                <div
+                                <div id="iconBoxDefault"
                                     class="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700">
                                     <span class="material-icons text-indigo-400">inventory_2</span>
                                 </div>
+                                <a id="btnOpenDrive" href="#" target="_blank"
+                                    class="hidden w-9 h-9 bg-slate-800 hover:bg-blue-900/40 rounded-lg items-center justify-center border border-slate-700 hover:border-blue-500/50 transition cursor-pointer" title="Abrir carpeta original en Google Drive (Fácil para compartir o descargar todo)">
+                                    <span class="material-icons text-blue-400 font-bold" style="font-size: 20px;">add_to_drive</span>
+                                </a>
                                 <div>
                                     <h2 id="currentProductTitle"
                                         class="font-bold text-white text-sm uppercase tracking-wide flex items-center gap-2">
@@ -1227,6 +1283,11 @@
                                     <span class="material-icons text-sm">cloud_upload</span><span
                                         class="btn-text-mobile">WP Sync</span>
                                 </button>
+                                <a id="btnWooStore" target="_blank" href="#"
+                                    class="hidden items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 text-fuchsia-400 rounded-lg text-[10px] font-bold transition-all duration-300 hover:bg-fuchsia-900/40 hover:border-fuchsia-500/30" title="Ver producto en la tienda">
+                                    <span class="material-icons text-sm">storefront</span><span
+                                        class="btn-text-mobile">Ver Tienda</span>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -1384,12 +1445,20 @@
                     <h3 class="font-bold text-white text-sm">Acciones de Imagen</h3>
                     <p id="modalFileName" class="text-[9px] text-slate-500 font-mono truncate max-w-[140px]">...</p>
                 </div>
-                <!-- Botón de contraer (SOLO MÓVIL) -->
-                <button onclick="toggleModalPanel()"
-                    class="md:hidden p-1.5 bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
-                    title="Contraer panel">
-                    <span class="material-icons text-xl" id="modalPanelIconMobile">visibility_off</span>
-                </button>
+                <div class="flex items-center gap-1">
+                    <!-- Botón de descarga individual -->
+                    <button id="btnDescargarModal" onclick="descargarImagenActual()"
+                        class="p-1.5 bg-cyan-700/50 rounded-lg text-cyan-400 hover:text-white hover:bg-cyan-600 transition-colors"
+                        title="Descargar imagen completa">
+                        <span class="material-icons text-xl">cloud_download</span>
+                    </button>
+                    <!-- Botón de contraer (SOLO MÓVIL) -->
+                    <button onclick="toggleModalPanel()"
+                        class="md:hidden p-1.5 bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        title="Contraer panel">
+                        <span class="material-icons text-xl" id="modalPanelIconMobile">visibility_off</span>
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-4 flex-1">
@@ -1411,6 +1480,11 @@
                     <button id="btnStartAiModal" onclick="generarPromptModal()"
                         class="w-full py-2 bg-indigo-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500 shadow-sm transition">
                         <span class="material-icons text-sm">auto_awesome</span>Generar Prompt
+                    </button>
+                    <!-- BOTÓN DE ANÁLISIS FORENSE -->
+                    <button id="btnForensicModal" onclick="ejecutarAuditoriaForense()"
+                        class="w-full mt-2 py-2 bg-amber-600/20 text-amber-500 border border-amber-600/30 rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-600/30 transition shadow-sm">
+                        <span class="material-icons text-sm">biotech</span>Análisis Forense
                     </button>
                     <div id="aiResultBox" class="hidden mt-2">
                         <textarea id="aiPromptText" readonly
@@ -1478,6 +1552,9 @@
     const CATALOG_URL = "<?!= CATALOG_URL ?>";
     const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
     // --- VARIABLES GLOBALES ---
+    var showPremium = false; // --- CORRECCIÓN: Definir variable al inicio ---
+    var refinePanel = null; // --- CORRECCIÓN: Definir variable al inicio ---
+    var anglePanel = null; // --- CORRECCIÓN: Definir variable al inicio ---
     var CURRENT_IMAGES = []; // --- NUEVO: Almacena las imágenes cargadas ---
     var currentImageIndex = -1; // --- NUEVO: Índice actual en el modal ---
     var currentImageId = null;
@@ -1499,6 +1576,9 @@
     var autoOpenId = null; // --- NUEVO: Corregir ReferenceError ---
     var isConsoleExpanded = false; // --- NUEVO: Corregir ReferenceError ---
     var currentTabState = true; // true = Activas tab, false = Ocultas tab
+    var pendingBatchForensicFileIds = []; // --- NUEVO: Rastreo de archivos para auditoría post-sync ---
+    var _reloadTimeout = null; // --- NUEVO: Debounce de recarga ---
+    var _reloadSkipLog = false; // --- NUEVO: Silenciar logs de recarga ---
 
 
 
@@ -1509,8 +1589,11 @@
         if (box.innerHTML.includes('Esperando')) box.innerHTML = '';
 
         const line = document.createElement('div');
-        line.className = 'log-line ' + (type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : (type === 'warning' ? 'log-warning' : 'log-info'));
-        line.innerText = `> ${msg}`;
+        if (msg.includes('<a href=')) {
+            line.innerHTML = `> ${msg}`;
+        } else {
+            line.innerText = `> ${msg}`;
+        }
         box.appendChild(line);
         box.scrollTop = box.scrollHeight;
 
@@ -1606,6 +1689,10 @@
         cargarCatalogoLocal(); // Cargar JSON en segundo plano
         debounceSearch('');
         setupUpload();
+
+        // Inicializar referencias a paneles del modal
+        refinePanel = document.getElementById('refinePanel');
+        anglePanel = document.getElementById('anglePanel');
     }
 
 
@@ -1820,6 +1907,16 @@
                     processedCount++;
                     if (res.success) {
                         log(`✅ ${compressed.name}: Subida OK.`, 'success');
+                        
+                        // AUTO-FORENSE: Si es imagen y tenemos el ID, disparar auditoría en 2do plano
+                        if (compressed.mimeType.includes('image')) {
+                            if (res.imagenId) {
+                                lanzarAuditoriaIA(false, true, res.imagenId);
+                            } else if (res.fileId) {
+                                // MODO BATCH: No hay ID de base de datos aún, registrar para post-sync
+                                pendingBatchForensicFileIds.push(res.fileId);
+                            }
+                        }
                     } else {
                         errorCount++;
                         log(`⚠️ ${compressed.name}: ${res.message}`, 'warning');
@@ -2084,20 +2181,49 @@
 
         // --- ACTUALIZAR BOTÓN WP SYNC BASADO EN WOO_ID ---
         const btnSyncWC = document.getElementById('btnSyncWC');
+        const btnWooStore = document.getElementById('btnWooStore');
         const hasWooId = (p.woo_id && p.woo_id !== "") || (p.WOO_ID && p.WOO_ID !== "");
 
         if (hasWooId) {
             btnSyncWC.disabled = false;
             btnSyncWC.classList.remove('opacity-50', 'cursor-not-allowed');
             btnSyncWC.title = "Sincronizar imágenes con WooCommerce";
+            if (btnWooStore) {
+                const finalWooId = p.woo_id || p.WOO_ID;
+                btnWooStore.href = `https://castfer.com.ar/?p=${finalWooId}`;
+                btnWooStore.classList.remove('hidden');
+                btnWooStore.classList.add('flex');
+            }
         } else {
             btnSyncWC.disabled = true;
             btnSyncWC.classList.add('opacity-50', 'cursor-not-allowed');
             btnSyncWC.title = "Primero debes sincronizar el producto con WooCommerce desde el ERP";
+            if (btnWooStore) {
+                btnWooStore.classList.add('hidden');
+                btnWooStore.classList.remove('flex');
+            }
         }
         document.getElementById('currentProductTitle').innerText = p.nombre;
         document.getElementById('currentProductSku').innerText = p.sku;
         document.getElementById('btnHeaderUpload').classList.remove('hidden');
+
+        // --- MOSTRAR BOTÓN DRIVE ---
+        const btnOpenDrive = document.getElementById('btnOpenDrive');
+        const iconBoxDefault = document.getElementById('iconBoxDefault');
+        if (btnOpenDrive && iconBoxDefault) {
+             if (p.carpeta_id) {
+                 btnOpenDrive.href = `https://drive.google.com/drive/folders/${p.carpeta_id}`;
+                 btnOpenDrive.classList.remove('hidden');
+                 btnOpenDrive.classList.add('flex');
+                 iconBoxDefault.classList.add('hidden');
+                 iconBoxDefault.classList.remove('flex');
+             } else {
+                 btnOpenDrive.classList.add('hidden');
+                 btnOpenDrive.classList.remove('flex');
+                 iconBoxDefault.classList.remove('hidden');
+                 iconBoxDefault.classList.add('flex');
+             }
+        }
         const btnSync = document.getElementById('btnSyncProd');
         btnSync.disabled = false; btnSync.style.opacity = '1';
 
@@ -2145,7 +2271,21 @@
         google.script.run.withSuccessHandler(renderizarGaleria).withFailureHandler(err => { log(err.message, 'error'); gridActive.innerHTML = '<div class="text-red-400 text-xs p-4">Error de red</div>'; }).obtenerImagenesDeProducto(sku, carpetaId);
     }
 
-    function renderizarGaleria(response) {
+    // NUEVO: Recarga con Debouncing para evitar saturar el navegador y la API
+    function recargarGaleriaSilenciosa(skipLog = false) {
+        if (!currentProduct) return;
+        if (skipLog) _reloadSkipLog = true;
+
+        if (_reloadTimeout) clearTimeout(_reloadTimeout);
+        _reloadTimeout = setTimeout(() => {
+            const currentSkip = _reloadSkipLog;
+            google.script.run.withSuccessHandler(res => renderizarGaleria(res, currentSkip))
+                .obtenerImagenesDeProducto(currentProduct.sku, currentProduct.carpeta_id);
+            _reloadSkipLog = false; // Resetear flag
+        }, 1000);
+    }
+
+    function renderizarGaleria(response, skipLog = false) {
         let imgs = [];
         try { if (typeof response === 'string') { imgs = JSON.parse(response); } else { imgs = response; } } catch (e) { log("Error procesando respuesta", "error"); return; }
 
@@ -2180,7 +2320,9 @@
             initSortable();
         }
 
-        log(`Galería actualizada. (V:${cA}, O:${cH})`, 'success');
+        if (!skipLog) {
+            log(`Galería actualizada. (V:${cA}, O:${cH})`, 'success');
+        }
 
         // --- AUTO OPEN AFTER GEN ---
         if (autoOpenId) {
@@ -2189,6 +2331,24 @@
                 abrirModal(targetImg);
             }
             autoOpenId = null;
+        }
+
+        // --- NUEVO: Disparo de Auditoría Post-Sync (Modo Batch) ---
+        if (pendingBatchForensicFileIds.length > 0) {
+            const idsParaAuditar = [];
+            
+            pendingBatchForensicFileIds.forEach(fid => {
+                const img = imgs.find(i => String(i.ARCHIVO_ID) === String(fid));
+                if (img && !img.ANALISIS_FORENSE) {
+                    idsParaAuditar.push(img.IMAGEN_ID);
+                }
+            });
+
+            if (idsParaAuditar.length > 0) {
+                log(`🧠 Detectadas ${idsParaAuditar.length} imágenes nuevas. Iniciando análisis forense automático...`, 'info');
+                idsParaAuditar.forEach(id => lanzarAuditoriaIA(false, true, id));
+            }
+            pendingBatchForensicFileIds = []; // Limpiar para el siguiente lote
         }
     }
 
@@ -2232,10 +2392,16 @@
                 </div>
                 <div onclick="abrirModal(${jsonSafe})" class="w-full h-full relative">
                     ${imgHTML}
-                    ${img.PORTADA ? '<span class="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5"><span class="material-icons text-[10px]">star</span></span>' : ''}
-                    ${img.SYNC_WC ? '<span class="absolute top-8 left-1.5 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Sincronizado con Drive con WP"><span class="material-icons text-[10px]">cloud_done</span></span>' : ''}
-                    <span class="index-badge">${index + 1}</span>
-                    ${img.PROMPT ? '<span class="absolute top-1.5 right-8 bg-indigo-600 text-white text-[9px] font-bold px-1 py-0.5 rounded shadow z-10 flex items-center gap-0.5" title="Tiene Prompt"><span class="material-icons text-[10px]">auto_awesome</span></span>' : ''}
+                    
+                    <div class="status-badges-container">
+                        ${img.PORTADA ? '<div class="mini-badge portada" title="Portada"><span class="material-icons">star</span></div>' : ''}
+                        ${img.PROMPT ? '<div class="mini-badge prompt" title="Tiene Prompt"><span class="material-icons">auto_awesome</span></div>' : ''}
+                        ${(img.ANALISIS_FORENSE && String(img.ANALISIS_FORENSE).length > 10) ? '<div class="mini-badge forense active" title="Auditada (Forense)"><span class="material-icons">biotech</span></div>' : ''}
+                        ${img.SYNC_WC ? '<div class="mini-badge sync" title="Sincronizada WP"><span class="material-icons">cloud_done</span></div>' : ''}
+                    </div>
+
+                    <span class="index-badge-mini">${index + 1}</span>
+
                     <div class="img-body">
                         <p class="text-[9px] font-bold text-white truncate" title="${nombre}">${nombre}</p>
                         <div class="flex items-center gap-1 mt-0.5">
@@ -2275,8 +2441,10 @@
             }
             if (currentSelectionState === true) {
                 const btnLabel = currentPaidPin ? 'RENDER AI' : 'AI PROMPT';
-                html += `<div class="h-3 w-px bg-indigo-500/50 mx-2"></div>
-                              <button onclick="generarPromptMasivo()" class="hover:bg-indigo-600 bg-indigo-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm"><span class="material-icons text-sm">auto_awesome</span> ${btnLabel}</button>`;
+                html += `<div class="h-3 w-px bg-slate-700 mx-2"></div>
+                              <button onclick="auditarSeleccionMasiva()" class="hover:bg-slate-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition mr-1" title="Análisis Forense Masivo"><span class="material-icons text-sm text-amber-500">biotech</span> Auditar</button>
+                              <button onclick="generarPromptMasivo()" class="hover:bg-indigo-600 bg-indigo-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm mr-1"><span class="material-icons text-sm">auto_awesome</span> ${btnLabel}</button>
+                              <button onclick="descargarSeleccionMasiva()" class="hover:bg-cyan-600 bg-cyan-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm" title="Descargar como ZIP"><span class="material-icons text-sm">cloud_download</span> Descargar</button>`;
             }
             actionsDiv.innerHTML = html;
         } else { toolbar.style.display = 'none'; currentSelectionState = null; }
@@ -2292,6 +2460,109 @@
         log(`Procesando ${ids.length}...`, 'info');
         if (accion === 'eliminar') google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).eliminarImagenesDefinitivo(ids);
         else google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).cambiarEstadoMasivo(ids, accion === 'mostrar');
+    }
+
+    function descargarSeleccionMasiva() {
+        const ids = Array.from(selectedImages);
+        if (!ids.length) return;
+        
+        // Mapear IMAGEN_ID a Google Drive ARCHIVO_ID
+        const driveIds = ids.map(id => {
+            const imgObj = CURRENT_IMAGES.find(i => i.IMAGEN_ID === id);
+            return imgObj ? imgObj.ARCHIVO_ID : null;
+        }).filter(id => id);
+
+        if (driveIds.length === 0) {
+            log(`❌ No se encontraron referencias válidas de Drive.`, 'error');
+            Swal.fire('Error', 'Las imágenes seleccionadas no tienen un archivo físico en Drive vinculado.', 'error');
+            return;
+        }
+        
+        // Disable toolbar buttons visually during loading
+        const btn = document.querySelector('#toolbar-actions button[onclick="descargarSeleccionMasiva()"]');
+        if(btn) { btn.innerHTML = `<span class="material-icons text-sm animate-spin">sync</span> Empaquetando...`; btn.disabled = true; }
+        
+        log(`Empaquetando ${driveIds.length} imágenes desde Drive, generando ZIP...`, 'info');
+        google.script.run.withSuccessHandler(res => {
+            if(btn) { btn.innerHTML = `<span class="material-icons text-sm">cloud_download</span> Descargar`; btn.disabled = false; }
+            if(res.success) {
+                log(`✅ Archivo ZIP preparado exitosamente. Descarga iniciada.`, 'success');
+                const link = document.createElement('a');
+                link.href = `data:application/zip;base64,${res.base64}`;
+                link.download = res.filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                log(`❌ Error procesando el ZIP: ${res.message}`, 'error');
+                Swal.fire('Error al descargar', res.message, 'error');
+            }
+        }).withFailureHandler(err => {
+            if(btn) { btn.innerHTML = `<span class="material-icons text-sm">cloud_download</span> Descargar`; btn.disabled = false; }
+            log(`❌ Fallo de comunicación: ${err.message}`, 'error');
+        }).descargarImagenesBatch(currentProduct.sku, driveIds);
+    }
+
+    function descargarImagenActual() {
+        if(currentImageIndex < 0) return;
+        const img = CURRENT_IMAGES[currentImageIndex];
+        const btn = document.getElementById('btnDescargarModal');
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = `<span class="material-icons text-sm animate-spin">sync</span>`;
+        btn.disabled = true;
+
+        log(`📥 Obteniendo archivo original desde Drive...`, 'info');
+        google.script.run.withSuccessHandler(res => {
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+            if(res.success) {
+                log(`✅ Descarga directa lista.`, 'success');
+                const link = document.createElement('a');
+                link.href = `data:${res.mimeType};base64,${res.base64}`;
+                link.download = res.filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                Swal.fire('Error', res.message, 'error');
+            }
+        }).withFailureHandler(err => {
+            btn.innerHTML = oldHtml; 
+            btn.disabled = false; 
+            Swal.fire('Error', err.message, 'error');
+        }).descargarImagenUnica(currentProduct.sku, img.ARCHIVO_ID);
+    }
+
+    function auditarSeleccionMasiva() {
+        const ids = Array.from(selectedImages);
+        if (!ids.length) return;
+        
+        // Filtrar imágenes que no sean video (según preferencia del usuario)
+        const idsParaAuditar = ids.filter(id => {
+            const img = CURRENT_IMAGES.find(i => i.IMAGEN_ID === id);
+            return img && img.TIPO_ARCHIVO === 'imagen';
+        });
+
+        if (idsParaAuditar.length === 0) {
+            Swal.fire('Atención', 'Selecciona imágenes para auditar (los videos se omiten por ahora).', 'info');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Auditoría Forense Masiva',
+            text: `Se iniciará el análisis técnico de ${idsParaAuditar.length} imágenes en segundo plano. Se forzará el re-análisis para aplicar las nuevas reglas de blindaje de marca.`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: '🚀 Iniciar Ráfaga',
+            background: '#1e293b', color: '#fff'
+        }).then(res => {
+            if (res.isConfirmed) {
+                log(`🚀 Iniciando auditoría masiva de ${idsParaAuditar.length} imágenes (Modo Forzado)...`, 'info');
+                // Forzamos el análisis (primer parámetro true) para que ignore el caché viejo
+                idsParaAuditar.forEach(id => lanzarAuditoriaIA(true, true, id));
+                limpiarSeleccion();
+            }
+        });
     }
 
     function recargar() { limpiarSeleccion(); if (currentProduct) cargarGaleria(currentProduct.sku, currentProduct.carpeta_id); }
@@ -2349,6 +2620,12 @@
             log(res.message, res.success ? 'success' : 'error');
             if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info'));
             if (res.success) recargar();
+            
+            if (res.success && currentProduct.woo_id && res.baseUrl) {
+                const clearBase = res.baseUrl.endsWith('/') ? res.baseUrl.slice(0, -1) : res.baseUrl;
+                const wooUrlFront = `${clearBase}/?p=${currentProduct.woo_id}`;
+                log(`<a href="${wooUrlFront}" target="_blank" class="text-fuchsia-400 hover:text-fuchsia-300 underline font-bold mt-1 inline-block">🔗 Verificar producto en la Tienda (Frontend)</a>`, 'success');
+            }
         }).withFailureHandler(err => {
             btn.disabled = false;
             btn.innerHTML = '<span class="material-icons text-sm">cloud_upload</span>WP Sync';
@@ -2473,13 +2750,22 @@
         updateAiButtonLabels();
 
         // MOSTRAR PANEL DE REFINAR Y ÁNGULOS SI ES GENERADA POR IA O TIENE PROMPT Y PIN ACTIVO
-        const refinePanel = document.getElementById('refinePanel');
-        const anglePanel = document.getElementById('anglePanel');
-        const showPremium = !!currentPaidPin && !!img.PROMPT && (img.FUENTE === 'Sistema Web' || img.FUENTE === 'IA_Gemini');
-
         if (refinePanel) refinePanel.classList.toggle('hidden', !showPremium);
         if (anglePanel) anglePanel.classList.toggle('hidden', !showPremium);
         if (showPremium) document.getElementById('refineFeedback').value = "";
+
+        // --- NUEVO: Estado Botón Forense ---
+        const btnForensic = document.getElementById('btnForensicModal');
+        if (btnForensic) {
+            btnForensic.classList.remove('bg-amber-600/20', 'text-amber-500', 'border-amber-600/30', 'bg-emerald-600/20', 'text-emerald-500', 'border-emerald-600/30');
+            if (img.ANALISIS_FORENSE) {
+                btnForensic.innerHTML = '<span class="material-icons text-sm">visibility</span> Ver Auditoría';
+                btnForensic.classList.add('bg-emerald-600/20', 'text-emerald-500', 'border-emerald-600/30');
+            } else {
+                btnForensic.innerHTML = '<span class="material-icons text-sm">biotech</span> Análisis Forense';
+                btnForensic.classList.add('bg-amber-600/20', 'text-amber-500', 'border-amber-600/30');
+            }
+        }
     }
     function closeModal() {
         resetZoom();
@@ -2595,7 +2881,162 @@
 
     // --- AI PROMPTING ---
     // --- AI PROMPTING ---
+    // --- AI PROMPTING ---
+    function ejecutarAuditoriaForense() {
+        if (!currentImageId) return;
+        
+        // Si ya tiene análisis, preguntar si quiere verlo o regenerar
+        if (currentImgObj && currentImgObj.ANALISIS_FORENSE) {
+            Swal.fire({
+                title: 'Prenda ya Auditada',
+                html: '<div class="text-xs opacity-70 mb-4">Ya existe un informe técnico para esta imagen. ¿Qué deseas hacer?</div>',
+                icon: 'question',
+                background: '#1e293b', color: '#fff',
+                showCancelButton: true,
+                confirmButtonText: '<span class="flex items-center gap-1 font-bold">👀 Ver Informe</span>',
+                cancelButtonText: '<span class="flex items-center gap-1">🔄 Re-Analizar</span>',
+                confirmButtonColor: '#10b981', // Emerald 500
+                cancelButtonColor: '#ea580c', // Orange 600
+            }).then(res => {
+                if (res.isConfirmed) {
+                    verAuditoriaForense(currentImgObj.ANALISIS_FORENSE);
+                } else if (res.dismiss === Swal.DismissReason.cancel) {
+                    confirmarAnalisisForense(true);
+                }
+            });
+        } else {
+            confirmarAnalisisForense(false);
+        }
+    }
+
+    function confirmarAnalisisForense(forzar) {
+        Swal.fire({
+            title: 'Auditoría Forense (Gemma 3)',
+            text: '¿Cómo prefieres realizar el análisis técnico?',
+            icon: 'info',
+            background: '#1e293b', color: '#fff',
+            showCancelButton: true,
+            confirmButtonText: '🚀 Ejecutar ahora',
+            cancelButtonText: '☁️ Segundo Plano',
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#334155',
+        }).then(res => {
+            if (res.isConfirmed) {
+                lanzarAuditoriaIA(forzar, false);
+            } else if (res.dismiss === Swal.DismissReason.cancel) {
+                lanzarAuditoriaIA(forzar, true);
+            }
+        });
+    }
+
+    function lanzarAuditoriaIA(forzar, background, targetId = null) {
+        const idParaAnalizar = targetId || currentImageId;
+        if (!idParaAnalizar) return;
+
+        if (background) {
+            if (!targetId) closeModal(); // Solo cerrar si no viene de un proceso externo (como upload)
+            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+            Toast.fire({ icon: 'info', title: 'Análisis iniciado', text: `Imagen: ${idParaAnalizar}`, background: '#1e293b', color: '#fff' });
+            log(`Analizando prenda ${idParaAnalizar} en segundo plano...`, 'info');
+        } else {
+            Swal.fire({
+                title: 'Analizando Prenda...',
+                html: 'La IA está auditando los atributos físicos usando el motor <b>Gemma 3</b>.',
+                background: '#1e293b', color: '#fff',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
+        google.script.run.withSuccessHandler(res => {
+            if (!background) Swal.close();
+            const d = JSON.parse(res);
+            if (d.success) {
+                log(`Auditoría forense completa: ${idParaAnalizar}`, "success");
+                
+                // Actualizar caché local
+                const imgObj = CURRENT_IMAGES.find(i => i.IMAGEN_ID === idParaAnalizar);
+                if (imgObj) imgObj.ANALISIS_FORENSE = d.text;
+                if (currentImgObj && currentImgObj.IMAGEN_ID === idParaAnalizar) currentImgObj.ANALISIS_FORENSE = d.text;
+                
+                if (background) {
+                    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 5000, timerProgressBar: true });
+                    Toast.fire({ icon: 'success', title: 'Auditoría Finalizada', text: `La imagen ${idParaAnalizar} ya tiene ficha técnica.`, background: '#1e293b', color: '#fff' });
+                    recargarGaleriaSilenciosa(true); // Recarga silenciosa (sin log)
+                } else {
+                    verAuditoriaForense(d.text);
+                    setTimeout(() => recargarGaleriaSilenciosa(false), 1000); // Recarga con log (acción manual)
+                }
+            } else {
+                if (background) log(`Error forense en ${idParaAnalizar}: ${d.error}`, 'error');
+                else Swal.fire('Error Forense', d.error, 'error');
+            }
+        }).withFailureHandler(err => {
+            if (!background) Swal.close();
+            log(`Error crítico forense (${idParaAnalizar}): ${err.message}`, 'error');
+        }).escanearPrenda(idParaAnalizar, forzar);
+    }
+
+    function verAuditoriaForense(texto) {
+        if (!texto) return;
+        
+        // Formatear el texto forense para mejor legibilidad
+        const styled = texto
+            .replace(/TIPO_PRENDA:/g, '<b class="text-indigo-400">TIPO:</b>')
+            .replace(/POSICIÓN_DETECTADA:/g, '<br><b class="text-sky-400">POSICIÓN:</b>')
+            .replace(/COLOR_PRINCIPAL:/g, '<br><b class="text-amber-400">COLOR/ESTILO:</b>')
+            .replace(/MATERIAL_ESTIMADO:/g, '<br><b class="text-emerald-400">MATERIAL:</b>')
+            .replace(/LOGO_O_MARCA:/g, '<br><b class="text-rose-400">MARCA/LOGO:</b>')
+            .replace(/DETALLES_CONSTRUCTIVOS:/g, '<br><b class="text-slate-400">DETALLES:</b>')
+            .replace(/ESTADO_VISUAL:/g, '<br><b class="text-indigo-400">ESTADO:</b>');
+
+        Swal.fire({
+            title: '<div class="flex items-center gap-2"><span class="material-icons text-amber-500">biotech</span> <span>Ficha Técnica Forense</span></div>',
+            html: `
+                <div class="text-left bg-slate-900 border border-slate-700 p-5 rounded-xl text-xs leading-loose font-mono text-slate-300 max-h-[60vh] overflow-y-auto">
+                    ${styled}
+                </div>
+            `,
+            background: '#0f172a',
+            color: '#fff',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#334155'
+        });
+    }
+
     function generarPromptModal() {
+        // --- NUEVO: ESCANEO AGREGADO DE LA SELECCIÓN ---
+        let selectionIncludesFolded = false;
+        let selectionIncludesHanger = false;
+        
+        if (selectedImages && selectedImages.size > 0) {
+            selectedImages.forEach(id => {
+                const img = CURRENT_IMAGES.find(i => String(i.IMAGEN_ID) === String(id));
+                if (img && img.ANALISIS_FORENSE) {
+                    const forensic = img.ANALISIS_FORENSE.toUpperCase();
+                    const hasHangerKeywords = forensic.includes("PERCHA") || forensic.includes("HANGER") || forensic.includes("GANCHO") || forensic.includes("COLGADA");
+                    const hasFoldedKeywords = forensic.includes("PILA") || forensic.includes("DOBLADA") || forensic.includes("FOLDED") || forensic.includes("APILADA");
+                    
+                    if (forensic.includes("PILA_O_DOBLADO") || forensic.includes("DOBLADA_EN_SUPERFICIE") || hasFoldedKeywords) selectionIncludesFolded = true;
+                    if (forensic.includes("COLGADA_EN_PERCHA") || forensic.includes("PERCHERO") || hasHangerKeywords) selectionIncludesHanger = true;
+                }
+            });
+        }
+
+        const isMulti = selectedImages && selectedImages.size > 1;
+        const count = selectedImages ? selectedImages.size : 0;
+        
+        // El modo HERO es idealmente Master (1) + Variantes (1) = 2 imágenes
+        const canShowHero = count === 2 && (selectionIncludesFolded || selectionIncludesHanger);
+        const canShowCollage = isMulti; // Collage abierto para cualquier grupo
+
+        const currentForensic = (currentImgObj && currentImgObj.ANALISIS_FORENSE) ? currentImgObj.ANALISIS_FORENSE.toUpperCase() : "";
+        const isCurrentHanger = currentForensic.includes("PERCHA") || currentForensic.includes("COLGADA") || currentForensic.includes("PERCHERO");
+        const isCurrentFolded = currentForensic.includes("PILA") || currentForensic.includes("DOBLADA");
+
+        // --- NUEVO: SUGERENCIA DE ÁNGULO BASADA EN LA SELECCIÓN AGREGADA ---
+        const defaultAngleValue = canShowHero ? "Hero + Colors / Principal y Variantes" : "";
+
         Swal.fire({
             title: 'Generar Contenido IA',
             html: `
@@ -2611,9 +3052,13 @@
                         <div>
                             <label class="text-[10px] uppercase font-bold text-slate-400">Estilo</label>
                             <select id="swal-input-style" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1" onchange="checkCategorySpecs(this.value)">
-                                <option value="ecommerce">🛍️ Ecommerce</option>
-                                <option value="lifestyle">🌆 Lifestyle</option>
-                                <option value="ghost">👻 Ghost Mannequin</option>
+                                <option value="ecommerce">🛍️ Ecommerce (On-Body)</option>
+                                <option value="lifestyle">🌆 Lifestyle (Editorial)</option>
+                                <option value="ghost">👻 Ghost Mannequin (3D)</option>
+                                ${isCurrentHanger ? '<option value="hanger">🧺 Profesional En Percha</option>' : ''}
+                                ${isCurrentFolded ? '<option value="folded">📦 Pila / Producto Doblado</option>' : ''}
+                                ${canShowCollage ? `<option value="collage" ${!selectionIncludesFolded ? 'selected' : ''}>📊 Collage / Catálogo Completo</option>` : ''}
+                                ${canShowHero ? `<option value="hero" selected>🎨 Hero + Colores (Master+Variants)</option>` : ''}
                             </select>
                         </div>
 
@@ -2629,36 +3074,34 @@
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-slate-400">Relación de Aspecto</label>
                                 <select id="swal-input-aspect" class="w-full text-[11px] bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
-                                    <option value="3:4">3:4 (Vertical Estándar)</option>
-                                    <option value="1:1">1:1 (Cuadrado / Feed)</option>
-                                    <option value="4:3">4:3 (Horizontal)</option>
-                                    <option value="16:9">16:9 (Panorámico Web)</option>
-                                    <option value="4:1">4:1 (Banner Header)</option>
-                                    <option value="1:4">1:4 (Banner Lateral)</option>
+                                    <option value="3:4">📇 3:4 (Vertical Estándar)</option>
+                                    <option value="1:1">🟦 1:1 (Cuadrado / Feed)</option>
+                                    <option value="4:3">🖥️ 4:3 (Horizontal)</option>
+                                    <option value="16:9">🎬 16:9 (Panorámico Web)</option>
+                                    <option value="4:1">🎞️ 4:1 (Banner Header)</option>
+                                    <option value="1:4">📏 1:4 (Banner Lateral)</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- NGLE SELECTION (Only for multi-selection) -->
-                        <div id="angle-selection-modal" class="hidden animate-fade-in bg-indigo-500/5 p-2 rounded border border-indigo-500/20">
+                        <!-- ANGLE SELECTION (Visible for multi-selection or special trigger) -->
+                        <div id="angle-selection-modal" class="${isMulti ? '' : 'hidden'} animate-fade-in bg-indigo-500/5 p-2 rounded border border-indigo-500/20">
                             <label class="text-[10px] uppercase font-bold text-indigo-400 flex items-center gap-1">
                                 <span class="material-icons text-[12px]">straighten</span> Posición / Ángulo a Generar
                             </label>
                             <select id="swal-input-angle" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
-                                <option value="">Auto (Deducir / Split si > 1)</option>
+                                <option value="" ${defaultAngleValue === "" ? 'selected' : ''}>Auto (Deducir del Master)</option>
                                 <option value="Frontal View / Frente">Vista Frontal (Frontal)</option>
                                 <option value="Back View / Espalda">Vista Trasera (Back)</option>
                                 <option value="Side View / Perfil">Vista Lateral (Perfil)</option>
                                 <option value="Close-up / Detalle">Vista de Detalle (Macro)</option>
-                                <option value="Collage / Catálogo Completo">Collage / Catálogo (Múltiples vistas)</option>
-                                <option value="Hero + Colors / Principal y Variantes">Hero + Colores (Principal + Variantes)</option>
                                 <option value="Split View / Front and Back">Vista Combinada (Frente y Espalda)</option>
                             </select>
                             <p class="text-[9px] text-slate-500 mt-1 italic">Si selecciones un ángulo específico, se generará una sola vista ignorando las otras poses.</p>
                         </div>
 
                         <div id="env-selection" class="hidden animate-fade-in">
-                            <label class="text-[10px] uppercase font-bold text-indigo-400">Entorno / Ambiente</label>
+                            <label class="text-[10px] uppercase font-bold text-indigo-400">Entorno / Ambiente (Lifestyle)</label>
                             <select id="swal-input-env" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
                                 <option value="">Auto (Por Categoría)</option>
                                 <option value="Shopping / Centro Comercial">🏬 Shopping</option>
@@ -2667,6 +3110,17 @@
                                 <option value="Gym / Gimnasio">🏋️ Gym / Fitness</option>
                                 <option value="Studio / Estudio Pro">📸 Estudio Profesional</option>
                                 <option value="Cafe / Restaurante">☕ Cafe / Social</option>
+                            </select>
+                        </div>
+
+                        <div id="still-life-env-selection" class="hidden animate-fade-in">
+                            <label class="text-[10px] uppercase font-bold text-amber-400">Superficie / Fondo (Still Life)</label>
+                            <select id="swal-input-still-life-env" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
+                                <option value="studio_minimalist">📸 Estudio Blanco (Minimalista)</option>
+                                <option value="luxury_marble">💎 Mármol Blanco (Lujoso)</option>
+                                <option value="dark_oak">🪵 Madera de Roble (Cálido)</option>
+                                <option value="industrial_concrete">🧱 Cemento Industrial (Moderno)</option>
+                                <option value="soft_linen">🧶 Tela de Lino (Suave/Orgánico)</option>
                             </select>
                         </div>
 
@@ -2723,6 +3177,7 @@
                                 <label class="text-[10px] uppercase font-bold text-slate-400">Accesorios (Opcional)</label>
                                 <select id="swal-input-acc-type" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
                                     <option value="">Ninguno</option>
+                                    <option value="Auto (IA)">Auto (Por Temporada)</option>
                                     <option value="Lentes de Sol / Gafas">Lentes de Sol / Gafas</option>
                                     <option value="Reloj de Lujo">Reloj de Lujo</option>
                                     <option value="Bolso / Cartera">Bolso / Cartera</option>
@@ -2821,17 +3276,20 @@
             });
         } else if (!checked) {
             currentPaidPin = null;
+            showPremium = false; // --- NUEVO: Desactivar estado premium ---
             updateAiButtonLabels();
         }
     }
 
     function updateAiButtonLabels() {
-        const label = currentPaidPin ? "Generar Imagen" : "Generar Prompt";
+        showPremium = !!currentPaidPin;
+        const label = showPremium ? "Generar Imagen" : "Generar Prompt";
+        
         // Modal button
         const btnModal = document.getElementById('btnStartAiModal');
         if (btnModal) {
-            btnModal.innerHTML = `<span class="material-icons text-sm">auto_awesome</span>${label}`;
-            if (currentPaidPin) {
+            btnModal.innerHTML = `<span class="material-icons text-sm">${showPremium ? 'rocket_launch' : 'auto_awesome'}</span> ${label}`;
+            if (showPremium) {
                 btnModal.classList.replace('bg-indigo-600', 'bg-amber-600');
                 btnModal.classList.replace('hover:bg-indigo-500', 'hover:bg-amber-500');
             } else {
@@ -2839,18 +3297,19 @@
                 btnModal.classList.replace('hover:bg-amber-500', 'hover:bg-indigo-500');
             }
         }
+
         // Toolbar button
         actualizarToolbar();
 
         // Visibilidad de Paneles de Pago
         const refinePanel = document.getElementById('refinePanel');
         const anglePanel = document.getElementById('anglePanel');
-        if (refinePanel) refinePanel.classList.toggle('hidden', !currentPaidPin);
-        if (anglePanel) anglePanel.classList.toggle('hidden', !currentPaidPin);
+        if (refinePanel) refinePanel.classList.toggle('hidden', !showPremium);
+        if (anglePanel) anglePanel.classList.toggle('hidden', !showPremium);
 
         // Angle button availability
         const btnAngle = document.getElementById('btnGenerateAngle');
-        if (btnAngle) btnAngle.disabled = !currentPaidPin;
+        if (btnAngle) btnAngle.disabled = !showPremium;
     }
 
     function toggleVideoOptions(val) {
@@ -2858,51 +3317,67 @@
         if (val === 'video') el.classList.remove('hidden'); else el.classList.add('hidden');
     }
 
-    // --- LÓGICA INTELIGENTE DE CALZADO ---
+    // --- LÓGICA INTELIGENTE DE CALZADO Y ESTILOS ---
     function checkCategorySpecs(estilo) {
         const footSection = document.getElementById('footwear-section');
         const skinSection = document.getElementById('skin-tone-section');
         const accSection = document.getElementById('accessories-section');
         const envSection = document.getElementById('env-selection');
+        const stillLifeEnv = document.getElementById('still-life-env-selection');
+        const ghostFocus = document.getElementById('ghost-focus-selection');
+        const angleSection = document.getElementById('angle-selection-modal');
 
-        // 1. Ocultar secciones de modelo y entorno si es Ghost
-        if (estilo === 'ghost') {
-            skinSection.classList.add('hidden');
-            footSection.classList.add('hidden');
-            accSection.classList.add('hidden');
-            envSection.classList.add('hidden');
-            document.getElementById('ghost-focus-selection').classList.remove('hidden');
-            // Mostrar Living Garment si es Ghost
-            document.getElementById('opt-living-garment').classList.remove('hidden');
+        // Reset all sections to hidden
+        [footSection, skinSection, accSection, envSection, stillLifeEnv, ghostFocus].forEach(el => el && el.classList.add('hidden'));
+        document.getElementById('opt-living-garment').classList.add('hidden');
+
+        // 1. Estilos Still Life (Hanger o Folded) o Ghost o Composiciones (Hero/Collage)
+        if (estilo === 'ghost' || estilo === 'hanger' || estilo === 'folded' || estilo === 'hero' || estilo === 'collage') {
+            // Ocultar ángulos en composiciones para evitar conflictos de lógica
+            if (estilo === 'hero' || estilo === 'collage') {
+                if (angleSection) angleSection.classList.add('hidden');
+            } else if (document.querySelectorAll('.image-item.selected').length > 1) {
+                // Si es multi-selección pero estilo normal, mostrar ángulos
+                if (angleSection) angleSection.classList.remove('hidden');
+            }
+
+            if (estilo === 'ghost') {
+                ghostFocus.classList.remove('hidden');
+                document.getElementById('opt-living-garment').classList.remove('hidden');
+            } else {
+                // Still Life / Hero / Collage: Mostrar SOLO el selector de superficie de producto
+                stillLifeEnv.classList.remove('hidden');
+            }
         } else {
+            // Mostrar ángulos si es multi-selección para estilos con modelo
+            if (document.querySelectorAll('.image-item.selected').length > 1) {
+                if (angleSection) angleSection.classList.remove('hidden');
+            }
+            // 2. Estilos con Modelos (Ecommerce, Lifestyle)
             skinSection.classList.remove('hidden');
             footSection.classList.remove('hidden');
             accSection.classList.remove('hidden');
-            document.getElementById('ghost-focus-selection').classList.add('hidden');
-            // Ocultar Living Garment si no es Ghost
-            document.getElementById('opt-living-garment').classList.add('hidden');
+
+            const accSelect = document.getElementById('swal-input-acc-type');
+            if (accSelect && accSelect.value === "" && (estilo === 'lifestyle' || estilo === 'ecommerce')) {
+                accSelect.value = "Auto (IA)";
+            }
+
+            if (estilo === 'lifestyle') {
+                envSection.classList.remove('hidden');
+            }
+
             if (document.getElementById('swal-input-structure').value === 'living_garment') {
                 document.getElementById('swal-input-structure').value = 'single_shot';
             }
 
-            // Mostrar entorno solo para Lifestyle
-            if (estilo === 'lifestyle') {
-                envSection.classList.remove('hidden');
-            } else {
-                envSection.classList.add('hidden');
-            }
-
-            // Realce visual si es prenda inferior (pero siempre visible)
+            // Realce visual si es prenda inferior
             if (currentProduct) {
                 const cat = (currentProduct.parentCategory || currentProduct.category || "").toLowerCase();
                 const categoriasInferiores = ['pantalon', 'pantalón', 'short', 'bermuda', 'boxer', 'calzoncillo', 'ropa interior', 'jeans', 'calza', 'jogging', 'pantal', 'bottom'];
                 const isBottom = categoriasInferiores.some(c => cat.includes(c));
-
-                if (isBottom) {
-                    footSection.classList.add('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
-                } else {
-                    footSection.classList.remove('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
-                }
+                if (isBottom) footSection.classList.add('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
+                else footSection.classList.remove('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
             }
         }
     }
@@ -2930,15 +3405,20 @@
                 const d = JSON.parse(res);
                 if (d.success) {
                     // SI HUBIERA COSTO, LOGUEARLO
+                    const _elapsed = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
+                    log(`✅ Generado OK (${d.modelUsed || d.model}) en ${_elapsed}s.`, 'success');
+                    
+                    if (d.renderModel) {
+                        log(`🚀 Renderizado OK con ${d.renderModel}`, 'success');
+                    }
+                    
                     if (d.cost !== undefined) {
-                        log(`Generación Exitosa. Costo: $${d.cost.toFixed(4)}`, 'success');
+                        log(`💰 Inversión IA: $${d.cost.toFixed(5)} USD`, 'info');
                     }
 
                     const isJson = d.text && (d.text.trim().startsWith('{') || d.text.trim().startsWith('```json'));
                     const finalContent = (formato === 'video' || isJson) ? formatVideoScript(d.text) : d.text;
                     txt.value = finalContent;
-                    const _elapsed = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
-                    log(`✅ Generado OK (${d.modelUsed || d.model}) en ${_elapsed}s.`, 'success');
 
                     // MOSTRAR ALERTA CON RESULTADO
                     let htmlContent = `<div class="text-left mb-2 text-xs text-slate-400 font-bold uppercase text-indigo-400">Análisis y Directiva IA (Auditable):</div>`;
@@ -3009,10 +3489,10 @@
                         if (currentImageId) closeModal(); // Cerramos el modal de la referencia
                         recargar();
                     } else {
-                        // Si no hay imagen nueva (solo prompt), recargar para ver iconos si fue masivo
-                        if (selectedImages.size > 1) recargar();
-                        else if (selectedImages.size === 1) autoOpenId = Array.from(selectedImages)[0];
+                        // Recargar para capturar el nuevo prompt en el caché local
+                        if (selectedImages.size === 1) autoOpenId = Array.from(selectedImages)[0];
                         else if (currentImageId) autoOpenId = currentImageId;
+                        recargar();
                     }
                 } else {
                     const _elapsedErr = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
@@ -3028,14 +3508,30 @@
 
         if (formato === 'video') {
             log("🎬 Generando Prompt de Video...", "info");
+             // Lógica para elegir el selector de entorno correcto
+            const stillLifeEnvEl = document.getElementById('swal-input-still-life-env');
+            const envEl = document.getElementById('env-selection');
+            const isStillLife = ['folded', 'hanger', 'hero', 'collage'].includes(estilo);
+            const envVal = isStillLife ? (stillLifeEnvEl ? stillLifeEnvEl.value : "") : (envEl ? envEl.value : "");
             const ids = selectedImages.size > 0 ? Array.from(selectedImages) : [currentImageId];
             // Inyectamos extraSpecs en opciones para el video (VEO usa una estructura distinta)
-            opciones.extraSpecs = { ...extraSpecs, focus: opciones.focus };
+            opciones.extraSpecs = { ...extraSpecs, focus: opciones.focus, environment: envVal };
             google.script.run.withSuccessHandler(onSuccess).generarVideoPrompt(ids, estilo, opciones);
         } else {
             log("📸 Generando Prompt de Imagen...", "info");
-            // INYECTAMOS ÁNGULO Y FOCUS EN EXTRASPECS PARA LOS ENGINES DE IMAGEN
-            const finalExtraSpecs = { ...extraSpecs, angle: opciones.angle, focus: opciones.focus };
+            // Lógica para elegir el selector de entorno correcto
+            const stillLifeEnvEl = document.getElementById('swal-input-still-life-env');
+            const envEl = document.getElementById('swal-input-env');
+            const isStillLife = ['folded', 'hanger', 'hero', 'collage'].includes(estilo);
+            const envVal = isStillLife ? (stillLifeEnvEl ? stillLifeEnvEl.value : "") : (envEl ? envEl.value : "");
+            
+            // INYECTAMOS ÁNGULO, FOCUS Y ENTORNO EN EXTRASPECS PARA LOS ENGINES DE IMAGEN
+            const finalExtraSpecs = { 
+                ...extraSpecs, 
+                angle: opciones.angle, 
+                focus: opciones.focus,
+                environment: envVal 
+            };
 
             if (selectedImages.size > 1) {
                 google.script.run.withSuccessHandler(onSuccess).generarSuperPromptMasivo(Array.from(selectedImages), estilo, 'image', finalExtraSpecs, pinToUse);
@@ -3220,6 +3716,13 @@
             const d = JSON.parse(cleanJson);
             let out = "";
             if (d.TEMA_DETECTADO) out += `📌 TEMA: ${d.TEMA_DETECTADO}\n`;
+            // 2. Prefix Mandate (To anchor the IA's intention)
+            // These are in Spanish because they are part of the bilingual prompt structure
+            let prefix = '[Descripción narrativa fotográfica definitiva en ESPAÑOL, enfocada puramente en lo visual].';
+            if (estilo === 'folded') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment perfectly folded on a professional surface, focusing entirely on texture and material, with NO human presence."';
+            else if (estilo === 'hanger') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment professionally hanging on a luxury hanger, with NO human presence."';
+
+            return { promptRules, modelAdaptation, prefix };
             if (d.MUSICA_RECOMENDADA || d.AUDIO_SUGGESTION) out += `🎵 MÚSICA: ${d.MUSICA_RECOMENDADA || d.AUDIO_SUGGESTION}\n`;
             if (d.PERFIL_DE_VOZ) out += `🎙️ VOZ: ${d.PERFIL_DE_VOZ}\n`;
             if (d.HOOK) out += `\n🪝 HOOK:\n${d.HOOK}\n`;
@@ -3359,40 +3862,52 @@
         google.script.run.withSuccessHandler(res => {
             if (res.success) {
                 const d = res.data;
+                const fmt = (v) => parseFloat(v).toLocaleString('es-AR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
                 Swal.fire({
-                    title: '<span class="text-slate-200">Auditoría de Producción IA</span>',
+                    width: '500px',
+                    title: '<span class="text-slate-100 font-bold text-2xl">Auditoría de Producción IA</span>',
                     html: `
-                        <div class="text-left space-y-4 p-2">
-                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-slate-400 text-sm flex items-center gap-1">
-                                        <span class="material-icons text-indigo-400 text-sm">image</span> Imágenes Generadas
-                                    </span>
-                                    <span class="text-white font-mono font-bold">$ ${d.imagen}</span>
+                        <div class="space-y-4 pt-4">
+                            <!-- Sección Cuentas -->
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-6 rounded-2xl space-y-4">
+                                <div class="flex items-center justify-between group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+                                            <i class="material-icons text-sm">image</i>
+                                        </div>
+                                        <span class="text-slate-300 font-medium">Imágenes Generadas</span>
+                                    </div>
+                                    <span class="text-white font-mono font-bold text-lg">$ ${fmt(d.imagen)}</span>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-400 text-sm flex items-center gap-1">
-                                        <span class="material-icons text-rose-400 text-sm">movie</span> Videos (VEO)
-                                    </span>
-                                    <span class="text-white font-mono font-bold">$ ${d.video}</span>
+                                <div class="flex items-center justify-between group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 bg-rose-500/10 rounded-lg text-rose-400">
+                                            <i class="material-icons text-sm">movie</i>
+                                        </div>
+                                        <span class="text-slate-300 font-medium">Vídeos (VEO)</span>
+                                    </div>
+                                    <span class="text-white font-mono font-bold text-lg">$ ${fmt(d.video)}</span>
                                 </div>
-                            </div>
-                            
-                            <div class="bg-emerald-900/20 p-4 rounded-xl border border-emerald-500/30 flex justify-between items-center">
-                                <span class="text-emerald-400 font-bold uppercase text-xs tracking-wider">Total Acumulado (USD)</span>
-                                <span class="text-emerald-400 text-2xl font-black font-mono">$ ${d.total}</span>
                             </div>
 
-                            <p class="text-[10px] text-slate-500 italic text-center">
+                            <!-- Total -->
+                            <div class="bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-2xl flex justify-between items-center">
+                                <span class="text-emerald-400 font-bold uppercase text-xs tracking-widest">Total Acumulado (USD)</span>
+                                <span class="text-emerald-400 font-mono font-bold text-3xl">$ ${fmt(d.total)}</span>
+                            </div>
+
+                            <p class="text-[10px] text-slate-500 italic text-center mt-6">
                                 * Auditoría basada en ${d.count} registros históricos.
                             </p>
                         </div>
-                        `,
+                    `,
                     background: '#0f172a',
+                    color: '#fff',
+                    showConfirmButton: true,
                     confirmButtonText: 'Entendido',
                     confirmButtonColor: '#10b981',
                     customClass: {
-                        popup: 'border border-slate-700 rounded-2xl shadow-2xl',
                         confirmButton: 'px-8 py-2 rounded-lg font-bold'
                     }
                 });
