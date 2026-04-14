@@ -2202,32 +2202,29 @@
             }
         });
 
-        // --- ACTUALIZAR BOTÓN WP SYNC BASADO EN WOO_ID ---
-        const btnSyncWC = document.getElementById('btnSyncWC');
-        const btnWooStore = document.getElementById('btnWooStore');
-        const hasWooId = (p.woo_id && p.woo_id !== "") || (p.WOO_ID && p.WOO_ID !== "");
-
-        if (hasWooId) {
-            btnSyncWC.disabled = false;
-            btnSyncWC.classList.remove('opacity-50', 'cursor-not-allowed');
-            btnSyncWC.title = "Sincronizar imágenes con WooCommerce";
-            if (btnWooStore) {
-                const finalWooId = p.woo_id || p.WOO_ID;
-                btnWooStore.href = `https://castfer.com.ar/?p=${finalWooId}`;
-                btnWooStore.classList.remove('hidden');
-                btnWooStore.classList.add('flex');
-            }
-        } else {
-            btnSyncWC.disabled = true;
-            btnSyncWC.classList.add('opacity-50', 'cursor-not-allowed');
-            btnSyncWC.title = "Primero debes sincronizar el producto con WooCommerce desde el ERP";
-            if (btnWooStore) {
-                btnWooStore.classList.add('hidden');
-                btnWooStore.classList.remove('flex');
-            }
-        }
         document.getElementById('currentProductTitle').innerText = p.nombre;
         document.getElementById('currentProductSku').innerText = p.sku;
+
+        // Actualizar UI inicial con los datos del catálogo
+        actualizarUiTienda(p);
+
+        // --- NUEVO: Refrescar metadata (WOO_ID) desde el servidor en segundo plano ---
+        google.script.run.withSuccessHandler(res => {
+            if (res.success) {
+                // Si el ID cambió, actualizar el producto actual y el catálogo local
+                if (res.woo_id !== p.woo_id) {
+                    console.log(`♻️ WOO_ID actualizado para ${p.sku}: ${p.woo_id} -> ${res.woo_id}`);
+                    currentProduct.woo_id = res.woo_id;
+                    
+                    // Actualizar en el catálogo local para evitar futuras consultas
+                    const catIndex = PRODUCT_CATALOG.findIndex(item => item.sku === p.sku);
+                    if (catIndex !== -1) PRODUCT_CATALOG[catIndex].woo_id = res.woo_id;
+                    
+                    // Refrescar UI con el nuevo ID
+                    actualizarUiTienda(res);
+                }
+            }
+        }).obtenerMetadataProductoActualizada(p.sku);
         document.getElementById('btnHeaderUpload').classList.remove('hidden');
 
         // --- MOSTRAR BOTÓN DRIVE ---
@@ -2278,7 +2275,33 @@
         if (!hasUnsavedChanges) btnSave.classList.add('hidden');
     }
 
-    function cargarGaleria(sku, carpetaId) {
+    function actualizarUiTienda(data) {
+        const btnSyncWC = document.getElementById('btnSyncWC');
+        const btnWooStore = document.getElementById('btnWooStore');
+        const wooId = data.woo_id || data.WOO_ID;
+        const hasWooId = wooId && wooId !== "";
+
+        if (hasWooId) {
+            btnSyncWC.disabled = false;
+            btnSyncWC.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnSyncWC.title = "Sincronizar imágenes con WooCommerce";
+            if (btnWooStore) {
+                btnWooStore.href = `https://castfer.com.ar/?p=${wooId}`;
+                btnWooStore.classList.remove('hidden');
+                btnWooStore.classList.add('flex');
+            }
+        } else {
+            btnSyncWC.disabled = true;
+            btnSyncWC.classList.add('opacity-50', 'cursor-not-allowed');
+            btnSyncWC.title = "Primero debes sincronizar el producto con WooCommerce desde el ERP";
+            if (btnWooStore) {
+                btnWooStore.classList.add('hidden');
+                btnWooStore.classList.remove('flex');
+            }
+        }
+    }
+
+    async function cargarGaleria(sku, carpetaId) {
         limpiarSeleccion();
         const gridActive = document.getElementById('imageGridActive');
         const gridHidden = document.getElementById('imageGridHidden');

@@ -149,7 +149,45 @@ function procesarSubidaDesdeDashboard(sku, fileData, fileName, mimeType, carpeta
   }
 }
 
-function obtenerOCrearCarpetaProducto(sku) {
+/**
+ * Obtiene la metadata más reciente de un producto directamente desde la hoja de cálculo.
+ * Útil para sincronizar el WOO_ID si este cambió en AppSheet pero el JSON local está obsoleto.
+ * @param {string} sku - El código del producto a buscar.
+ * @return {Object} - Objeto con woo_id, carpeta_id y nombre.
+ */
+function obtenerMetadataProductoActualizada(sku) {
+  try {
+    const ss = getImagesSpreadsheet();
+    const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
+    const mapping = HeaderManager.getMapping("PRODUCTS");
+
+    if (!sheet || !mapping || !mapping["CODIGO_ID"]) {
+      return { success: false, error: "Error de configuración de mapeo de productos." };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const idxSku = mapping["CODIGO_ID"];
+    const idxWoo = mapping["WOO_ID"];
+    const idxFolder = mapping["CARPETA_ID"];
+    const idxNombre = mapping["NOMBRE"];
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idxSku]) === String(sku)) {
+        return {
+          success: true,
+          sku: sku,
+          woo_id: idxWoo !== undefined ? String(data[i][idxWoo]) : "",
+          carpeta_id: idxFolder !== undefined ? String(data[i][idxFolder]) : "",
+          nombre: idxNombre !== undefined ? String(data[i][idxNombre]) : ""
+        };
+      }
+    }
+    return { success: false, error: "Producto no encontrado en la base de datos." };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
   const ss = getImagesSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
   const mapping = HeaderManager.getMapping("PRODUCTS");

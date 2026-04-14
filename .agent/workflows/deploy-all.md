@@ -30,7 +30,7 @@ Usa este workflow para asegurar que tanto tu Macro Principal como el Proyecto de
    clasp push --force
    # Nota: El Agente debe incrementar el número de versión manual o detectar el último
    clasp version "Sincronización Global"
-   clasp deploy -i AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-1pwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg -d "Sincronización Global"
+   clasp deploy -i AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg -d "Sincronización Global"
    
    # 3. Restauración de ID Original
    Copy-Item .clasp-backup.json .clasp.json
