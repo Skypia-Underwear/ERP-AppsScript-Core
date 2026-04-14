@@ -579,11 +579,21 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
     }
 
     // SEPARACIÓN DE CONCERNS: Solo auditar y borrar huérfanos en modo unitario (1 SKU)
-    // En modo global, omitimos el borrado para maximizar velocidad con +7000 archivos
+    // En modo global, omitimos el borrado para maximizar velocidad con +7000 archivos (según diseño original)
     if (productoIdFiltro) {
-      dbFilesMap.forEach((rowIndex, fileId) => {
-        if (rowIndex !== -1 && !archivosVistosEnDrive.has(fileId)) filasBorrar.push(rowIndex);
-      });
+        // En lugar de usar dbFilesMap (que solo tiene registros con ARCHIVO_ID), 
+        // barremos dataImg para encontrar TODOS los registros que pertenecen a este SKU.
+        for (let i = 1; i < dataImg.length; i++) {
+            const pId = String(dataImg[i][col['PRODUCTO_ID']]).trim();
+            if (pId === String(productoIdFiltro)) {
+                const fId = String(dataImg[i][col['ARCHIVO_ID']]);
+                const rowIndex = i + 1;
+                // Si el ID de archivo no se vio en Drive (o si no tiene ID), es un huérfano
+                if (!archivosVistosEnDrive.has(fId)) {
+                    filasBorrar.push(rowIndex);
+                }
+            }
+        }
     }
 
     if (nuevasFilas.length > 0) {
@@ -652,7 +662,12 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
       });
       log(`🔄 ${actualizaciones.length} actualizadas.`);
     }
-    if (filasBorrar.length > 0 && archivosVistosEnDrive.size > 0) {
+    // REGLA DE SEGURIDAD PARA ELIMINACIÓN:
+    // 1. En modo individual (Filtro): Permitimos borrar todo si el usuario intencionalmente vació la carpeta.
+    // 2. En modo global (Lote): Solo permitimos borrar si detectamos al menos un archivo válido en Drive (seguridad contra fallos de API).
+    const esSeguroBorrar = productoIdFiltro ? (filasBorrar.length > 0) : (filasBorrar.length > 0 && archivosVistosEnDrive.size > 0);
+
+    if (esSeguroBorrar) {
       filasBorrar.sort((a, b) => b - a);
       filasBorrar.forEach(r => sheetImg.deleteRow(r));
       log(`🗑️ -${filasBorrar.length} borradas.`);
