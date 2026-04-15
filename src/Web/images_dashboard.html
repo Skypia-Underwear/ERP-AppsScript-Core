@@ -2030,8 +2030,8 @@
         if (!container) return;
         container.innerHTML = '';
 
-        // Determinar categorías en uso
-        const usedCategories = new Set(PRODUCT_CATALOG.map(p => p.category));
+        // Obtener categorías únicas presentes en los productos actuales
+        const uniqueCatNames = [...new Set(PRODUCT_CATALOG.map(p => p.category))].filter(Boolean).sort();
 
         // Botón "Todos"
         const allBtn = document.createElement('div');
@@ -2040,12 +2040,18 @@
         allBtn.innerHTML = `<span class="material-icons text-lg">apps</span><span>Todos</span>`;
         container.appendChild(allBtn);
 
-        CATEGORY_LIST.filter(cat => usedCategories.has(cat.id)).forEach(cat => {
-            const svg = CATEGORY_SVGS[cat.id] || CATEGORY_SVGS[cat.id.toUpperCase()] || `<svg viewBox="0 0 24 24" class="opacity-20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+        uniqueCatNames.forEach(catId => {
+            // Intentar recuperar metadatos (Nombre amigable y SVG)
+            const catInfo = CATEGORY_LIST.find(c => c.id === catId || c.name === catId) || { id: catId, name: catId };
+            const svg = CATEGORY_SVGS[catId] || CATEGORY_SVGS[catId.toUpperCase()] || catInfo.svg || `<svg viewBox="0 0 24 24" class="opacity-20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+            
             const chip = document.createElement('div');
-            chip.className = `category-chip ${currentCategoryFilter === cat.id ? 'active' : ''}`;
-            chip.onclick = () => { filtrarPorCategoria(cat.id); chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); };
-            chip.innerHTML = `${svg}<span>${cat.name}</span>`;
+            chip.className = `category-chip ${currentCategoryFilter === catId ? 'active' : ''}`;
+            chip.onclick = () => { 
+                filtrarPorCategoria(catId); 
+                chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
+            };
+            chip.innerHTML = `${svg}<span>${catInfo.name}</span>`;
             container.appendChild(chip);
         });
     }
