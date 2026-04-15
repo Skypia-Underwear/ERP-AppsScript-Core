@@ -836,11 +836,11 @@
       const data = await window.getGlobalCatalog(CATALOG_READ_URL, CATALOG_FALLBACK_URL);
       globalJsonCache = data;
 
+      catalogData = flattenCatalog(data.products);
       populateSelectors(data.stores);
       buildCategoryCarousel(data.categories);
       buildProductCarousel('');
-
-      catalogData = flattenCatalog(data.products);
+      
       initDataTables(catalogData);
       updateKPIs(catalogData);
 
@@ -1046,15 +1046,16 @@
 
   function buildCategoryCarousel(cats) {
     const container = document.getElementById('category-carousel');
-    
-    // Determinar categorías en uso directamente de los productos
-    const uniqueCatNames = [...new Set(globalJsonCache.products.map(p => p.categoryName))].filter(Boolean).sort();
+    if (!container) return;
+
+    // Determinar categorías en uso directamente de catalogData (productos válidos en tabla)
+    const uniqueCatNames = [...new Set(catalogData.map(p => p.category))].filter(Boolean).sort();
 
     let html = `<div onclick="filterCategory('', this)" data-category="" class="category-card active snap-start flex-shrink-0 flex flex-col items-center justify-center w-[70px] h-[70px] rounded-xl border border-accent bg-slate-800 cursor-pointer overflow-hidden p-1 shadow-sm">
             <i class="ph-bold ph-squares-four text-xl text-slate-400 mb-1"></i><span class="text-[8px] font-bold text-white uppercase truncate w-full text-center">Todas</span></div>`;
 
     uniqueCatNames.forEach(catName => {
-      // Buscar el SVG original en la lista 'cats' que viene del JSON
+      // Intentar encontrar metadatos (SVG) en la lista original 'cats'
       const catInfo = cats.find(c => c.name === catName) || { name: catName, svg: '<i class="ph-bold ph-tag text-xl text-slate-400 mb-1"></i>' };
       
       html += `<div onclick="filterCategory('${catName}', this)" data-category="${catName}" class="category-card snap-start flex-shrink-0 flex flex-col items-center justify-center w-[70px] h-[70px] rounded-xl border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden p-1 shadow-sm">

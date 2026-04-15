@@ -2030,8 +2030,12 @@
         if (!container) return;
         container.innerHTML = '';
 
-        // Obtener categorías únicas presentes en los productos actuales
-        const uniqueCatNames = [...new Set(PRODUCT_CATALOG.map(p => p.category))].filter(Boolean).sort();
+        // Determinar categorías en uso (solo productos con identificación básica para evitar categorías fantasma)
+        const uniqueCatNames = [...new Set(
+            PRODUCT_CATALOG
+                .filter(p => (p.sku && p.sku.trim() !== "") || (p.nombre && p.nombre !== "Sin Nombre"))
+                .map(p => p.category)
+        )].filter(Boolean).sort();
 
         // Botón "Todos"
         const allBtn = document.createElement('div');
