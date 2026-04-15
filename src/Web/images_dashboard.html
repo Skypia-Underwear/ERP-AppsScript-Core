@@ -2030,6 +2030,9 @@
         if (!container) return;
         container.innerHTML = '';
 
+        // Determinar categorías en uso
+        const usedCategories = new Set(PRODUCT_CATALOG.map(p => p.category));
+
         // Botón "Todos"
         const allBtn = document.createElement('div');
         allBtn.className = `category-chip ${currentCategoryFilter === "" ? 'active' : ''}`;
@@ -2037,7 +2040,7 @@
         allBtn.innerHTML = `<span class="material-icons text-lg">apps</span><span>Todos</span>`;
         container.appendChild(allBtn);
 
-        CATEGORY_LIST.forEach(cat => {
+        CATEGORY_LIST.filter(cat => usedCategories.has(cat.id)).forEach(cat => {
             const svg = CATEGORY_SVGS[cat.id] || CATEGORY_SVGS[cat.id.toUpperCase()] || `<svg viewBox="0 0 24 24" class="opacity-20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
             const chip = document.createElement('div');
             chip.className = `category-chip ${currentCategoryFilter === cat.id ? 'active' : ''}`;

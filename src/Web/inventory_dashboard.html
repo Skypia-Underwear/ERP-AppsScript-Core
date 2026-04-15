@@ -1046,10 +1046,14 @@
 
   function buildCategoryCarousel(cats) {
     const container = document.getElementById('category-carousel');
+    
+    // Determinar categorías en uso
+    const usedCategories = new Set(globalJsonCache.products.map(p => p.categoryName));
+
     let html = `<div onclick="filterCategory('', this)" data-category="" class="category-card active snap-start flex-shrink-0 flex flex-col items-center justify-center w-[70px] h-[70px] rounded-xl border border-accent bg-slate-800 cursor-pointer overflow-hidden p-1 shadow-sm">
             <i class="ph-bold ph-squares-four text-xl text-slate-400 mb-1"></i><span class="text-[8px] font-bold text-white uppercase truncate w-full text-center">Todas</span></div>`;
 
-    cats.forEach(c => {
+    cats.filter(c => usedCategories.has(c.name)).forEach(c => {
       html += `<div onclick="filterCategory('${c.name}', this)" data-category="${c.name}" class="category-card snap-start flex-shrink-0 flex flex-col items-center justify-center w-[70px] h-[70px] rounded-xl border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden p-1 shadow-sm">
                 <div class="w-6 h-6 mb-1 category-svg-container">${c.svg}</div><span class="text-[8px] font-bold text-slate-400 uppercase truncate w-full text-center">${c.name}</span></div>`;
     });
