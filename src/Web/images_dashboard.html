@@ -2030,33 +2030,36 @@
         if (!container) return;
         container.innerHTML = '';
 
-        // Determinar categorías en uso (solo productos con identificación básica para evitar categorías fantasma)
-        const uniqueCatNames = [...new Set(
-            PRODUCT_CATALOG
-                .filter(p => (p.sku && p.sku.trim() !== "") || (p.nombre && p.nombre !== "Sin Nombre"))
-                .map(p => p.category)
-        )].filter(Boolean).sort();
+        // 1. Identificar categorías en uso (solo productos con identificación básica)
+        const usedCats = new Set(PRODUCT_CATALOG
+            .filter(p => (p.sku && p.sku.trim() !== "") || (p.nombre && p.nombre !== "Sin Nombre"))
+            .map(p => (p.category || "").toLowerCase().trim())
+        );
 
-        // Botón "Todos"
+        // 2. Botón "Todas"
         const allBtn = document.createElement('div');
         allBtn.className = `category-chip ${currentCategoryFilter === "" ? 'active' : ''}`;
         allBtn.onclick = () => filtrarPorCategoria("");
         allBtn.innerHTML = `<span class="material-icons text-lg">apps</span><span>Todos</span>`;
         container.appendChild(allBtn);
 
-        uniqueCatNames.forEach(catId => {
-            // Intentar recuperar metadatos (Nombre amigable y SVG)
-            const catInfo = CATEGORY_LIST.find(c => c.id === catId || c.name === catId) || { id: catId, name: catId };
-            const svg = CATEGORY_SVGS[catId] || CATEGORY_SVGS[catId.toUpperCase()] || catInfo.svg || `<svg viewBox="0 0 24 24" class="opacity-20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
-            
-            const chip = document.createElement('div');
-            chip.className = `category-chip ${currentCategoryFilter === catId ? 'active' : ''}`;
-            chip.onclick = () => { 
-                filtrarPorCategoria(catId); 
-                chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
-            };
-            chip.innerHTML = `${svg}<span>${catInfo.name}</span>`;
-            container.appendChild(chip);
+        // 3. Iterar sobre CATEGORY_LIST (viniendo del JSON)
+        CATEGORY_LIST.forEach(c => {
+            const catIdLower = (c.id || "").toLowerCase().trim();
+            const catNameLower = (c.name || "").toLowerCase().trim();
+
+            if (usedCats.has(catIdLower) || usedCats.has(catNameLower)) {
+                const svg = CATEGORY_SVGS[c.id] || c.svg || `<svg viewBox="0 0 24 24" class="opacity-20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+                
+                const chip = document.createElement('div');
+                chip.className = `category-chip ${currentCategoryFilter === c.id ? 'active' : ''}`;
+                chip.onclick = () => { 
+                    filtrarPorCategoria(c.id); 
+                    chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
+                };
+                chip.innerHTML = `${svg}<span>${c.name}</span>`;
+                container.appendChild(chip);
+            }
         });
     }
 
