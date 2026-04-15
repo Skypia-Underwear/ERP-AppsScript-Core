@@ -3558,8 +3558,9 @@ function img_marcarPendienteAuditoria(sku, cantidadNuevas) {
   }
 }
 
-x * Helper para obtener o crear una subcarpeta(evita duplicados)
-  */
+/**
+ * Helper para obtener o crear una subcarpeta(evita duplicados)
+ */
 function obtenerOCrearSubcarpeta(parentFolder, subFolderName) {
   const folders = parentFolder.getFoldersByName(subFolderName);
   if (folders.hasNext()) return folders.next();
