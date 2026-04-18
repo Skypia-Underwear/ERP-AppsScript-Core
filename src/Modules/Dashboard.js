@@ -54,6 +54,8 @@ function cargarDashboardVentas_HEAVY() {
         const transferData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DATOS_TRANSFERENCIA));
         const usuariosData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.USUARIOS_SISTEMAS));
         const imagenesData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.PRODUCT_IMAGES));
+        const metodosPagoData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.METODOS_PAGO));
+        const svgGalleryData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.SVG_GALLERY));
 
         // Verificación rápida
         if (!ventasBlogger.length && !ventasPedidos.length) {
@@ -128,6 +130,20 @@ function cargarDashboardVentas_HEAVY() {
             if (img.PRODUCTO_ID && isPortada && !productImageMap[img.PRODUCTO_ID]) {
                 productImageMap[img.PRODUCTO_ID] = img.URL;
             }
+        });
+
+        // 1.6 Mapeo de Iconos de Pago (NUEVO)
+        const svgMap = {};
+        svgGalleryData.forEach(s => { if (s.SVG_ID) svgMap[s.SVG_ID] = s.SVG_CODE; });
+        
+        const metodosPagoIcons = {};
+        metodosPagoData.forEach(m => {
+          if (m.MOVIMIENTO_ID) {
+            metodosPagoIcons[m.MOVIMIENTO_ID] = {
+              porcentaje: parseMontoRobust(m.PORCENTAJE),
+              svg: svgMap[m.ICONO] || ""
+            };
+          }
         });
 
         // --- 2. CONSOLIDAR DETALLES ---
@@ -344,7 +360,8 @@ function cargarDashboardVentas_HEAVY() {
             filterOptions: {
                 cajas: Array.from(uniqueCajas).filter(x => x !== 'N/A').sort(),
                 origenes: Array.from(uniqueOrigenes).sort(),
-                metodosPago: Array.from(uniquePagos).filter(x => x !== 'N/A').sort()
+                metodosPago: Array.from(uniquePagos).filter(x => x !== 'N/A').sort(),
+                metodosPagoIcons: metodosPagoIcons // Mapa dinámico de iconos
             },
             productImageMap: productImageMap
         });

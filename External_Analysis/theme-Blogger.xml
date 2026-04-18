@@ -73,7 +73,7 @@
     <!-- CSS -->
     <title>Skypia Underwear</title>
     <link id='manifest' rel='manifest'/>
-    <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&amp;display=swap' rel='stylesheet'/>
+    <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&amp;family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;display=swap' rel='stylesheet'/>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'/>
     <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css' rel='stylesheet'/>
     <link href='https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.0/dist/fancybox/fancybox.css' rel='stylesheet'/>
@@ -1965,17 +1965,22 @@
     /* --- REDISEÑO PREMIUM DE TARJETAS DE PRODUCTO --- */
     .producto-item {
         background: white !important;
-        border: none !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: var(--premium-radius) !important;
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 2rem !important;
         padding: 1.5rem !important;
-        box-shadow: var(--premium-shadow) !important;
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        transition: all 0.3s ease !important;
     }
 
     .producto-item:hover {
-        transform: translateY(-5px) scale(1.01) !important;
-        box-shadow: var(--premium-shadow-hover) !important;
+        transform: none !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .producto-item.compacto:hover {
+        transform: none !important;
     }
 
     .producto_id {
@@ -2556,6 +2561,103 @@
         font-size: 0.9em;
         margin-top: 5px;
     }
+    /* Refinamientos Visuales Premium (Modo Compacto) */
+    .producto-item.compacto {
+        height: auto !important;
+        margin-bottom: 0.8rem !important;
+    }
+
+    .producto-item.compacto .premium-card {
+        height: auto !important;
+        display: block !important;
+        overflow: visible; /* Restaurar visibilidad de botones */
+    }
+
+    .producto-item.compacto .product-carousel-img {
+        height: 160px !important;
+        object-fit: cover !important;
+        width: 100% !important;
+    }
+
+    /* Píldora de Precio Premium - Ultra Dark */
+    .price-tag-premium-pill {
+        background: #020617 !important;
+        color: white !important;
+        padding: 4px 10px;
+        border-radius: 10px;
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        gap: 0;
+        position: relative;
+    }
+
+    /* Controles de Precio (Hover) */
+    .carousel-precios .carousel-control-prev,
+    .carousel-precios .carousel-control-next {
+        width: 20px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 5;
+    }
+
+    .price-tag-premium-pill:hover .carousel-control-prev,
+    .price-tag-premium-pill:hover .carousel-control-next {
+        opacity: 0.8;
+    }
+
+    .carousel-precios .carousel-control-prev-icon,
+    .carousel-precios .carousel-control-next-icon {
+        width: 12px;
+        height: 12px;
+        filter: brightness(0) invert(1); /* Forzar blanco puro */
+    }
+
+    .variant-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .producto-item.compacto img {
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
+    @media (max-width: 576px) {
+        .plato_nombre {
+            text-align: center !important;
+            width: 100% !important;
+        }
+        
+        /* Contenedor de SKU en móvil */
+        .producto-item .description-parent .d-flex.gap-2 {
+            justify-content: center !important;
+            width: 100% !important;
+            margin-bottom: 0.5rem;
+        }
+        
+        .estrellas.text-start {
+            text-align: center !important;
+        }
+    }
+
+    /* Reducción de Padding en Modo Compacto */
+    .producto-item.compacto {
+        padding: 4px !important;
+    }
+    
+    .producto-item.compacto .premium-card {
+        padding: 0 !important;
+    }
+
+    .producto-item.compacto .description-parent,
+    .producto-item.compacto .card-body {
+        padding: 8px !important;
+    }
+
 </style>
 
 <body>
@@ -3460,6 +3562,7 @@
         var operacion = "";
         var idpedido = "";
         var currentFormaPago = ""; // Variable global para controlar flujo según pago
+        let toggleInProgress = false; // Flag global para controlar si toggleDetalle se está ejecutando
 
         // Leer parámetros de la URL
         try {
@@ -5361,6 +5464,19 @@
                 });
         }
 
+        // --- OPTIMIZACIÓN GLOBAL (Premium Performance) ---
+        const LOG_SILENT = true;
+        window.CatalogRegistry = window.CatalogRegistry || {}; 
+        var CatalogRegistry = window.CatalogRegistry; // Alias global para compatibilidad
+        const esAndroidGlobal = /Android/i.test(navigator.userAgent);
+
+        function logDebug(msg, data = null) {
+            if (!LOG_SILENT) {
+                if (data) console.log(msg, data);
+                else console.log(msg);
+            }
+        }
+
         // --- NUEVO: Variables globales para la sincronización inteligente ---
         let actualizacionEnProgreso = false;
         let dataNuevaPendiente = null;
@@ -5499,10 +5615,7 @@
             refrescarRenderizadoTienda();
             
             dataNuevaPendiente = null;
-            
-            // Un pequeño aviso discreto en consola o un Toast si tuvieras librería, 
-            // pero para no molestar al usuario, solo lo dejamos en el log y el cronómetro.
-            console.log("🚀 [Sync] ¡Catálogo actualizado con éxito!");
+            logDebug("🚀 [Sync] ¡Catálogo actualizado con éxito!");
         }
 
         // Actualizar cada segundo
@@ -6023,7 +6136,6 @@
                     cargadas++;
                 } else {
                     img.addEventListener('load', () => {
-                        console.log(`🖼️ Imagen cargada para ${productoCodigo}`);
                         checkCargadas();
                     });
                     img.addEventListener('error', checkCargadas);
@@ -6036,15 +6148,15 @@
         }
 
         function inicializarCarruselesPrecios() {
-            document.querySelectorAll('.carousel-precios:not([data-initialized="true"])').forEach(carrusel => {
-                new bootstrap.Carousel(carrusel, {
+            document.querySelectorAll('.carousel-precios').forEach(carrusel => {
+                const instance = bootstrap.Carousel.getOrCreateInstance(carrusel, {
                     interval: 5000,
                     ride: 'carousel',
                     pause: false,
                     wrap: true
                 });
+                instance.cycle(); // Forzar el inicio manual del ciclo
                 carrusel.setAttribute('data-initialized', 'true');
-                console.log("💲 Carrusel de precios automáticos (5s) activado:", carrusel.id);
             });
         }
 
@@ -6057,7 +6169,7 @@
                     ride: 'carousel'
                 });
                 carrusel.dataset.initialized = "true";
-                console.log("🎠 Carrusel iniciado para:", productoCodigo);
+                logDebug("🎠 Carrusel iniciado para:", productoCodigo);
             }
         }
 
@@ -6194,27 +6306,32 @@
             const textoBotonCompra = producto.variedad.length > 1 ? "Elegir Variedad" : "🛒 Añadir al carrito";
 
             // 🎡 Carrusel de Precios por Variedad (PRE-RENDER)
+            const precioBase = producto.precio || (producto.variedad?.[0]?.precio) || 0;
             const preciosCarrusel = producto.variedad.length > 1 ? `
                 <div id="carouselPrecios_${producto.codigo}" class="carousel slide carousel-fade carousel-precios" data-bs-ride="carousel" data-bs-interval="5000">
                     <div class="carousel-inner text-center">
-                        ${producto.variedad.map((v, i) => `
+                        ${producto.variedad.map((v, i) => {
+                            const colorVar = typeof obtenerColor === "function" ? obtenerColor(v.variedad) : "#ff5733";
+                            return `
                             <div class="carousel-item ${i === 0 ? 'active' : ''}">
                                 <div class="price-tag-premium-pill">
-                                    ${formatMoneda(v.precio * (v.minima || 1), v.moneda)}
-                                    <span class="variant-label">${v.variedad || 'Personal.'}</span>
+                                    <span style="font-size: 1.1rem; font-weight: 800;">${formatMoneda(v.precio * (v.minima || 1), v.moneda || producto.moneda || "$")}</span>
+                                    <span class="variant-label" style="color: ${colorVar};">${v.variedad || 'Personal.'} (x${v.minima || 1})</span>
+                                    
+                                    <!-- Controles Internos -->
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="prev" onclick="event.stopPropagation()">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="next" onclick="event.stopPropagation()">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
                                 </div>
-                            </div>`).join('')}
+                            </div>`;
+                        }).join('')}
                     </div>
-                    <!-- Controles del Caroussel de Precios -->
-                    <button class="carousel-control-prev price-carousel-control" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="prev" onclick="event.stopPropagation()">
-                        <span class="carousel-control-prev-icon price-carousel-control-icon"></span>
-                    </button>
-                    <button class="carousel-control-next price-carousel-control" type="button" data-bs-target="#carouselPrecios_${producto.codigo}" data-bs-slide="next" onclick="event.stopPropagation()">
-                        <span class="carousel-control-next-icon price-carousel-control-icon"></span>
-                    </button>
                 </div>` : `
                 <div class="price-tag-premium-pill">
-                    ${formatMoneda(producto.precio, producto.moneda || "$")}
+                    <span style="font-size: 1.1rem; font-weight: 800;">${formatMoneda(precioBase, producto.moneda || "$")}</span>
                 </div>`;
 
             // 📋 Renderizador de Descripción (HELPER INTERNO)
@@ -6297,9 +6414,7 @@
     <li class="list-group-item producto-item d-flex flex-column flex-sm-row-reverse justify-content-between align-items-stretch ${isHighlighted ? 'highlight' : ''}" 
         id="producto-${categoria.codigo}-${producto.codigo}" 
         data-categoria="${categoria.codigo}"
-        data-precio="${producto.precio}"
-        data-variedades='${JSON.stringify(producto.variedad.map(v => v.variedad))}'
-        data-json='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}'>
+        data-sku="${producto.codigo}">
       
       <!-- 📸 Imagen -->
       <div class="image-parent position-relative">
@@ -6328,27 +6443,23 @@
 
       <!-- 📝 Descripción e Info -->
       <div class="description-parent flex-grow-1 p-3 d-flex flex-column">
-        <div class="d-flex justify-content-between align-items-start mb-0">
-            <div class="flex-grow-1">
-                <h5 class="plato_nombre mb-1" style="font-style: italic;" onclick="copiarDatosProducto(this)" 
-                    data-producto='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}' 
-                    data-categoria="${categoria.codigo}">
-                    ${producto.nombre} <i class="fa fa-copy ms-1 small opacity-50"></i>
-                </h5>
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                    <div class="d-flex gap-2">
-                        <span class="badge-premium-id">Código SKU</span>
-                        <span class="badge-row-id" title="Número de Fila">${producto.codigo || '-'}</span>
-                    </div>
-                </div>
-                <!-- ⭐ Bloque de Puntuaciones -->
-                <div class="estrellas mb-1 text-start" id="estrellas-${producto.codigo}" style="font-size: 0.9rem;">
-                    ${[1, 2, 3, 4, 5].map(r => `
-                        <span class="estrella" data-value="${r}" onclick="registrarPuntuacion('${producto.codigo}', ${r})">
-                            <i class="fa fa-star-o" style="color: #f5a623;"></i>
-                        </span>`).join('')}
-                    <span class="resultado-puntuacion ms-2" id="resultado-puntuacion-${producto.codigo}" style="display: none; font-size: 0.7rem; color: #64748b;"></span>
-                </div>
+        <div class="product-premium-header text-center mb-1">
+            <h5 class="plato_nombre mb-1" style="font-family: 'Playfair Display', serif; font-size: 1.5rem; letter-spacing: 0.5px;" onclick="copiarDatosProducto(this)" 
+                data-sku="${producto.codigo}" 
+                data-categoria="${categoria.codigo}">
+                ${producto.nombre} <i class="fa fa-copy ms-1 small opacity-50"></i>
+            </h5>
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                <span class="badge-premium-id">Código SKU</span>
+                <span class="badge-row-id" title="Número de Fila">${producto.codigo || '-'}</span>
+            </div>
+            <!-- ⭐ Bloque de Puntuaciones -->
+            <div class="estrellas mb-1 text-center" id="estrellas-${producto.codigo}" style="font-size: 0.9rem;">
+                ${[1, 2, 3, 4, 5].map(r => `
+                    <span class="estrella" data-value="${r}" onclick="registrarPuntuacion('${producto.codigo}', ${r})">
+                        <i class="fa fa-star-o" style="color: #f5a623;"></i>
+                    </span>`).join('')}
+                <span class="resultado-puntuacion ms-2" id="resultado-puntuacion-${producto.codigo}" style="display: none; font-size: 0.7rem; color: #64748b;"></span>
             </div>
         </div>
         
@@ -6356,7 +6467,20 @@
         
         <!-- 🛒 Fila Unificada: Precio/Variedad y Mini Carrito -->
         <div class="mt-auto pt-3 d-flex align-items-center gap-2">
-            <div class="variety-selector-unified flex-grow-1 shadow-sm" style="cursor: pointer; border-radius: 12px; overflow: hidden; height: 48px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1px solid #e2e8f0;" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
+            <style>
+                .variety-selector-unified {
+                    background: #1e293b; /* Fondo inicial más oscuro para legibilidad */
+                    color: white;
+                    transition: all 0.3s ease;
+                }
+                .variety-selector-unified:hover {
+                    background: #020617 !important;
+                }
+                .variety-selector-unified:hover .price-tag-premium-pill {
+                    background: transparent !important;
+                }
+            </style>
+            <div class="variety-selector-unified flex-grow-1 shadow-sm" style="cursor: pointer; border-radius: 12px; overflow: hidden; height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
                 ${preciosCarrusel}
             </div>
             <div class="mini-cart-container">
@@ -6391,19 +6515,32 @@
             const imagenesOrdenadas = Array.isArray(producto.imagen) && producto.imagen.length > 0
                 ? [...producto.imagen].sort((a, b) => (a.portada ? -1 : 1)) : [];
 
+            const precioBaseComp = producto.precio || (producto.variedad?.[0]?.precio) || 0;
             const preciosHtml = producto.variedad.length > 1 ? `
-                <div class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000" id="prices-comp-${producto.codigo}">
-                    <div class="carousel-inner shadow-sm" style="border-radius:30px;">
-                        ${producto.variedad.map((v, i) => `
+                <div class="carousel slide carousel-fade carousel-precios" data-bs-ride="carousel" data-bs-interval="5000" id="prices-comp-${producto.codigo}">
+                    <div class="carousel-inner shadow-sm" style="border-radius:10px;">
+                        ${producto.variedad.map((v, i) => {
+                            const colorVar = typeof obtenerColor === "function" ? obtenerColor(v.variedad) : "#ff5733";
+                            return `
                             <div class="carousel-item ${i === 0 ? 'active' : ''}">
-                                <div class="price-tag-premium-pill w-100 justify-content-center" style="font-size: 0.85rem; padding: 4px 10px;">
-                                    ${formatMoneda(v.precio * (v.minima || 1), v.moneda)}
+                                <div class="price-tag-premium-pill" style="min-height: 38px;">
+                                    <span style="font-size: 0.85rem; font-weight: 800;">${formatMoneda(v.precio * (v.minima || 1), v.moneda || producto.moneda || "$")}</span>
+                                    <span class="variant-label" style="color: ${colorVar}; font-size: 0.55rem;">${v.variedad || 'Personal.'} (x${v.minima || 1})</span>
+                                    
+                                    <!-- Controles Compactos Internos -->
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#prices-comp-${producto.codigo}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#prices-comp-${producto.codigo}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
                                 </div>
-                            </div>`).join('')}
+                            </div>`;
+                        }).join('')}
                     </div>
                 </div>` : `
-                <div class="price-tag-premium-pill w-100 justify-content-center" style="font-size: 0.9rem; padding: 4px 10px;">
-                    ${formatMoneda(producto.precio, producto.moneda || "$")}
+                <div class="price-tag-premium-pill" style="min-height: 38px;">
+                    <span style="font-size: 0.9rem; font-weight: 800;">${formatMoneda(precioBaseComp, producto.moneda || "$")}</span>
                 </div>`;
 
             let mensajeWhatsApp = producto.descripcion?.whatsapp?.mensaje || `Hola! Me interesa este producto: ${producto.nombre}`;
@@ -6417,45 +6554,53 @@
             return `
 <li class="producto-item compacto col-6 col-md-4 col-lg-3 mb-3 ${isHighlighted ? 'highlight' : ''}" 
     id="producto-${categoria.codigo}-${producto.codigo}" 
-    data-json='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}'>
+    data-sku="${producto.codigo}">
     
-    <div class="card h-100 premium-card">
-        <div class="position-relative overflow-hidden" style="padding-top: 120%;">
-            <div id="carouselComp_${producto.codigo}" class="carousel slide position-absolute top-0 start-0 w-100 h-100">
+    <div class="card premium-card">
+        <div class="position-relative overflow-hidden" style="height: 160px;">
+            <div id="carouselComp_${producto.codigo}" class="carousel slide position-absolute top-0 start-0 w-100 h-100" data-bs-ride="manual">
                 <div class="carousel-inner h-100">
                     ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                         <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
                             <a href="${img.url}" data-fancybox="gallery-compact-${producto.codigo}">
                                 <img src="${img.url}" class="d-block w-100 h-100" style="object-fit: cover;">
                             </a>
+                            ${img.portada ? `<span class="sticker-portada" style="font-size: 0.6rem; padding: 3px 8px;">⭐ Portada</span>` : ''}
                         </div>`).join('') : `
-                        <div class="carousel-item active h-100"><img src="https://placehold.co/200x240/002b5c/white?text=SF" class="w-100 h-100"></div>`}
+                        <div class="carousel-item active h-100"><img src="https://placehold.co/200x240/002b5c/white?text=SF" class="w-100 h-100" style="object-fit: cover;"></div>`}
                 </div>
-            </div>
-            <div class="position-absolute top-0 end-0 p-1 d-flex flex-column align-items-end gap-1">
-                <span class="badge bg-premium-glass-dark" style="font-size: 0.6rem;">${producto.codigo || 'S/C'}</span>
-                <span class="badge-row-id" style="width: 18px; height: 18px; font-size: 0.6rem;">${producto.codigo || '-'}</span>
             </div>
         </div>
 
         <div class="card-body p-2 d-flex flex-column text-center">
-            <h6 class="product-title-compact text-truncate mb-1" style="font-style: italic; cursor: pointer;" 
+            <h6 class="product-title-compact text-truncate mb-0" style="font-style: italic; cursor: pointer; font-size: 0.85rem;" 
                 onclick="copiarDatosProducto(this)" 
-                data-producto='${JSON.stringify(producto).replace(/'/g, "&apos;").replace(/"/g, "&quot;")}' 
+                data-sku="${producto.codigo}" 
                 data-categoria="${categoria.codigo}">
                 ${producto.nombre}
             </h6>
             
-            <div class="estrellas mb-1" id="estrellas-${producto.codigo}" style="font-size: 0.75rem;">
-                ${[1, 2, 3, 4, 5].map(r => `<i class="fa fa-star-o" style="color: #f5a623;"></i>`).join('')}
+            <div class="sku-badge-compact mb-1">
+                <span class="badge bg-light text-dark border" style="font-size: 0.6rem; font-weight: 500;">
+                    SKU: ${producto.codigo || 'S/C'}
+                </span>
+            </div>
+            
+            <!-- ⭐ Bloque de Puntuaciones Interactivas -->
+            <div class="estrellas mb-1 text-center" id="estrellas-${producto.codigo}" style="font-size: 0.75rem;">
+                ${[1, 2, 3, 4, 5].map(r => `
+                    <span class="estrella" style="cursor: pointer;" data-value="${r}" onclick="registrarPuntuacion('${producto.codigo}', ${r})">
+                        <i class="fa fa-star-o" style="color: #f5a623;"></i>
+                    </span>`).join('')}
+                <span class="resultado-puntuacion ms-2" id="resultado-puntuacion-${producto.codigo}" style="display: none; font-size: 0.65rem; color: #64748b;"></span>
             </div>
 
-            <div class="mb-2">
+            <div class="mb-1">
                 ${preciosHtml}
             </div>
 
-            <div class="mt-auto">
-                <div class="d-flex gap-1 mb-2">
+            <div class="acciones-compactas">
+                <div class="d-flex gap-1 mb-1">
                     <button class="btn btn-sm btn-outline-secondary flex-grow-1 p-1" style="font-size: 0.7rem; border-radius: 6px;" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
                         <i class="fa fa-share-alt"></i>
                     </button>
@@ -6466,7 +6611,7 @@
                 <button class="btn btn-primary btn-sm w-100 fw-bold premium-btn-action" style="border-radius: 8px; font-size: 0.75rem;" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
                     🛒 Comprar
                 </button>
-                <div class="mt-1" style="font-size: 0.65rem; color: #94a3b8;">
+                <div class="mt-1" style="font-size: 0.6rem; color: #94a3b8;">
                     Stock: ${producto.descripcion?.stock?.valor || "-"}
                 </div>
             </div>
@@ -6475,17 +6620,23 @@
 </li>`;
         }
 
-        function renderizarProductosPorCategoria(codigoCategoria) {
+        function renderizarProductosPorCategoria(codigoCategoria, onComplete) {
             const contenedor = document.getElementById(`contenedor-productos-${codigoCategoria}`);
-            if (!contenedor || contenedor.dataset.renderizado === "true") return;
+            if (!contenedor || contenedor.dataset.renderizado === "true" || contenedor.dataset.rendering === "true") return;
 
-            // --- INICIO: Leer y Aplanar estructura DENTRO de renderizarProductosPorCategoria ---
+            // Marcamos como en proceso para evitar duplicados
+            contenedor.dataset.rendering = "true";
+
+            // --- Recuperar y filtrar productos ---
             const configCompleta = JSON.parse(localStorage.getItem("configuracion_pagina"));
             const categoriasPadre = configCompleta?.content || [];
-            const config = categoriasPadre.flatMap(padre => padre.categorias); // Aplanamos
-            // --- FIN: Aplanar ---
+            const config = categoriasPadre.flatMap(padre => padre.categorias);
             const categoria = config.find(cat => String(cat.codigo) === String(codigoCategoria));
-            if (!categoria) return;
+            
+            if (!categoria) {
+                contenedor.dataset.rendering = "false";
+                return;
+            }
 
             const searchValue = $("#txt_search").val().toUpperCase();
             const productosFiltrados = categoria.producto.filter(prod =>
@@ -6493,20 +6644,65 @@
             );
 
             const productosOrdenados = ordenarListaProductos(productosFiltrados, ordenSeleccionado);
-            contenedor.innerHTML = productosOrdenados.map(p => crearProductoHTML(categoria, p)).join('');
-            contenedor.dataset.renderizado = "true";
+            
+            // --- Motor de Renderizado por Lotes (Batch Engine) ---
+            const BATCH_SIZE = 10;
+            let index = 0;
+            contenedor.innerHTML = ''; // Limpiar loader previo
 
-            const productosCategoria = contenedor.querySelectorAll(".producto-item");
-            productosCategoria.forEach(producto => {
-                const codigo = producto.id.replace(/^producto-[^-]+-/, '');
-                inicializarCarruselCuandoCargue(codigo);
-                inicializarCarruselesPrecios();
-            });
+            function renderBatch() {
+                const fragment = document.createDocumentFragment();
+                const limit = Math.min(index + BATCH_SIZE, productosOrdenados.length);
+                
+                for (let i = index; i < limit; i++) {
+                    const prod = productosOrdenados[i];
+                    // Registrar en el CatalogRegistry global
+                    CatalogRegistry[prod.codigo] = prod;
+                    
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = crearProductoHTML(categoria, prod);
+                    while (tempDiv.firstChild) {
+                        fragment.appendChild(tempDiv.firstChild);
+                    }
+                }
 
-            // 🔁 Refrescar puntuaciones si existe función global
-            if (typeof cargarPuntuaciones === 'function') cargarPuntuaciones();
+                contenedor.appendChild(fragment);
+                index = limit; // Incrementar el índice para el siguiente lote
+                if (index < productosOrdenados.length) {
+                    requestAnimationFrame(renderBatch);
+                } else {
+                    // Finalización del renderizado completo de la categoría
+                    contenedor.dataset.renderizado = "true";
+                    contenedor.dataset.rendering = "false";
+                    
+                    // Inicializar componentes visuales post-render
+                    const productosCategoria = contenedor.querySelectorAll(".producto-item");
+                    productosCategoria.forEach(producto => {
+                        const codigo = producto.id.replace(/^producto-[^-]+-/, '');
+                        inicializarCarruselCuandoCargue(codigo);
+                    });
+                    
+                    // Finalizar inicialización de carruseles de precios
+                    if (typeof inicializarCarruselesPrecios === "function") {
+                        inicializarCarruselesPrecios();
+                    }
 
-            console.log(`✅ Productos renderizados para categoría: ${codigoCategoria}`);
+                    // Ejecutar callback si existe
+                    if (typeof onComplete === "function") {
+                        onComplete(productosCategoria);
+                    }
+                    if (typeof cargarPuntuaciones === 'function') cargarPuntuaciones();
+                    
+                    // --- Auto-Regeneración de Filtros (Sincronía Total) ---
+                    if (typeof generarOpcionesDeResaltadoFiltrado === "function") {
+                        generarOpcionesDeResaltadoFiltrado(productosCategoria, codigoCategoria);
+                    }
+                    
+                    logDebug(`✅ Productos renderizados y filtros sincronizados para categoría: ${codigoCategoria}`);
+                }
+            }
+
+            renderBatch();
         }
 
         function renderizarTodasLasCategorias() {
@@ -6519,44 +6715,33 @@
             config.forEach(categoria => {
                 const contenedor = document.getElementById(`contenedor-productos-${categoria.codigo}`);
                 if (!contenedor) return;
-
-                const searchValue = $("#txt_search").val().toUpperCase();
-                const productosFiltrados = categoria.producto.filter(prod =>
-                    prod.nombre.toUpperCase().includes(searchValue)
-                );
-
-                const productosOrdenados = ordenarListaProductos(productosFiltrados, ordenSeleccionado);
-
-                contenedor.innerHTML = productosOrdenados.map(p => crearProductoHTML(categoria, p)).join('');
-                contenedor.dataset.renderizado = "true";
-
-                const productosCategoria = contenedor.querySelectorAll(".producto-item");
-                productosCategoria.forEach(producto => {
-                    const codigo = producto.id.replace(/^producto-[^-]+-/, '');
-                    inicializarCarruselCuandoCargue(codigo);
-                });
-
-                if (typeof cargarPuntuaciones === 'function') cargarPuntuaciones();
-                inicializarCarruselesPrecios();
+                
+                // NO renderizamos productos aquí (LAZY LOADING)
+                contenedor.innerHTML = ''; 
+                contenedor.dataset.renderizado = "false";
             });
 
-            console.log("🔁 Todas las categorías fueron re-renderizadas");
+            logDebug("🔁 Estructura de categorías preparada para Lazy Loading");
         }
 
+        /**
+         * Filtra el catálogo principal por la Categoría Padre seleccionada.
+         * @param {string} valorSeleccionado - El nombre de la categoría padre a filtrar.
+         */
         function filtrarPorCategoriaPadre(valorSeleccionado) {
-            console.log(`Filtrando acordeones por Padre: ${valorSeleccionado || 'Todas'}`);
+            logDebug(`Filtrando acordeones por Padre: ${valorSeleccionado || 'Todas'}`);
 
-            // 1. Recargar los acordeones (esto ya estaba)
+            // 1. Recargar los acordeones
             cargar_productos();
 
             // 2. 👇 Regenerar el carrusel superior para que coincida 👇
             generarListadoCategoriasCarrusel();
 
-            // 3. Opcional: Cerrar todos los acordeones (esto ya estaba)
+            // 3. Opcional: Cerrar todos los acordeones
             if (typeof $ !== 'undefined' && $.fn.collapse) {
                 $(".accordion-collapse").collapse('hide');
             } else {
-                console.warn("jQuery o Bootstrap Collapse no disponibles al intentar cerrar acordeones.");
+                logDebug("jQuery o Bootstrap Collapse no disponibles al intentar cerrar acordeones.");
             }
         }
 
@@ -6582,9 +6767,9 @@
             if (filtroPadreSeleccionado && filtroPadreSeleccionado !== '') {
                 // Filtramos la lista aplanada para quedarnos solo con las hijas del padre seleccionado
                 configFiltrada = configAplanada.filter(hija => hija.nombre_padre === filtroPadreSeleccionado);
-                console.log(`🔎 Filtrando por Categoría Padre: "${filtroPadreSeleccionado}"`);
+                logDebug(`🔎 Filtrando por Categoría Padre: "${filtroPadreSeleccionado}"`);
             } else {
-                console.log("🔎 Mostrando Todas las Categorías Padre."); // Mensaje cuando no hay filtro
+                logDebug("🔎 Mostrando Todas las Categorías Padre."); // Mensaje cuando no hay filtro
             }
             // <<< --- FIN: Filtrar por Categoría Padre (PUNTO B) --- >>>
 
@@ -6646,27 +6831,16 @@
 
             document.getElementById('accordionFlushExample').innerHTML = lstProductos;
 
-            // --- Renderizar las categorías filtradas inmediatamente ---
-            // (Esta parte ya la tenías correcta, usando categoriasFiltradasParaRender)
-            setTimeout(() => {
-                categoriasFiltradasParaRender.forEach(cat => {
-                    const contenedor = document.getElementById(`contenedor-productos-${cat.codigo}`);
-                    if (!contenedor) return;
-
-                    // --- (El resto de esta sección queda igual) ---
-                    contenedor.innerHTML = ordenarListaProductos(cat.producto, ordenSeleccionado)
-                        .map(p => crearProductoHTML(cat, p)).join('');
-                    contenedor.dataset.renderizado = "true";
-
-                    const productosCategoria = contenedor.querySelectorAll(".producto-item");
-                    productosCategoria.forEach(producto => {
-                        const codigo = producto.id.replace(/^producto-[^-]+-/, '');
-                        inicializarCarruselCuandoCargue(codigo);
-                    });
-
-                    if (typeof cargarPuntuaciones === 'function') cargarPuntuaciones();
-                });
-            }, 50);
+            // --- NO renderizamos las categorías filtradas inmediatamente (LAZY LOADING) ---
+            // Solo si había una búsqueda activa abrimos la primera categoría que tenga resultados
+            if (filtroTexto !== '') {
+                setTimeout(() => {
+                    const primerAcordeon = document.querySelector(".accordion-collapse");
+                    if (primerAcordeon) {
+                        $(primerAcordeon).collapse('show');
+                    }
+                }, 50);
+            }
 
             // Establecer la vista por defecto
             const vistaGuardada = localStorage.getItem('modo_vista') || 'lista';
@@ -6694,6 +6868,14 @@
                     });
 
                     renderizarTodasLasCategorias();
+                    
+                    // ✅ Re-renderizar automáticamente categorías que estuvieran abiertas
+                    document.querySelectorAll('.accordion-collapse.show').forEach(acc => {
+                        const idCat = acc.id.replace('flush-collapse-', '');
+                        if (idCat) {
+                            renderizarProductosPorCategoria(idCat);
+                        }
+                    });
 
                     contenedor.classList.remove("fade-out");
                     contenedor.classList.add("fade-in");
@@ -6892,25 +7074,25 @@
                 return hayFiltrosEnLocalStorage || haySelectsConValor || hayCheckboxesMarcados || hayProductosResaltados;
             }
 
+
             // Evento para manejar el cambio de estado de los acordeones
             $(".accordion-collapse").on("shown.bs.collapse hidden.bs.collapse", function (e) {
                 if (toggleInProgress) return;
 
                 toggleFloatingButton();
 
-                const contenedor = this.querySelector(".list-group");
-                const categoria = contenedor?.id?.replace("contenedor-productos-", "") || "sin-categoria";
+                const categoria = this.dataset.categoria || "sin-categoria";
+                const contenedor = document.getElementById(`contenedor-productos-${categoria}`);
 
                 if (e.type === "shown") {
                     localStorage.setItem(`filtros_disponibles_${categoria}`, "true");
-                    renderizarProductosPorCategoria(categoria);
-
-                    const productosCategoria = this.querySelectorAll(".producto-item");
-                    if (productosCategoria.length > 0) {
-                        generarOpcionesDeResaltadoFiltrado(Array.from(productosCategoria), categoria);
-                    } else {
-                        console.warn("⚠️ Se abrió el acordeón pero los productos no están en el DOM aún.");
-                    }
+                    
+                    renderizarProductosPorCategoria(categoria, (productos) => {
+                        if (productos && productos.length > 0) {
+                            generarOpcionesDeResaltadoFiltrado(Array.from(productos), categoria);
+                            logDebug(`✅ Filtros generados tras renderizado de categoría: ${categoria}`);
+                        }
+                    });
                 }
 
                 if (e.type === "hidden") {
@@ -6937,7 +7119,6 @@
             cargarPuntuaciones();
         }
 
-        let toggleInProgress = false; // Flag para controlar si toggleDetalle se está ejecutando
 
         // Función para manejar el toggle de detalles del mini carrito
         function toggleDetalle(id, isDelete = false) {
@@ -7171,11 +7352,13 @@
 
         function copiarDatosProducto(el) {
             try {
-                const producto = JSON.parse(el.getAttribute('data-producto'));
+                const sku = el.getAttribute('data-sku');
                 const categoriaCodigo = el.getAttribute('data-categoria');
+                const producto = CatalogRegistry[sku];
 
                 if (!producto || !categoriaCodigo) {
-                    Swal.fire('Error', 'No se pudo obtener la información del producto.', 'error');
+                    logDebug("⚠️ SKU no encontrado en Registry:", sku);
+                    Swal.fire('Error', 'No se pudo obtener la información del producto del registro.', 'error');
                     return;
                 }
 
@@ -7501,18 +7684,18 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const contadorResaltados = inicializarContadores(resaltados);
             const preciosFiltrado = [];
 
-            // Recolectar descripciones y precios
+            // Recolectar descripciones y precios desde el Registry
             productosCategoria.forEach(producto => {
-                const descripcion = obtenerDescripcionDesdeProducto(producto);
-                agruparFiltrosPorDescripcion(descripcion, producto, resaltados, contadorResaltados, preciosFiltrado);
+                const sku = producto.dataset.sku;
+                const productData = window.CatalogRegistry[sku];
 
-                // Extraer precio si existe
-                const precioEl = producto.querySelector('.plato_precio');
-                if (precioEl) {
-                    let precioStr = precioEl.textContent.replace(/[^\d.,]/g, "").replace(",", ".");
-                    let precio = parseFloat(precioStr);
-                    if (!isNaN(precio)) preciosFiltrado.push(precio);
+                if (!productData) {
+                    logDebug(`⚠️ Producto con SKU ${sku} no encontrado en el Registry.`);
+                    return;
                 }
+
+                const descripcion = productData.descripcion || {};
+                agruparFiltrosPorDescripcion(descripcion, productData, resaltados, contadorResaltados, preciosFiltrado);
             });
 
             localStorage.setItem(`filtros_disponibles_${categoria}`, JSON.stringify(resaltados));
@@ -7566,23 +7749,11 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             return contador;
         }
 
-        function obtenerDescripcionDesdeProducto(producto) {
-            let productoDataStr = producto.querySelector('.plato_nombre')?.getAttribute('data-producto');
-            let descripcion = {};
-            try {
-                if (productoDataStr) {
-                    let productoData = JSON.parse(productoDataStr.replace(/&apos;/g, "'"));
-                    if (productoData && typeof productoData.descripcion === 'object') {
-                        descripcion = productoData.descripcion;
-                    }
-                }
-            } catch (e) {
-                console.warn("⚠️ Error al parsear productoData:", e);
-            }
-            return descripcion;
+        function obtenerDescripcionDesdeProducto(productData) {
+            return productData?.descripcion || {};
         }
 
-        function agruparFiltrosPorDescripcion(desc, producto, resaltados, contador, precios) {
+        function agruparFiltrosPorDescripcion(desc, productData, resaltados, contador, precios) {
             const camposDirectos = {
                 "Modelo": desc.modelo?.valor,
                 "Estilo": desc.estilo?.valor,
@@ -7594,15 +7765,14 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
             for (let [key, valor] of Object.entries(camposDirectos)) {
                 if (valor) {
-                    valor = valor.trim();
-                    resaltados[key].add(valor);
-                    contador[key][valor] = (contador[key][valor] || 0) + 1;
+                    const limpio = String(valor).trim();
+                    resaltados[key].add(limpio);
+                    contador[key][limpio] = (contador[key][limpio] || 0) + 1;
                 }
             }
 
-           if (Array.isArray(desc.talles?.valores)) {
+            if (Array.isArray(desc.talles?.valores)) {
                 desc.talles.valores.forEach(talle => {
-                    // Forzamos que 'talle' sea un string antes de usar trim()
                     const limpio = String(talle).trim(); 
                     if (limpio) {
                         resaltados["Talles"].add(limpio);
@@ -7628,28 +7798,20 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 resaltados["video"].add("on");
             }
 
-            const variedadesRaw = producto.getAttribute('data-variedades');
-            if (variedadesRaw) {
-                try {
-                    const variedades = JSON.parse(variedadesRaw);
-                    variedades.forEach(v => {
-                        const variedad = v.trim();
-                        if (variedad) {
-                            resaltados["Variedad"].add(variedad);
-                            contador.Variedad[variedad] = (contador.Variedad[variedad] || 0) + 1;
-                        }
-                    });
+            // Variedades y Precios desde el objeto en memoria
+            if (Array.isArray(productData.variedad)) {
+                productData.variedad.forEach(v => {
+                    const nombreVariedad = String(v.variedad || "").trim();
+                    if (nombreVariedad) {
+                        resaltados["Variedad"].add(nombreVariedad);
+                        contador.Variedad[nombreVariedad] = (contador.Variedad[nombreVariedad] || 0) + 1;
+                    }
 
-                    const datos = JSON.parse(producto.getAttribute("data-variedades_completo") || "[]");
-                    datos.forEach(item => {
-                        if (item.precio) {
-                            const precioCalculado = parseFloat(item.precio) * (item.minima || 1);
-                            precios.push(precioCalculado);
-                        }
-                    });
-                } catch (e) {
-                    console.warn("⚠️ Error al parsear data-variedades:", e);
-                }
+                    if (v.precio) {
+                        const precioCalculado = parseFloat(v.precio) * (v.minima || 1);
+                        if (!isNaN(precioCalculado)) precios.push(precioCalculado);
+                    }
+                });
             }
         }
 
@@ -8110,18 +8272,15 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 producto.classList.remove('resaltado-filtro', 'no-coincide', 'color-surtido', 'oculto');
                 let coincide = true;
 
-                const dataProductoStr = producto.querySelector('.plato_nombre')?.getAttribute('data-producto');
-                let descripcion = {};
-                if (dataProductoStr) {
-                    try {
-                        const parsed = JSON.parse(dataProductoStr.replace(/&apos;/g, "'"));
-                        if (parsed.descripcion && typeof parsed.descripcion === 'object') {
-                            descripcion = parsed.descripcion;
-                        }
-                    } catch (e) {
-                        console.warn("⚠️ Error al parsear data-producto:", e);
-                    }
+                const sku = producto.dataset.sku;
+                const productData = window.CatalogRegistry[sku];
+
+                if (!productData) {
+                    logDebug(`⚠️ No se encontró data para SKU ${sku} al filtrar.`);
+                    return;
                 }
+
+                const descripcion = productData.descripcion || {};
 
                 for (let key in filtros) {
                     const valoresFiltro = filtros[key];
@@ -8131,20 +8290,14 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     const claveReal = campoDescripcionMap[key] || claveNorm;
 
                     if (claveNorm === 'variedad') {
-                        let variedadesProducto = [];
-                        const raw = producto.getAttribute('data-variedades');
-                        if (raw) {
-                            try {
-                                variedadesProducto = JSON.parse(raw);
-                            } catch (e) {
-                                console.warn('Error parseando data-variedades', e);
-                            }
-                        }
+                        let variedadesProducto = Array.isArray(productData.variedad) 
+                            ? productData.variedad.map(v => String(v.variedad || "").trim().toLowerCase()) 
+                            : [];
 
                         const valoresFiltroArray = Array.isArray(valoresFiltro) ? valoresFiltro : [valoresFiltro];
                         const tieneVariedad = variedadesProducto.some(v =>
                             valoresFiltroArray.some(filtroVariedad =>
-                                filtroVariedad.toLowerCase() === v.toLowerCase()
+                                filtroVariedad.toLowerCase() === v
                             )
                         );
                         if (!tieneVariedad) {
@@ -8155,7 +8308,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     }
 
                     if (claveNorm === 'color') {
-                        const hayCoincidencia = productoCoincideConColores(producto, valoresFiltro);
+                        const hayCoincidencia = productoCoincideConColores(producto, productData, valoresFiltro);
                         if (!hayCoincidencia) {
                             coincide = false;
                         }
@@ -8163,16 +8316,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     }
 
                     if (claveNorm === 'video') {
-                        let json;
-                        try {
-                            json = JSON.parse(producto.dataset.json);
-                        } catch (e) {
-                            console.warn("No se pudo parsear el JSON del producto:", e);
-                            coincide = false;
-                            continue;
-                        }
-
-                        const tieneVideo = !!json.descripcion?.video?.url;
+                        const tieneVideo = !!descripcion.video?.url;
                         if (!tieneVideo) {
                             coincide = false;
                         }
@@ -8183,7 +8327,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         textoElemento = [];
                         if (Array.isArray(descripcion?.[claveReal]?.valores)) {
                             textoElemento = descripcion[claveReal].valores
-                                .map(t => t.trim().toLowerCase())
+                                .map(t => String(t || "").trim().toLowerCase())
                                 .filter(t => t.length > 0);
                         }
                     } else {
@@ -8262,27 +8406,16 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
         }
 
-        function productoCoincideConColores(producto, valoresFiltro) {
-            // ✅ Obtener JSON del producto desde el data-json
-            let json;
-            try {
-                json = JSON.parse(producto.dataset.json);
-            } catch (e) {
-                console.warn("No se pudo parsear el JSON del producto:", e);
-                return false;
-            }
-
-            // ✅ Extraer nombres de colores desde json.descripcion.colores.valores
+        function productoCoincideConColores(producto, productData, valoresFiltro) {
             const nombresColoresProducto = new Set();
+            const colores = productData.descripcion?.colores?.valores;
 
-            const colores = json.descripcion?.colores?.valores;
             if (Array.isArray(colores)) {
                 colores.forEach(c => {
                     if (c.nombre) {
-                        const colorNombre = c.nombre.trim().toLowerCase();
+                        const colorNombre = String(c.nombre).trim().toLowerCase();
                         nombresColoresProducto.add(colorNombre);
 
-                        // 👇 Si el color es surtido, se puede agregar clase si querés
                         if (colorNombre === "surtido") {
                             producto.classList.add("color-surtido");
                         }
@@ -8336,12 +8469,26 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const sidebar = document.getElementById("sidebarFiltros");
             const overlay = document.getElementById("overlayFiltros");
 
+            // --- Bloqueo Preventivo: Solo abrir si hay una categoría activa ---
+            const categoriasAbiertas = document.querySelectorAll(".accordion-collapse.show");
+            if (categoriasAbiertas.length === 0 && !sidebar.classList.contains("active")) {
+                Swal.fire({
+                    title: "¡Selecciona una Categoría!",
+                    text: "Primero despliega una categoría para ver sus filtros disponibles (Colores, Talles, Marcas, etc).",
+                    icon: "info",
+                    confirmButtonColor: "#3b82f6"
+                });
+                return;
+            }
+
             sidebar.classList.toggle("active");
             overlay.classList.toggle("active");
 
             // Cerrar carrito si está abierto
-            document.getElementById("sidebarCarrito").classList.remove("active");
-            document.getElementById("overlayCarrito").classList.remove("active");
+            const sidebarCarrito = document.getElementById("sidebarCarrito");
+            if (sidebarCarrito) sidebarCarrito.classList.remove("active");
+            const overlayCarrito = document.getElementById("overlayCarrito");
+            if (overlayCarrito) overlayCarrito.classList.remove("active");
         }
 
         function closeSidebarFiltros() {
@@ -9646,36 +9793,15 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
          */
         function mostrar_popuppedido(categoriaCodigo, idProducto, mostrarModal = true) { // <--- Parámetro corregido
 
-            // --- 👇 INICIO: LEER Y APLANAR ESTRUCTURA CORRECTAMENTE 👇 ---
-            let producto = null;
-            let categoriaHija = null;
-            try {
-                const configCompleta = JSON.parse(localStorage.getItem('configuracion_pagina'));
-                if (!configCompleta || !configCompleta.content) {
-                    throw new Error("No se encontró 'configuracion_pagina' o '.content' en localStorage.");
-                }
-                const categoriasPadreOriginal = configCompleta.content || [];
-                const categoriasHijasAplanadas = categoriasPadreOriginal.flatMap(padre => padre.categorias);
-
-                categoriaHija = categoriasHijasAplanadas.find(cat => cat.codigo + "" === categoriaCodigo); // <--- Busca en lista aplanada
-
-                if (!categoriaHija) {
-                    throw new Error(`No se encontró la categoría hija con código: ${categoriaCodigo}`);
-                }
-                if (!categoriaHija.producto || !Array.isArray(categoriaHija.producto)) {
-                    throw new Error(`La categoría hija ${categoriaCodigo} no tiene una lista de productos válida.`);
-                }
-                producto = categoriaHija.producto.find(prod => prod.codigo + "" === idProducto); // <--- Busca producto aquí
-
-                if (!producto) {
-                    throw new Error(`No se encontró el producto con código ${idProducto} en la categoría ${categoriaCodigo}`);
-                }
-            } catch (error) {
-                console.error("❌ Error grave al buscar producto en mostrar_popuppedido:", error);
-                Swal.fire('Error', 'No se pudo cargar la información del producto. Intenta recargar la página.', 'error');
+            // --- 👇 INICIO: OPTIMIZACIÓN REGISTRY 👇 ---
+            const producto = CatalogRegistry[idProducto];
+            if (!producto) {
+                logDebug("❌ Producto no encontrado en Registry:", idProducto);
+                Swal.fire('Error', 'No se pudo cargar la información del producto. Intenta expandir la categoría de nuevo.', 'error');
                 return;
             }
-            // --- 👆 FIN: LEER Y APLANAR ESTRUCTURA CORRECTAMENTE 👆 ---
+            const categoriaHija = { nombre: producto.categoria_nombre };
+            // --- 👆 FIN: OPTIMIZACIÓN REGISTRY 👆 ---
 
 
             // --- El resto de tu función continúa desde aquí ---
@@ -10197,20 +10323,12 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const contenedor_detalle = $('#sidebarCarritoContenido');
 
             // Obtenemos la info completa del producto para usar el SKU (nombre) y la imagen
-            const productoCard = $(`#producto-${categoria}-${id}`);
-            let productoData = {};
+            const productoData = CatalogRegistry[id] || {};
             let imagenURL = 'https://placehold.co/60x60/0088f2/white?text=Img';
 
-            if (productoCard.length) {
-                try {
-                    productoData = JSON.parse(productoCard.attr('data-json').replace(/&quot;/g, '"'));
-                    if (productoData.imagen && productoData.imagen.length > 0) {
-                        const imagenPortada = productoData.imagen.find(img => img.portada);
-                        imagenURL = imagenPortada ? imagenPortada.url : productoData.imagen[0].url;
-                    }
-                } catch (e) {
-                    console.error("Error al parsear data-json del producto:", e);
-                }
+            if (productoData.imagen && productoData.imagen.length > 0) {
+                const imagenPortada = productoData.imagen.find(img => img.portada);
+                imagenURL = imagenPortada ? imagenPortada.url : productoData.imagen[0].url;
             }
 
             let contenedor_producto = contenedor_detalle.find(`#contenedor_producto_${id}`);
@@ -10398,8 +10516,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             let locale = locales[moneda] || 'es-AR';
             let valorNumerico = parseFloat(valor);
             if (isNaN(valorNumerico)) {
-                console.error("El valor proporcionado no es un número válido:", valor);
-                return valor;
+                return simbolo ? `${simbolo} 0,00` : "0,00";
             }
             try {
                 let formatter = new Intl.NumberFormat(locale, {
@@ -10421,42 +10538,15 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
         function mostrar_detalle(categoriaCodigo, id, variante, precio, minima, stock, color = 'Surtido', talle = 'Surtido') { // <-- Cambiado nombre parámetro
 
-            // --- 👇 INICIO: LEER Y APLANAR ESTRUCTURA CORRECTAMENTE 👇 ---
-            let producto = null;
-            let categoriaHija = null;
-            try {
-                const configCompleta = JSON.parse(localStorage.getItem('configuracion_pagina'));
-                if (!configCompleta || !configCompleta.content) {
-                    throw new Error("No se encontró 'configuracion_pagina' o '.content' en localStorage.");
-                }
-                const categoriasPadreOriginal = configCompleta.content || [];
-                // Aplanamos para buscar la categoría hija
-                const categoriasHijasAplanadas = categoriasPadreOriginal.flatMap(padre => padre.categorias);
-
-                // 1. Encontrar la categoría hija correcta usando el código
-                categoriaHija = categoriasHijasAplanadas.find(cat => cat.codigo + "" === categoriaCodigo); // <--- Busca en la lista aplanada
-
-                if (!categoriaHija) {
-                    throw new Error(`No se encontró la categoría hija con código: ${categoriaCodigo}`);
-                }
-
-                // 2. Encontrar el producto DENTRO de esa categoría hija
-                if (!categoriaHija.producto || !Array.isArray(categoriaHija.producto)) {
-                    throw new Error(`La categoría hija ${categoriaCodigo} no tiene una lista de productos válida.`);
-                }
-                producto = categoriaHija.producto.find(prod => prod.codigo + "" === id); // <--- Busca el producto aquí
-
-                if (!producto) {
-                    throw new Error(`No se encontró el producto con código ${id} en la categoría ${categoriaCodigo}`);
-                }
-
-            } catch (error) {
-                console.error("❌ Error grave al buscar producto en mostrar_detalle:", error);
-                // Opcional: Mostrar un error al usuario
+            // --- 👇 INICIO: OPTIMIZACIÓN REGISTRY 👇 ---
+            const producto = CatalogRegistry[id];
+            if (!producto) {
+                logDebug("❌ Producto no encontrado en Registry para mostrar_detalle:", id);
                 Swal.fire('Error', 'No se pudo obtener la información del producto para añadir al carrito.', 'error');
-                return; // Salir si no se encuentra
+                return;
             }
-            // --- 👆 FIN: LEER Y APLANAR ESTRUCTURA CORRECTAMENTE 👆 ---
+            const categoriaHija = { nombre: producto.categoria_nombre };
+            // --- 👆 FIN: OPTIMIZACIÓN REGISTRY 👆 ---
 
 
             // --- El resto de tu función continúa desde aquí ---

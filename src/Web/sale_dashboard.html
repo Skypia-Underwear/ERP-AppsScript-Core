@@ -1,14 +1,12 @@
+<!-- Chart.js se mantiene para los dashboards de ventas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
 <? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
   <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 <? } ?>
 
-
-<!-- Chart.js se mantiene para los dashboards de ventas -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-
 <style>
   /* Estilos específicos de Dashboard de Ventas */
-
   .dashboard-container {
     font-family: 'Inter', sans-serif;
     background-color: #0f172a;
@@ -19,196 +17,54 @@
     position: relative;
   }
 
-  /* Scrollbar Dark */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+  /* DataTables Dark Theme Overrides */
+  .dt-container { color: #cbd5e1 !important; }
+  .dt-search input { background: #1e293b !important; color: white !important; border: 1px solid #334155 !important; border-radius: 10px !important; padding: 6px 12px !important; outline: none !important; }
+  .dt-length select { background: #1e293b !important; color: white !important; border: 1px solid #334155 !important; border-radius: 6px !important; }
+  .dt-scroll-head { background-color: #0f172a !important; border-bottom: 2px solid #334155 !important; }
+  table.dataTable { border-collapse: collapse !important; width: 100% !important; background-color: transparent !important; margin-top: 15px !important; }
+  table.dataTable thead th { background: #1e293b !important; color: #94a3b8 !important; border-bottom: 1px solid #334155 !important; text-transform: uppercase; font-size: 0.65rem; padding: 12px 16px !important; }
+  table.dataTable tbody tr { background-color: rgba(30, 41, 59, 0.4) !important; border-bottom: 1px solid rgba(51, 65, 85, 0.3) !important; transition: background 0.2s; }
+  table.dataTable tbody tr:hover { background-color: rgba(51, 65, 85, 0.6) !important; }
+  .dt-paging-button { color: #cbd5e1 !important; border-radius: 8px !important; border: 1px solid #334155 !important; background: #0f172a !important; padding: 4px 10px !important; }
+  .dt-paging-button.current { background: #6366f1 !important; border-color: #6366f1 !important; color: white !important; }
+  .dt-paging-button:hover:not(.current) { background: #334155 !important; color: white !important; border-color: #475569 !important; }
+  .dt-buttons { margin-bottom: 1rem; display: flex !important; gap: 0.5rem; flex-wrap: wrap; }
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
-  }
-
-  /* Loader Dark */
-  .loading-overlay {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 23, 42, 0.95);
-    /* Dark overlay */
-    z-index: 60;
-    backdrop-filter: blur(2px);
-  }
-
-  .loading-overlay.hidden {
-    display: none !important;
-  }
-
-  .spinner {
-    border: 4px solid #1e293b;
-    border-top: 4px solid #6366f1;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* Modal Dark */
-  .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(4px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-  }
-
-  .modal-backdrop.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .modal-content {
-    background: #1e293b;
-    /* Slate 800 */
-    width: 95%;
-    max-width: 900px;
-    max-height: 90vh;
-    border-radius: 1rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid #334155;
-    transform: scale(0.95);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .modal-backdrop.active .modal-content {
-    transform: scale(1);
-  }
-
-  .modal-body-scroll {
-    overflow-y: auto;
-    padding: 1.5rem;
-    background-color: #1e293b;
-  }
-
-  /* UI Elements Dark */
-  .status-pill {
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.70rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  /* Status Colors Dark Mod */
-  .bg-teal-100 {
-    background-color: rgba(20, 184, 166, 0.1);
-    color: #2dd4bf;
-    border: 1px solid rgba(20, 184, 166, 0.2);
-  }
-
-  .bg-yellow-100 {
-    background-color: rgba(234, 179, 8, 0.1);
-    color: #facc15;
-    border: 1px solid rgba(234, 179, 8, 0.2);
-  }
-
-  .bg-red-100 {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.2);
-  }
-
-  .bg-gray-100 {
-    background-color: rgba(148, 163, 184, 0.1);
-    color: #cbd5e1;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-  }
-
-  .badge-blogger {
-    background-color: rgba(219, 39, 119, 0.1);
-    color: #f472b6;
-    border: 1px solid rgba(219, 39, 119, 0.2);
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-
-  .badge-local {
-    background-color: rgba(37, 99, 235, 0.1);
-    color: #60a5fa;
-    border: 1px solid rgba(37, 99, 235, 0.2);
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-
+  /* Card System Dashboard */
   .card-dashboard {
     background: #1e293b;
-    /* Slate 800 */
+    border: 1px solid #334155;
     border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    position: relative;
+    padding: 1.25rem;
+    transition: all 0.2s ease;
+  }
+  .card-dashboard:hover { border-color: #475569; }
+  .card-header-label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+
+  /* Filtros de Pago (Iconos) */
+  .payment-icon-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+    border-radius: 10px;
+    background: #1e293b;
     border: 1px solid #334155;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #94a3b8;
   }
+  .payment-icon-filter svg { width: 100%; height: 100%; fill: currentColor; }
+  .payment-icon-filter:hover { background: #334155; border-color: #6366f1; transform: translateY(-2px); }
+  .payment-icon-filter.active { background: rgba(99, 102, 241, 0.1); border-color: #6366f1; color: #6366f1; box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
 
-  /* Inputs y Selects Dark */
-  .header-select {
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 1px solid #334155;
-    background-color: #0f172a;
-    font-size: 0.8rem;
-    color: #e2e8f0;
-    outline: none;
-    transition: all 0.2s;
-    min-width: 100px;
-  }
-
-  .header-select:focus {
-    border-color: #6366f1;
-    background-color: #1e293b;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-  }
-
-  /* Sticky Header Dark */
+  /* Sticky Header Modificado */
   .sticky-header {
     position: sticky;
     top: 0;
@@ -218,66 +74,162 @@
     border-bottom: 1px solid #334155;
     padding: 0.75rem 1.5rem;
     margin: -1rem -1rem 1.5rem -1rem;
-    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
   }
 
-  /* Botones de Estado */
+  /* Floating Action Buttons (Móvil/Tablet) */
+  .fab-container {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1.5rem;
+    display: none; /* Oculto por defecto en Desktop */
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 50;
+  }
+  @media (max-width: 1024px) {
+    .fab-container { display: flex; }
+  }
+  .fab-btn {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.5);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .fab-btn:active { transform: scale(0.9); }
+
+  /* Botones de Estado Compactos */
   .stat-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 0.75rem;
     border: 1px solid transparent;
     transition: all 0.2s;
     cursor: pointer;
-    min-width: 80px;
+    min-width: 65px;
     position: relative;
   }
 
-  .stat-btn:hover {
-    transform: translateY(-2px);
-    background-color: rgba(255, 255, 255, 0.05);
+  /* Inputs y Selects Dark Premium */
+  .header-select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    background-color: #1e293b;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 120px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='C19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+    padding-right: 32px;
   }
+  .header-select:hover { border-color: #475569; background-color: #334155; }
+  .header-select:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
-  .stat-btn:active {
-    transform: translateY(0);
-  }
-
-  .stat-btn.active-filter {
-    border-color: currentColor;
-    background-color: rgba(255, 255, 255, 0.05);
-    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
-  }
-
-  .stat-btn.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-    filter: grayscale(100%);
-  }
-
-  /* Main Search Dark */
+  /* Main Search Premium */
   .main-search-input {
     width: 100%;
     padding: 10px 12px 10px 40px;
     border-radius: 12px;
     border: 1px solid #334155;
-    font-size: 0.9rem;
-    outline: none;
-    transition: border-color 0.2s;
     background: #1e293b;
     color: white;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .main-search-input:focus { border-color: #6366f1; background: #0f172a; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+
+  /* Loader Dark */
+  .loading-overlay { display: flex; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.95); z-index: 200; backdrop-filter: blur(4px); transition: opacity 0.3s; }
+  .loading-overlay.hidden { display: none !important; }
+  .spinner { border: 4px solid #1e293b; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* Modal Dark Core */
+  .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 300; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .modal-backdrop.active { opacity: 1; pointer-events: auto; }
+  .modal-content { background: #1e293b; width: 95%; max-width: 850px; max-height: 90vh; border-radius: 1.25rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); border: 1px solid #334155; transform: scale(0.9) translateY(20px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; overflow: hidden; }
+  .modal-backdrop.active .modal-content { transform: scale(1) translateY(0); }
+  .modal-body-scroll { overflow-y: auto; padding: 1.5rem; }
+
+  /* UI Elements & Badges */
+  .status-pill { padding: 0.3rem 0.7rem; border-radius: 8px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; }
+  .badge-blogger { background: rgba(219, 39, 119, 0.1); color: #f472b6; border: 1px solid rgba(219, 39, 119, 0.2); font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .badge-local { background: rgba(37, 99, 235, 0.1); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.2); font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+
+  /* Styling DataTables 2.0 Components */
+  .dt-container .dt-layout-row { margin-bottom: 1.5rem; }
+  .dt-search input { background: #1e293b !important; color: white !important; border: 1px solid #334155 !important; border-radius: 12px !important; padding: 10px 16px !important; outline: none !important; min-width: 250px; font-weight: 500; }
+  .dt-search label { color: #94a3b8 !important; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
+  
+  .dt-button {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    padding: 10px 18px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .dt-button:hover { background: #6366f1 !important; border-color: #6366f1 !important; color: white !important; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3) !important; }
+  .dt-buttons { gap: 0.75rem !important; margin: 0 !important; }
+
+  /* Pago Icons con Texto (Optimizado para centrado) */
+  .payment-icon-filter {
+    padding: 8px 14px;
+    height: auto;
+    width: auto;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    gap: 8px;
+    min-width: 110px;
+    justify-content: center;
+    text-align: center;
+  }
+  .payment-icon-filter span { white-space: normal; line-height: 1.2; }
+  .payment-icon-filter svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* Responsive Adjustments */
+  @media (max-width: 1024px) {
+    .header-refresh-desktop { display: none !important; }
+    .stat-buttons-row { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; gap: 6px; }
+    .header-select { width: 48%; min-width: 140px; }
+    .filter-icons-row { width: 100%; overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; padding: 4px; gap: 10px; }
+    .payment-icon-filter { min-width: 110px; flex-direction: column; padding: 8px; font-size: 0.6rem; }
+    .dt-search { width: 100% !important; margin-bottom: 1rem; }
+    .dt-search input { width: 100% !important; min-width: 0 !important; }
+    .dt-buttons { justify-content: center; width: 100%; }
   }
 
-  .main-search-input:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  /* Centrado exclusivo para Tablet (iPad) */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .filter-icons-row { justify-content: center !important; }
+    .payment-icon-filter { min-width: 130px; font-size: 0.7rem; }
   }
 
-  .main-search-input::placeholder {
-    color: #64748b;
+  /* Ajustes específicos para iPhone/Móvil Pequeño */
+  @media (max-width: 768px) {
+    .filter-icons-row { justify-content: flex-start !important; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .payment-icon-filter { min-width: 90px; padding: 6px; font-size: 0.55rem; gap: 4px; }
+    .payment-icon-filter svg { width: 16px; height: 16px; }
   }
 </style>
 
@@ -309,24 +261,20 @@
   </div>
 
   <header class="sticky-header flex flex-col xl:flex-row items-center justify-between gap-4">
-
-    <div
-      class="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start border-b xl:border-b-0 border-slate-700 pb-3 xl:pb-0">
+    <div class="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start">
       <div class="flex items-center gap-3">
-        <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
-          <span class="material-icons text-2xl">payments</span>
+        <div class="bg-indigo-600 text-white p-2 md:p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+          <span class="material-icons text-xl md:text-2xl font-bold">payments</span>
         </div>
         <div>
-          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total Auditado</p>
-          <h2 id="summary-total-audited-monto" class="text-2xl font-black text-white leading-none tracking-tight">
-            $ 0,00</h2>
+          <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Total Auditado</p>
+          <h2 id="summary-total-audited-monto" class="text-xl md:text-2xl font-black text-white leading-none tracking-tight">$ 0,00</h2>
         </div>
       </div>
 
       <div class="flex items-center bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
         <span class="material-icons text-slate-500 text-sm mr-1">calendar_month</span>
-        <select id="filter-date-quick"
-          class="bg-transparent text-xs font-bold text-indigo-400 outline-none cursor-pointer py-1 border-none focus:ring-0"
+        <select id="filter-date-quick" class="bg-transparent text-[11px] font-bold text-indigo-400 outline-none cursor-pointer py-1 border-none focus:ring-0"
           onchange="setDateRange(this.value)">
           <option value="today">📅 Hoy</option>
           <option value="yesterday">Ayer</option>
@@ -338,117 +286,107 @@
       </div>
     </div>
 
-    <div class="flex gap-2 w-full xl:w-auto justify-center">
-
-      <button id="btn-stat-complete"
-        class="stat-btn bg-teal-500/10 border-teal-500/20 text-teal-400 hover:bg-teal-500/20"
-        onclick="filterByStatusButton('COMPLETAS', this)">
-        <span class="text-[9px] font-extrabold uppercase tracking-wide">Entregadas</span>
-        <span id="summary-count-complete" class="text-xl font-black leading-none mt-1">0</span>
+    <div class="stat-buttons-row flex gap-2 w-full xl:w-auto justify-center">
+      <button id="btn-stat-complete" class="stat-btn bg-teal-500/10 border-teal-500/20 text-teal-400 hover:bg-teal-500/20" onclick="filterByStatusButton('COMPLETAS', this)">
+        <span class="text-[8px] font-extrabold uppercase tracking-wide">Entregadas</span>
+        <span id="summary-count-complete" class="text-lg font-black leading-none mt-1">0</span>
       </button>
-
-      <button id="btn-stat-pending"
-        class="stat-btn bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20"
-        onclick="filterByStatusButton('PENDIENTES', this)">
-        <span class="text-[9px] font-extrabold uppercase tracking-wide">Solicitadas</span>
-        <span id="summary-count-pending" class="text-xl font-black leading-none mt-1">0</span>
+      <button id="btn-stat-pending" class="stat-btn bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20" onclick="filterByStatusButton('PENDIENTES', this)">
+        <span class="text-[8px] font-extrabold uppercase tracking-wide">Solicitadas</span>
+        <span id="summary-count-pending" class="text-lg font-black leading-none mt-1">0</span>
       </button>
-
-      <button id="btn-stat-canceled" class="stat-btn bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
-        onclick="filterByStatusButton('CANCELADO', this)">
-        <span class="text-[9px] font-extrabold uppercase tracking-wide">Canceladas</span>
-        <span id="summary-count-canceled" class="text-xl font-black leading-none mt-1">0</span>
+      <button id="btn-stat-canceled" class="stat-btn bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20" onclick="filterByStatusButton('CANCELADO', this)">
+        <span class="text-[8px] font-extrabold uppercase tracking-wide">Canceladas</span>
+        <span id="summary-count-canceled" class="text-lg font-black leading-none mt-1">0</span>
       </button>
     </div>
 
     <div class="flex flex-wrap gap-2 w-full xl:w-auto justify-end items-center">
-      <select id="filter-status" class="header-select hidden">
-        <option value="">Estado</option>
-        <option value="COMPLETADA">Completada</option>
-        <option value="ENTREGADO">Entregado</option>
-        <option value="SOLICITADO">Solicitado</option>
-        <option value="CANCELADO">Cancelado</option>
-      </select>
+      <div id="payment-icons-container" class="filter-icons-row flex gap-2 items-center px-2 py-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
+        <!-- Iconos de Pago Dinámicos -->
+      </div>
+      
+      <div class="h-6 w-px bg-slate-700 hidden md:block"></div>
 
       <select id="filter-origen" class="header-select">
         <option value="">Origen</option>
       </select>
-      <select id="filter-metodo-pago" class="header-select">
-        <option value="">Método Pago</option>
-      </select>
       <select id="filter-caja" class="header-select">
-        <option value="">Caja ID</option>
+        <option value="">Caja</option>
       </select>
 
-      <button onclick="clearAllFilters()" id="clear-filters-btn"
-        class="hidden p-2 text-slate-500 hover:text-red-400 transition rounded-lg hover:bg-slate-800"
-        title="Limpiar Filtros"><span class="material-icons">filter_alt_off</span></button>
-      <button onclick="loadSalesData(true)"
-        class="p-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition" title="Recargar"><span
-          class="material-icons animate-pulse">refresh</span></button>
+      <!-- Elemento oculto para mantener compatibilidad con la lógica de macro-filtros -->
+      <select id="filter-status" class="hidden">
+        <option value=""></option>
+        <option value="SOLICITADO">SOLICITADO</option>
+        <option value="EDITADO">EDITADO</option>
+        <option value="PAGADO">PAGADO</option>
+        <option value="EN CAMINO">EN CAMINO</option>
+        <option value="ENTREGADO">ENTREGADO</option>
+        <option value="COMPLETADA">COMPLETADA</option>
+        <option value="CANCELADO">CANCELADO</option>
+      </select>
+
+      <button onclick="clearAllFilters()" class="header-refresh-desktop p-2 bg-slate-800 text-slate-400 rounded-lg shadow hover:bg-slate-700 transition" title="Limpiar Filtros"><span class="material-icons">filter_alt_off</span></button>
+      <button onclick="loadSalesData(true)" class="header-refresh-desktop p-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition" title="Recargar"><span class="material-icons animate-pulse">refresh</span></button>
     </div>
   </header>
 
+  <!-- Botones Flotantes (Solo en móviles) -->
+  <div class="fab-container md:hidden">
+    <button onclick="clearAllFilters()" id="fab-clear" class="fab-btn bg-slate-800 text-slate-400 border border-slate-700">
+      <span class="material-icons text-xl">filter_alt_off</span>
+    </button>
+    <button onclick="loadSalesData(true)" class="fab-btn bg-indigo-600 text-white shadow-indigo-500/50">
+      <span class="material-icons text-2xl">refresh</span>
+    </button>
+  </div>
+
   <div class="container mx-auto max-w-7xl">
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-      <div class="card-dashboard p-4 lg:col-span-3 relative">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="material-icons text-slate-500 text-sm">trending_up</span>
-          <h3 class="text-xs font-bold text-slate-500 uppercase">Tendencia de Ventas</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+      <div class="card-dashboard lg:col-span-3">
+        <div class="card-header-label">
+          <span class="material-icons text-indigo-400 text-sm">trending_up</span> Tendencia de Ventas
         </div>
-        <div class="h-40 w-full relative"><canvas id="dailySalesChart"></canvas></div>
+        <div class="h-44 w-full relative"><canvas id="dailySalesChart"></canvas></div>
       </div>
-      <div class="card-dashboard p-4 lg:col-span-1 flex flex-col">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="material-icons text-slate-500 text-sm">emoji_events</span>
-          <h3 class="text-xs font-bold text-slate-500 uppercase">Top Productos</h3>
+      <div class="card-dashboard lg:col-span-1 flex flex-col">
+        <div class="card-header-label">
+          <span class="material-icons text-amber-400 text-sm">emoji_events</span> Top Productos
         </div>
-        <div id="ranking-list" class="space-y-2 overflow-y-auto flex-1 max-h-40 pr-1 custom-scroll"></div>
+        <div id="ranking-list" class="space-y-2 overflow-y-auto flex-1 max-h-44 pr-1 custom-scroll"></div>
       </div>
-      <div class="card-dashboard p-4 lg:col-span-2">
-        <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Por Origen</h3>
-        <div class="h-40 w-full relative"><canvas id="salesByOriginChart"></canvas></div>
+      <div class="card-dashboard lg:col-span-2">
+        <div class="card-header-label">
+          <span class="material-icons text-emerald-400 text-sm">pie_chart</span> Por Origen
+        </div>
+        <div class="h-44 w-full relative"><canvas id="salesByOriginChart"></canvas></div>
       </div>
-      <div class="card-dashboard p-4 lg:col-span-2">
-        <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Métodos de Pago</h3>
-        <div class="h-40 w-full relative"><canvas id="paymentMethodChart"></canvas></div>
+      <div class="card-dashboard lg:col-span-2">
+        <div class="card-header-label">
+          <span class="material-icons text-sky-400 text-sm">donut_large</span> Métodos de Pago
+        </div>
+        <div class="h-44 w-full relative"><canvas id="paymentMethodChart"></canvas></div>
       </div>
     </div>
 
-    <div class="mb-4">
-      <div class="relative max-w-md">
-        <span class="material-icons absolute left-3 top-3 text-slate-500">search</span>
-        <input type="text" id="search-input" placeholder="Buscar por ID, Cliente o Asesor..."
-          class="main-search-input shadow-sm">
-      </div>
-    </div>
+    <!-- Buscador manual eliminado por redundancia con DataTables 2.0 -->
 
-    <div class="card-dashboard overflow-hidden min-h-[400px]">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead
-            class="bg-slate-900/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-700">
-            <tr>
-              <th class="px-6 py-4 w-16 text-center">Ver</th>
-              <th class="px-6 py-4">ID Venta</th>
-              <th class="px-6 py-4">Fecha / Cliente</th>
-              <th class="px-6 py-4 text-right">Total</th>
-              <th class="px-6 py-4 text-center">Pago</th>
-              <th class="px-6 py-4 text-center">Estado</th>
-              <th class="px-6 py-4 text-center">Acción</th>
-            </tr>
-          </thead>
-          <tbody id="sales-body" class="divide-y divide-slate-700 text-sm text-slate-300"></tbody>
-        </table>
-      </div>
-      <div id="no-results"
-        class="hidden p-10 text-center text-slate-500 flex flex-col items-center justify-center mt-10">
-        <div class="p-4 bg-slate-800 rounded-full mb-3 border border-slate-700">
-          <span class="material-icons text-4xl text-slate-600">search_off</span>
-        </div>
-        <p class="font-medium">No hay ventas encontradas.</p>
-      </div>
+    <div class="card-dashboard p-4 overflow-hidden min-h-[400px]">
+      <table id="salesTable" class="w-full text-left display responsive nowrap">
+        <thead>
+          <tr>
+            <th class="w-16 text-center">Acción</th>
+            <th>ID Venta</th>
+            <th>Fecha / Cliente</th>
+            <th class="text-right">Total</th>
+            <th class="text-center">Origen/Pago</th>
+            <th class="text-center">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="sales-body"></tbody>
+      </table>
     </div>
   </div>
 
@@ -461,16 +399,18 @@
 <script>
   // --- VARIABLES ---
   var allSalesData = [], productImageMap = {}, chartInstances = { daily: null, origin: null, payment: null };
-  var tableBody = document.getElementById('sales-body'), modalElement = document.getElementById('detail-modal'), modalBody = document.getElementById('modal-body-content'), loadingSpinner = document.getElementById('loading-spinner');
+  var dtInstance = null, metodosPagoIcons = {}, activePaymentFilters = new Set(), isRendering = false;
+  
+  var modalElement = document.getElementById('detail-modal'), modalBody = document.getElementById('modal-body-content'), loadingSpinner = document.getElementById('loading-spinner');
 
   // Inputs del Header
-  var filterStatus = document.getElementById('filter-status'), filterOrigen = document.getElementById('filter-origen'), filterMetodoPago = document.getElementById('filter-metodo-pago'), filterCaja = document.getElementById('filter-caja'), filterDateQuick = document.getElementById('filter-date-quick'), filterDateStart = document.getElementById('filter-date-start'), filterDateEnd = document.getElementById('filter-date-end');
+  var filterStatus = document.getElementById('filter-status'), filterOrigen = document.getElementById('filter-origen'), filterCaja = document.getElementById('filter-caja'), filterDateQuick = document.getElementById('filter-date-quick'), filterDateStart = document.getElementById('filter-date-start'), filterDateEnd = document.getElementById('filter-date-end');
 
   // Botones de Estado
   var btnStatComplete = document.getElementById('btn-stat-complete'), btnStatPending = document.getElementById('btn-stat-pending'), btnStatCanceled = document.getElementById('btn-stat-canceled');
 
-  // Input Body
-  var searchInput = document.getElementById('search-input'), clearFiltersBtn = document.getElementById('clear-filters-btn');
+  // Botón Limpiar (FAB)
+  var fabClearBtn = document.getElementById('fab-clear');
 
   var formatMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }), parseMonto = (val) => (typeof val === 'number' && !isNaN(val)) ? val : 0;
 
@@ -479,10 +419,10 @@
     if (btnElement.classList.contains('disabled')) return;
     if (filterStatus.dataset.activeMacro === statusGroup) {
       filterStatus.dataset.activeMacro = ""; filterStatus.value = "";
-      renderTable(allSalesData); return;
+    } else {
+      filterStatus.dataset.activeMacro = statusGroup;
+      filterStatus.value = "";
     }
-    filterStatus.dataset.activeMacro = statusGroup;
-    filterStatus.value = ""; // Desactivar el select estricto cuando usamos macro
     renderTable(allSalesData);
   }
 
@@ -609,109 +549,188 @@
   function closeModal() { modalElement.classList.remove('active'); }
   window.updateSaleStatusInModal = function (id, est, ori) { window.updateSaleStatus(id, est, ori); }
 
-  // --- RENDER TABLE ---
+  // --- RENDER TABLE (DataTable Powered) ---
   function renderTable(data) {
-    tableBody.innerHTML = '';
-    const search = searchInput.value.toLowerCase(), fStat = filterStatus.value, fOri = filterOrigen.value, fPay = filterMetodoPago.value, fCaja = filterCaja.value;
-    const dStart = filterDateStart.value ? new Date(filterDateStart.value + 'T00:00:00') : null, dEnd = filterDateEnd.value ? new Date(filterDateEnd.value + 'T23:59:59') : null;
+    if (isRendering) return; // SEMAFORO PARA EVITAR BUCLE INFINITO
+    isRendering = true;
+    
+    try {
+      const search = dtInstance ? dtInstance.search().toLowerCase() : "", 
+          fStat = filterStatus.value, 
+          fOri = filterOrigen.value, 
+          fCaja = filterCaja.value;
+    const dStart = filterDateStart.value ? new Date(filterDateStart.value + 'T00:00:00') : null, 
+          dEnd = filterDateEnd.value ? new Date(filterDateEnd.value + 'T23:59:59') : null;
 
-    let total = 0, cComp = 0, cPend = 0, cCanc = 0;
+    let totalGlobal = 0, cComp = 0, cPend = 0, cCanc = 0;
     const macroFilter = filterStatus.dataset.activeMacro;
-
-    const preFiltered = data.filter(s => {
-      if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
-      if (fOri && s.origen !== fOri) return false;
-      if (fPay && s.metodoPago !== fPay) return false;
-      if (fCaja && s.cajaId !== fCaja) return false;
-      if (dStart || dEnd) { 
-        const datePart = s.fecha.split(' ')[0]; // Extract YYYY-MM-DD
-        const sd = new Date(datePart + 'T00:00:00'); 
-        if (dStart && sd < dStart) return false; 
-        if (dEnd && sd > dEnd) return false; 
-      }
-      return true;
-    });
-
-    // Grupos de Macro Filtros
-    // El usuario define "Pendiente" explícitamente como "SOLICITADO"
     const pendingStatuses = ['SOLICITADO'];
     const completeStatuses = ['COMPLETADA', 'ENTREGADO', 'PAGADO'];
 
-    preFiltered.forEach(s => {
-      if (completeStatuses.includes(s.estado)) cComp++;
-      else if (pendingStatuses.includes(s.estado)) cPend++;
-      else if (s.estado === 'CANCELADO') cCanc++;
-    });
-
-    updateStatusButtonsVisuals({ complete: cComp, pending: cPend, canceled: cCanc });
-
-    const finalFiltered = preFiltered.filter(s => {
-      // 1. Check strict dropdown "filterStatus" if active
+    // 1. FILTRADO LÓGICO
+    const filtered = data.filter(s => {
+      // Búsqueda Texto
+      if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
+      
+      // Filtros Select
+      if (fOri && s.origen !== fOri) return false;
+      if (fCaja && s.cajaId !== fCaja) return false;
       if (fStat && s.estado !== fStat) return false;
-      // 2. Check macro block if active
+      
+      // Multi-selección de Pagos
+      if (activePaymentFilters.size > 0 && !activePaymentFilters.has(s.metodoPago)) return false;
+
+      // Fechas
+      if (dStart || dEnd) { 
+        const sd = new Date(s.fecha.split(' ')[0] + 'T00:00:00'); 
+        if (dStart && sd < dStart) return false; 
+        if (dEnd && sd > dEnd) return false; 
+      }
+
+      // Macro Filtros (Status Groups)
       if (macroFilter === 'COMPLETAS' && !completeStatuses.includes(s.estado)) return false;
       if (macroFilter === 'PENDIENTES' && !pendingStatuses.includes(s.estado)) return false;
       if (macroFilter === 'CANCELADO' && s.estado !== 'CANCELADO') return false;
 
-      // Monto total solo de completas (Incluye el neto pagado + efectivo de ventas mixtas)
-      if (completeStatuses.includes(s.estado)) {
-        total += s.total + (s.pagoEfectivo || 0);
-      }
+      // Conteos para botones
+      if (completeStatuses.includes(s.estado)) { cComp++; totalGlobal += s.total + (s.pagoEfectivo || 0); }
+      else if (pendingStatuses.includes(s.estado)) cPend++;
+      else if (s.estado === 'CANCELADO') cCanc++;
+
       return true;
     });
 
-    document.getElementById('summary-total-audited-monto').textContent = formatMoneda.format(total);
+    // 2. ACTUALIZAR UI ESTATICA
+    updateStatusButtonsVisuals({ complete: cComp, pending: cPend, canceled: cCanc });
+    document.getElementById('summary-total-audited-monto').textContent = formatMoneda.format(totalGlobal);
+    renderCharts(calculateChartData(filtered));
+    renderRanking(calculateProductRanking(filtered));
 
-    renderCharts(calculateChartData(finalFiltered));
-    renderRanking(calculateProductRanking(finalFiltered));
+    // 3. ACTUALIZAR DATATABLE
+    if (dtInstance) {
+      dtInstance.clear().rows.add(filtered).draw(false);
+    }
+    
+      if (search || fStat || fOri || fCaja || dStart || dEnd || activePaymentFilters.size > 0) {
+        if (fabClearBtn) fabClearBtn.classList.remove('hidden');
+      } else {
+        if (fabClearBtn) fabClearBtn.classList.add('hidden');
+      }
+    } catch (e) {
+      console.error("Error en renderTable:", e);
+    } finally {
+      // Desbloqueamos el semáforo SIEMPRE al terminar, haya error o no
+      isRendering = false;
+    }
+  }
 
-    if (!finalFiltered.length) { document.getElementById('no-results').classList.remove('hidden'); if (search || fStat || fOri || fPay || fCaja || dStart || dEnd) clearFiltersBtn.classList.remove('hidden'); return; }
-    document.getElementById('no-results').classList.add('hidden'); clearFiltersBtn.classList.remove('hidden');
+  function initDataTable() {
+    try {
+      dtInstance = $('#salesTable').DataTable({
+        responsive: true,
+        data: [],
+        order: [[1, 'desc']],
+        layout: {
+          topStart: 'buttons',
+          topEnd: 'search',
+          bottomStart: 'info',
+          bottomEnd: 'paging'
+        },
+        buttons: [
+          { 
+            extend: 'csv', 
+            text: '<span class="material-icons">download</span> CSV', 
+            className: 'dt-button' 
+          },
+          { 
+            extend: 'pdf', 
+            text: '<span class="material-icons">picture_as_pdf</span> PDF', 
+            className: 'dt-button', 
+            orientation: 'landscape', 
+            pageSize: 'A4' 
+          },
+          { 
+            extend: 'print', 
+            text: '<span class="material-icons">print</span> Imprimir', 
+            className: 'dt-button' 
+          }
+        ],
+        language: {
+          url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
+          paginate: { previous: 'Prev', next: 'Sig' },
+          search: "",
+          searchPlaceholder: "Buscar venta..."
+        },
+        columns: [
+          { 
+            data: null,
+            className: 'text-center',
+            render: function(data) {
+              return `<div class="flex items-center justify-center gap-2">
+                <button onclick="openModal('${data.id}')" class="p-1.5 bg-slate-800 border border-slate-600 rounded-lg text-indigo-400 hover:bg-indigo-600 hover:text-white transition shadow-sm">
+                  <span class="material-icons text-sm">visibility</span>
+                </button>
+                <select class="bg-slate-800 border border-slate-600 text-slate-300 text-[10px] rounded py-1 px-1 outline-none cursor-pointer w-20 md:w-auto" onchange="window.updateSaleStatus('${data.id}', this.value, '${data.origen}')">
+                  <option value="" disabled selected>Estado</option>
+                  <option value="SOLICITADO">Solicitado</option>
+                  <option value="EDITADO">Editado</option>
+                  <option value="PAGADO">Pagado</option>
+                  <option value="EN CAMINO">En Camino</option>
+                  <option value="ENTREGADO">Entregado</option>
+                  <option value="CANCELADO">Cancelado</option>
+                </select>
+              </div>`;
+            }
+          },
+          { data: 'id', className: 'text-[10px] font-mono text-slate-500' },
+          { 
+            data: null,
+            render: function(data) {
+              return `<div>
+                <div class="font-bold text-slate-200 text-xs truncate max-w-[120px] md:max-w-none">${data.nombreCliente}</div>
+                <div class="text-[10px] text-slate-500">${data.fecha.split(' ')[0]} | <span class="text-indigo-400">${data.asesor}</span></div>
+              </div>`;
+            }
+          },
+          { 
+            data: 'total', 
+            className: 'text-right font-black text-white text-xs',
+            render: v => formatMoneda.format(v)
+          },
+          { 
+            data: null,
+            className: 'text-center',
+            render: function(data) {
+              return `<div class="flex flex-col items-center gap-1">
+                <span class="${data.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'} text-[9px]">${data.origen}</span>
+                <span class="text-[9px] uppercase font-bold text-slate-600 truncate max-w-[80px]">${data.metodoPago}</span>
+              </div>`;
+            }
+          },
+          { 
+            data: 'estado',
+            className: 'text-center',
+            render: function(st) {
+              let cls = '';
+              if (['SOLICITADO', 'EDITADO'].includes(st)) cls = 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
+              else if (st === 'PAGADO') cls = 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+              else if (st === 'CANCELADO') cls = 'bg-red-500/10 text-red-500 border border-red-500/20';
+              else cls = 'bg-teal-500/10 text-teal-400 border border-teal-500/20';
+              return `<span class="status-pill ${cls}">${st}</span>`;
+            }
+          }
+        ]
+      });
 
-    finalFiltered.forEach(s => {
-      const tr = document.createElement('tr'); tr.className = 'border-b border-slate-700 hover:bg-slate-800 transition';
-
-      // Status Text Colors Dark (Dynamic Logic)
-      let stCls = '';
-      if (['SOLICITADO', 'EDITADO'].includes(s.estado)) stCls = 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
-      else if (s.estado === 'PAGADO') stCls = 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-      else if (s.estado === 'EN CAMINO') stCls = 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
-      else if (s.estado === 'CANCELADO') stCls = 'bg-red-500/10 text-red-500 border border-red-500/20';
-      else stCls = 'bg-teal-500/10 text-teal-400 border border-teal-500/20'; // COMPLETADA / ENTREGADO
-
-      // TABLE ROW HTML DARK
-      tr.innerHTML = `<td class="px-6 py-4 text-center">
-            <button onclick="openModal('${s.id}')" class="p-2 bg-slate-800 border border-slate-600 rounded-full text-indigo-400 shadow-sm hover:bg-indigo-600 hover:text-white hover:border-indigo-500 transition transform hover:scale-110">
-                <span class="material-icons text-lg leading-none">visibility</span>
-            </button>
-        </td>
-        <td class="px-6 py-4 text-xs font-mono text-slate-500 font-medium">${s.id}</td>
-        <td class="px-6 py-4">
-            <div class="font-bold text-slate-200 text-sm truncate max-w-[180px]">${s.nombreCliente}</div>
-            <div class="text-xs text-slate-500 mt-0.5">${s.fecha.split(' ')[0]} | <span class="text-indigo-400 font-medium">${s.asesor}</span></div>
-        </td>
-        <td class="px-6 py-4 text-right font-black text-white text-sm">${formatMoneda.format(s.total)}</td>
-        <td class="px-6 py-4 text-center">
-            <div class="flex flex-col items-center gap-1">
-                <span class="${s.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'}">${s.origen}</span>
-                <span class="text-[10px] uppercase font-bold text-slate-500 truncate max-w-[100px]">${s.metodoPago}</span>
-            </div>
-        </td>
-        <td class="px-6 py-4 text-center"><span class="status-pill ${stCls}">${s.estado}</span></td>
-        <td class="px-6 py-4 text-center">
-            <select class="bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded py-1 px-2 outline-none cursor-pointer hover:bg-slate-700" onchange="window.updateSaleStatus('${s.id}', this.value, '${s.origen}')">
-                <option value="" disabled selected>Cambiar</option>
-                <option value="SOLICITADO">Solicitado</option>
-                <option value="EDITADO">Editado</option>
-                <option value="PAGADO">Pagado</option>
-                <option value="EN CAMINO">En Camino</option>
-                <option value="ENTREGADO">Entregado</option>
-                <option value="COMPLETADA">Completada (L)</option>
-                <option value="CANCELADO">Cancelado</option>
-            </select>
-        </td>`;
-      tableBody.appendChild(tr);
-    });
+      dtInstance.on('search.dt', function() {
+        // Solo re-renderizamos analíticas si NO estamos en medio de un proceso de redibujo
+        if (!isRendering) renderTable(allSalesData);
+      });
+    } catch (e) {
+      console.error('Error initializing DataTable:', e);
+      // Fallback simple si layout falla
+      dtInstance = $('#salesTable').DataTable({ responsive: true, data: [] });
+    }
   }
 
   // --- DATA & FILTERS ---
@@ -743,7 +762,32 @@
     }).withFailureHandler(err => { loadingSpinner.classList.add('hidden'); showStatus(err.message, 'error'); }).cargarDashboardVentas();
   }
 
-  function populateFilters(o) { const fill = (el, a) => { const c = el.value; el.innerHTML = `<option value="">${el.options[0].text}</option>` + a.map(x => `<option value="${x}">${x}</option>`).join(''); el.value = c; }; fill(filterOrigen, o.origenes); fill(filterMetodoPago, o.metodosPago); fill(filterCaja, o.cajas); }
+  function populateFilters(o) { 
+    const fill = (el, a) => { el.innerHTML = `<option value="">${el.options[0].text}</option>` + a.map(x => `<option value="${x}">${x}</option>`).join(''); }; 
+    fill(filterOrigen, o.origenes); fill(filterCaja, o.cajas); 
+
+    // Renderizar iconos de pago
+    const container = document.getElementById('payment-icons-container');
+    container.innerHTML = '';
+    metodosPagoIcons = o.metodosPagoIcons || {};
+    
+    o.metodosPago.forEach(m => {
+      const iconData = metodosPagoIcons[m];
+      if (iconData && iconData.svg) {
+        const btn = document.createElement('div');
+        btn.className = `payment-icon-filter ${activePaymentFilters.has(m) ? 'active' : ''}`;
+        btn.title = m;
+        btn.innerHTML = `${iconData.svg} <span>${m}</span>`;
+        btn.onclick = () => {
+          if (activePaymentFilters.has(m)) activePaymentFilters.delete(m);
+          else activePaymentFilters.add(m);
+          btn.classList.toggle('active');
+          renderTable(allSalesData);
+        };
+        container.appendChild(btn);
+      }
+    });
+  }
   window.setDateRange = function (v) {
     const n = new Date();
     const fmt = d => {
@@ -763,44 +807,102 @@
   filterDateEnd.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
 
   window.updateSaleStatus = function (id, st, ori) {
+    if (!id || !st) return;
     loadingSpinner.classList.remove('hidden');
     google.script.run.withSuccessHandler(r => {
       loadingSpinner.classList.add('hidden');
-      if (r.success) { const i = allSalesData.findIndex(x => x.id === id); if (i !== -1) allSalesData[i].estado = st; renderTable(allSalesData); showStatus('Actualizado', 'success'); }
-      else showStatus(r.message, 'error');
+      if (r && r.success) { 
+        const i = allSalesData.findIndex(x => x.id === id); 
+        if (i !== -1) {
+          allSalesData[i].estado = st; 
+          renderTable(allSalesData); 
+          showStatus('Actualizado', 'success'); 
+        }
+      } else {
+        showStatus(r ? r.message : 'Error desconocido', 'error');
+      }
     }).actualizarEstadoVenta(id, st, ori);
   };
 
-  window.clearAllFilters = function () { searchInput.value = ''; filterStatus.value = ''; filterStatus.dataset.activeMacro = ''; filterOrigen.value = ''; filterMetodoPago.value = ''; filterCaja.value = ''; filterDateQuick.value = ''; filterDateStart.value = ''; filterDateEnd.value = ''; renderTable(allSalesData); }
-  function showStatus(m, t) { const e = document.getElementById('status-message'); e.innerHTML = t === 'success' ? `<span class="material-icons">check_circle</span> ${m}` : `<span class="material-icons">error</span> ${m}`; e.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 z-[110] flex items-center gap-2 ${t === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 3000); }
-
-  // --- CHART LOGIC ---
-  function calculateProductRanking(d) { const m = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO', 'PAGADO'].includes(s.estado)).forEach(s => s.detalles.forEach(x => { if (x.productoId) m.set(x.productoId, (m.get(x.productoId) || 0) + Number(x.cantidad)) })); return Array.from(m.entries()).map(e => ({ id: e[0], qty: e[1], img: productImageMap[e[0]] || 'https://placehold.co/40x40' })).sort((a, b) => b.qty - a.qty).slice(0, 5); }
-  function renderRanking(d) { const c = document.getElementById('ranking-list'); c.innerHTML = ''; if (!d.length) { c.innerHTML = '<p class="text-center text-xs text-slate-500 mt-4">Sin datos</p>'; return; } d.forEach((i, x) => c.innerHTML += `<div class="flex items-center gap-3 p-2 hover:bg-slate-700/50 rounded-lg"><div class="w-6 h-6 flex justify-center items-center rounded-full text-xs font-bold ${x === 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-700 text-slate-400'}">${x + 1}</div><img src="${i.img}" class="w-8 h-8 rounded border border-slate-600 bg-slate-800"><div class="flex-1 truncate text-xs font-bold text-slate-300">${i.id}</div><span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 rounded-full font-bold">${i.qty}</span></div>`); }
-  function calculateChartData(d) { const D = new Map(), O = new Map(), P = new Map(); d.filter(s => ['COMPLETADA', 'ENTREGADO', 'PAGADO'].includes(s.estado)).forEach(s => { const dy = s.fecha.split(' ')[0]; const grossTotal = s.total + (s.pagoEfectivo || 0); D.set(dy, (D.get(dy) || 0) + grossTotal); O.set(s.tiendaId || 'N/A', (O.get(s.tiendaId) || 0) + grossTotal); P.set(s.metodoPago || 'N/A', (P.get(s.metodoPago) || 0) + grossTotal); }); return { daily: Array.from(D.entries()).sort((a, b) => new Date(a[0]) - new Date(b[0])), origin: Array.from(O.entries()), payment: Array.from(P.entries()) }; }
-  function renderCharts(c) {
-    if (chartInstances.daily) chartInstances.daily.destroy();
-    chartInstances.daily = new Chart(document.getElementById('dailySalesChart'), { type: 'line', data: { labels: c.daily.map(d => d[0]), datasets: [{ data: c.daily.map(d => d[1]), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => formatMoneda.format(x.raw) } } }, scales: { x: { display: true, ticks: { font: { size: 10 } }, grid: { display: false } }, y: { display: true, beginAtZero: true, ticks: { font: { size: 10 }, callback: v => '$' + v.toLocaleString('es-AR') }, grid: { borderDash: [2, 4], color: '#334155' } } } } });
-    if (chartInstances.origin) chartInstances.origin.destroy();
-    chartInstances.origin = new Chart(document.getElementById('salesByOriginChart'), { type: 'bar', data: { labels: c.origin.map(d => d[0]), datasets: [{ data: c.origin.map(d => d[1]), backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'] }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#334155' } }, y: { grid: { display: false } } } } });
-    if (chartInstances.payment) chartInstances.payment.destroy();
-    chartInstances.payment = new Chart(document.getElementById('paymentMethodChart'), { type: 'doughnut', data: { labels: c.payment.map(d => d[0]), datasets: [{ data: c.payment.map(d => d[1]), backgroundColor: ['#34d399', '#60a5fa', '#f87171', '#fbbf24'], borderColor: '#1e293b', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: '#cbd5e1' } } } } });
+  window.clearAllFilters = function () { 
+    if (dtInstance) dtInstance.search('').draw();
+    filterStatus.value = ''; 
+    filterStatus.dataset.activeMacro = ''; 
+    filterOrigen.value = ''; 
+    filterCaja.value = ''; 
+    filterDateQuick.value = ''; 
+    filterDateStart.value = ''; 
+    filterDateEnd.value = ''; 
+    activePaymentFilters.clear();
+    document.querySelectorAll('.payment-icon-filter').forEach(i => i.classList.remove('active'));
+    renderTable(allSalesData); 
   }
 
-  [searchInput, filterStatus, filterOrigen, filterMetodoPago, filterCaja].forEach(el => {
-    if (el) el.addEventListener('change', () => renderTable(allSalesData));
-  });
-  if (searchInput) searchInput.addEventListener('input', () => renderTable(allSalesData));
+  // --- ANALYTICS & UI HELPERS ---
+  function showStatus(m, t) { const e = document.getElementById('status-message'); e.innerHTML = t === 'success' ? `<span class="material-icons">check_circle</span> ${m}` : `<span class="material-icons">error</span> ${m}`; e.className = `fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-xl text-white font-medium text-sm transition-all duration-300 z-[110] flex items-center gap-2 ${t === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 3000); }
+
+  function calculateProductRanking(d) { 
+    const m = new Map(); 
+    d.filter(s => ['COMPLETADA', 'ENTREGADO', 'PAGADO'].includes(s.estado)).forEach(s => s.detalles.forEach(x => { 
+      if (x.productoId) m.set(x.productoId, (m.get(x.productoId) || 0) + Number(x.cantidad));
+    })); 
+    return Array.from(m.entries()).map(e => ({ id: e[0], qty: e[1], img: productImageMap[e[0]] || 'https://placehold.co/40x40' })).sort((a, b) => b.qty - a.qty).slice(0, 5); 
+  }
+
+  function renderRanking(d) { 
+    const c = document.getElementById('ranking-list'); 
+    c.innerHTML = ''; 
+    if (!d.length) { c.innerHTML = '<p class="text-center text-xs text-slate-500 mt-4">Sin datos</p>'; return; } 
+    d.forEach((i, x) => c.innerHTML += `<div class="flex items-center gap-3 p-2 hover:bg-slate-700/50 rounded-lg"><div class="w-6 h-6 flex justify-center items-center rounded-full text-xs font-bold ${x === 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-700 text-slate-400'}">${x + 1}</div><img src="${i.img}" class="w-8 h-8 rounded border border-slate-600 bg-slate-800"><div class="flex-1 truncate text-xs font-bold text-slate-300">${i.id}</div><span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 rounded-full font-bold">${i.qty}</span></div>`); 
+  }
+
+  function calculateChartData(d) { 
+    const D = new Map(), O = new Map(), P = new Map(); 
+    d.filter(s => ['COMPLETADA', 'ENTREGADO', 'PAGADO'].includes(s.estado)).forEach(s => { 
+      const dy = s.fecha.split(' ')[0]; 
+      const grossTotal = s.total + (s.pagoEfectivo || 0); 
+      D.set(dy, (D.get(dy) || 0) + grossTotal); 
+      O.set(s.tiendaId || 'N/A', (O.get(s.tiendaId) || 0) + grossTotal); 
+      P.set(s.metodoPago || 'N/A', (P.get(s.metodoPago) || 0) + grossTotal); 
+    }); 
+    return { daily: Array.from(D.entries()).sort((a, b) => new Date(a[0]) - new Date(b[0])), origin: Array.from(O.entries()), payment: Array.from(P.entries()) }; 
+  }
+
+  function renderCharts(c) {
+    if (typeof Chart === 'undefined') return;
+    
+    // Método ultra-seguro para destruir gráficos previos por ID de Canvas
+    ['dailySalesChart', 'salesByOriginChart', 'paymentMethodChart'].forEach(id => {
+       const existingChart = Chart.getChart(id);
+       if (existingChart) existingChart.destroy();
+    });
+
+    const dailyEl = document.getElementById('dailySalesChart');
+    if (dailyEl) chartInstances.daily = new Chart(dailyEl, { type: 'line', data: { labels: c.daily.map(d => d[0]), datasets: [{ data: c.daily.map(d => d[1]), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => formatMoneda.format(x.raw) } } }, scales: { x: { display: true, ticks: { font: { size: 10 }, color: '#94a3b8' }, grid: { display: false } }, y: { display: true, beginAtZero: true, ticks: { font: { size: 10 }, color: '#94a3b8', callback: v => '$' + v.toLocaleString('es-AR') }, grid: { borderDash: [2, 4], color: '#334155' } } } } });
+    
+    const originEl = document.getElementById('salesByOriginChart');
+    if (originEl) chartInstances.origin = new Chart(originEl, { type: 'bar', data: { labels: c.origin.map(d => d[0]), datasets: [{ data: c.origin.map(d => d[1]), backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'] }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, y: { grid: { display: false }, ticks: { color: '#94a3b8' } } } } });
+    
+    const paymentEl = document.getElementById('paymentMethodChart');
+    if (paymentEl) chartInstances.payment = new Chart(paymentEl, { type: 'doughnut', data: { labels: c.payment.map(d => d[0]), datasets: [{ data: c.payment.map(d => d[1]), backgroundColor: ['#34d399', '#60a5fa', '#f87171', '#fbbf24'], borderColor: '#1e293b', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: '#cbd5e1' } } } } });
+  }
 
   // --- INICIALIZACION ASINCRONA ---
+  var initAttempts = 0;
   function initDashboard() {
-    if (typeof Chart === 'undefined') {
+    if (typeof Chart === 'undefined' || typeof $ === 'undefined' || !$.fn.DataTable) {
+      initAttempts++;
+      if (initAttempts > 50) { 
+        console.error('Error crítico: Librerías no cargadas tras 5s.');
+        loadSalesData(true);
+        return;
+      }
       setTimeout(initDashboard, 100);
       return;
     }
-    // --- CHART DEFAULTS FOR DARK MODE ---
+    initDataTable();
     Chart.defaults.color = '#94a3b8';
-    Chart.defaults.scale.grid.color = '#334155';
+    // Chart.defaults.scale.grid.color = '#334155';
     loadSalesData();
   }
   initDashboard();

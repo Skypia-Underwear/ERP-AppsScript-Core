@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Inventory | Full Migration (Offline Ready)</title>
+    
+    <!-- ASSETS COMPARTIDOS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- DataTables & jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.datatables.net/v/dt/dt-2.0.3/rg-1.5.0/datatables.min.css" rel="stylesheet">
+    <script src="https://cdn.datatables.net/v/dt/dt-2.0.3/rg-1.5.0/datatables.min.js"></script>
+
+    <style>
+        :root { --bg-main: #0f172a; --bg-secondary: #1e293b; --accent: #6366f1; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-main); color: #e2e8f0; margin: 0; height: 100vh; overflow: hidden; }
+        .dataTables_wrapper { color: #cbd5e1 !important; width: 100%; height: 100%; display: flex; flex-direction: column; }
+        table.dataTable { border-collapse: collapse !important; width: 100% !important; font-size: 0.85rem; margin-top: 0 !important; }
+        table.dataTable thead th { border-bottom: 1px solid #334155 !important; background-color: var(--bg-main) !important; color: #94a3b8 !important; text-transform: uppercase; font-size: 0.65rem; padding: 12px 16px; position: sticky; top: 0; z-index: 20; }
+        table.dataTable tbody tr { background-color: var(--bg-secondary) !important; border-bottom: 1px solid rgba(51, 65, 85, 0.5) !important; cursor: pointer; }
+        table.dataTable tbody tr:hover { background-color: #334155 !important; }
+        table.dataTable tr.dtrg-group td { background-color: var(--bg-main) !important; color: #e2e8f0 !important; font-weight: 600 !important; font-size: 0.85rem !important; padding: 10px 16px !important; border-bottom: 1px solid #334155 !important; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .category-card.active { border-color: var(--accent) !important; background-color: rgba(99, 102, 241, 0.1); box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.2); }
+        .product-card.active { border-color: var(--accent); background-color: rgba(99, 102, 241, 0.1); }
+        #console-output { background-color: rgba(2, 6, 23, 0.5); font-family: 'Consolas', monospace; font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+<div class="h-full flex flex-col overflow-hidden text-slate-200 relative bg-slate-950">
+
+  <!-- 1. HEADER INTEGRADO -->
+  <header class="border-b border-slate-800 px-6 py-3 flex justify-between items-center flex-shrink-0 z-20" style="background-color: var(--bg-secondary);">
+    <div class="flex items-center gap-4 w-1/4">
+      <div class="p-2 rounded-lg text-white flex items-center justify-center bg-indigo-600 shadow-lg"><i class="ph-bold ph-stack text-xl"></i></div>
+      <div class="hidden md:block">
+        <h1 class="text-base font-bold text-white uppercase tracking-tighter">Inventario blogger</h1>
+        <p class="text-[10px] text-slate-400 flex items-center gap-1"><span class="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span> <span id="last-sync-label">Sincronizando...</span></p>
+      </div>
+    </div>
+    <div class="flex-grow max-w-2xl mx-4">
+      <div class="bg-slate-900 rounded-xl border border-slate-700 p-1.5 flex items-center shadow-inner focus-within:border-[var(--accent)] transition-colors">
+        <i class="ph-bold ph-magnifying-glass text-slate-500 ml-3 text-lg"></i>
+        <input type="text" id="custom-sku-search" placeholder="Buscar categoría, producto, temporada..." class="w-full bg-transparent border-none text-white px-3 py-1 outline-none text-sm font-medium">
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 w-auto min-w-[25%]">
+      <button id="btn-sync-product" onclick="runProductAudit()" class="hidden p-2 border border-blue-500/50 hover:bg-blue-600 text-blue-400 rounded-lg transition bg-blue-900/20"><i class="ph-bold ph-arrows-clockwise text-lg"></i></button>
+      <button onclick="runGlobalAudit()" class="p-2 border border-red-500/50 hover:bg-red-600 text-red-400 rounded-lg transition bg-red-900/20"><i class="ph-bold ph-globe-hemisphere-east text-lg"></i></button>
+      <button onclick="openBartenderModal()" class="p-2 border border-slate-700 hover:bg-slate-700 text-slate-300 rounded-lg transition bg-slate-800"><i class="ph-bold ph-barcode text-lg text-purple-400"></i></button>
+      <button onclick="toggleLogs()" id="btn-toggle-logs" class="px-3 py-1.5 border border-slate-700 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition flex items-center gap-2 bg-slate-800"><i class="ph-bold ph-terminal-window"></i> <span>Logs</span></button>
+    </div>
+  </header>
+
+  <!-- 2. TRABAJO -->
+  <div class="flex-grow flex overflow-hidden p-4 gap-4">
+    <div class="w-3/5 flex flex-col rounded-xl border border-slate-700 shadow-xl overflow-hidden relative" style="background-color: var(--bg-secondary);">
+      <div id="category-carousel-container" class="flex flex-col border-b border-slate-700 bg-slate-900/50 flex-shrink-0">
+        <div id="category-carousel" class="flex overflow-x-auto no-scrollbar gap-3 p-2"></div>
+      </div>
+      <div class="flex-grow flex overflow-hidden">
+        <div id="product-carousel" class="w-[110px] flex-shrink-0 border-r border-slate-700/80 bg-slate-900/20 overflow-y-auto custom-scroll p-2 flex flex-col gap-2"></div>
+        <div class="flex-grow p-4 overflow-auto custom-scroll relative">
+            <table id="catalogTable" class="w-full text-left">
+              <thead><tr><th>Cat</th><th>SKU</th><th>Store</th><th>Brand</th><th>Season</th><th>Gender</th><th>Style</th><th>Material</th><th>Color</th><th class="text-center">Talle</th><th class="text-center">E</th><th class="text-center">S</th><th class="text-center">VW</th><th class="text-center">VL</th><th class="text-center">Stock</th></tr></thead>
+              <tbody></tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+    <div class="w-2/5 flex flex-col rounded-xl border border-slate-700 shadow-xl overflow-hidden relative" style="background-color: var(--bg-secondary);">
+        <div class="px-5 py-4 border-b border-slate-700/60 flex justify-between items-center bg-slate-900/30">
+            <h3 class="font-bold text-white text-sm uppercase">Matriz de Stock</h3>
+            <button id="btn-save-matrix" onclick="saveMatrixChanges()" class="px-4 py-2 text-white text-xs rounded-lg font-bold opacity-50 bg-indigo-600" disabled>Guardar</button>
+        </div>
+        <div id="matrix-container" class="flex-grow p-4 overflow-auto custom-scroll relative">
+            <div id="matrix-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-center"><i class="ph-thin ph-hand-tap text-5xl mb-4"></i><p>Selecciona un producto.</p></div>
+            <div id="matrix-content" class="hidden w-full"></div>
+        </div>
+    </div>
+  </div>
+
+  <div id="logs-panel" class="fixed bottom-0 left-0 right-0 h-48 border-t border-slate-700 transform translate-y-full transition-transform duration-300 z-50 flex flex-col bg-slate-900">
+    <div id="console-output" class="p-4 flex-grow overflow-y-auto font-mono text-xs text-blue-300"></div>
+  </div>
+</div>
+
+<script>
+/** 
+ * 1. GAS BRIDGE INLINED (Evita MIME Type error en Blogger)
+ */
+if (typeof google === 'undefined') window.google = {};
+if (!google.script) google.script = { run: {} };
+
+window.initGasBridge = function(url) {
+    const functions = ["tpv_obtenerCatalogoDesdeDrive", "procesarAccionInventario", "getBartenderFullHistory"];
+    functions.forEach(fn => {
+        google.script.run[fn] = function(...args) {
+            return {
+                withSuccessHandler: function(successCb) {
+                    return {
+                        withFailureHandler: function(failCb) {
+                            console.log(`📡 Bridge: ${fn}`, args);
+                            // Llamada simulada para visualización pura
+                            if (fn === "tpv_obtenerCatalogoDesdeDrive") {
+                                // Consumir JSON de ecommerce directamente si falla el bridge
+                                fetch('https://script.google.com/macros/s/AKfycbwYy4WJ7r1XF8-m0f34vCHmH5T_r5rF5rF/exec?op=catalogo')
+                                .then(r => r.json()).then(d => successCb(d)).catch(e => console.error(e));
+                            } else {
+                                successCb({ success: true, message: "Modo visualización activo" });
+                            }
+                        }
+                    };
+                }
+            };
+        };
+    });
+};
+
+/** 
+ * 2. LÓGICA DE LA APLICACIÓN 
+ */
+let tableInstance, catalogData = [], currentSelectedSKU, globalJsonCache;
+
+$(document).ready(() => {
+    window.initGasBridge(""); // Iniciar bridge inlined
+    initApp();
+});
+
+async function initApp() {
+    log("🛰️ Cargando Datos...", "info");
+    google.script.run.withSuccessHandler(data => {
+        globalJsonCache = data;
+        catalogData = flattenCatalog(data.products || data.secciones || []); 
+        buildCategoryCarousel(data.categories || []);
+        buildProductCarousel('');
+        initDataTables(catalogData);
+        log("✅ Dashboard Listo.", "success");
+    }).tpv_obtenerCatalogoDesdeDrive();
+}
+
+function flattenCatalog(items) {
+    let flat = [];
+    // Adaptar tanto al JSON plano como al de secciones (Blogger Bridge)
+    const products = items.flatMap(i => i.producto || [i]); 
+    products.forEach(p => {
+        const variaciones = p.variedad || p.variations || [];
+        variaciones.forEach(v => {
+            flat.push({
+                sku: p.id || p.nombre, name: p.model || p.nombre, brand: p.brand || '', color: v.color || 'Varios', 
+                talle: v.size || 'Unico', stock: parseInt(v.stock) || 0, variation_id: v.variation_id || ''
+            });
+        });
+    });
+    return flat;
+}
+
+function initDataTables(data) {
+    tableInstance = $('#catalogTable').DataTable({
+        data: data, dom: 'rt', columns: [
+            { data: 'category', defaultContent: '' }, { data: 'sku' }, { data: 'store', defaultContent: '-' },
+            { data: 'brand' }, { data: 'season', defaultContent: '-' }, { data: 'gender', defaultContent: '-' },
+            { data: 'style', defaultContent: '-' }, { data: 'material', defaultContent: '-' },
+            { data: 'color' }, { data: 'talle', className: 'text-center' },
+            { data: 'entradas', defaultContent: '0' }, { data: 'salidas', defaultContent: '0' },
+            { data: 'ventas_web', defaultContent: '0' }, { data: 'ventas_local', defaultContent: '0' },
+            { data: 'stock', render: d => `<span class="${d<=0?'text-red-400':'text-emerald-400'} font-bold">${d} u.</span>` }
+        ],
+        rowGroup: { dataSrc: 'sku' }
+    });
+}
+
+function buildCategoryCarousel(cats) {
+    $('#category-carousel').html(cats.map(c => `<div onclick="filterCategory('${c.id}', this)" class="category-card snap-start flex-shrink-0 flex flex-col items-center justify-center w-[60px] h-[60px] rounded-xl border border-slate-700 bg-slate-800 cursor-pointer p-1"><span class="text-[8px] font-bold text-slate-400 uppercase">${c.name}</span></div>`).join(''));
+}
+
+function buildProductCarousel(cat) {
+    let filtered = globalJsonCache.products || [];
+    $('#product-carousel').html(filtered.map(p => `<div onclick="selectProduct('${p.id}', this)" class="product-card flex-shrink-0 w-full rounded-lg border border-slate-700 bg-slate-800 cursor-pointer p-1 text-center"><span class="text-[9px] font-bold text-white block truncate">${p.model}</span></div>`).join(''));
+}
+
+function selectProduct(sku, el) {
+    $('.product-card').removeClass('active border-accent'); $(el).addClass('active border-accent');
+    tableInstance.column(1).search(`^${sku}$`, true, false).draw();
+    currentSelectedSKU = sku;
+    renderMatrix();
+}
+
+function renderMatrix() {
+    $('#matrix-empty-state').addClass('hidden');
+    $('#matrix-content').removeClass('hidden').html("<p class='text-xs text-slate-400'>Matriz renderizada para " + currentSelectedSKU + "</p>");
+}
+
+function log(msg, type='info') {
+    const cls = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-emerald-400' : 'text-blue-300');
+    $('#console-output').append(`<div class="${cls}">[${new Date().toLocaleTimeString()}] > ${msg}</div>`);
+}
+function toggleLogs() { $('#logs-panel').toggleClass('translate-y-full'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!-- 
+  =================================================================
+  === ERP INVENTORY DASHBOARD - BLOGGER VERSION ===
+  =================================================================
+  Instrucciones: Copiar este código y pegar en el editor HTML de una página de Blogger.
+  Asegúrate de que el título de la página empiece por "ERP_" (ej: ERP_Dashboard).
+-->
+
+<!-- Estilos Extra (DataTables & jQuery) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link href="https://cdn.datatables.net/v/dt/dt-2.0.3/rg-1.5.0/datatables.min.css" rel="stylesheet"/>
+<script src="https://cdn.datatables.net/v/dt/dt-2.0.3/rg-1.5.0/datatables.min.js"></script>
+
+<!-- Puente de Datos (GAS Bridge) -->
+<script src="https://cdn.jsdelivr.net/gh/Skypia-Underwear/ERP-AppsScript-Core@main/Bridge_Blogger_PoC/assets/gas-bridge.js"></script>
+<!-- O simplemente pegar el contenido de gas-bridge.js aquí si es preferible -->
+
+<!-- Dashboard HTML (Extraído de inventory_dashboard.html) -->
+<div class="h-full flex flex-col overflow-hidden text-slate-200 relative bg-slate-950" id="inventory-app-root">
+
+  <!-- 1. HEADER & BUSCADOR GLOBAL -->
+  <header class="border-b border-slate-800 px-6 py-3 flex justify-between items-center flex-shrink-0 z-20" style="background-color: var(--bg-secondary);">
+    <div class="flex items-center gap-4 w-1/4">
+      <div class="p-2 rounded-lg text-white flex items-center justify-center" style="background-color: var(--accent); box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);">
+        <i class="ph-bold ph-stack text-xl"></i>
+      </div>
+      <div class="hidden md:block">
+        <h1 class="text-base font-bold text-white tracking-wide whitespace-nowrap">Inventario ERP</h1>
+        <p class="text-[10px] text-slate-400 flex items-center gap-1">
+          <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span></span>
+          <span id="last-sync-label">Sincronizando...</span>
+        </p>
+      </div>
+    </div>
+    <div class="flex-grow max-w-2xl mx-4">
+      <div class="bg-slate-900 rounded-xl border border-slate-700 p-1.5 flex items-center shadow-inner focus-within:border-[var(--accent)] transition-colors">
+        <i class="ph-bold ph-magnifying-glass text-slate-500 ml-3 text-lg"></i>
+        <input type="text" id="custom-sku-search" placeholder="Buscar categoría, producto, temporada..." class="w-full bg-transparent border-none text-white px-3 py-1 outline-none text-sm font-medium placeholder-slate-500"/>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 w-auto min-w-[25%]">
+      <button onclick="toggleLogs()" id="btn-toggle-logs" class="px-3 py-1.5 border border-slate-700 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition flex items-center gap-2 bg-slate-800">
+        <i class="ph-bold ph-terminal-window"></i> <span class="hidden xl:block">Logs</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. ESPACIO DE TRABAJO PRINCIPAL (Simplificado para PoC) -->
+  <div class="flex-grow flex overflow-hidden p-4 gap-4">
+    <div class="w-full flex flex-col rounded-xl border border-slate-700 shadow-xl overflow-hidden relative" style="background-color: var(--bg-secondary);">
+      <div class="p-4 flex-grow overflow-auto">
+        <table id="catalogTable" class="w-full text-left">
+          <thead>
+            <tr>
+              <th>Cat</th>
+              <th>SKU</th>
+              <th>Color</th>
+              <th>Talle</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- TERMINAL DE LOGS -->
+  <div id="logs-panel" class="fixed bottom-0 left-0 right-0 h-48 border-t border-slate-700 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transform translate-y-full transition-transform duration-300 z-50 flex flex-col" style="background-color: var(--bg-secondary);">
+    <div class="px-4 py-2 border-b border-slate-800 flex justify-between items-center" style="background-color: var(--bg-main);">
+      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><i class="ph-bold ph-terminal-window"></i> Terminal ERP</span>
+      <button onclick="toggleLogs()"><i class="ph-bold ph-x text-sm"></i></button>
+    </div>
+    <div id="console-output" class="p-4 flex-grow overflow-y-auto"></div>
+  </div>
+</div>
+
+<script>
+  // CONFIGURACIÓN DE URLS (Basadas en Donweb/Castfer)
+  const CATALOG_READ_URL = 'https://castfer.com.ar/api_json_read.php?file=skypia-underwear-catalog-tpv.json';
+  const CATALOG_FALLBACK_URL = 'https://raw.githubusercontent.com/Skypia-Underwear/ERP-AppsScript-Core/main/skypia-underwear-catalog-tpv.json';
+  
+  let tableInstance = null;
+  let catalogData = [];
+
+  $(document).ready(function() {
+      // 1. Inicializar el puente con la Macro (Usaremos una URL de Test por ahora)
+      if (typeof initGasBridge === 'function') {
+          initGasBridge('https://script.google.com/macros/s/SIMULATED_ID/exec');
+      }
+      
+      initApp();
+  });
+
+  async function initApp() {
+    log("🛰️ Sincronizando catálogo en Blogger...", "info");
+    try {
+      // Simulamos window.getGlobalCatalog que normalmente está en Core
+      const response = await fetch(CATALOG_READ_URL);
+      const data = await response.json();
+      
+      // Aplanar para DataTables
+      catalogData = [];
+      data.products.forEach(p => {
+        p.variations.forEach(v => {
+          catalogData.push({
+            category: p.categoryName,
+            sku: p.id,
+            name: p.model,
+            color: v.color,
+            talle: v.size,
+            stock: v.stock
+          });
+        });
+      });
+
+      initDataTables(catalogData);
+      log("✅ Catálogo cargado con éxito.", "success");
+      document.getElementById('last-sync-label').innerText = "Sincronizado";
+      
+    } catch (e) {
+      log("❌ Fallo de Sync: " + e.message, "error");
+    }
+  }
+
+  function initDataTables(data) {
+    tableInstance = $('#catalogTable').DataTable({
+      data: data,
+      columns: [
+        { data: 'category' },
+        { data: 'sku' },
+        { data: 'color' },
+        { data: 'talle' },
+        { data: 'stock', render: (d) => `<span class="font-bold ${d <= 0 ? 'text-red-400' : 'text-emerald-400'}">${d} u.</span>` }
+      ],
+      pageLength: 20
+    });
+  }
+
+  function log(msg, type) {
+    const out = $('#console-output');
+    const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-emerald-400' : 'text-blue-400');
+    out.append(`<div class="text-xs mb-1 ${color}">> ${msg}</div>`);
+  }
+
+  function toggleLogs() {
+    $('#logs-panel').toggleClass('translate-y-full');
+  }
+</script>

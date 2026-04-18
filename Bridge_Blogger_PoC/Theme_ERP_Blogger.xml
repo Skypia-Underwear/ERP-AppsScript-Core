@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:css='false' b:defaultwidgetversion='2' b:layoutsversion='3' lang='es' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+  <head>
+    <meta content='width=device-width, initial-scale=1' name='viewport'/>
+    <title><data:blog.pageName/> - ERP System</title>
+    
+    <b:skin><![CDATA[
+      /* Reset básico y variables de CastFer */
+      :root {
+        --bg-main: #0f172a;
+        --bg-secondary: #1e293b;
+        --accent: #6366f1;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-main);
+        color: #f8fafc;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      /* Ocultar elementos nativos de Blogger que estorben */
+      .navbar, .header-outer, .footer-outer { display: none !important; }
+    ]]></b:skin>
+
+    <!-- Assets de CastFer -->
+    <link href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap' rel='stylesheet'/>
+    <script src='https://cdn.tailwindcss.com'></script>
+    <script src='https://unpkg.com/@phosphor-icons/web'></script>
+    <link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'/>
+    <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+
+    <script>
+      // Configuración de Tailwind para que coincida con el ERP
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: { 950: '#020617' }
+            },
+            fontFamily: {
+              sans: ['Plus Jakarta Sans', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    
+    <style>
+      /* Estilos del Sidebar portados de systemContainer.html */
+      #main-sidebar {
+        width: 14rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .sidebar-link {
+        color: #94a3b8 !important;
+        transition: all 0.2s ease;
+        border-right: 3px solid transparent;
+      }
+      .sidebar-link:hover {
+        color: #ffffff !important;
+        background-color: #1e293b !important;
+      }
+      .sidebar-link.active {
+        color: #818cf8 !important;
+        background-color: rgba(99, 102, 241, 0.1) !important;
+        border-right-color: #6366f1;
+      }
+      /* Shell del ERP siempre visible en esta PoC */
+      #erp-shell { display: flex !important; width: 100%; height: 100%; }
+      #public-content { display: none !important; }
+    </style>
+  </head>
+
+  <body class='h-screen flex overflow-hidden'>
+    
+    <!-- SHELL DEL ERP (Solo visible en páginas ERP_) -->
+    <div class='flex w-full h-full' id='erp-shell'>
+      
+      <!-- SideBar (Copiado de systemContainer.html) -->
+      <aside class='w-56 bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl z-50 flex-shrink-0' id='main-sidebar'>
+        <div class='h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900'>
+          <div class='flex items-center gap-3 text-indigo-500 overflow-hidden'>
+            <i class='ph-fill ph-stack text-2xl flex-shrink-0'></i>
+            <span class='font-bold text-lg tracking-tight text-white'>Gestión ERP</span>
+          </div>
+        </div>
+
+        <nav class='flex-1 overflow-y-auto py-6 px-3 space-y-1'>
+          <a class='sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-r-lg' href='/'>
+            <i class='ph-duotone ph-house text-xl flex-shrink-0'></i>
+            <span class='text-sm font-medium'>Inicio</span>
+          </a>
+          
+          <p class='px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2'>Módulos</p>
+          
+          <!-- Enlaces actualizados según el formato de Blogger -->
+          <a class='sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg' href='/p/erpdashboard.html'>
+            <i class='ph-duotone ph-check-circle text-xl flex-shrink-0'></i>
+            <span class='text-sm font-medium'>Inventario (TPV)</span>
+          </a>
+          <a class='sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg' href='/p/erp-clientorder.html'>
+            <i class='ph-duotone ph-user text-xl flex-shrink-0'></i>
+            <span class='text-sm font-medium'>Ordenes Cliente</span>
+          </a>
+        </nav>
+
+        <div class='p-4 border-t border-slate-800 bg-slate-900'>
+          <div class='flex items-center gap-3'>
+            <div class='w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-indigo-400'>
+              SK
+            </div>
+            <div class='flex-1 min-w-0'>
+              <p class='text-sm font-medium text-white truncate'>Skypia User</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Contenido Principal -->
+      <main class='flex-1 flex flex-col min-w-0 bg-slate-900 relative'>
+        <div class='flex-1 overflow-hidden relative bg-slate-950 m-2 rounded-xl border border-slate-800/50 shadow-inner' id='main-content'>
+           <!-- Aquí es donde Blogger inyectará el contenido de la PÁGINA -->
+            <b:section id='main' maxwidgets='1' showaddelement='yes'>
+              <b:widget id='Blog1' locked='true' title='Entradas del blog' type='Blog' version='2'>
+                <b:includable id='main'>
+                  <b:loop values='data:posts' var='post'>
+                    <data:post.body/>
+                  </b:loop>
+                </b:includable>
+              </b:widget>
+            </b:section>
+        </div>
+      </main>
+    </div>
+
+    <!-- CONTENIDO PÚBLICO (Si no es ERP, se muestra esto) -->
+    <div id='public-content' style='display:none; width: 100%;'>
+       <b:section id='public-main' showaddelement='yes'>
+         <!-- Aquí iría el resto de tu tienda -->
+       </b:section>
+    </div>
+
+    <script type='text/javascript'>
+      //<![CDATA[
+      // Lógica de navegación simple: Marcar enlace activo según URL
+      document.addEventListener("DOMContentLoaded", function() {
+        const path = window.location.pathname;
+        const links = document.querySelectorAll('.sidebar-link');
+        links.forEach(link => {
+          if (link.getAttribute('href') === path) {
+            link.classList.add('active');
+          }
+        });
+      });
+      //]]>
+    </script>
+  </body>
+</html>
