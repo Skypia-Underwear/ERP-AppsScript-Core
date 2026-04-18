@@ -69,12 +69,14 @@
     position: sticky;
     top: 0;
     z-index: 40;
-    background-color: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #334155;
-    padding: 0.75rem 1.5rem;
-    margin: -1rem -1rem 1.5rem -1rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    transition: all 0.3s ease;
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
   }
 
   /* Floating Action Buttons (Móvil/Tablet) */
@@ -119,16 +121,18 @@
 
   /* Inputs y Selects Dark Premium */
   .header-select {
-    padding: 8px 12px;
-    border-radius: 10px;
+    background: #1e293b;
     border: 1px solid #334155;
-    background-color: #1e293b;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #e2e8f0;
+    color: #cbd5e1;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
     outline: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 120px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    min-width: 110px;
+    height: 38px;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='C19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -212,7 +216,16 @@
     .header-refresh-desktop { display: none !important; }
     .stat-buttons-row { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; gap: 6px; }
     .header-select { width: 48%; min-width: 140px; }
-    .filter-icons-row { width: 100%; overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; padding: 4px; gap: 10px; }
+    .filter-icons-row { 
+    width: 100%; 
+    flex-wrap: wrap; 
+    justify-content: center; 
+    padding: 6px; 
+    gap: 12px; 
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: 1rem;
+    border: 1px solid rgba(51, 65, 85, 0.3);
+  }
     .payment-icon-filter { min-width: 110px; flex-direction: column; padding: 8px; font-size: 0.6rem; }
     .dt-search { width: 100% !important; margin-bottom: 1rem; }
     .dt-search input { width: 100% !important; min-width: 0 !important; }
@@ -227,7 +240,7 @@
 
   /* Ajustes específicos para iPhone/Móvil Pequeño */
   @media (max-width: 768px) {
-    .filter-icons-row { justify-content: flex-start !important; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .filter-icons-row { justify-content: center !important; }
     .payment-icon-filter { min-width: 90px; padding: 6px; font-size: 0.55rem; gap: 4px; }
     .payment-icon-filter svg { width: 16px; height: 16px; }
   }
@@ -260,76 +273,84 @@
     </div>
   </div>
 
-  <header class="sticky-header flex flex-col xl:flex-row items-center justify-between gap-4">
-    <div class="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start">
-      <div class="flex items-center gap-3">
-        <div class="bg-indigo-600 text-white p-2 md:p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
-          <span class="material-icons text-xl md:text-2xl font-bold">payments</span>
+  <header class="sticky-header">
+    <!-- FILA 1: Resumen, Estados y Controles Globales -->
+    <div class="flex flex-col lg:flex-row items-center justify-between gap-4 w-full">
+      
+      <!-- Resumen y Fecha -->
+      <div class="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-start">
+        <div class="flex items-center gap-3">
+          <div class="bg-indigo-600 text-white p-2 md:p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+            <span class="material-icons text-xl md:text-2xl font-bold">payments</span>
+          </div>
+          <div>
+            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Total Auditado</p>
+            <h2 id="summary-total-audited-monto" class="text-xl md:text-2xl font-black text-white leading-none tracking-tight">$ 0,00</h2>
+          </div>
         </div>
-        <div>
-          <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Total Auditado</p>
-          <h2 id="summary-total-audited-monto" class="text-xl md:text-2xl font-black text-white leading-none tracking-tight">$ 0,00</h2>
+
+        <div class="flex items-center bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
+          <span class="material-icons text-slate-500 text-sm mr-1">calendar_month</span>
+          <select id="filter-date-quick" class="bg-transparent text-[11px] font-bold text-indigo-400 outline-none cursor-pointer py-1 border-none focus:ring-0"
+            onchange="setDateRange(this.value)">
+            <option value="today">📅 Hoy</option>
+            <option value="yesterday">Ayer</option>
+            <option value="week">Semana</option>
+            <option value="month">Mes</option>
+            <option value="">Manual</option>
+          </select>
+          <input type="date" id="filter-date-start" class="hidden"><input type="date" id="filter-date-end" class="hidden">
         </div>
       </div>
 
-      <div class="flex items-center bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
-        <span class="material-icons text-slate-500 text-sm mr-1">calendar_month</span>
-        <select id="filter-date-quick" class="bg-transparent text-[11px] font-bold text-indigo-400 outline-none cursor-pointer py-1 border-none focus:ring-0"
-          onchange="setDateRange(this.value)">
-          <option value="today">📅 Hoy</option>
-          <option value="yesterday">Ayer</option>
-          <option value="week">Semana</option>
-          <option value="month">Mes</option>
-          <option value="">Manual</option>
+      <!-- Botones de Estadísticas (Mobile friendly grid) -->
+      <div class="stat-buttons-row flex gap-2 w-full lg:w-auto justify-center">
+        <button id="btn-stat-complete" class="stat-btn bg-teal-500/10 border-teal-500/20 text-teal-400 hover:bg-teal-500/20" onclick="filterByStatusButton('COMPLETAS', this)">
+          <span class="text-[8px] font-extrabold uppercase tracking-wide">Entregadas</span>
+          <span id="summary-count-complete" class="text-lg font-black leading-none mt-1">0</span>
+        </button>
+        <button id="btn-stat-pending" class="stat-btn bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20" onclick="filterByStatusButton('PENDIENTES', this)">
+          <span class="text-[8px] font-extrabold uppercase tracking-wide">Solicitadas</span>
+          <span id="summary-count-pending" class="text-lg font-black leading-none mt-1">0</span>
+        </button>
+        <button id="btn-stat-canceled" class="stat-btn bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20" onclick="filterByStatusButton('CANCELADO', this)">
+          <span class="text-[8px] font-extrabold uppercase tracking-wide">Canceladas</span>
+          <span id="summary-count-canceled" class="text-lg font-black leading-none mt-1">0</span>
+        </button>
+      </div>
+
+      <!-- Controles de Origen, Caja y Acciones -->
+      <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
+        <select id="filter-origen" class="header-select">
+          <option value="">Origen</option>
         </select>
-        <input type="date" id="filter-date-start" class="hidden"><input type="date" id="filter-date-end" class="hidden">
+        <select id="filter-caja" class="header-select">
+          <option value="">Caja</option>
+        </select>
+        <div class="h-6 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+        <button onclick="clearAllFilters()" class="header-refresh-desktop p-2 bg-slate-800 text-slate-400 rounded-lg shadow hover:bg-slate-700 transition" title="Limpiar Filtros"><span class="material-icons">filter_alt_off</span></button>
+        <button onclick="loadSalesData(true)" class="header-refresh-desktop p-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition" title="Recargar"><span class="material-icons animate-pulse">refresh</span></button>
       </div>
     </div>
 
-    <div class="stat-buttons-row flex gap-2 w-full xl:w-auto justify-center">
-      <button id="btn-stat-complete" class="stat-btn bg-teal-500/10 border-teal-500/20 text-teal-400 hover:bg-teal-500/20" onclick="filterByStatusButton('COMPLETAS', this)">
-        <span class="text-[8px] font-extrabold uppercase tracking-wide">Entregadas</span>
-        <span id="summary-count-complete" class="text-lg font-black leading-none mt-1">0</span>
-      </button>
-      <button id="btn-stat-pending" class="stat-btn bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20" onclick="filterByStatusButton('PENDIENTES', this)">
-        <span class="text-[8px] font-extrabold uppercase tracking-wide">Solicitadas</span>
-        <span id="summary-count-pending" class="text-lg font-black leading-none mt-1">0</span>
-      </button>
-      <button id="btn-stat-canceled" class="stat-btn bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20" onclick="filterByStatusButton('CANCELADO', this)">
-        <span class="text-[8px] font-extrabold uppercase tracking-wide">Canceladas</span>
-        <span id="summary-count-canceled" class="text-lg font-black leading-none mt-1">0</span>
-      </button>
-    </div>
-
-    <div class="flex flex-wrap gap-2 w-full xl:w-auto justify-end items-center">
-      <div id="payment-icons-container" class="filter-icons-row flex gap-2 items-center px-2 py-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
+    <!-- FILA 2: Métodos de Pago (Dedicada y Centrada) -->
+    <div class="w-full flex justify-center">
+      <div id="payment-icons-container" class="filter-icons-row flex items-center">
         <!-- Iconos de Pago Dinámicos -->
       </div>
-      
-      <div class="h-6 w-px bg-slate-700 hidden md:block"></div>
-
-      <select id="filter-origen" class="header-select">
-        <option value="">Origen</option>
-      </select>
-      <select id="filter-caja" class="header-select">
-        <option value="">Caja</option>
-      </select>
-
-      <!-- Elemento oculto para mantener compatibilidad con la lógica de macro-filtros -->
-      <select id="filter-status" class="hidden">
-        <option value=""></option>
-        <option value="SOLICITADO">SOLICITADO</option>
-        <option value="EDITADO">EDITADO</option>
-        <option value="PAGADO">PAGADO</option>
-        <option value="EN CAMINO">EN CAMINO</option>
-        <option value="ENTREGADO">ENTREGADO</option>
-        <option value="COMPLETADA">COMPLETADA</option>
-        <option value="CANCELADO">CANCELADO</option>
-      </select>
-
-      <button onclick="clearAllFilters()" class="header-refresh-desktop p-2 bg-slate-800 text-slate-400 rounded-lg shadow hover:bg-slate-700 transition" title="Limpiar Filtros"><span class="material-icons">filter_alt_off</span></button>
-      <button onclick="loadSalesData(true)" class="header-refresh-desktop p-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition" title="Recargar"><span class="material-icons animate-pulse">refresh</span></button>
     </div>
+
+    <!-- Elemento oculto para mantener compatibilidad con la lógica de macro-filtros -->
+    <select id="filter-status" class="hidden">
+      <option value=""></option>
+      <option value="SOLICITADO">SOLICITADO</option>
+      <option value="EDITADO">EDITADO</option>
+      <option value="PAGADO">PAGADO</option>
+      <option value="EN CAMINO">EN CAMINO</option>
+      <option value="ENTREGADO">ENTREGADO</option>
+      <option value="COMPLETADA">COMPLETADA</option>
+      <option value="CANCELADO">CANCELADO</option>
+    </select>
   </header>
 
   <!-- Botones Flotantes (Solo en móviles) -->
