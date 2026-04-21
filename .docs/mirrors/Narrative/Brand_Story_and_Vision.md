@@ -1,20 +1,17 @@
-# Documento Maestro: Historia, Visión y Corazón de CastFer ERP
+# Brand Story & Vision: HostingShop ERP
 
-## 🌟 La Narrativa del Fundador
-Este sistema no nació en una oficina corporativa, sino de la necesidad real de la trinchera comercial. Nació al ver cómo los dueños de negocios se ahogan en planillas, pierden ventas por falta de catálogo actualizado y dependen de agencias de marketing costosas.
+## El Alma del Proyecto
+HostingShop no es solo un sistema de gestión; es la columna vertebral operativa de un negocio de e-commerce y logística que busca la excelencia a través de la automatización. Nació de la necesidad de centralizar procesos dispersos en Google Sheets y convertirlos en un ecosistema robusto basado en Google Apps Script.
 
-CastFer ERP es la rebelión del pequeño y mediano comerciante. Es la democratización de la tecnología de élite. Nuestra historia es la de **"Empoderar a través de la IA"**: convertir una simple hoja de cálculo en un centro de mando galáctico que gestiona ventas, crea videos y habla con clientes mientras el dueño descansa.
+## Nuestra Visión
+Empoderar al equipo de HostingShop con herramientas de nivel empresarial que eliminen el error humano, optimicen el inventario y brinden claridad financiera en tiempo real.
 
-## 🎭 Personalidad de Marca (Core Identity)
-Para NotebookLM y generadores de contenido, estos son nuestros rasgos:
-- **Tono:** Profesional pero cercano ("Tu socio tecnológico, no solo tu software").
-- **Valores:** Eficiencia radical, estética premium, honestidad en los datos y vanguardia constante.
-- **Arquetipo:** "El Mago" (Transformamos el caos en orden y una foto simple en un video épico con un clic).
+## Tono de Voz
+- **Eficiente:** Soluciones rápidas para problemas reales.
+- **Transparente:** Auditoría forense en cada movimiento.
+- **Innovador:** Siempre explorando nuevas fronteras (como la integración con Blogger o MercadoLibre).
 
-## 🎯 El "Por Qué" de este Sistema
-- **Independencia Creativa:** Queremos que cualquier persona, sin saber diseño, pueda tener el mejor catálogo del mundo.
-- **Escala Humana:** El software debe adaptarse al humano, no al revés (por eso es flexible como Google Sheets y potente como una App nativa).
-- **Tranquilidad Operativa:** El sistema debe avisar si algo falla (Telegram Health) para que el dueño recupere su tiempo libre.
-
-## 💰 El Pitch de Ventas (Para Guiones)
-"No estás comprando un ERP. Estás comprando un **Equipo de Marketing y un Gerente de Operaciones que no duerme**. CastFer es la inversión que se paga sola al eliminar errores humanos y multiplicar tus canales de venta (Blogger, WordPress, Bot)."
+## Pilares de Desarrollo
+1. **Verticalidad:** Configuración Key-Value para máxima flexibilidad.
+2. **Seguridad:** "Pisos de Seguridad" y auditoría constante.
+3. **Escalabilidad:** Arquitectura híbrida que permite crecer sin degradar el rendimiento.

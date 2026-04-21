@@ -1,6 +1,13 @@
 # Excluir carpeta de análisis externo
 External_Analysis/**
 
+# Excluir nuevas carpetas funcionales
+Appsheet/**
+ecommerce_theme/**
+services/**
+research/**
+.system/**
+
 # Excluir archivos de configuración local
 .clasp.json
 .claspignore
