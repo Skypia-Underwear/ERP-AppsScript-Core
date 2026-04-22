@@ -2357,19 +2357,27 @@
 
         // Update Global UI
         if (isPerfect) {
-          counter.innerText = target + (target === 1 ? ' Curva completa' : ' Curvas completas');
-          counter.style.color = 'var(--success)';
-          msg.innerText = '¡Curva perfecta! Ya puedes añadir al carrito.';
-          msg.style.color = 'var(--success)';
+          if (counter) {
+            counter.innerText = target + (target === 1 ? ' Curva completa' : ' Curvas completas');
+            counter.style.color = 'var(--success)';
+          }
+          if (msg) {
+            msg.innerText = '¡Curva perfecta! Ya puedes añadir al carrito.';
+            msg.style.color = 'var(--success)';
+          }
           btnConfirm.disabled = false;
           btnConfirm.style.opacity = '1';
           btnConfirm.style.cursor = 'pointer';
         } else {
           const curvesFound = Math.min(...colTotals);
-          counter.innerText = curvesFound + ' Curvas completas';
-          counter.style.color = 'var(--primary)';
-          msg.innerText = 'Cada columna de talle debe sumar la misma cantidad.';
-          msg.style.color = '#94a3b8';
+          if (counter) {
+            counter.innerText = curvesFound + ' Curvas completas';
+            counter.style.color = 'var(--primary)';
+          }
+          if (msg) {
+            msg.innerText = 'Cada columna de talle debe sumar la misma cantidad.';
+            msg.style.color = '#94a3b8';
+          }
           btnConfirm.disabled = true;
           btnConfirm.style.opacity = '0.5';
           btnConfirm.style.cursor = 'not-allowed';
@@ -2601,8 +2609,9 @@
 
         const totalFinal = subtotalNeto + paymentSurcharge;
 
-        // F. SincronizaciÃ³n UI
-        document.getElementById('tpv-sidebar-subtotal').innerText = '$' + montoProductos.toLocaleString();
+        // F. Sincronización UI
+        const sidebarSubtotal = document.getElementById('tpv-sidebar-subtotal');
+        if (sidebarSubtotal) sidebarSubtotal.innerText = '$' + montoProductos.toLocaleString();
 
         const preModal = isQr ? 'qr-tpv-modal-' : 'tpv-modal-';
         const totalProdEl = document.getElementById(preModal + 'total-products');
@@ -2648,20 +2657,27 @@
         const pre = isQr ? 'qr-' : '';
         const preModal = isQr ? 'qr-tpv-modal-' : 'tpv-modal-';
 
-        const confirmMsg = document.getElementById(preModal + 'final-total').innerText;
+        const confirmMsg = document.getElementById(preModal + 'final-total')?.innerText || "esta venta";
         if (!confirm("Â¿Confirmar venta por " + confirmMsg + "?")) return;
 
         const subtotalProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-        const method = document.getElementById(pre + 'tpv-payment-method').value;
-        const customerId = document.getElementById(pre + 'tpv-customer').value;
-        const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount').value) || 0;
-        const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account').value : '';
+        const method = document.getElementById(pre + 'tpv-payment-method')?.value || 'Efectivo';
+        const customerId = document.getElementById(pre + 'tpv-customer')?.value || 'CLIENTE_GENERAL';
+        const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount')?.value) || 0;
+        const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account')?.value : '';
 
-        // Recuperar cálculos finales ya procesados por updateTpvTotals
-        const minorSurcharge = parseFloat(document.getElementById(preModal + 'minor-surcharge')?.innerText.replace('$', '').replace('+', '').replace('.', '').trim()) || 0;
-        const paymentSurcharge = parseFloat(document.getElementById(preModal + 'payment-surcharge')?.innerText.replace('$', '').replace('+', '').replace('.', '').trim()) || 0;
-        const finalTotal = parseFloat(document.getElementById(preModal + 'final-total')?.innerText.replace('$', '').replace('.', '').trim()) || 0;
-        const subtotalNeto = parseFloat(document.getElementById(preModal + 'subtotal')?.innerText.replace('$', '').replace('.', '').trim()) || 0;
+        // Función auxiliar para extraer números de texto con formato (moneda)
+        const parseCurrency = (id) => {
+            const el = document.getElementById(id);
+            if (!el) return 0;
+            const text = el.innerText || "0";
+            return parseFloat(text.replace(/[^-?\d]/g, '')) || 0;
+        };
+
+        const minorSurcharge = parseCurrency(preModal + 'minor-surcharge');
+        const paymentSurcharge = parseCurrency(preModal + 'payment-surcharge');
+        const finalTotal = parseCurrency(preModal + 'final-total');
+        const subtotalNeto = parseCurrency(preModal + 'subtotal');
 
         // OBJETO DE VENTA
         var saleData = {
