@@ -1283,6 +1283,7 @@ function getStoreSessionData(storeId, userId) {
             horario: { apertura: "00:00:00", cierre: "23:59:59" },
             activeCashRegisterId: null,
             defaultTransferAccount: null,
+            printerIp: "127.0.0.1",
             isWithinSchedule: true
         };
 
@@ -1295,6 +1296,7 @@ function getStoreSessionData(storeId, userId) {
                     cierre: tienda.HORA_CIERRE || "17:00:00"
                 };
                 session.defaultTransferAccount = tienda.CUENTAS_TRANSFERENCIA || null;
+                session.printerIp = tienda.IP_IMPRESORA_LOCAL || "127.0.0.1";
             }
         }
 

@@ -1498,7 +1498,14 @@
           .withSuccessHandler(res => {
             if (res && res.success) {
               posMetadata.activeCashRegisterId = res.activeCashRegisterId;
-              if (res.session) updateTpvSessionStatus(res.session);
+              if (res.session) {
+                updateTpvSessionStatus(res.session);
+                // Sincronizar IP de impresora en tiempo real
+                if (res.session.printerIp) {
+                  posMetadata.printerIp = res.session.printerIp;
+                  console.log("ðŸ“¡ IP de Impresora actualizada dinÃ¡micamente:", posMetadata.printerIp);
+                }
+              }
             }
           })
           .getStoreDynamicStatus(storeId, posMetadata.sellerId);
