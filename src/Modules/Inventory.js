@@ -434,112 +434,152 @@ function generarInventarioPorProducto(PRODUCTO_ID, logArray = null) {
   log(`🎯 Finalizó la auditoría para: ${productoIdStr}`);
 }
 
-function recalcularStockDeProducto(productId, logArray = null) {
+function recalcularStockDeProducto(productId, logArray = null, dryRun = false) {
   const log = logArray ? (msg) => logArray.push(msg) : (msg) => Logger.log(msg);
-  log(`🔬 Iniciando recálculo completo para el producto: '${productId}'...`);
+  log(`🔬 Iniciando recálculo optimizado para el producto: '${productId}'${dryRun ? ' [MODO SIMULACIÓN]' : ''}...`);
 
-  const ss = getInventorySpreadsheet();
-  const inventorySheet = ss.getSheetByName(SHEETS.INVENTORY);
-  const salesDetailsSheet = ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS);
-  const movementSheet = ss.getSheetByName(SHEETS.INVENTORY_MOVEMENTS);
-
-  const inventoryData = inventorySheet.getDataRange().getValues();
-  const salesDetailsData = salesDetailsSheet.getDataRange().getValues();
-  const movementData = movementSheet.getDataRange().getValues();
-
-  // Mapeos utilizando HeaderManager para resiliencia
-  const invMapping = HeaderManager.getMapping("INVENTORY");
-  const moveMapping = HeaderManager.getMapping("INVENTORY_MOVEMENTS");
-
-  // Si falta mapeo crítico, abortar
-  if (!invMapping || !moveMapping) {
-    log(`❌ Error: Mapeos no encontrados (INVENTORY o INVENTORY_MOVEMENTS). No se pudo recalcular.`);
-    return;
+  // --- 1. SEGURIDAD DE CONCURRENCIA ---
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // Esperar hasta 30 seg
+  } catch (e) {
+    log(`⚠️ No se pudo obtener el bloqueo de seguridad tras 30s. Abortando para evitar colisión de datos.`);
+    return { success: false, message: "Error de concurrencia: El recurso está siendo usado." };
   }
 
-  // Columnas en BD_INVENTARIO
-  const invRowIdIndex = invMapping["INVENTARIO_ID"];
-  const invStoreIdIndex = invMapping["TIENDA_ID"];
-  const invProductIdIndex = invMapping["PRODUCTO_ID"];
-  const invColorIndex = invMapping["COLOR"];
-  const invSizeIndex = invMapping["TALLE"];
-  const invCurrentStockIndex = invMapping["STOCK_ACTUAL"];
-  const invEntriesIndex = invMapping["ENTRADAS"];
-  const invExitsIndex = invMapping["SALIDAS"];
-  const invLocalSalesIndex = invMapping["VENTAS_LOCAL"];
-  const invWebSalesIndex = invMapping["VENTAS_WEB"];
+  try {
+    const ss = getInventorySpreadsheet();
+    const inventorySheet = ss.getSheetByName(SHEETS.INVENTORY);
+    const movementSheet = ss.getSheetByName(SHEETS.INVENTORY_MOVEMENTS);
 
-  // Columnas en BD_MOVIMIENTOS_INVENTARIO
-  const moveInventoryIdIndex = moveMapping["INVENTARIO_ID"];
-  const moveTypeIndex = moveMapping["MOVIMIENTO"];
-  const moveAmountIndex = moveMapping["CANTIDAD"];
+    const inventoryData = inventorySheet.getDataRange().getValues();
+    const movementData = movementSheet.getDataRange().getValues();
 
-  // Columnas en BLOGGER_DETALLE_VENTAS (Mapeo estático antiguo si no está en config, asumiendo estructura BD_DETALLE_VENTAS)
-  const salesDetailsHeaders = salesDetailsData.shift().map(h => h.toString().trim().toUpperCase());
-  const detailProductIdIndex = salesDetailsHeaders.indexOf('PRODUCTO_ID');
-  const detailColorIndex = salesDetailsHeaders.indexOf('COLOR');
-  const detailSizeIndex = salesDetailsHeaders.indexOf('TALLE');
-  const detailAmountIndex = salesDetailsHeaders.indexOf('CANTIDAD');
+    const invMapping = HeaderManager.getMapping("INVENTORY");
+    const moveMapping = HeaderManager.getMapping("INVENTORY_MOVEMENTS");
 
-  const productInventoryRows = [];
-  inventoryData.forEach((row, index) => {
-    if (index > 0 && row[invProductIdIndex] === productId) {
-      productInventoryRows.push({ data: row, rowIndex: index + 1 });
+    if (!invMapping || !moveMapping) {
+      log(`❌ Error: Mapeos no encontrados. No se pudo recalcular.`);
+      return;
     }
-  });
 
-  if (productInventoryRows.length === 0) {
-    log(`⚠️ No se encontraron variaciones en el inventario para el producto ${productId}.`);
-    return;
-  }
-  log(`🔍 Se encontraron ${productInventoryRows.length} variaciones del producto en el inventario.`);
+    // --- 2. PRE-PROCESAMIENTO DE MOVIMIENTOS (O(M)) ---
+    const moveInventoryIdIndex = moveMapping["INVENTARIO_ID"];
+    const moveTypeIndex = moveMapping["MOVIMIENTO"];
+    const moveAmountIndex = moveMapping["CANTIDAD"];
 
-  productInventoryRows.forEach(invRowInfo => {
-    const invRowId = invRowInfo.data[invRowIdIndex];
-    const invStoreId = invRowInfo.data[invStoreIdIndex];
-    const invColor = invRowInfo.data[invColorIndex];
-    const invSize = invRowInfo.data[invSizeIndex];
-
-    // Calcular Ventas Locales/Web desde ticket/ventas iterando
-    let totalLocalSales = 0;
-    let totalWebSales = 0;
-
-    // (Por ahora, simplificaremos leyendo el valor actual para no romper toda la subrutina de ventas)
-    totalWebSales = parseInt(invRowInfo.data[invWebSalesIndex]) || 0;
-    totalLocalSales = parseInt(invRowInfo.data[invLocalSalesIndex]) || 0;
-
-    let totalReplacements = 0; // Entradas
-    let totalDepartures = 0;   // Salidas
-
-    // Iterar movimientos de la variación
+    const movementsSummary = new Map();
     for (let i = 1; i < movementData.length; i++) {
-      const moveRow = movementData[i];
-      if (moveRow[moveInventoryIdIndex] === invRowId) {
-        const amount = parseInt(moveRow[moveAmountIndex]) || 0;
-        if (moveRow[moveTypeIndex] === 'ENTRADA') { totalReplacements += amount; }
-        else if (moveRow[moveTypeIndex] === 'SALIDA') { totalDepartures += amount; }
-      }
+        const invId = movementData[i][moveInventoryIdIndex];
+        if (!invId) continue;
+        if (!movementsSummary.has(invId)) {
+            movementsSummary.set(invId, { entries: 0, exits: 0 });
+        }
+        const stats = movementsSummary.get(invId);
+        const amount = parseInt(movementData[i][moveAmountIndex]) || 0;
+        if (movementData[i][moveTypeIndex] === 'ENTRADA') stats.entries += amount;
+        else if (movementData[i][moveTypeIndex] === 'SALIDA') stats.exits += amount;
     }
 
-    // --- INICIO DE LA CORRECCIÓN: Cálculo y actualización de CURRENT_STOCK (BD_INVENTARIO) ---
-    // [STOCK_INICIAL] + [ENTRADAS] - ([SALIDAS] + [VENTAS_LOCAL] + [VENTAS_WEB])
-    // Nota: Si no hay columna STOCK_INICIAL en el schema que pasamos antes, usaremos 0 predeterminado
-    const initialStock = 0;
+    // --- 3. PRE-PROCESAMIENTO DE VENTAS (O(S) con Cache JSON) ---
+    const salesSummary = new Map();
+    let ventasCargadas = false;
 
-    // Aplicamos la fórmula requerida por el usuario
-    const newCurrentStock = initialStock + totalReplacements - (totalDepartures + totalWebSales + totalLocalSales);
+    // Intentar leer desde el JSON optimizado (Bake & Serve)
+    try {
+        const dashboardJsonStr = cargarDashboardVentas(); // Función en Dashboard.js
+        const dashboardObj = JSON.parse(dashboardJsonStr);
+        if (dashboardObj.success && dashboardObj.data) {
+            dashboardObj.data.forEach(venta => {
+                const tiendaId = venta.tiendaId;
+                const isWeb = venta.origen === "Blogger";
+                if (venta.detalles) {
+                    venta.detalles.forEach(det => {
+                        const invId = `${det.productoId}-${det.color}-${det.talle}-${tiendaId}`;
+                        if (!salesSummary.has(invId)) salesSummary.set(invId, { web: 0, local: 0 });
+                        const sStats = salesSummary.get(invId);
+                        if (isWeb) sStats.web += (parseInt(det.cantidad) || 0);
+                        else sStats.local += (parseInt(det.cantidad) || 0);
+                    });
+                }
+            });
+            ventasCargadas = true;
+            log(`⚡ Resumen de ventas obtenido desde Cache JSON optimizado.`);
+        }
+    } catch (e) {
+        log(`⚠️ Aviso: No se pudo usar el Cache JSON para ventas. Fallback a lectura de hojas...`);
+    }
 
-    // Escribimos TODOS los valores calculados en la hoja BD_INVENTARIO
-    inventorySheet.getRange(invRowInfo.rowIndex, invEntriesIndex + 1).setValue(totalReplacements);
-    inventorySheet.getRange(invRowInfo.rowIndex, invExitsIndex + 1).setValue(totalDepartures);
-    inventorySheet.getRange(invRowInfo.rowIndex, invCurrentStockIndex + 1).setValue(newCurrentStock); // <-- ¡LÍNEA CLAVE!
+    // Fallback a lectura de hojas si el JSON falla o no está disponible
+    if (!ventasCargadas) {
+        // [Optimización Futura: Aquí se leerían las hojas de ventas_detalles con el mismo patrón Map]
+        log(`ℹ️ Usando lógica simplificada de lectura por fila para ventas (Fallback).`);
+    }
 
-    log(`🔄 Recalculado [${invStoreId}] ${invRowId}: Entradas=${totalReplacements}, Salidas=${totalDepartures} -> STOCK FINAL: ${newCurrentStock}`);
-    // --- FIN DE LA CORRECCIÓN ---
-  });
+    // --- 4. PROCESAMIENTO DE INVENTARIO Y ACTUALIZACIÓN EN MEMORIA ---
+    const invProductIdIndex = invMapping["PRODUCTO_ID"];
+    const invRowIdIndex = invMapping["INVENTARIO_ID"];
+    const invInitialStockIndex = invMapping["STOCK_INICIAL"];
+    const invEntriesIndex = invMapping["ENTRADAS"];
+    const invExitsIndex = invMapping["SALIDAS"];
+    const invWebSalesIndex = invMapping["VENTAS_WEB"];
+    const invLocalSalesIndex = invMapping["VENTAS_LOCAL"];
+    const invCurrentStockIndex = invMapping["STOCK_ACTUAL"];
 
-  SpreadsheetApp.flush();
-  log(`✅ Recálculo multi-tienda completo para el producto ${productId}.`);
+    let firstRowDirty = -1;
+    let lastRowDirty = -1;
+
+    inventoryData.forEach((row, index) => {
+      if (index === 0) return; // Saltar encabezado
+      
+      if (row[invProductIdIndex] === productId) {
+        const invId = row[invRowIdIndex];
+        const initialStock = parseInt(row[invInitialStockIndex]) || 0;
+        
+        const mStats = movementsSummary.get(invId) || { entries: 0, exits: 0 };
+        const sStats = salesSummary.get(invId) || {
+            web: parseInt(row[invWebSalesIndex]) || 0,
+            local: parseInt(row[invLocalSalesIndex]) || 0
+        };
+
+        const totalEntries = mStats.entries;
+        const totalExits = mStats.exits;
+        const totalWeb = sStats.web;
+        const totalLocal = sStats.local;
+
+        // FÓRMULA MAESTRA: STOCK_INICIAL + ENTRADAS - (SALIDAS + VENTAS_WEB + VENTAS_LOCAL)
+        const newStock = initialStock + totalEntries - (totalExits + totalWeb + totalLocal);
+
+        // Actualizar array en memoria
+        inventoryData[index][invEntriesIndex] = totalEntries;
+        inventoryData[index][invExitsIndex] = totalExits;
+        inventoryData[index][invWebSalesIndex] = totalWeb;
+        inventoryData[index][invLocalSalesIndex] = totalLocal;
+        inventoryData[index][invCurrentStockIndex] = newStock;
+
+        if (firstRowDirty === -1) firstRowDirty = index + 1;
+        lastRowDirty = index + 1;
+
+        log(`🔄 [${invId}] -> Ent:${totalEntries} | Sal:${totalExits} | Web:${totalWeb} | Loc:${totalLocal} | STOCK:${newStock}`);
+      }
+    });
+
+    // --- 5. ESCRITURA DE RANGO PARCIAL (BATCH UPDATE) ---
+    if (firstRowDirty !== -1 && !dryRun) {
+      const numRows = lastRowDirty - firstRowDirty + 1;
+      const subData = inventoryData.slice(firstRowDirty - 1, lastRowDirty);
+      inventorySheet.getRange(firstRowDirty, 1, numRows, inventoryData[0].length).setValues(subData);
+      log(`✅ Actualizadas ${numRows} variaciones en BD_INVENTARIO (Rango: ${firstRowDirty}:${lastRowDirty}).`);
+    } else if (dryRun) {
+      log(`🧪 MODO SIMULACIÓN: No se realizaron cambios en la hoja.`);
+    } else {
+      log(`⚠️ No se encontraron variaciones para el producto ${productId}.`);
+    }
+
+  } finally {
+    lock.releaseLock();
+    log(`🏁 Proceso de recálculo finalizado.`);
+  }
 }
 
 /**

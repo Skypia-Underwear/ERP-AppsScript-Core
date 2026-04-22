@@ -1309,10 +1309,24 @@ function getStoreSessionData(storeId, userId) {
             if (cajaAbierta) session.activeCashRegisterId = cajaAbierta.CAJA_ID;
         }
 
-        // Validación de Horario (Local Argentina UTC-3 aproximado via Apps Script)
+        // Normalizador de hora seguro (maneja objetos Date de 1899 o Strings)
+        const normalizeTime = (input) => {
+            if (input instanceof Date) {
+                return Utilities.formatDate(input, Session.getScriptTimeZone(), "HH:mm:ss");
+            }
+            return String(input || "00:00:00");
+        };
+
+        const aperturaStr = normalizeTime(session.horario.apertura);
+        const cierreStr = normalizeTime(session.horario.cierre);
+        
+        // Validación de Horario (Local Argentina)
         const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-AR', { hour12: false }); // HH:MM:SS
-        session.isWithinSchedule = (timeStr >= session.horario.apertura && timeStr <= session.horario.cierre);
+        const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "HH:mm:ss");
+        
+        session.horario.apertura = aperturaStr;
+        session.horario.cierre = cierreStr;
+        session.isWithinSchedule = (timeStr >= aperturaStr && timeStr <= cierreStr);
 
         return { success: true, session: session };
 
