@@ -1046,8 +1046,9 @@ function processSale(saleData) {
 
         // --- VALIDACIÓN DE HORARIO ---
         const sessionInfo = getStoreSessionData(saleData.storeId, saleData.userId);
-        if (sessionInfo.success && !sessionInfo.session.isWithinSchedule) {
-            throw new Error(`VENTA RESTRINGIDA: La tienda ${saleData.storeId} está fuera de su horario de operación (${sessionInfo.session.horario.apertura} a ${sessionInfo.session.horario.cierre}).`);
+        if (sessionInfo.success && !sessionInfo.session.isWithinSchedule && !saleData.forceSale) {
+            const h = sessionInfo.session.horario;
+            throw new Error(`VENTA RESTRINGIDA: La tienda ${saleData.storeId} está fuera de su horario de operación (${h.apertura} a ${h.cierre}).`);
         }
 
 
@@ -1309,10 +1310,19 @@ function getStoreSessionData(storeId, userId) {
             if (cajaAbierta) session.activeCashRegisterId = cajaAbierta.CAJA_ID;
         }
 
-        // Normalizador de hora seguro (maneja objetos Date de 1899 o Strings)
+        // Normalizador de hora seguro (garantiza formato HH:mm:ss con padding)
         const normalizeTime = (input) => {
             if (input instanceof Date) {
                 return Utilities.formatDate(input, Session.getScriptTimeZone(), "HH:mm:ss");
+            }
+            if (typeof input === 'string' && input.trim()) {
+                const parts = input.split(':');
+                if (parts.length >= 2) {
+                    const h = parts[0].padStart(2, '0');
+                    const m = parts[1].padStart(2, '0');
+                    const s = (parts[2] || "00").padStart(2, '0');
+                    return `${h}:${m}:${s}`;
+                }
             }
             return String(input || "00:00:00");
         };
@@ -1326,7 +1336,18 @@ function getStoreSessionData(storeId, userId) {
         
         session.horario.apertura = aperturaStr;
         session.horario.cierre = cierreStr;
-        session.isWithinSchedule = (timeStr >= aperturaStr && timeStr <= cierreStr);
+
+        // Si no hay horario definido (00:00 a 00:00 o similar), permitimos siempre
+        if (aperturaStr === cierreStr && aperturaStr === "00:00:00") {
+            session.isWithinSchedule = true;
+        } else {
+            session.isWithinSchedule = (timeStr >= aperturaStr && timeStr <= cierreStr);
+        }
+
+        // Bypass Global vía Configuración (Opcional)
+        if (GLOBAL_CONFIG.SCRIPT_CONFIG["TPV_ENFORCE_SCHEDULE"] === "FALSE") {
+            session.isWithinSchedule = true;
+        }
 
         return { success: true, session: session };
 

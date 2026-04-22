@@ -1545,6 +1545,7 @@
       }
 
       function updateTpvSessionStatus(session) {
+        window.isOutsideSchedule = !session.isWithinSchedule;
         const statusEl = document.getElementById('tpv-user-status');
         if (!statusEl) return;
 
@@ -1563,20 +1564,16 @@
           color = "bg-red-500 animate-pulse";
           statusText = "Fuera de Horario (" + session.horario.apertura + " - " + session.horario.cierre + ")";
           
-          if (btnStandard) {
-             btnStandard.disabled = true;
-             btnStandard.classList.add('opacity-50', 'cursor-not-allowed');
-             btnStandard.innerText = "TIENDA CERRADA";
-          }
-          if (btnQr) {
-             btnQr.disabled = true;
-             btnQr.classList.add('opacity-50', 'cursor-not-allowed');
-             btnQr.innerText = "CIERRE DE CAJA";
-          }
-          if (btnRegVenta) {
-             btnRegVenta.disabled = true;
-             btnRegVenta.classList.add('opacity-50', 'cursor-not-allowed');
-          }
+          // En lugar de bloquear, advertimos visualmente
+          [btnStandard, btnQr, btnRegVenta].forEach(b => {
+             if (b) {
+                b.disabled = false;
+                b.classList.remove('opacity-50', 'cursor-not-allowed');
+                b.classList.add('border-red-500', 'border-2');
+             }
+          });
+          if (btnStandard) btnStandard.innerText = "FORZAR VENTA (FUERA DE HORA)";
+          if (btnQr) btnQr.innerText = "FORZAR REGISTRO";
         } else if (session.activeCashRegisterId) {
           color = "bg-emerald-500";
           statusText = "Caja Abierta (" + session.storeId + ")";
@@ -2685,6 +2682,7 @@
           totalAmount: Math.round(finalTotal),
           minimumPurchaseAmount: selectedMinPurchase,
           cart: [].concat(cart),
+          forceSale: window.isOutsideSchedule || false,
           timestamp: new Date().toISOString()
         };
 
