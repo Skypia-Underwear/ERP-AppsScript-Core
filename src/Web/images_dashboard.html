@@ -1798,8 +1798,9 @@
                     const Toast = Swal.mixin({
                         toast: true,
                         position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 8000,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Ver Producto',
+                        timer: 15000,
                         timerProgressBar: true,
                         didOpen: (toast) => {
                             toast.addEventListener('mouseenter', Swal.stopTimer)
@@ -1813,7 +1814,20 @@
                         text: res.products.length === 1 ? `Se ha añadido ${res.products[0].sku} al catálogo.` : `Se han añadido ${res.products.length} productos nuevos.`,
                         background: '#1e293b',
                         color: '#fff'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            if (res.products.length === 1) {
+                                seleccionarProducto(res.products[0]);
+                            } else {
+                                // Limpiar búsqueda para ver los nuevos arriba
+                                document.getElementById('searchInput').value = '';
+                                debounceSearch("");
+                            }
+                        }
                     });
+
+                    // Loggear en la consola para que quede registro si se pierde el Toast
+                    res.products.forEach(p => log(`✨ Nuevo producto detectado: ${p.sku} - ${p.nombre}`, 'success'));
 
                     // Asegurar que category_ids coincidan para que renderizarCategorias() funcione
                     res.products.forEach(p => {
