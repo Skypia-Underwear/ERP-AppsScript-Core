@@ -190,6 +190,8 @@ function inicializarEntorno() {
       { clave: "GITHUB_REPO", val: "api-tienda", desc: "Repositorio" },
       { clave: "GITHUB_TOKEN", val: "", desc: "Token (repo scope)" },
       { clave: "GITHUB_FILE_PATH", val: catalogFileName, desc: "Ruta JSON del TPV en GitHub" },
+      { clave: "ASSETS_GITHUB_TOKEN", val: "", desc: "Token del Repositorio Central de Activos (BlogShop Core)" },
+      { clave: "ASSETS_GITHUB_BRANCH", val: "main", desc: "Rama del Repositorio de Activos" },
       { clave: "BLOGGER_GITHUB_FILE_PATH", val: appSlug + "-blogger-config.json", desc: "Ruta JSON de Blogger en GitHub" },
       { clave: "DONWEB_WRITE_URL", val: "https://tudominio.com/api_json_write.php", desc: "URL PHP de escritura JSON en Donweb" },
       { clave: "DONWEB_READ_URL", val: "https://tudominio.com/api_json_read.php", desc: "URL PHP de lectura JSON en Donweb" },
