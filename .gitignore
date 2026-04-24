@@ -1,0 +1,12 @@
+
+# Bases de Datos y Exportaciones
+*BD_APP_SCRIPT*
+*.csv
+*.json
+!src/**/*.json
+!*.clasp.json
+!appsscript.json
+
+# Clasp
+.clasp-backup.json
+.clasp-client-backup.json
