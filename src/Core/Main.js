@@ -332,6 +332,14 @@ const GLOBAL_CONFIG = {
     get FILE_PATH() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GITHUB_FILE_PATH"] || "catalogo.json"; }
   },
 
+  // --- REPOSITORIO CENTRALIZADO DE ACTIVOS (BlogShop Core - Hardcoded) ---
+  ASSETS_GITHUB: {
+    USER: "SystemBlogShop",
+    REPO: "erp-shared-assets",
+    get TOKEN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["ASSETS_GITHUB_TOKEN"] || ""; },
+    get BRANCH() { return GLOBAL_CONFIG.SCRIPT_CONFIG["ASSETS_GITHUB_BRANCH"] || "main"; }
+  },
+
   BLOGGER: {
     get CACHE_FOLDER_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["BLOGGER_CACHE_FOLDER_ID"] || ""; },
     get GITHUB_FILE_PATH() { return GLOBAL_CONFIG.SCRIPT_CONFIG["BLOGGER_GITHUB_FILE_PATH"] || "blogger_config.json"; }
@@ -1311,6 +1319,9 @@ function ejecutarAccionDeImagen(params) {
             throw new Error(`🛑 Producto ${codigo} no apareció en BD_PRODUCTOS tras 10 segundos de espera (lag extemo o mala configuración del Bot).`);
           }
 
+          // Asegurar que la hoja esté sincronizada antes de crear la carpeta
+          SpreadsheetApp.flush();
+
           obtenerOCrearCarpetaProducto(codigo);
           generarInventarioPorProducto(codigo);
 
@@ -1329,6 +1340,9 @@ function ejecutarAccionDeImagen(params) {
 
           // FASE 5: Avisar al frontend que hay nuevos productos (Mantenemos vivo 90s para todos los clientes)
           CacheService.getScriptCache().put("NEW_PRODUCTS_AVAILABLE", "true", 90);
+
+          // Forzar escritura final
+          SpreadsheetApp.flush();
 
           return { success: true, message: `✅ Carpeta y variaciones generadas para '${codigo}'${msgWoo}.` };
         default:

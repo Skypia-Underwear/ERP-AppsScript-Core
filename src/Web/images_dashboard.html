@@ -693,15 +693,19 @@
         box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
     }
 
-    .category-chip svg {
+    .category-chip .icon-img {
         width: 24px;
         height: 24px;
-        fill: #94a3b8;
-        transition: fill 0.3s;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        transition: transform 0.3s;
     }
 
-    .category-chip.active svg {
-        fill: #818cf8;
+    .category-chip.active {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: #818cf8;
+        color: #fff;
     }
 
     .category-chip span {
@@ -1790,6 +1794,27 @@
 
                     log(`🆕 ¡Detectados ${res.products.length} productos nuevos en tiempo real!`, 'success');
 
+                    // Notificación Visual Superior (Swal)
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 8000,
+                        timerProgressBar: true,
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer)
+                            toast.addEventListener('mouseleave', Swal.resumeTimer)
+                        }
+                    });
+
+                    Toast.fire({
+                        icon: 'success',
+                        title: res.products.length === 1 ? '¡Nuevo producto detectado!' : '¡Nuevos productos detectados!',
+                        text: res.products.length === 1 ? `Se ha añadido ${res.products[0].sku} al catálogo.` : `Se han añadido ${res.products.length} productos nuevos.`,
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+
                     // Asegurar que category_ids coincidan para que renderizarCategorias() funcione
                     res.products.forEach(p => {
                         if (p.category && !CATEGORY_LIST.some(c => c.id === p.category)) {
@@ -1798,14 +1823,22 @@
                         }
                     });
 
-                    // Merge al principio del catálogo
-                    PRODUCT_CATALOG = [...res.products, ...PRODUCT_CATALOG];
-
-                    // Re-render
-                    renderizarCategorias();
-                    const val = document.getElementById('searchInput').value;
-                    debounceSearch(val);
-
+                    // Merge al principio del catálogo (Evitar duplicados si el ping se solapa)
+                    const filteredNew = res.products.filter(pNew => !PRODUCT_CATALOG.some(pOld => pOld.sku === pNew.sku));
+                    if (filteredNew.length > 0) {
+                        PRODUCT_CATALOG = [...filteredNew, ...PRODUCT_CATALOG];
+                        
+                        // Re-render
+                        renderizarCategorias();
+                        const val = document.getElementById('searchInput').value;
+                        if (!val) {
+                            // Si no hay búsqueda, mostramos todo para que se vean los nuevos arriba
+                            debounceSearch("");
+                        } else {
+                            // Si hay búsqueda, mantenemos el filtro pero el log ya avisó
+                            debounceSearch(val);
+                        }
+                    }
                 }
             }).checkNewProductsFlag(currentSkus);
 
@@ -2049,7 +2082,9 @@
             const catNameLower = (c.name || "").toLowerCase().trim();
 
             if (usedCats.has(catIdLower) || usedCats.has(catNameLower)) {
-                const svg = CATEGORY_SVGS[c.id] || c.svg || `<svg viewBox="0 0 24 24" class="opacity-20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+                const iconUrl = CATEGORY_SVGS[c.id] || c.iconUrl || "";
+                const iconStyle = iconUrl ? `background-image: url('${iconUrl}');` : '';
+                const iconElement = iconUrl ? `<div class="icon-img" style="${iconStyle}"></div>` : `<i class="ph-bold ph-tag text-lg opacity-20"></i>`;
                 
                 const chip = document.createElement('div');
                 chip.className = `category-chip ${currentCategoryFilter === c.id ? 'active' : ''}`;
@@ -2057,7 +2092,7 @@
                     filtrarPorCategoria(c.id); 
                     chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
                 };
-                chip.innerHTML = `${svg}<span>${c.name}</span>`;
+                chip.innerHTML = `${iconElement}<span>${c.name}</span>`;
                 container.appendChild(chip);
             }
         });

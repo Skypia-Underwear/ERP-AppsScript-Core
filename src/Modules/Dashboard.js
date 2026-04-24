@@ -132,16 +132,23 @@ function cargarDashboardVentas_HEAVY() {
             }
         });
 
-        // 1.6 Mapeo de Iconos de Pago (NUEVO)
-        const svgMap = {};
-        svgGalleryData.forEach(s => { if (s.SVG_ID) svgMap[s.SVG_ID] = s.SVG_CODE; });
+        // 1.6 Mapeo de Iconos de Pago (CDN Optimizado)
+        const svgIdToNameMap = {};
+        svgGalleryData.forEach(s => { 
+          if (s.SVG_ID) {
+            const nombreLimpio = s.NOMBRE ? String(s.NOMBRE).trim().toLowerCase().replace(/\s+/g, "_") : String(s.SVG_ID).trim().toLowerCase();
+            svgIdToNameMap[s.SVG_ID] = nombreLimpio;
+          }
+        });
         
         const metodosPagoIcons = {};
         metodosPagoData.forEach(m => {
           if (m.MOVIMIENTO_ID) {
+            const rawIcon = m.ICONO || m.MOVIMIENTO_ID;
+            const sid = svgIdToNameMap[rawIcon] || rawIcon;
             metodosPagoIcons[m.MOVIMIENTO_ID] = {
               porcentaje: parseMontoRobust(m.PORCENTAJE),
-              svg: svgMap[m.ICONO] || ""
+              iconUrl: asset_getUrlParaIcono(sid)
             };
           }
         });

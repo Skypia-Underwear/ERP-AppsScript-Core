@@ -166,21 +166,29 @@ function generarCatalogoJsonTPV() {
 
         // 3. Mapear CATEGORÍAS (BD_CATEGORIAS)
         const sheetCats = ss.getSheetByName(SHEETS.CATEGORIES);
-        const svgMap = {}; // ID -> SVG_CODE (Carga anticipada para usar en categorías)
+        const svgIdToNameMap = {}; // SVG_ID -> NOMBRE_LIMPIO
         const sheetSvg = ss.getSheetByName(SHEETS.SVG_GALLERY);
         if (sheetSvg) {
             const dataSvg = convertirRangoAObjetos(sheetSvg);
-            dataSvg.forEach(s => { if (s.SVG_ID) svgMap[s.SVG_ID] = s.SVG_CODE; });
+            dataSvg.forEach(s => { 
+                if (s.SVG_ID) {
+                    // Si tiene NOMBRE, lo limpiamos, si no usamos el ID
+                    const nombreLimpio = s.NOMBRE ? String(s.NOMBRE).trim().toLowerCase().replace(/\s+/g, "_") : String(s.SVG_ID).trim().toLowerCase();
+                    svgIdToNameMap[s.SVG_ID] = nombreLimpio;
+                }
+            });
         }
 
         if (sheetCats) {
             const catsData = convertirRangoAObjetos(sheetCats);
             catalogo.categories = catsData.map(c => {
-                const sid = c.ICONO || "";
+                const rawIcon = c.ICONO || c.CATEGORIA_ID;
+                // Si el valor es un ID de la galería, lo traducimos al nombre del archivo
+                const sid = svgIdToNameMap[rawIcon] || rawIcon;
                 return {
                     id: c.CATEGORIA_ID,
                     name: c.CATEGORIA_ID,
-                    svg: svgMap[sid] || sid
+                    iconUrl: asset_getUrlParaIcono(sid)
                 };
             });
         }
@@ -203,15 +211,16 @@ function generarCatalogoJsonTPV() {
             });
         }
 
-        // 4.1 Mapear SVGs (Categorías) por petición del usuario para filtros laterales
-        const categorySvgs = {}; // NOMBRE_CATEGORIA -> SVG_CODE
+        // 4.1 Mapear Iconos de Categoría (Para filtros laterales)
+        const categorySvgs = {}; // NOMBRE_CATEGORIA -> URL_CDN
         if (sheetCats) {
             const catsData = convertirRangoAObjetos(sheetCats);
             catsData.forEach(c => {
-                const name = String(c.CATEGORIA_ID || "").trim();
-                const sid = c.ICONO;
-                if (name && sid && svgMap[sid]) {
-                    categorySvgs[name.toUpperCase()] = svgMap[sid];
+                const catName = String(c.CATEGORIA_ID || "").trim();
+                const rawIcon = c.ICONO || catName;
+                const sid = svgIdToNameMap[rawIcon] || rawIcon;
+                if (catName) {
+                    categorySvgs[catName.toUpperCase()] = asset_getUrlParaIcono(sid);
                 }
             });
         }
@@ -269,13 +278,23 @@ function generarCatalogoJsonTPV() {
 
         // 4.5 Mapear MÉTODOS DE PAGO (BD_METODOS_PAGO)
         const sheetPagos = ss.getSheetByName(SHEETS.METODOS_PAGO);
+        const metodosPagoIcons = {};
         catalogo.paymentMethods = sheetPagos ? convertirRangoAObjetos(sheetPagos).map(p => {
             let val = String(p.PORCENTAJE || "0").replace("%", "").replace(",", ".");
             let numeric = parseFloat(val);
             const percent = (numeric >= 1) ? numeric / 100 : numeric;
             const methodId = p.METODO_PAGO || p.MOVIMIENTO_ID || "Desconocido";
-            return { id: methodId, percent: percent, code: p.MOVIMIENTO_ID };
+            const sid = svgIdToNameMap[methodId] || methodId;
+            
+            const iconUrl = asset_getUrlParaIcono(sid);
+            metodosPagoIcons[methodId] = {
+                porcentaje: percent,
+                iconUrl: iconUrl
+            };
+
+            return { id: methodId, percent: percent, code: p.MOVIMIENTO_ID, iconUrl: iconUrl };
         }) : [];
+        catalogo.metodosPagoIcons = metodosPagoIcons;
 
         // 4.6 Mapear CUENTAS DE TRANSFERENCIA (BD_DATOS_TRANSFERENCIA)
         const sheetTransfe = ss.getSheetByName(SHEETS.DATOS_TRANSFERENCIA);
@@ -1003,10 +1022,10 @@ function getStoreDynamicStatus(managedStoreId, userId) {
 
         const sheetCaja = ss.getSheetByName(SHEETS.GESTION_CAJA);
         if (sheetCaja) {
-            const hoy = new Date().toLocaleDateString('es-AR');
+            const hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
             const cajas = convertirRangoAObjetos(sheetCaja);
             const cajaAbierta = cajas.find(c =>
-                new Date(c.FECHA).toLocaleDateString('es-AR') === hoy &&
+                Utilities.formatDate(new Date(c.FECHA), Session.getScriptTimeZone(), "yyyy-MM-dd") === hoy &&
                 String(c.ASESOR_ID) === String(userId) &&
                 String(c.TIENDA_ID) === String(managedStoreId) &&
                 c.ESTADO === "ABIERTA"
@@ -1301,10 +1320,10 @@ function getStoreSessionData(storeId, userId) {
         }
 
         if (sheetCaja) {
-            const hoy = new Date().toLocaleDateString('es-AR');
+            const hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
             const cajas = convertirRangoAObjetos(sheetCaja);
             const cajaAbierta = cajas.find(c =>
-                new Date(c.FECHA).toLocaleDateString('es-AR') === hoy &&
+                Utilities.formatDate(new Date(c.FECHA), Session.getScriptTimeZone(), "yyyy-MM-dd") === hoy &&
                 c.ASESOR_ID === userId &&
                 c.TIENDA_ID === storeId &&
                 c.ESTADO === "ABIERTA"

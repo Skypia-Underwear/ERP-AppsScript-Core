@@ -240,11 +240,14 @@ function generarCSVCompletoDesdeBD(incluirImagenes = false) {
     // ✅ CAMBIO FIN
 
     // --- Construcción de filaPadre ---
+    const categoriaPrefix = categoriaHijo ? `${categoriaHijo} - ` : '';
+    const nombreCompletoPadre = categoriaPrefix + (producto.MODELO || skuPrincipal);
+
     let filaPadre;
     if (incluirImagenes) {
-      filaPadre = [ /* 33 elems */ '', 'variable', skuPrincipal, producto.MODELO || '', 1, 0, descripcionCorta, descripcionLargaHtml, '', '', '', '', categoriaCompleta, '', '', 0, tagsCombinados, producto.MARCA || '', 'Precio', opcionesTipoPrecio, 1, 1, defaultTipoPrecio, 'Color', coloresPadre.join(', '), 1, 1, defaultColor, 'Talle', tallesPadre.join(', '), 1, 1, defaultTalle];
+      filaPadre = [ /* 33 elems */ '', 'variable', skuPrincipal, nombreCompletoPadre, 1, 0, descripcionCorta, descripcionLargaHtml, '', '', '', '', categoriaCompleta, '', '', 0, tagsCombinados, producto.MARCA || '', 'Precio', opcionesTipoPrecio, 1, 1, defaultTipoPrecio, 'Color', coloresPadre.join(', '), 1, 1, defaultColor, 'Talle', tallesPadre.join(', '), 1, 1, defaultTalle];
     } else {
-      filaPadre = [ /* 32 elems */ '', 'variable', skuPrincipal, producto.MODELO || '', 1, 0, descripcionCorta, descripcionLargaHtml, '', '', '', '', categoriaCompleta, '', 0, tagsCombinados, producto.MARCA || '', 'Precio', opcionesTipoPrecio, 1, 1, defaultTipoPrecio, 'Color', coloresPadre.join(', '), 1, 1, defaultColor, 'Talle', tallesPadre.join(', '), 1, 1, defaultTalle];
+      filaPadre = [ /* 32 elems */ '', 'variable', skuPrincipal, nombreCompletoPadre, 1, 0, descripcionCorta, descripcionLargaHtml, '', '', '', '', categoriaCompleta, '', 0, tagsCombinados, producto.MARCA || '', 'Precio', opcionesTipoPrecio, 1, 1, defaultTipoPrecio, 'Color', coloresPadre.join(', '), 1, 1, defaultColor, 'Talle', tallesPadre.join(', '), 1, 1, defaultTalle];
     }
     csvData.push(filaPadre);
 
@@ -258,9 +261,12 @@ function generarCSVCompletoDesdeBD(incluirImagenes = false) {
       let skuVariacion = '', nombreVariacion = '', precio = '', enStock = 0, stockQty = '';
       let attr1Val = '', attr2Val = '', attr3Val = '';
 
+      const categoriaPrefix = categoriaHijo ? `${categoriaHijo} - ` : '';
+      const modeloOId = producto.MODELO || skuPrincipal;
+
       if (variedadNombre === 'Menor') {
         skuVariacion = variedad.VARIEDAD_ID || `${skuPrincipal}-MENOR`;
-        nombreVariacion = `${producto.MODELO || skuPrincipal} - ${variedadNombre} (por unidad)`;
+        nombreVariacion = `${categoriaPrefix}${modeloOId} - ${variedadNombre} (por unidad)`;
         precio = Number(variedad.PRECIO_UNITARIO || 0).toFixed(2);
         enStock = 1; stockQty = '';
         attr1Val = variedadNombre; attr2Val = ''; attr3Val = '';
@@ -273,7 +279,7 @@ function generarCSVCompletoDesdeBD(incluirImagenes = false) {
           if (Number(variedad.CANTIDAD_MINIMA) === 6) nombrePaqueteDinamico = 'Media Docena';
           else if (Number(variedad.CANTIDAD_MINIMA) === 12) nombrePaqueteDinamico = 'Docena Completa';
         }
-        nombreVariacion = `${producto.MODELO || skuPrincipal} - ${nombrePaqueteDinamico} (Mín. ${variedad.CANTIDAD_MINIMA || 1}) - Surtido`;
+        nombreVariacion = `${categoriaPrefix}${modeloOId} - ${nombrePaqueteDinamico} (Mín. ${variedad.CANTIDAD_MINIMA || 1}) - Surtido`;
         enStock = stockQty > 0 ? 1 : 0;
         attr1Val = variedadNombre; attr2Val = 'Surtido'; attr3Val = 'Surtido';
       }
@@ -364,8 +370,8 @@ function construirJSONProductoDesdeSheets(sku) {
   if (tieneVariedadNoMenor && !tallesPadre.includes('Surtido')) tallesPadre.push('Surtido');
 
   // --- Priorizar DESCRIPCION_IA ---
-  const descripcionLargaHtml = (producto.DESCRIPCION_IA || "").trim() !== "" 
-    ? producto.DESCRIPCION_IA 
+  const descripcionLargaHtml = (producto.DESCRIPCION_IA || "").trim() !== ""
+    ? producto.DESCRIPCION_IA
     : construirDescripcionHtml(producto, producto.DESCRIPCION, producto.TABLA_TALLES);
 
   const descripcionCorta = (producto.DESCRIPCION_IA || "").trim() !== ""
@@ -383,10 +389,11 @@ function construirJSONProductoDesdeSheets(sku) {
   const publishedValue = (estadoWoo === 'borrador' || estadoWoo === 'oculto') ? '0' : '1';
 
   // --- Construir JSON del padre ---
+  const categoriaPrefix = categoriaHijo ? `${categoriaHijo} - ` : '';
   const json = {
     Type: 'variable',
     SKU: skuPrincipal,
-    Name: producto.MODELO || '',
+    Name: categoriaPrefix + (producto.MODELO || ''),
     Published: publishedValue,
     'Is featured?': '0',
     'Short description': descripcionCorta,
@@ -427,9 +434,12 @@ function construirJSONProductoDesdeSheets(sku) {
     let skuVariacion = '', nombreVariacion = '', precio = '', enStock = '', stockQty = '';
     let attr1Val = '', attr2Val = '', attr3Val = '';
 
+    const categoriaPrefix = categoriaHijo ? `${categoriaHijo} - ` : '';
+    const modeloOId = producto.MODELO || skuPrincipal;
+
     if (variedadNombre === 'Menor') {
       skuVariacion = variedad.VARIEDAD_ID || `${skuPrincipal}-MENOR`;
-      nombreVariacion = `${producto.MODELO || skuPrincipal} - ${variedadNombre} (por unidad)`;
+      nombreVariacion = `${categoriaPrefix}${modeloOId} - ${variedadNombre} (por unidad)`;
       precio = Number(variedad.PRECIO_UNITARIO || 0).toFixed(2);
       enStock = '1'; stockQty = '';
       attr1Val = variedadNombre; attr2Val = ''; attr3Val = '';
@@ -442,7 +452,7 @@ function construirJSONProductoDesdeSheets(sku) {
         if (Number(variedad.CANTIDAD_MINIMA) === 6) nombrePaqueteDinamico = 'Media Docena';
         else if (Number(variedad.CANTIDAD_MINIMA) === 12) nombrePaqueteDinamico = 'Docena Completa';
       }
-      nombreVariacion = `${producto.MODELO || skuPrincipal} - ${nombrePaqueteDinamico} (Mín. ${variedad.CANTIDAD_MINIMA || 1}) - Surtido`;
+      nombreVariacion = `${categoriaPrefix}${modeloOId} - ${nombrePaqueteDinamico} (Mín. ${variedad.CANTIDAD_MINIMA || 1}) - Surtido`;
       enStock = stockQty > 0 ? '1' : '0';
       attr1Val = variedadNombre; attr2Val = 'Surtido'; attr3Val = 'Surtido';
     }

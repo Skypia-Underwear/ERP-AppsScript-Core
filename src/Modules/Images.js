@@ -214,59 +214,74 @@ function obtenerOCrearCarpetaProducto(sku) {
 
   if (!sheet || !mapping) throw new Error("Falta hoja de productos o mapeo.");
 
-  const data = sheet.getDataRange().getValues();
   const idxSku = mapping["CODIGO_ID"];
   const idxFolder = mapping["CARPETA_ID"];
-
   if (idxSku === undefined) throw new Error("Falta columna CODIGO_ID en Productos");
 
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idxSku]) === String(sku)) {
-      // 1. Lectura rápida sin bloqueo
-      let folderId = idxFolder !== undefined ? String(data[i][idxFolder]) : "";
-      if (folderId) { try { return DriveApp.getFolderById(folderId); } catch (e) { } }
+  // 1. Búsqueda Robusta con TextFinder (evita problemas si AppSheet movió filas)
+  const finder = sheet.createTextFinder(String(sku).trim()).matchEntireCell(true).matchCase(false);
+  const foundRange = finder.findNext();
+  if (!foundRange) throw new Error(`Producto ${sku} no encontrado en la base de datos.`);
 
-      // 2. Lock para procesos concurrentes de Frontend
-      const lock = LockService.getScriptLock();
-      try {
-        lock.waitLock(15000); // 15s de gracia
+  const rowIdx = foundRange.getRow();
+  
+  // 2. Lectura rápida del ID actual
+  let folderId = "";
+  if (idxFolder !== undefined) {
+    folderId = String(sheet.getRange(rowIdx, idxFolder + 1).getValue()).trim();
+  }
 
-        // 3. Doble verificación (BD)
-        const reData = sheet.getDataRange().getValues();
-        folderId = idxFolder !== undefined ? String(reData[i][idxFolder]) : "";
-        if (folderId) { try { return DriveApp.getFolderById(folderId); } catch (e) { } }
-
-        // 4. Triple verificación (Drive)
-        const parentId = GLOBAL_CONFIG.DRIVE.PARENT_FOLDER_ID;
-        const parent = DriveApp.getFolderById(parentId);
-
-        const existingFolders = parent.getFoldersByName(String(sku));
-        let theFolder;
-
-        if (existingFolders.hasNext()) {
-          theFolder = existingFolders.next();
-          console.log(`⏳ Carpeta rescatada desde Drive (Sync Bypass): ${sku}`);
-        } else {
-          theFolder = parent.createFolder(sku);
-          console.log(`📁 Nueva carpeta creada (Lock Seguro): ${sku}`);
-        }
-
-        // 5. Guardado Atomizado
-        if (idxFolder !== undefined) {
-          sheet.getRange(i + 1, idxFolder + 1).setValue(theFolder.getId());
-          // Actualizamos en local para coherencia inmediata
-          if (data && data[i]) data[i][idxFolder] = theFolder.getId();
-        }
-        SpreadsheetApp.flush(); // Forzar cache global
-        return theFolder;
-      } catch (e) {
-        throw new Error("Lock timeout o fallo de concurrencia en carpeta: " + e.message);
-      } finally {
-        lock.releaseLock();
-      }
+  // Si ya tiene carpeta válida, retornarla
+  if (folderId && folderId !== "" && folderId !== "undefined") {
+    try {
+      return DriveApp.getFolderById(folderId);
+    } catch (e) {
+      console.warn(`⚠️ ID de carpeta inválido en BD para ${sku}: ${folderId}. Se buscará/creará una nueva.`);
     }
   }
-  throw new Error(`Producto ${sku} no encontrado.`);
+
+  // 3. Lock para procesos concurrentes
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000); // 20s de gracia
+
+    // 4. Re-verificar tras el lock por si otro proceso lo creó justo ahora
+    if (idxFolder !== undefined) {
+      folderId = String(sheet.getRange(rowIdx, idxFolder + 1).getValue()).trim();
+      if (folderId && folderId !== "" && folderId !== "undefined") {
+        try { return DriveApp.getFolderById(folderId); } catch (e) { }
+      }
+    }
+
+    // 5. Búsqueda en Drive por nombre (Evitar duplicados si el ID no se guardó)
+    const parentId = GLOBAL_CONFIG.DRIVE.PARENT_FOLDER_ID;
+    if (!parentId) throw new Error("ID de carpeta Padre no configurado.");
+    const parent = DriveApp.getFolderById(parentId);
+
+    const existingFolders = parent.getFoldersByName(String(sku).trim());
+    let theFolder;
+
+    if (existingFolders.hasNext()) {
+      theFolder = existingFolders.next();
+      console.log(`⏳ Carpeta rescatada desde Drive por nombre: ${sku}`);
+    } else {
+      theFolder = parent.createFolder(String(sku).trim());
+      console.log(`📁 Nueva carpeta creada para: ${sku}`);
+    }
+
+    // 6. Guardado Persistente (Asegurando la fila correcta)
+    if (idxFolder !== undefined) {
+      sheet.getRange(rowIdx, idxFolder + 1).setValue(theFolder.getId());
+      SpreadsheetApp.flush(); // Asegurar persistencia física
+      console.log(`✅ CARPETA_ID guardado para ${sku} en fila ${rowIdx}`);
+    }
+
+    return theFolder;
+  } catch (e) {
+    throw new Error("Error en obtención/creación de carpeta: " + e.message);
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**

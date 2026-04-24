@@ -60,7 +60,13 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     color: #94a3b8;
   }
-  .payment-icon-filter svg { width: 100%; height: 100%; fill: currentColor; }
+  .payment-icon-filter div { 
+    width: 18px; 
+    height: 18px; 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
   .payment-icon-filter:hover { background: #334155; border-color: #6366f1; transform: translateY(-2px); }
   .payment-icon-filter.active { background: rgba(99, 102, 241, 0.1); border-color: #6366f1; color: #6366f1; box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
 
@@ -209,7 +215,7 @@
     text-align: center;
   }
   .payment-icon-filter span { white-space: normal; line-height: 1.2; }
-  .payment-icon-filter svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .payment-icon-filter div { flex-shrink: 0; }
 
   /* Responsive Adjustments */
   @media (max-width: 1024px) {
@@ -794,11 +800,16 @@
     
     o.metodosPago.forEach(m => {
       const iconData = metodosPagoIcons[m];
-      if (iconData && iconData.svg) {
+      if (iconData && (iconData.svg || iconData.iconUrl)) {
         const btn = document.createElement('div');
         btn.className = `payment-icon-filter ${activePaymentFilters.has(m) ? 'active' : ''}`;
         btn.title = m;
-        btn.innerHTML = `${iconData.svg} <span>${m}</span>`;
+        
+        const iconUrl = iconData.iconUrl || "";
+        const iconStyle = iconUrl ? `background-image: url('${iconUrl}');` : '';
+        const iconElement = iconUrl ? `<div style="${iconStyle}"></div>` : (iconData.svg || '');
+        
+        btn.innerHTML = iconElement + "<span>" + m + "</span>";
         btn.onclick = () => {
           if (activePaymentFilters.has(m)) activePaymentFilters.delete(m);
           else activePaymentFilters.add(m);

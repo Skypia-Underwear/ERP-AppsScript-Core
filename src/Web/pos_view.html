@@ -195,11 +195,12 @@
   }
 
   /* Asegurar que los SVGs integrados escalen correctamente */
-  .filter-btn-tpv div svg {
+  .filter-btn-tpv .icon-wrapper div {
     width: 24px !important;
     height: 24px !important;
-    max-width: 100%;
-    max-height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
   }
 
   /* Se elimina fill: white para preservar colores originales */
@@ -1348,15 +1349,24 @@
 
         // Poblar el Grid de Botones
         grid.innerHTML = methodsToRender.map(function (m) {
-          var icon = "ph-money";
-          var idLower = m.id.toLowerCase();
-          if (idLower.includes('transf')) icon = "ph-bank";
-          if (idLower.includes('qr') || idLower.includes('mercado')) icon = "ph-qr-code";
-          if (idLower.includes('tarjeta')) icon = "ph-credit-card";
+          const iconData = (catalog.metodosPagoIcons && m.code) ? catalog.metodosPagoIcons[m.code] : null;
+          let iconHtml = "";
+          
+          if (iconData && iconData.iconUrl) {
+            const bgStyle = `background-image: url('${iconData.iconUrl}'); background-size: contain; background-repeat: no-repeat; background-position: center; width: 32px; height: 32px;`;
+            iconHtml = `<div class='payment-svg-wrapper'><div style="${bgStyle}"></div></div>`;
+          } else {
+            var icon = "ph-money";
+            var idLower = m.id.toLowerCase();
+            if (idLower.includes('transf')) icon = "ph-bank";
+            if (idLower.includes('qr') || idLower.includes('mercado')) icon = "ph-qr-code";
+            if (idLower.includes('tarjeta')) icon = "ph-credit-card";
+            iconHtml = "<i class='ph-bold " + icon + "'></i>";
+          }
 
           return (
             "<button class='payment-btn' data-id='" + m.id + "' onclick='setSelectedPaymentMethod(\"" + m.id + "\")'>" +
-            "<i class='ph-bold " + icon + "'></i>" +
+            iconHtml +
             "<span>" + m.id + "</span>" +
             "</button>"
           );
@@ -1708,8 +1718,9 @@
             btn.className = "filter-btn-tpv " + (isActive ? 'active' : '');
 
             if (isSvgMap && catalog.categorySvgs && catalog.categorySvgs[item.toUpperCase()]) {
-              var svgCode = catalog.categorySvgs[item.toUpperCase()];
-              btn.innerHTML = "<div style='width:24px; height:24px; display:flex; align-items:center; justify-content:center; fill: currentColor;'>" + svgCode + "</div><span>" + item + "</span>";
+              var iconUrl = catalog.categorySvgs[item.toUpperCase()];
+              var bgStyle = "background-image: url('" + iconUrl + "');";
+              btn.innerHTML = "<div class='icon-wrapper' style='width:24px; height:24px; display:flex; align-items:center; justify-content:center;'><div style='width:20px; height:20px;" + bgStyle + "'></div></div><span>" + item + "</span>";
             } else {
               var iconClass = iconMap[item.toUpperCase()] || iconMap.DEFAULT;
               btn.innerHTML = "<i class='ph-bold " + iconClass + "'></i><span>" + item + "</span>";
@@ -2082,6 +2093,10 @@
         if (scan && scan.color) {
           const btn = Array.from(colorCont.children).find(b => b.innerText === scan.color);
           if (btn) btn.click();
+        } else if (colors.length === 1 && !curvaState.active) {
+          // AUTO-SELECCIÓN: Si hay un solo color, seleccionarlo por defecto
+          const onlyBtn = colorCont.querySelector('.color-btn');
+          if (onlyBtn) onlyBtn.click();
         }
       };
 
@@ -2494,6 +2509,7 @@
             size: variation.size,
             price: itemPrice,
             quantity: initQty,
+            min_qty: isPrecioVariable && variety ? Math.max(1, variety.cantidad_minima) : 1,
             tipoPrecio: tipoPrecio,
             variedad_id: variety ? variety.variedad_id : '',
             categoryName: product.categoryName,
@@ -2515,7 +2531,7 @@
             "<div style='font-weight:600'>" + item.model + "</div>",
             "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '—') + "</span>",
             "<div style='font-size:0.85rem;'>" + item.color + " / " + item.size + "</div>",
-            "<input type='number' class='qty-input' value='" + item.quantity + "' onchange='updateTpvQty(" + index + ", this.value)'>",
+            "<input type='number' class='qty-input' value='" + item.quantity + "' min='" + (item.min_qty || 1) + "' step='" + (item.min_qty || 1) + "' onchange='updateTpvQty(" + index + ", this.value)'>",
             "$" + (item.price * item.quantity).toLocaleString(),
             "<button onclick='removeTpvItem(" + index + ")' style='color:#ef4444;background:none;border:none;cursor:pointer'><i class='ph-bold ph-trash'></i></button>"
           ]);
@@ -2527,12 +2543,21 @@
 
       window.updateTpvQty = function (index, val) {
         const item = cart[index];
-        const newQty = parseInt(val) || 1;
+        let newQty = parseInt(val) || (item.min_qty || 1);
+        const minQty = item.min_qty || 1;
+
+        // Asegurar que sea múltiplo del mínimo
+        if (newQty % minQty !== 0) {
+          newQty = Math.round(newQty / minQty) * minQty;
+        }
+        if (newQty < minQty) newQty = minQty;
+
         const available = (realStockCache.map && realStockCache.map[item.variation_id] !== undefined) ? realStockCache.map[item.variation_id] : 0;
 
         if (newQty > available) {
-          alert("Stock insuficiente. MÃ¡ximo disponible: " + available);
-          item.quantity = available;
+          alert("Stock insuficiente. Máximo disponible: " + available);
+          // Ajustar al máximo múltiplo posible
+          item.quantity = Math.floor(available / minQty) * minQty;
         } else {
           item.quantity = newQty;
         }
@@ -2608,9 +2633,15 @@
         let paymentSurcharge = 0;
 
         // La validación cruzada recae sobre el botón de desactivar operado por el TPV
+        const m = posMetadata.paymentMethods.find(pm => pm.id === method);
+        const percent = m ? m.percent : 0;
+        
+        // Ocultar/Mostrar checkbox de recargo según proceda
+        const surchargeContId = isQr ? 'qr-tpv-surcharge-container' : 'tpv-surcharge-container';
+        const surchargeCont = document.getElementById(surchargeContId);
+        if (surchargeCont) surchargeCont.style.display = (percent > 0) ? 'flex' : 'none';
+
         if (method !== 'Efectivo' && !noPaymentSurcharge) {
-          const m = posMetadata.paymentMethods.find(pm => pm.id === method);
-          const percent = m ? m.percent : 0;
           paymentSurcharge = subtotalNeto * percent;
         }
 
