@@ -653,40 +653,45 @@
 
   function initDataTable() {
     try {
+      // Destruir si ya existe para evitar errores de re-inicialización
+      if ($.fn.DataTable.isDataTable('#salesTable')) {
+        $('#salesTable').DataTable().destroy();
+      }
+
       dtInstance = $('#salesTable').DataTable({
         responsive: true,
         data: [],
         order: [[1, 'desc']],
-        layout: {
-          topStart: 'buttons',
-          topEnd: 'search',
-          bottomStart: 'info',
-          bottomEnd: 'paging'
-        },
+        // En DataTables 2.0, si el layout falla, usamos dom como fallback compatible
+        dom: '<"flex justify-between items-center mb-4"Bf>rt<"flex justify-between items-center mt-4"ip>',
         buttons: [
           { 
             extend: 'csv', 
-            text: '<span class="material-icons">download</span> CSV', 
-            className: 'dt-button' 
+            text: '<span class="material-icons text-sm">download</span> CSV', 
+            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700' 
           },
           { 
             extend: 'pdf', 
-            text: '<span class="material-icons">picture_as_pdf</span> PDF', 
-            className: 'dt-button', 
+            text: '<span class="material-icons text-sm">picture_as_pdf</span> PDF', 
+            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700', 
             orientation: 'landscape', 
             pageSize: 'A4' 
           },
           { 
             extend: 'print', 
-            text: '<span class="material-icons">print</span> Imprimir', 
-            className: 'dt-button' 
+            text: '<span class="material-icons text-sm">print</span> Imprimir', 
+            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700' 
           }
         ],
         language: {
-          url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
-          paginate: { previous: 'Prev', next: 'Sig' },
           search: "",
-          searchPlaceholder: "Buscar venta..."
+          searchPlaceholder: "Buscar venta...",
+          lengthMenu: "Mostrar _MENU_",
+          info: "Mostrando _START_ a _END_ de _TOTAL_ ventas",
+          infoEmpty: "No hay ventas para mostrar",
+          infoFiltered: "(filtrado de _MAX_ totales)",
+          paginate: { first: "«", last: "»", next: "Sig", previous: "Prev" },
+          emptyTable: "No se encontraron datos en el rango seleccionado"
         },
         columns: [
           { 
@@ -755,8 +760,6 @@
       });
     } catch (e) {
       console.error('Error initializing DataTable:', e);
-      // Fallback simple si layout falla
-      dtInstance = $('#salesTable').DataTable({ responsive: true, data: [] });
     }
   }
 
