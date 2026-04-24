@@ -22,7 +22,7 @@ function procesarSincronizacion(codigo) {
     sincronizarImagenes(codigo, logArray);
     return { success: true, message: `✅ Sincronización de '${codigo}' correcta.`, logs: logArray };
   } catch (error) {
-    logArray.push(`âŒ ERROR: ${error.message}`);
+    logArray.push(`❌ ERROR: ${error.message}`);
     return { success: false, message: error.message, logs: logArray };
   }
 }

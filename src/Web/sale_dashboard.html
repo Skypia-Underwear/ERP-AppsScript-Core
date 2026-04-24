@@ -10,7 +10,7 @@
   .dashboard-container {
     font-family: 'Inter', sans-serif;
     background-color: #0f172a;
-    height: 100vh;
+    height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     padding-bottom: 4rem;
@@ -663,7 +663,10 @@
         data: [],
         order: [[1, 'desc']],
         // En DataTables 2.0, si el layout falla, usamos dom como fallback compatible
-        dom: '<"flex justify-between items-center mb-4"Bf>rt<"flex justify-between items-center mt-4"ip>',
+        layout: {
+          topStart: 'buttons',
+          topEnd: 'search'
+        },
         buttons: [
           { 
             extend: 'csv', 

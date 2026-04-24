@@ -5,7 +5,7 @@
 
 <style>
   :root {
-    --primary: #6366f1; /* Indigo 500 para alineaciÃ³n con ERP */
+    --primary: #6366f1; /* Indigo 500 para alineación con ERP */
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #f43f5e;
@@ -17,11 +17,11 @@
     --text-muted: #94a3b8;
   }
 
-  /* El contenedor raÃ­z del fragmento TPV */
+  /* El contenedor raíz del fragmento TPV */
   #pos-root {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     width: 100%;
     background-color: var(--bg-main);
     color: var(--text-main);
@@ -130,7 +130,7 @@
   }
 
   .filter-btn-tpv span {
-    font-size: 0.58rem; /* Mas pequeÃ±o */
+    font-size: 0.58rem; /* Mas pequeño */
     font-weight: 700;
     text-transform: uppercase;
     color: #94a3b8;
@@ -186,12 +186,15 @@
   .filter-btn-tpv.active {
     background: #fff !important;
     border-color: #fff !important;
-    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
     transform: translateY(-2px);
   }
 
-  .filter-btn-tpv.active span {
+  .filter-btn-tpv.active span,
+  .filter-btn-tpv.active i,
+  .filter-btn-tpv.active .icon-wrapper div {
     color: #1e293b !important;
+    filter: brightness(0);
   }
 
   /* Asegurar que los SVGs integrados escalen correctamente */
@@ -1513,7 +1516,7 @@
                 // Sincronizar IP de impresora en tiempo real
                 if (res.session.printerIp) {
                   posMetadata.printerIp = res.session.printerIp;
-                  console.log("ðŸ“¡ IP de Impresora actualizada dinÃ¡micamente:", posMetadata.printerIp);
+                  console.log("📡 IP de Impresora actualizada dinámicamente:", posMetadata.printerIp);
                 }
               }
             }
@@ -1627,7 +1630,7 @@
           dom: 'Bfrtip',
           buttons: [
             {
-              text: 'ðŸ“± WhatsApp',
+              text: '📱 WhatsApp',
               className: 'bg-green-500 text-white rounded px-2 py-1 text-xs',
               action: function (e, dt, node, config) {
                 copyCartToWhatsApp();
@@ -1643,18 +1646,18 @@
       }
 
       function copyCartToWhatsApp() {
-        if (cart.length === 0) return alert("Carrito vacÃ­o");
+        if (cart.length === 0) return alert("Carrito vacío");
         var text = "*PRESUPUESTO HOSTINGSHOP*\n--------------------------\n";
         cart.forEach(function (i) {
-          text += "â€¢ " + i.model + " (" + i.color + "/" + i.size + ")" +
-            (i.tipoPrecio && i.tipoPrecio !== 'EstÃ¡ndar' ? " [" + i.tipoPrecio + "]" : "") +
+          text += "• " + i.model + " (" + i.color + "/" + i.size + ")" +
+            (i.tipoPrecio && i.tipoPrecio !== 'Estándar' ? " [" + i.tipoPrecio + "]" : "") +
             "\n  " + i.quantity + " x $" + i.price.toLocaleString() + " = $" + (i.price * i.quantity).toLocaleString() + "\n";
         });
         var total = document.getElementById('total-amount').innerText;
         text += "--------------------------\n*TOTAL: " + total + "*";
 
         navigator.clipboard.writeText(text).then(function () {
-          alert("Â¡Copiado al portapapeles para WhatsApp!");
+          alert("¡Copiado al portapapeles para WhatsApp!");
         });
       }
 
@@ -1717,12 +1720,13 @@
             var isActive = currentTpvFilters[filterKey] === item;
             btn.className = "filter-btn-tpv " + (isActive ? 'active' : '');
 
-            if (isSvgMap && catalog.categorySvgs && catalog.categorySvgs[item.toUpperCase()]) {
-              var iconUrl = catalog.categorySvgs[item.toUpperCase()];
+            var catKey = String(item || "").trim().toUpperCase();
+            var iconUrl = (catalog.categorySvgs && catalog.categorySvgs[catKey]) ? catalog.categorySvgs[catKey] : "";
+            if (iconUrl) {
               var bgStyle = "background-image: url('" + iconUrl + "');";
-              btn.innerHTML = "<div class='icon-wrapper' style='width:24px; height:24px; display:flex; align-items:center; justify-content:center;'><div style='width:20px; height:20px;" + bgStyle + "'></div></div><span>" + item + "</span>";
+              btn.innerHTML = `<div class='icon-wrapper' style='width:24px; height:24px; display:flex; align-items:center; justify-content:center;'><div style='width:20px; height:20px; background-size:contain; background-repeat:no-repeat; background-position:center; ${bgStyle}'></div></div><span>${item}</span>`;
             } else {
-              var iconClass = iconMap[item.toUpperCase()] || iconMap.DEFAULT;
+              var iconClass = iconMap[catKey] || iconMap.DEFAULT;
               btn.innerHTML = "<i class='ph-bold " + iconClass + "'></i><span>" + item + "</span>";
             }
 
@@ -1738,9 +1742,9 @@
           return group;
         };
 
-        // === JERARQUÃA: COMBOS > LÃNEA (PADRE) > PRODUCTO (CATEGORIA) ===
+        // === JERARQUÍA: COMBOS > LÍNEA (PADRE) > PRODUCTO (CATEGORIA) ===
 
-        // 0. SECCIÃ“N DE COMBOS (BÃ¡sico por ahora, filtrando productos con variedad "Combo")
+        // 0. SECCIÓN DE COMBOS (Básico por ahora, filtrando productos con variedad "Combo")
         var hasCombos = catalog.products.some(p => (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo')));
         if (hasCombos) {
           var comboGroup = document.createElement('div');
@@ -1758,7 +1762,7 @@
               currentTpvFilters.isCombo = false;
             } else {
               // Limpiar otros filtros para ver solo combos? O combinarlos?
-              // El usuario dijo "filtrado anidado a categorÃ­as", pero tambiÃ©n "botÃ³n destacado".
+              // El usuario dijo "filtrado anidado a categorías", pero también "botón destacado".
               // Por ahora, actuamos como toggle.
               currentTpvFilters.parent = 'ALL';
               currentTpvFilters.cat = 'ALL';
@@ -1772,11 +1776,11 @@
           catCont.appendChild(comboGroup);
         }
 
-        // 1. CATEGORÃA PADRE (LÃ­nea)
+        // 1. CATEGORÍA PADRE (Línea)
         var parents = [...new Set(catalog.products.map(p => p.parentCategory))].filter(Boolean).sort();
-        catCont.appendChild(createFilterGroup('LÃ­nea', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
+        catCont.appendChild(createFilterGroup('LÍNEA', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
 
-        // 2. CATEGORÃA HOJA â€” filtrada por el padre activo
+        // 2. CATEGORÍA HOJA — filtrada por el padre activo
         var parentFilter = currentTpvFilters.parent;
         var catsSource = parentFilter !== 'ALL'
           ? catalog.products.filter(p => p.parentCategory === parentFilter)
@@ -2696,7 +2700,7 @@
         const preModal = isQr ? 'qr-tpv-modal-' : 'tpv-modal-';
 
         const confirmMsg = document.getElementById(preModal + 'final-total')?.innerText || "esta venta";
-        if (!confirm("Â¿Confirmar venta por " + confirmMsg + "?")) return;
+        if (!confirm("¿Confirmar venta por " + confirmMsg + "?")) return;
 
         const subtotalProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const method = document.getElementById(pre + 'tpv-payment-method')?.value || 'Efectivo';
@@ -2743,7 +2747,7 @@
         // PERSISTENCIA
         saveToLocalQueue(saleData);
 
-        // IMPRESIÃ“N OPTIMISTA
+        // IMPRESIÓN OPTIMISTA
         try {
           var printData = generateTicketLocal(saleData);
           sendToTpvPrinter(printData);
@@ -2758,7 +2762,7 @@
       };
 
       function generateTicketLocal(sale) {
-        if (!catalog || !catalog.stores) throw new Error("CatÃ¡logo no disponible para impresiÃ³n");
+        if (!catalog || !catalog.stores) throw new Error("Catálogo no disponible para impresión");
         const store = catalog.stores[sale.storeId] || { name: "SHOP", address: "", phone: "" };
         const settings = posMetadata.printSettings || { copias: 1, sonido: "0", marketing: "" };
 
@@ -2856,7 +2860,7 @@
         if (queue.length === 0) return;
 
         isSyncing = true;
-        console.log("ðŸ”„ Tentativa de sincronizaciÃ³n de", queue.length, "ventas...");
+        console.log("🔄 Tentativa de sincronización de", queue.length, "ventas...");
 
         const currentSale = queue[0];
 
@@ -2864,7 +2868,7 @@
           .withSuccessHandler(res => {
             isSyncing = false;
             if (res.success) {
-              console.log("âœ… Venta sincronizada:", currentSale.saleId);
+              console.log("✅ Venta sincronizada:", currentSale.saleId);
               const newQueue = JSON.parse(localStorage.getItem('tpv_offline_queue') || "[]");
               newQueue.shift(); // Eliminar la procesada
               localStorage.setItem('tpv_offline_queue', JSON.stringify(newQueue));
@@ -2885,7 +2889,7 @@
           })
           .withFailureHandler(err => {
             isSyncing = false;
-            console.warn("âš ï¸ Fallo de red detectado, venta permanece en cola.");
+            console.warn("⚠️ Fallo de red detectado, venta permanece en cola.");
           })
           .processSale(currentSale);
       }
@@ -2895,10 +2899,10 @@
         setInterval(syncLocalQueue, 30000); // Cada 30 seg
       }
 
-      // Se eliminÃ³ handleTpvPrinting por redundancia
+      // Se eliminó handleTpvPrinting por redundancia
 
       async function sendToTpvPrinter(p) {
-        console.log("ðŸŒ [Printer] Enviando comando a:", p.printer_ip);
+        console.log("🌐 [Printer] Enviando comando a:", p.printer_ip);
 
         const params = new URLSearchParams({
           id: p.venta_id,
@@ -2923,9 +2927,9 @@
           });
 
           clearTimeout(timeoutId);
-          console.log("âœ… [Printer] Comando enviado");
+          console.log("✅ [Printer] Comando enviado");
         } catch (e) {
-          console.warn("âŒ [Printer] Fallo al enviar ticket:", e.message);
+          console.warn("❌ [Printer] Fallo al enviar ticket:", e.message);
           google.script.run.logErrorFromFrontend("Fallo impresion TPV: " + e.message);
         }
       }
@@ -2941,7 +2945,7 @@
       }
 
       function finishTpvSale(showAlert = true) {
-        if (showAlert) alert("Â¡Venta completada!");
+        if (showAlert) alert("¡Venta completada!");
         cart = [];
         const cashAmount = document.getElementById('tpv-cash-amount');
         if (cashAmount) cashAmount.value = "";
