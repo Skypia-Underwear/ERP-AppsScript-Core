@@ -1701,9 +1701,9 @@
           btnAll.className = "filter-btn-tpv " + (isAllActive ? 'active' : '');
 
           if (isSvgMap) {
-            btnAll.innerHTML = "<div style='width:24px; height:24px; display:flex; align-items:center; justify-content:center;'><i class='ph-bold ph-dots-three-outline'></i></div><span>Todos</span>";
+            btnAll.innerHTML = `<div style="width:24px; height:24px; display:flex; align-items:center; justify-content:center;"><i class="ph-bold ph-dots-three-outline"></i></div><span>Todos</span>`;
           } else {
-            btnAll.innerHTML = "<i class='ph-bold " + (iconMap.ALL || iconMap.DEFAULT) + "'></i><span>Todos</span>";
+            btnAll.innerHTML = `<i class="ph-bold ${(iconMap.ALL || iconMap.DEFAULT)}"></i><span>Todos</span>`;
           }
 
           btnAll.onclick = function () {
@@ -1723,11 +1723,14 @@
             var catKey = String(item || "").trim().toUpperCase();
             var iconUrl = (catalog.categorySvgs && catalog.categorySvgs[catKey]) ? catalog.categorySvgs[catKey] : "";
             if (iconUrl) {
-              var bgStyle = "background-image: url('" + iconUrl + "');";
-              btn.innerHTML = `<div class='icon-wrapper' style='width:24px; height:24px; display:flex; align-items:center; justify-content:center;'><div style='width:20px; height:20px; background-size:contain; background-repeat:no-repeat; background-position:center; ${bgStyle}'></div></div><span>${item}</span>`;
+              btn.innerHTML = `
+                <div class="icon-wrapper" style="width:24px; height:24px; display:flex; align-items:center; justify-content:center;">
+                  <div style="width:20px; height:20px; background-size:contain; background-repeat:no-repeat; background-position:center; background-image: url('${iconUrl}');"></div>
+                </div>
+                <span>${item}</span>`;
             } else {
               var iconClass = iconMap[catKey] || iconMap.DEFAULT;
-              btn.innerHTML = "<i class='ph-bold " + iconClass + "'></i><span>" + item + "</span>";
+              btn.innerHTML = `<i class="ph-bold ${iconClass}"></i><span>${item}</span>`;
             }
 
             btn.onclick = function () {
