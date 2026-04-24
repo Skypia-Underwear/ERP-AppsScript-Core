@@ -10,9 +10,6 @@
   <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 
   <!-- Librerías Críticas (Cargadas una vez en el shell) -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
   <style>
     /* El scrollbar y fuentes se manejan ahora en _shared_assets.html */
@@ -238,7 +235,12 @@
       }
 
       main {
-        padding-bottom: 64px;
+        padding-bottom: calc(74px + env(safe-area-inset-bottom));
+      }
+      
+      #main-content {
+        margin: 0.25rem !important;
+        height: calc(100% - 10px) !important;
       }
     }
   </style>
