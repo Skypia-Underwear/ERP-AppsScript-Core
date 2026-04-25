@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Loader Showcase v2 - HostingShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-cyan: #00f2ff;
+            --primary-cobalt: #0044ff;
+            --deep-blue: #000a1a;
+        }
+
+        body {
+            background-color: #050505;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+        }
+
+        h1 { width: 100%; text-align: center; color: var(--primary-cyan); text-transform: uppercase; letter-spacing: 2px; }
+
+        .card {
+            background: #0a111a;
+            border: 1px solid #1a2a3a;
+            border-radius: 20px;
+            padding: 30px;
+            width: 320px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover { transform: translateY(-10px); border-color: var(--primary-cyan); }
+
+        .loader-container {
+            width: 180px;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            gap: 20px;
+        }
+
+        .logo-wrapper {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            z-index: 5;
+        }
+
+        /* --- Barra de Progreso (Común) --- */
+        .loader-progress-bar {
+            width: 120px;
+            height: 4px;
+            background: rgba(0, 242, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .loader-progress-fill {
+            position: absolute;
+            height: 100%;
+            width: 40%;
+            background: var(--primary-cyan);
+            box-shadow: 0 0 10px var(--primary-cyan);
+            border-radius: 10px;
+            animation: progress-move 2s infinite ease-in-out;
+        }
+        @keyframes progress-move {
+            0% { left: -40%; }
+            100% { left: 140%; }
+        }
+
+        /* --- 1. PULSE & GLOW --- */
+        .pulse-logo { animation: logo-pulse 2s infinite ease-in-out; }
+        .pulse-aura {
+            position: absolute;
+            width: 80px; height: 80px;
+            background: var(--primary-cyan);
+            border-radius: 50%;
+            filter: blur(25px);
+            opacity: 0.3;
+            animation: aura-pulse 2s infinite ease-in-out;
+        }
+        @keyframes logo-pulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px var(--primary-cyan)); }
+            50% { transform: scale(1.1); filter: drop-shadow(0 0 20px var(--primary-cyan)); }
+        }
+        @keyframes aura-pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.2; }
+            50% { transform: scale(1.6); opacity: 0.5; }
+        }
+
+        /* --- 2. HOLOGRAPHIC GLITCH --- */
+        .glitch-logo { animation: glitch 0.4s infinite linear alternate-reverse; }
+        @keyframes glitch {
+            0% { transform: translate(-1px, -1px) skew(1deg); filter: hue-rotate(0deg); }
+            50% { transform: translate(1px, 1px) skew(-1deg); filter: hue-rotate(90deg); }
+            100% { transform: translate(0, 0) skew(0); filter: hue-rotate(0deg); }
+        }
+
+        /* --- 3. ORBITAL RINGS --- */
+        .ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--primary-cyan);
+            animation: rotate-ring 1.5s infinite linear;
+        }
+        .ring-1 { width: 130px; height: 130px; border-right-color: var(--primary-cyan); }
+        .ring-2 { width: 110px; height: 110px; border-left-color: #ff00ff; animation-direction: reverse; }
+        @keyframes rotate-ring { to { transform: rotate(360deg); } }
+
+        /* --- 4. LIQUID FILL (REVISADO) --- */
+        .liquid-logo-container {
+            position: relative;
+            width: 90px; height: 90px;
+            overflow: hidden;
+        }
+        .liquid-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary-cyan);
+            mix-blend-mode: color;
+            animation: liquid-rise 3s infinite ease-in-out;
+            z-index: 6;
+        }
+        @keyframes liquid-rise {
+            0%, 100% { transform: translateY(100%); }
+            50% { transform: translateY(0%); }
+        }
+
+        /* --- 5. SHIMMER PREMIUM (REVISADO) --- */
+        .shimmer-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .shimmer-sweep {
+            position: absolute;
+            top: 0; left: -150%;
+            width: 100%; height: 100%;
+            background: linear-gradient(
+                to right,
+                transparent,
+                rgba(255, 255, 255, 0.6),
+                transparent
+            );
+            transform: skewX(-25deg);
+            animation: shimmer-anim 2s infinite;
+            z-index: 7;
+        }
+        @keyframes shimmer-anim {
+            0% { left: -150%; }
+            100% { left: 150%; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Premium Loader Showcase v2</h1>
+
+    <!-- 1. Pulse -->
+    <div class="card">
+        <div class="loader-container">
+            <div class="logo-wrapper">
+                <div class="pulse-aura"></div>
+                <img src="https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&tableName=BD_TIENDAS&fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png" class="logo-img pulse-logo">
+            </div>
+            <div class="loader-progress-bar"><div class="loader-progress-fill"></div></div>
+        </div>
+        <h3>1. Pulse & Neon Glow</h3>
+    </div>
+
+    <!-- 2. Glitch -->
+    <div class="card">
+        <div class="loader-container">
+            <div class="logo-wrapper">
+                <img src="https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&tableName=BD_TIENDAS&fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png" class="logo-img glitch-logo">
+            </div>
+            <div class="loader-progress-bar"><div class="loader-progress-fill"></div></div>
+        </div>
+        <h3>2. Holographic Glitch</h3>
+    </div>
+
+    <!-- 3. Orbital -->
+    <div class="card">
+        <div class="loader-container">
+            <div class="logo-wrapper">
+                <div class="ring ring-1"></div>
+                <div class="ring ring-2"></div>
+                <img src="https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&tableName=BD_TIENDAS&fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png" class="logo-img">
+            </div>
+            <div class="loader-progress-bar"><div class="loader-progress-fill"></div></div>
+        </div>
+        <h3>3. Orbital Energy Rings</h3>
+    </div>
+
+    <!-- 4. Liquid -->
+    <div class="card">
+        <div class="loader-container">
+            <div class="logo-wrapper" style="overflow: hidden;">
+                <img src="https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&tableName=BD_TIENDAS&fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png" class="logo-img">
+                <div class="liquid-overlay"></div>
+            </div>
+            <div class="loader-progress-bar"><div class="loader-progress-fill"></div></div>
+        </div>
+        <h3>4. Energy Fill (Liquid)</h3>
+    </div>
+
+    <!-- 5. Shimmer -->
+    <div class="card">
+        <div class="loader-container">
+            <div class="logo-wrapper shimmer-wrapper">
+                <div class="shimmer-sweep"></div>
+                <img src="https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&tableName=BD_TIENDAS&fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png" class="logo-img">
+            </div>
+            <div class="loader-progress-bar"><div class="loader-progress-fill"></div></div>
+        </div>
+        <h3>5. Metallic Shimmer</h3>
+    </div>
+
+</body>
+</html>

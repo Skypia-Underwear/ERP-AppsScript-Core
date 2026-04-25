@@ -59,7 +59,17 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
 
     const mapCategoriasHtml = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.HTML]]));
     const mapCategoriasIconos = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.ICONO]]));
-    const mapSvg = Object.fromEntries(rowsSvg.map(r => [r[mS.NOMBRE], r[mS.CODE]]));
+    
+    // --- MAPEO DE ICONOS A CDN (v16.0) ---
+    const svgIdToNameMap = {};
+    rowsSvg.forEach(s => { 
+        const sid = s[mS.SVG_ID] || s[mS.NOMBRE]; // Llave: ID o Nombre (fallback)
+        if (sid) {
+            const nombreLimpio = s[mS.NOMBRE] ? String(s[mS.NOMBRE]).trim().toLowerCase().replace(/\s+/g, "_") : String(sid).trim().toLowerCase();
+            svgIdToNameMap[sid] = nombreLimpio;
+        }
+    });
+
     const mapCategoriaAPadre = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.PADRE] || "GENERAL"]));
 
     // --- PRE-INDEXACIÓN OPTIMIZADA O(1) ---
@@ -153,12 +163,13 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
         if (categoria !== categoriaActual) {
             if (categoriaActual) {
                 const catPadre = mapCategoriaAPadre[categoriaActual];
-                const iconoBuscado = mapCategoriasIconos[categoriaActual] || categoriaActual;
+                const rawIcon = mapCategoriasIconos[categoriaActual] || categoriaActual;
+                const sid = svgIdToNameMap[rawIcon] || rawIcon;
                 const catObjeto = {
                     codigo: contadorCategoria,
                     nombre: categoriaActual,
                     url_categoria: blogger_getWhatsAppPublicURL(appName, mapCategoriasHtml[categoriaActual], SHEETS.CATEGORIES),
-                    icono: mapSvg[iconoBuscado] || mapSvg[categoriaActual] || "",
+                    icono: asset_getUrlParaIcono(sid),
                     producto: dataArrayCategoria
                 };
                 if (!dataArrayPadre[catPadre]) dataArrayPadre[catPadre] = [];
@@ -210,12 +221,13 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
 
         if (j === rowsVisibles.length - 1) {
             const catPadre = mapCategoriaAPadre[categoriaActual];
-            const iconoBuscado = mapCategoriasIconos[categoriaActual] || categoriaActual;
+            const rawIcon = mapCategoriasIconos[categoriaActual] || categoriaActual;
+            const sid = svgIdToNameMap[rawIcon] || rawIcon;
             const catObjeto = {
                 codigo: contadorCategoria,
                 nombre: categoriaActual,
                 url_categoria: blogger_getWhatsAppPublicURL(appName, mapCategoriasHtml[categoriaActual], SHEETS.CATEGORIES),
-                icono: mapSvg[iconoBuscado] || mapSvg[categoriaActual] || "",
+                icono: asset_getUrlParaIcono(sid),
                 producto: dataArrayCategoria
             };
             if (!dataArrayPadre[catPadre]) dataArrayPadre[catPadre] = [];
@@ -270,6 +282,12 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
             nombreTiendaData.logo_url = (tiendaLive.URL_LOGOTIPO || tiendaLive.LOGO || nombreTiendaData.logo_url || "").replace('&amp;', '&');
             nombreTiendaData.descripcion = tiendaLive.SOBRE_NOSOTROS || nombreTiendaData.descripcion;
             nombreTiendaData.telefono = (tiendaLive.CELULAR || nombreTiendaData.telefono || "").toString().replace(/\s/g, "");
+            
+            // Enriquecer datos de ubicación y reseñas
+            nombreTiendaData.google_review = nombreTiendaData.google_review || { place_id: "" };
+            nombreTiendaData.google_review.place_id = tiendaLive.ID_GOOGLE_MAPS || nombreTiendaData.google_review.place_id;
+            nombreTiendaData.coordenadas = tiendaLive.COORDENADAS || nombreTiendaData.coordenadas;
+            nombreTiendaData.direccion = tiendaLive.DIRECCION || nombreTiendaData.direccion;
         }
     }
 

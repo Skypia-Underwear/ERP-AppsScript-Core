@@ -1,11 +1,12 @@
 <? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
-  <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+<?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 <? } ?>
 
 
 <style>
   :root {
-    --primary: #6366f1; /* Indigo 500 para alineación con ERP */
+    --primary: #6366f1;
+    /* Indigo 500 para alineación con ERP */
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #f43f5e;
@@ -32,7 +33,8 @@
 
   .tpv-main-layout {
     display: grid;
-    grid-template-columns: 200px 1fr 500px; /* Mas espacio al carrito */
+    grid-template-columns: 200px 1fr 500px;
+    /* Mas espacio al carrito */
     flex: 1;
     overflow: hidden;
   }
@@ -115,7 +117,8 @@
     align-items: center;
     justify-content: center;
     gap: 0.15rem;
-    padding: 0.5rem 0.25rem; /* Mas compacto */
+    padding: 0.5rem 0.25rem;
+    /* Mas compacto */
     margin-bottom: 0.4rem;
     background: #1e293b;
     border: 1px solid #334155;
@@ -130,7 +133,8 @@
   }
 
   .filter-btn-tpv span {
-    font-size: 0.58rem; /* Mas pequeño */
+    font-size: 0.58rem;
+    /* Mas pequeño */
     font-weight: 700;
     text-transform: uppercase;
     color: #94a3b8;
@@ -334,6 +338,7 @@
     overflow: hidden;
     height: 48px;
   }
+
   .variety-carousel-track {
     display: flex;
     gap: 4px;
@@ -341,6 +346,7 @@
     scroll-behavior: smooth;
     width: 100%;
   }
+
   .variety-mini-btn {
     flex: 1;
     padding: 8px 4px;
@@ -356,10 +362,12 @@
     cursor: pointer;
     min-width: 0;
   }
+
   .variety-mini-btn:hover {
     border-color: var(--primary);
     background: rgba(99, 102, 241, 0.1);
   }
+
   .variety-carousel-arrow {
     position: absolute;
     top: 50%;
@@ -377,9 +385,19 @@
     z-index: 10;
     font-size: 0.75rem;
   }
-  .variety-carousel-arrow:hover { color: white; border-color: var(--primary); }
-  .variety-carousel-arrow.prev { left: 0; }
-  .variety-carousel-arrow.next { right: 0; }
+
+  .variety-carousel-arrow:hover {
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .variety-carousel-arrow.prev {
+    left: 0;
+  }
+
+  .variety-carousel-arrow.next {
+    right: 0;
+  }
 
   /* Estilos para Botones de Variaciones (Estilo TPV Muestra) */
   .variant-grid {
@@ -441,14 +459,20 @@
     transform: translateY(-2px);
   }
 
-  .size-btn.in-stock { border-color: var(--success); }
-  .size-btn.out-of-stock { opacity: 0.4; cursor: not-allowed; }
+  .size-btn.in-stock {
+    border-color: var(--success);
+  }
+
+  .size-btn.out-of-stock {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   .stock-label {
     font-size: 0.65rem;
     font-weight: 700;
     color: var(--text-muted);
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
     padding: 2px 6px;
     border-radius: 4px;
   }
@@ -498,8 +522,8 @@
   .color-surtido-gradient {
     background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff) !important;
     color: white !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.2) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
 
   /* Modos de Venta */
@@ -561,7 +585,8 @@
   }
 
   /* Checkout Modal & Overall Modals */
-  .checkout-modal-overlay, .tpv-modal-id {
+  .checkout-modal-overlay,
+  .tpv-modal-id {
     position: fixed;
     inset: 0;
     background: rgba(2, 6, 23, 0.9);
@@ -572,7 +597,8 @@
     z-index: 2000;
   }
 
-  .checkout-modal, .tpv-modal-content-inner {
+  .checkout-modal,
+  .tpv-modal-content-inner {
     background: var(--bg-secondary);
     width: 95%;
     max-width: 900px;
@@ -627,7 +653,8 @@
     margin-bottom: 0.5rem;
   }
 
-  .tpv-select-checkout, .tpv-input-checkout {
+  .tpv-select-checkout,
+  .tpv-input-checkout {
     width: 100%;
     padding: 0.75rem 1rem;
     border-radius: 0.75rem;
@@ -639,7 +666,8 @@
     transition: border-color 0.2s;
   }
 
-  .tpv-select-checkout:focus, .tpv-input-checkout:focus {
+  .tpv-select-checkout:focus,
+  .tpv-input-checkout:focus {
     border-color: var(--primary);
   }
 
@@ -677,7 +705,8 @@
     box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.4);
   }
 
-  .checkout-summary-panel, .checkout-summary-box {
+  .checkout-summary-panel,
+  .checkout-summary-box {
     background: var(--bg-main);
     padding: 1.5rem;
     border-radius: 1rem;
@@ -759,8 +788,15 @@
     cursor: pointer;
   }
 
-  .tpv-config-mode-btn i { font-size: 1.5rem; }
-  .tpv-config-mode-btn span { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+  .tpv-config-mode-btn i {
+    font-size: 1.5rem;
+  }
+
+  .tpv-config-mode-btn span {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
 
   .tpv-config-mode-btn:hover {
     border-color: var(--primary);
@@ -790,7 +826,8 @@
     font-size: 0.75rem;
   }
 
-  .curva-table th, .curva-table td {
+  .curva-table th,
+  .curva-table td {
     padding: 0.75rem;
     border: 1px solid var(--border-color);
     text-align: center;
@@ -832,12 +869,40 @@
   }
 
   /* Estilos adicionales para status y footer de curva */
-  .status-pending { color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: 800; }
-  .status-ok { color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: 800; }
-  .status-excess { color: #f43f5e; background: rgba(244, 63, 94, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: 800; }
-  
-  .curva-stock-hint { font-size: 0.6rem; color: var(--text-muted); display: block; margin-top: 2px; }
-  
+  .status-pending {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+  }
+
+  .status-ok {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+  }
+
+  .status-excess {
+    color: #f43f5e;
+    background: rgba(244, 63, 94, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+  }
+
+  .curva-stock-hint {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+  }
+
   /* Inputs en modo oscuro */
   .qty-input {
     background: var(--bg-main) !important;
@@ -905,8 +970,21 @@
     gap: 0.5rem;
   }
 
-  .animate-fade-in { animation: fadeIn 0.3s ease-out; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>
 
 <div id="pos-root">
@@ -918,11 +996,13 @@
 
   <header class="tpv-header">
     <div class="flex items-center gap-4">
-      <div id="tpv-user-status" class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-full border border-slate-700 text-xs font-semibold text-slate-300">
+      <div id="tpv-user-status"
+        class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-full border border-slate-700 text-xs font-semibold text-slate-300">
         <div class="w-2 h-2 rounded-full bg-slate-500"></div>
         <span>Conectando...</span>
       </div>
-      <div id="tpv-sync-status" style="display: none;" class="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-xs font-bold animate-pulse">
+      <div id="tpv-sync-status" style="display: none;"
+        class="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-xs font-bold animate-pulse">
         <i class="ph-bold ph-warning-circle"></i>
         <span><span id="sync-pending-count">0</span> Pendientes</span>
       </div>
@@ -930,7 +1010,8 @@
 
     <div id="tpv-header-center" style="flex: 1; max-width: 600px; margin: 0 2rem;">
       <div style="position: relative; width: 100%;">
-        <i class="ph-bold ph-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1rem;"></i>
+        <i class="ph-bold ph-magnifying-glass"
+          style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1rem;"></i>
         <input type="text" id="tpv-search" placeholder="Buscar por modelo o SKU..."
           style="width: 100%; padding: 0.65rem 1rem 0.65rem 2.8rem; border-radius: 0.75rem; border: 1px solid var(--border-color); background: var(--bg-main); color: white; outline: none; transition: border-color 0.2s;"
           onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border-color)'">
@@ -969,8 +1050,10 @@
 
     <div class="col-cart-tpv">
       <div class="cart-main-content">
-        <div style="padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
-          <span style="font-weight: 700; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Ticket Actual</span>
+        <div
+          style="padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+          <span style="font-weight: 700; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Ticket
+            Actual</span>
           <div id="tpv-scan-container" style="display: none; flex: 1; max-width: 250px; margin-left: 1rem;">
             <input type="text" id="tpv-scan-input" placeholder="Escanear..."
               style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--primary); background: var(--bg-main); color: white; font-size: 0.8rem; outline: none;">
@@ -995,18 +1078,21 @@
       </div>
 
       <div id="tpv-sidebar-totals">
-        <div id="tpv-min-purchase-container" style="display: none; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+        <div id="tpv-min-purchase-container"
+          style="display: none; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
           <div class="flex justify-between items-center">
             <span class="header-label">COMPRA MÍNIMA:</span>
             <div id="tpv-min-purchase-display" class="font-black text-warning">0 / 0</div>
           </div>
           <div class="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
-            <div id="tpv-min-purchase-progress" class="bg-warning h-full transition-all duration-300" style="width: 0%"></div>
+            <div id="tpv-min-purchase-progress" class="bg-warning h-full transition-all duration-300" style="width: 0%">
+            </div>
           </div>
         </div>
-        
-        <div style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text-muted); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
-          <span class="font-bold text-white">SUBTOTAL:</span> 
+
+        <div
+          style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text-muted); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+          <span class="font-bold text-white">SUBTOTAL:</span>
           <span id="tpv-sidebar-subtotal" style="font-weight: 900; color: white; font-size: 1.25rem;">$0</span>
         </div>
         <button onclick="openCheckoutModal()" class="tpv-btn-primary-large">
@@ -1015,52 +1101,70 @@
       </div>
 
       <div class="qr-checkout-panel">
-        <h3 style="font-size: 1.1rem; font-weight: 800; color: white; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">Finalizar Venta</h3>
+        <h3
+          style="font-size: 1.1rem; font-weight: 800; color: white; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">
+          Finalizar Venta</h3>
         <div class="space-y-4" style="flex: 1;">
           <div>
-            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cliente</label>
+            <label
+              style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cliente</label>
             <select id="qr-tpv-customer" class="tpv-select-checkout">
               <option value="CLIENTE_GENERAL">Cliente General</option>
             </select>
           </div>
           <div>
-            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">MÃ©todo de Pago</label>
+            <label
+              style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">MÃ©todo
+              de Pago</label>
             <div id="qr-payment-methods-grid" class="payment-grid mt-2"></div>
             <select id="qr-tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
             <div class="mt-4 flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700">
-               <input type="checkbox" id="qr-tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-primary focus:ring-primary">
-               <label for="qr-tpv-modal-deactivate-surcharge" class="text-[0.65rem] font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo Transferencia</label>
+              <input type="checkbox" id="qr-tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()"
+                class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-primary focus:ring-primary">
+              <label for="qr-tpv-modal-deactivate-surcharge"
+                class="text-[0.65rem] font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo
+                Transferencia</label>
             </div>
           </div>
           <div id="qr-tpv-transfer-account-container" style="display: none;">
-            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cuenta Destino</label>
+            <label
+              style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cuenta
+              Destino</label>
             <select id="qr-tpv-transfer-account" class="tpv-select-checkout"></select>
           </div>
           <div>
-            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Efectivo (Mixto)</label>
-            <input type="number" id="qr-tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()" class="tpv-input-checkout">
+            <label
+              style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Efectivo
+              (Mixto)</label>
+            <input type="number" id="qr-tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()"
+              class="tpv-input-checkout">
           </div>
           <div class="checkout-summary-box">
             <div id="qr-tpv-modal-products-row" class="flex justify-between text-xs mb-2">
-              <span class="text-slate-400">Monto Productos:</span> <span id="qr-tpv-modal-total-products" class="font-bold text-white">$0</span>
+              <span class="text-slate-400">Monto Productos:</span> <span id="qr-tpv-modal-total-products"
+                class="font-bold text-white">$0</span>
             </div>
-            <div id="qr-tpv-modal-minor-row" style="display: none;" class="flex justify-between text-xs mb-2 text-amber-500">
+            <div id="qr-tpv-modal-minor-row" style="display: none;"
+              class="flex justify-between text-xs mb-2 text-amber-500">
               <span>Recargo Minorista:</span> <span id="qr-tpv-modal-minor-surcharge" class="font-bold">+$0</span>
             </div>
-            <div id="qr-tpv-modal-cash-row" style="display: none;" class="flex justify-between text-xs mb-2 text-red-500">
+            <div id="qr-tpv-modal-cash-row" style="display: none;"
+              class="flex justify-between text-xs mb-2 text-red-500">
               <span>Pago Efectivo:</span> <span id="qr-tpv-modal-cash-discount" class="font-bold">-$0</span>
             </div>
             <div class="flex justify-between text-xs border-t border-dashed border-slate-700 pt-2 font-bold text-white">
               <span>Subtotal:</span> <span id="qr-tpv-modal-subtotal">$0</span>
             </div>
-            <div style="text-align: right; border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">
+            <div
+              style="text-align: right; border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">
               <p class="text-[0.6rem] uppercase font-bold text-slate-500">Total a Pagar</p>
               <p id="qr-tpv-modal-final-total" class="text-2xl font-black text-primary">$0</p>
             </div>
           </div>
         </div>
         <div style="margin-top: 1rem;">
-          <button id="btn-qr-process-sale" onclick="processCheckoutSale()" class="tpv-btn-success-large">REGISTRAR VENTA</button>
+          <button id="btn-qr-process-sale" onclick="processCheckoutSale()" class="tpv-btn-success-large">REGISTRAR
+            VENTA</button>
         </div>
       </div>
     </div>
@@ -1074,7 +1178,8 @@
           <h3 id="modal-product-title" class="text-xl font-bold text-white">Producto</h3>
           <p id="modal-product-subtitle" class="text-sm text-slate-400">Configura las variaciones de venta</p>
         </div>
-        <button onclick="closeTpvModal()" class="text-slate-500 hover:text-white"><i class="ph-bold ph-x text-2xl"></i></button>
+        <button onclick="closeTpvModal()" class="text-slate-500 hover:text-white"><i
+            class="ph-bold ph-x text-2xl"></i></button>
       </div>
       <div id="variety-container" style="display: none;" class="mb-4">
         <label class="text-[0.65rem] font-bold text-slate-500 uppercase">Tipo de Precio</label>
@@ -1093,8 +1198,10 @@
 
       <!-- MATRIZ DE CURVA (NUEVO) -->
       <div id="curva-matrix-wrapper" style="display: none; margin-top: 1.5rem;">
-        <label class="text-[0.7rem] font-bold text-slate-400 uppercase mb-3 block text-center">Matriz de Selección (Curva)</label>
-        <div class="curva-matrix-container" style="max-height: 400px; overflow: auto; border-radius: 1rem; border: 1px solid var(--border-color); background: var(--bg-main);">
+        <label class="text-[0.7rem] font-bold text-slate-400 uppercase mb-3 block text-center">Matriz de Selección
+          (Curva)</label>
+        <div class="curva-matrix-container"
+          style="max-height: 400px; overflow: auto; border-radius: 1rem; border: 1px solid var(--border-color); background: var(--bg-main);">
           <table class="curva-table" style="width: 100%; border-collapse: collapse;">
             <thead id="curva-matrix-head" class="sticky top-0 bg-slate-900 z-10"></thead>
             <tbody id="curva-matrix-body"></tbody>
@@ -1103,14 +1210,17 @@
         </div>
       </div>
 
-      <div id="curva-summary-container" style="display: none; border-top: 1px dashed var(--border-color); margin-top: 1.5rem; padding-top: 1rem;">
+      <div id="curva-summary-container"
+        style="display: none; border-top: 1px dashed var(--border-color); margin-top: 1.5rem; padding-top: 1rem;">
         <div class="flex justify-between items-center bg-slate-800/50 p-4 rounded-xl">
           <div>
             <p id="curva-counter" class="text-xs font-black text-primary mb-1">0 Curvas completas</p>
-            <p id="curva-total-qty" class="text-2xl font-black text-white">0 <span class="text-xs text-slate-500 font-normal">unidades</span></p>
+            <p id="curva-total-qty" class="text-2xl font-black text-white">0 <span
+                class="text-xs text-slate-500 font-normal">unidades</span></p>
             <p id="curva-msg" class="text-[0.65rem] text-slate-400 mt-1"></p>
           </div>
-          <button id="btn-confirm-curva" onclick="confirmCurvaSelection()" class="tpv-btn-success-large py-3 px-8 opacity-50 cursor-not-allowed" disabled>
+          <button id="btn-confirm-curva" onclick="confirmCurvaSelection()"
+            class="tpv-btn-success-large py-3 px-8 opacity-50 cursor-not-allowed" disabled>
             AÑADIR AL CARRITO
           </button>
         </div>
@@ -1122,14 +1232,17 @@
     <div class="tpv-modal-content-inner max-w-md">
       <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-bold text-white">Preferencias TPV</h3>
-        <button onclick="closeConfigModal()" class="text-slate-500 hover:text-white"><i class="ph-bold ph-x text-2xl"></i></button>
+        <button onclick="closeConfigModal()" class="text-slate-500 hover:text-white"><i
+            class="ph-bold ph-x text-2xl"></i></button>
       </div>
       <div class="space-y-6">
         <div>
           <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Modo de Venta</label>
           <div class="grid grid-cols-2 gap-4 mt-3">
-            <button id="btn-mode-buttons-config" onclick="setTpvMode('BOTONES DE FILTRADO')" class="tpv-config-mode-btn"><i class="ph-bold ph-squares-four text-2xl"></i><span>Botones</span></button>
-            <button id="btn-mode-qr-config" onclick="setTpvMode('LECTOR QR')" class="tpv-config-mode-btn"><i class="ph-bold ph-qr-code text-2xl"></i><span>Lector QR</span></button>
+            <button id="btn-mode-buttons-config" onclick="setTpvMode('BOTONES DE FILTRADO')"
+              class="tpv-config-mode-btn"><i class="ph-bold ph-squares-four text-2xl"></i><span>Botones</span></button>
+            <button id="btn-mode-qr-config" onclick="setTpvMode('LECTOR QR')" class="tpv-config-mode-btn"><i
+                class="ph-bold ph-qr-code text-2xl"></i><span>Lector QR</span></button>
           </div>
         </div>
       </div>
@@ -1140,7 +1253,8 @@
     <div class="checkout-modal">
       <div class="checkout-header">
         <h3 class="text-xl font-bold text-white">Finalizar Venta</h3>
-        <button onclick="closeCheckoutModal()" class="text-slate-500 hover:text-white"><i class="ph-bold ph-x text-2xl"></i></button>
+        <button onclick="closeCheckoutModal()" class="text-slate-500 hover:text-white"><i
+            class="ph-bold ph-x text-2xl"></i></button>
       </div>
       <div class="checkout-body">
         <div class="space-y-6">
@@ -1155,8 +1269,11 @@
             <div id="payment-methods-grid" class="payment-grid"></div>
             <select id="tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
             <div class="mt-4 flex items-center gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-               <input type="checkbox" id="tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()" class="w-5 h-5 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
-               <label for="tpv-modal-deactivate-surcharge" class="text-xs font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo (Cli001 / Especial)</label>
+              <input type="checkbox" id="tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()"
+                class="w-5 h-5 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-modal-deactivate-surcharge"
+                class="text-xs font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo (Cli001 /
+                Especial)</label>
             </div>
           </div>
           <div id="tpv-transfer-account-container" style="display: none;">
@@ -1165,14 +1282,17 @@
           </div>
           <div>
             <label class="tpv-label-checkout">Pago Efectivo (Mixto)</label>
-            <input type="number" id="tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()" class="tpv-input-checkout text-success font-bold text-xl">
+            <input type="number" id="tpv-cash-amount" placeholder="0.00" oninput="updateTpvTotals()"
+              class="tpv-input-checkout text-success font-bold text-xl">
           </div>
         </div>
         <div class="checkout-summary-panel">
-          <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-2 mb-4">Resumen de Pago</h4>
+          <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-2 mb-4">Resumen de Pago
+          </h4>
           <div class="space-y-3">
             <div class="flex justify-between text-sm">
-              <span class="text-slate-400">Monto Productos:</span> <span id="tpv-modal-total-products" class="font-bold text-white">$0</span>
+              <span class="text-slate-400">Monto Productos:</span> <span id="tpv-modal-total-products"
+                class="font-bold text-white">$0</span>
             </div>
             <div id="tpv-modal-minor-row" style="display: none;" class="flex justify-between text-sm text-amber-500">
               <span>Recargo Minorista:</span> <span id="tpv-modal-minor-surcharge" class="font-bold">+$0</span>
@@ -1180,7 +1300,8 @@
             <div id="tpv-modal-cash-row" style="display: none;" class="flex justify-between text-sm text-red-500">
               <span>Pago Efectivo:</span> <span id="tpv-modal-cash-discount" class="font-bold">-$0</span>
             </div>
-            <div class="flex justify-between text-base font-bold text-white border-t border-dashed border-slate-700 pt-3">
+            <div
+              class="flex justify-between text-base font-bold text-white border-t border-dashed border-slate-700 pt-3">
               <span>Subtotal:</span> <span id="tpv-modal-subtotal">$0</span>
             </div>
           </div>
@@ -1192,7 +1313,8 @@
       </div>
       <div class="checkout-footer">
         <button onclick="closeCheckoutModal()" class="tpv-btn-ghost">Cancelar</button>
-        <button id="btn-process-checkout" onclick="processCheckoutSale()" class="tpv-btn-success-large px-8">CONFIRMAR Y PAGAR</button>
+        <button id="btn-process-checkout" onclick="processCheckoutSale()" class="tpv-btn-success-large px-8">CONFIRMAR Y
+          PAGAR</button>
       </div>
     </div>
   </div>
@@ -1202,10 +1324,11 @@
     <div class="tpv-modal-content-inner max-w-lg">
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
-           <i class="ph-bold ph-storefront text-3xl text-primary"></i>
+          <i class="ph-bold ph-storefront text-3xl text-primary"></i>
         </div>
         <h3 class="text-2xl font-black text-white">Seleccionar Tienda</h3>
-        <p class="text-slate-400 text-sm mt-2">Como administrador, elige el punto de venta para operar en esta sesión.</p>
+        <p class="text-slate-400 text-sm mt-2">Como administrador, elige el punto de venta para operar en esta sesión.
+        </p>
       </div>
       <div id="store-selector-grid" class="grid grid-cols-1 gap-4">
         <!-- Botones de tiendas se cargan dinámicamente -->
@@ -1222,16 +1345,16 @@
     try {
       console.log("🟢 [TPV] Fragmento inicializado");
       // Variables principales del contexto TPV (Dentro de la IIFE)
-      var catalog = null; 
-      var posMetadata = null; 
+      var catalog = null;
+      var posMetadata = null;
       var cart = [];
       var realStockCache = { map: {}, lastUpdate: null };
       var selectedMinPurchase = 1;
       var priceConfig = { tipoRegistroPrecio: 'PRECIO + RECARGO ESTANDAR', tipoRegistroProducto: 'PRODUCTO VARIABLE' };
-      
+
       const CATALOG_URL = "<?!= CATALOG_URL ?>";
       const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
-      
+
       const checkIsPrecioVariable = () => (priceConfig && priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
       let currentTpvFilters = {
         parent: 'ALL',
@@ -1318,7 +1441,7 @@
         }
 
         const isQr = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
-        
+
         // Renderizar mÃ©todos de pago
         renderPaymentMethods('payment-methods-grid');
         renderPaymentMethods('qr-payment-methods-grid');
@@ -1339,7 +1462,7 @@
       function renderPaymentMethods(containerId) {
         const grid = document.getElementById(containerId);
         if (!grid) return;
-        
+
         // Identificar el select oculto correspondiente
         const isQr = containerId.includes('qr-');
         const selectId = isQr ? 'qr-tpv-payment-method' : 'tpv-payment-method';
@@ -1354,7 +1477,7 @@
         grid.innerHTML = methodsToRender.map(function (m) {
           const iconData = (catalog.metodosPagoIcons && m.code) ? catalog.metodosPagoIcons[m.code] : null;
           let iconHtml = "";
-          
+
           if (iconData && iconData.iconUrl) {
             const bgStyle = `background-image: url('${iconData.iconUrl}'); background-size: contain; background-repeat: no-repeat; background-position: center; width: 32px; height: 32px;`;
             iconHtml = `<div class='payment-svg-wrapper'><div style="${bgStyle}"></div></div>`;
@@ -1377,7 +1500,7 @@
 
         // NUEVO: Sincronizar con el Select Oculto (Vital para que updateTpvTotals lo lea)
         if (select) {
-           select.innerHTML = methodsToRender.map(m => `<option value="${m.id}">${m.id}</option>`).join('');
+          select.innerHTML = methodsToRender.map(m => `<option value="${m.id}">${m.id}</option>`).join('');
         }
       }
 
@@ -1404,78 +1527,78 @@
         updateTpvTotals();
       };
 
-        async function initTPV() {
-          try {
-            console.log("🔍 [TPV] Iniciando servicios...");
-            showTpvLoader("🚀 Sincronizando datos...");
+      async function initTPV() {
+        try {
+          console.log("🔍 [TPV] Iniciando servicios...");
+          showTpvLoader("🚀 Sincronizando datos...");
 
-            const userStr = sessionStorage.getItem('loggedInUser');
-            const user = userStr ? JSON.parse(userStr) : null;
-            let managedStore = user ? user.managedStore : null;
-            const userEmail = user ? user.email : null;
-            const userRole = (user ? user.role : '').toUpperCase();
-            const sellerId = sessionStorage.getItem('userPassword');
+          const userStr = sessionStorage.getItem('loggedInUser');
+          const user = userStr ? JSON.parse(userStr) : null;
+          let managedStore = user ? user.managedStore : null;
+          const userEmail = user ? user.email : null;
+          const userRole = (user ? user.role : '').toUpperCase();
+          const sellerId = sessionStorage.getItem('userPassword');
 
-            // 1. Obtener Catálogo (Aumentado con Metadatos Estáticos)
-            const cat = await window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
-            if (!cat) throw new Error("No se pudo cargar el catálogo de productos.");
-            
-            // Sincronizar variables (local y global para depuración)
-            catalog = cat;
-            window.catalog = cat;
-            
-            // 2. Rehidratar posMetadata desde el Catálogo (Cero latencia de servidor)
-            const globalCfg = cat.generalConfig || {};
-            posMetadata = {
-                success: true,
-                customers: cat.clients || [],
-                paymentMethods: cat.paymentMethods || [],
-                transferAccounts: cat.transferAccounts || [],
-                allVarieties: cat.allVarieties || {},
-                priceConfig: cat.priceConfig || { tipoRegistroPrecio: "PRECIO + RECARGO ESTANDAR", tipoRegistroProducto: "PRODUCTO MARCADOR" },
-                generalConfig: globalCfg,
-                userEmail: userEmail,
-                sellerId: sellerId,
-                managedStoreId: managedStore
+          // 1. Obtener Catálogo (Aumentado con Metadatos Estáticos)
+          const cat = await window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
+          if (!cat) throw new Error("No se pudo cargar el catálogo de productos.");
+
+          // Sincronizar variables (local y global para depuración)
+          catalog = cat;
+          window.catalog = cat;
+
+          // 2. Rehidratar posMetadata desde el Catálogo (Cero latencia de servidor)
+          const globalCfg = cat.generalConfig || {};
+          posMetadata = {
+            success: true,
+            customers: cat.clients || [],
+            paymentMethods: cat.paymentMethods || [],
+            transferAccounts: cat.transferAccounts || [],
+            allVarieties: cat.allVarieties || {},
+            priceConfig: cat.priceConfig || { tipoRegistroPrecio: "PRECIO + RECARGO ESTANDAR", tipoRegistroProducto: "PRODUCTO MARCADOR" },
+            generalConfig: globalCfg,
+            userEmail: userEmail,
+            sellerId: sellerId,
+            managedStoreId: managedStore
+          };
+
+          // Enriquecer con configuración específica de la tienda si existe
+          if (managedStore && cat.stores[managedStore] && cat.stores[managedStore].config) {
+            posMetadata.storeConfig = cat.stores[managedStore].config;
+            posMetadata.printerIp = cat.stores[managedStore].config.printerIp;
+            posMetadata.printSettings = cat.stores[managedStore].config.printSettings;
+          } else {
+            // Fallback a configuración global (MODO_VENTA del CSV/Tabla General)
+            posMetadata.storeConfig = {
+              saleMode: globalCfg.MODO_VENTA || globalCfg.TIPO_MODO_VENTA || "BOTONES DE FILTRADO",
+              minorSurcharge: 0,
+              minimumPurchase: 0
             };
-
-            // Enriquecer con configuración específica de la tienda si existe
-            if (managedStore && cat.stores[managedStore] && cat.stores[managedStore].config) {
-                posMetadata.storeConfig = cat.stores[managedStore].config;
-                posMetadata.printerIp = cat.stores[managedStore].config.printerIp;
-                posMetadata.printSettings = cat.stores[managedStore].config.printSettings;
-            } else {
-                // Fallback a configuración global (MODO_VENTA del CSV/Tabla General)
-                posMetadata.storeConfig = {
-                    saleMode: globalCfg.MODO_VENTA || globalCfg.TIPO_MODO_VENTA || "BOTONES DE FILTRADO",
-                    minorSurcharge: 0,
-                    minimumPurchase: 0
-                };
-            }
-
-            window.posMetadata = posMetadata;
-            if (posMetadata.priceConfig) priceConfig = posMetadata.priceConfig;
-
-            // 3. Lógica de Selección de Tienda para ADMIN
-            if (userRole === 'ADMIN' && managedStore === "TODAS") {
-                const allStores = Object.keys(cat.stores).map(id => ({ id: id, name: cat.stores[id].name }));
-                if (allStores.length > 1) {
-                    renderStoreSelector(allStores);
-                    hideTpvLoader();
-                    return; 
-                } else if (allStores.length === 1) {
-                    managedStore = allStores[0].id;
-                }
-            }
-            
-            await finalizeTpvInit(managedStore);
-
-          } catch (err) {
-            console.error("Fallo carga TPV:", err);
-            hideTpvLoader();
-            alert("Error al inicializar TPV: " + err.message);
           }
+
+          window.posMetadata = posMetadata;
+          if (posMetadata.priceConfig) priceConfig = posMetadata.priceConfig;
+
+          // 3. Lógica de Selección de Tienda para ADMIN
+          if (userRole === 'ADMIN' && managedStore === "TODAS") {
+            const allStores = Object.keys(cat.stores).map(id => ({ id: id, name: cat.stores[id].name }));
+            if (allStores.length > 1) {
+              renderStoreSelector(allStores);
+              hideTpvLoader();
+              return;
+            } else if (allStores.length === 1) {
+              managedStore = allStores[0].id;
+            }
+          }
+
+          await finalizeTpvInit(managedStore);
+
+        } catch (err) {
+          console.error("Fallo carga TPV:", err);
+          hideTpvLoader();
+          alert("Error al inicializar TPV: " + err.message);
         }
+      }
 
       function renderStoreSelector(stores) {
         const grid = document.getElementById('store-selector-grid');
@@ -1496,7 +1619,7 @@
         modal.style.display = 'flex';
       }
 
-      window.selectTpvStore = async function(storeId) {
+      window.selectTpvStore = async function (storeId) {
         document.getElementById('modal-store-selector').style.display = 'none';
         showTpvLoader("Cargando tienda...");
         await finalizeTpvInit(storeId);
@@ -1504,7 +1627,7 @@
 
       async function finalizeTpvInit(storeId) {
         posMetadata.managedStoreId = storeId;
-        
+
         // 1. Obtener Datos VOLÁTILES (Caja, Sesión) - Nueva función ligera
         google.script.run
           .withFailureHandler(err => { console.warn("Fallo DynamicStatus:", err); })
@@ -1530,7 +1653,7 @@
         // 3. Popular UI con Metadatos del Catálogo
         const transSel = document.getElementById('tpv-transfer-account');
         if (posMetadata.transferAccounts && transSel) {
-           transSel.innerHTML = posMetadata.transferAccounts.map(a => `<option value="${a.id}">${a.alias} - ${a.name}</option>`).join('');
+          transSel.innerHTML = posMetadata.transferAccounts.map(a => `<option value="${a.id}">${a.alias} - ${a.name}</option>`).join('');
         }
 
         // 4. Stock Específico de Tienda (Carga rápida desde Caché)
@@ -1549,18 +1672,18 @@
 
         // 5. Procesar Catálogo de Productos (Local)
         if (catalog) {
-            // Filtrado estricto por tienda y enriquecimiento de variedades
-            catalog.products = catalog.products.map(p => {
-              if (posMetadata.allVarieties && posMetadata.allVarieties[p.id]) {
-                p.varieties = posMetadata.allVarieties[p.id];
-              }
-              var filtered = (p.variations || []).filter(v => String(v.store_id) === String(storeId));
-              return Object.assign({}, p, { variations: filtered });
-            }).filter(p => p.variations.length > 0);
-            
-            renderTpvUI();
-            initCartDataTable();
-            hideTpvLoader();
+          // Filtrado estricto por tienda y enriquecimiento de variedades
+          catalog.products = catalog.products.map(p => {
+            if (posMetadata.allVarieties && posMetadata.allVarieties[p.id]) {
+              p.varieties = posMetadata.allVarieties[p.id];
+            }
+            var filtered = (p.variations || []).filter(v => String(v.store_id) === String(storeId));
+            return Object.assign({}, p, { variations: filtered });
+          }).filter(p => p.variations.length > 0);
+
+          renderTpvUI();
+          initCartDataTable();
+          hideTpvLoader();
         }
       }
 
@@ -1571,50 +1694,50 @@
 
         const dot = statusEl.querySelector('div');
         const label = statusEl.querySelector('span');
-        
+
         let color = "bg-slate-500";
         let statusText = "Desconocido";
-        
+
         const btnStandard = document.getElementById('btn-process-checkout');
         const btnQr = document.getElementById('btn-qr-process-sale');
         const btnRegVenta = document.querySelector('.tpv-btn-primary-large'); // Botón de la barra lateral
-        
+
         // Determinar estado basado en sesión y horario
         if (!session.isWithinSchedule) {
           color = "bg-red-500 animate-pulse";
           statusText = "Fuera de Horario (" + session.horario.apertura + " - " + session.horario.cierre + ")";
-          
+
           // En lugar de bloquear, advertimos visualmente
           [btnStandard, btnQr, btnRegVenta].forEach(b => {
-             if (b) {
-                b.disabled = false;
-                b.classList.remove('opacity-50', 'cursor-not-allowed');
-                b.classList.add('border-red-500', 'border-2');
-             }
+            if (b) {
+              b.disabled = false;
+              b.classList.remove('opacity-50', 'cursor-not-allowed');
+              b.classList.add('border-red-500', 'border-2');
+            }
           });
           if (btnStandard) btnStandard.innerText = "FORZAR VENTA (FUERA DE HORA)";
           if (btnQr) btnQr.innerText = "FORZAR REGISTRO";
         } else if (session.activeCashRegisterId) {
           color = "bg-emerald-500";
           statusText = "Caja Abierta (" + session.storeId + ")";
-          
+
           [btnStandard, btnQr, btnRegVenta].forEach(b => {
-             if (b) {
-                b.disabled = false;
-                b.classList.remove('opacity-50', 'cursor-not-allowed');
-             }
+            if (b) {
+              b.disabled = false;
+              b.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
           });
           if (btnStandard) btnStandard.innerText = "CONFIRMAR Y PAGAR";
           if (btnQr) btnQr.innerText = "REGISTRAR VENTA";
         } else {
           color = "bg-amber-500";
           statusText = "Caja Pendiente (Sesión: " + session.storeId + ")";
-          
+
           [btnStandard, btnQr, btnRegVenta].forEach(b => {
-             if (b) {
-                b.disabled = false;
-                b.classList.remove('opacity-50', 'cursor-not-allowed');
-             }
+            if (b) {
+              b.disabled = false;
+              b.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
           });
           if (btnStandard) btnStandard.innerText = "ABRIR CAJA Y PAGAR";
           if (btnQr) btnQr.innerText = "ABRIR CAJA Y PAGAR";
@@ -1755,12 +1878,12 @@
           comboGroup.innerHTML = "<h3 style='font-size: 0.65rem; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem; font-weight: 800; letter-spacing: 0.1em;'>Ofertas Especiales</h3>";
           var comboGrid = document.createElement('div');
           comboGrid.className = "filters-grid";
-          
+
           var btnCombo = document.createElement('button');
           var isComboActive = currentTpvFilters.isCombo === true;
           btnCombo.className = "filter-btn-tpv " + (isComboActive ? 'active' : '');
           btnCombo.innerHTML = "<i class='ph-bold ph-gift' style='color:#ec4899;'></i><span>Combos</span>";
-          btnCombo.onclick = function() {
+          btnCombo.onclick = function () {
             if (currentTpvFilters.isCombo === true) {
               currentTpvFilters.isCombo = false;
             } else {
@@ -1869,14 +1992,14 @@
           div.className = 'product-card animate-fade-in';
 
           var genderIconMap = {
-            'HOMBRE':  { icon: 'ph-gender-male',       color: '#3b82f6' },
-            'MUJER':   { icon: 'ph-gender-female',     color: '#ec4899' },
-            'UNISEX':  { icon: 'ph-gender-intersex',   color: '#8b5cf6' },
+            'HOMBRE': { icon: 'ph-gender-male', color: '#3b82f6' },
+            'MUJER': { icon: 'ph-gender-female', color: '#ec4899' },
+            'UNISEX': { icon: 'ph-gender-intersex', color: '#8b5cf6' },
           };
           var seasonIconMap = {
-            'INVIERNO':       { icon: 'ph-snowflake',  color: '#0ea5e9' },
-            'VERANO':         { icon: 'ph-sun',        color: '#f59e0b' },
-            'PRIMAVERA':      { icon: 'ph-flower',     color: '#22c55e' },
+            'INVIERNO': { icon: 'ph-snowflake', color: '#0ea5e9' },
+            'VERANO': { icon: 'ph-sun', color: '#f59e0b' },
+            'PRIMAVERA': { icon: 'ph-flower', color: '#22c55e' },
           };
 
           var gInfo = genderIconMap[(p.gender || '').toUpperCase()];
@@ -1914,36 +2037,36 @@
           if (checkIsPrecioVariable() && pVarieties.length > 0) {
             const carousel = document.createElement('div');
             carousel.className = 'variety-carousel-wrapper';
-            
+
             const track = document.createElement('div');
             track.className = 'variety-carousel-track';
             track.id = 'track-' + p.id;
 
             const priceTypeColors = {
-              'mayor':   { bg: 'rgba(59, 130, 246, 0.1)',  border: '#3b82f6' },
-              'menor':   { bg: 'rgba(244, 63, 94, 0.1)',   border: '#f43f5e' },
-              'docena':  { bg: 'rgba(16, 185, 129, 0.1)',  border: '#10b981' },
-              'curva':   { bg: 'rgba(245, 158, 11, 0.1)',  border: '#f59e0b' },
-              'combo':   { bg: 'rgba(139, 92, 246, 0.1)',  border: '#8b5cf6' },
-              'packx3':  { bg: 'rgba(6, 182, 212, 0.1)',   border: '#06b6d4' }
+              'mayor': { bg: 'rgba(59, 130, 246, 0.1)', border: '#3b82f6' },
+              'menor': { bg: 'rgba(244, 63, 94, 0.1)', border: '#f43f5e' },
+              'docena': { bg: 'rgba(16, 185, 129, 0.1)', border: '#10b981' },
+              'curva': { bg: 'rgba(245, 158, 11, 0.1)', border: '#f59e0b' },
+              'combo': { bg: 'rgba(139, 92, 246, 0.1)', border: '#8b5cf6' },
+              'packx3': { bg: 'rgba(6, 182, 212, 0.1)', border: '#06b6d4' }
             };
 
             for (let i = 0; i < pVarieties.length; i += 2) {
               const slide = document.createElement('div');
               const isLastSingle = (i + 1 >= pVarieties.length);
               slide.style.cssText = `flex: 0 0 100%; display: flex; gap: 4px; justify-content: ${isLastSingle ? 'center' : 'space-between'}; align-items: stretch;`;
-              
-              [pVarieties[i], isLastSingle ? null : pVarieties[i+1]].filter(Boolean).forEach((v) => {
+
+              [pVarieties[i], isLastSingle ? null : pVarieties[i + 1]].filter(Boolean).forEach((v) => {
                 const btn = document.createElement('button');
                 btn.className = 'variety-mini-btn';
                 const vName = (v.nombre || '').toLowerCase().replace(/\s+/g, '');
                 const styleConfig = priceTypeColors[vName] || { bg: 'rgba(255, 255, 255, 0.05)', border: 'var(--border-color)' };
-                
+
                 btn.style.background = styleConfig.bg;
                 btn.style.borderColor = styleConfig.border;
                 btn.style.flex = isLastSingle ? '0 0 80%' : '1';
                 btn.innerHTML = `<span style="display:block; font-size:0.6rem; opacity:0.8;">${v.nombre}</span>` +
-                                `<span style="font-size:0.75rem; font-weight:900; color:white;">$${(v.precio_unitario || 0).toLocaleString()}</span>`;
+                  `<span style="font-size:0.75rem; font-weight:900; color:white;">$${(v.precio_unitario || 0).toLocaleString()}</span>`;
                 btn.onclick = (e) => { e.stopPropagation(); handleVarietyClick(p, v); };
                 slide.appendChild(btn);
               });
@@ -1956,12 +2079,12 @@
               btnPrev.className = 'variety-carousel-arrow prev';
               btnPrev.innerHTML = '<i class="ph ph-caret-left"></i>';
               btnPrev.onclick = (e) => { e.stopPropagation(); track.scrollBy({ left: -track.offsetWidth, behavior: 'smooth' }); };
-              
+
               const btnNext = document.createElement('button');
               btnNext.className = 'variety-carousel-arrow next';
               btnNext.innerHTML = '<i class="ph ph-caret-right"></i>';
               btnNext.onclick = (e) => { e.stopPropagation(); track.scrollBy({ left: track.offsetWidth, behavior: 'smooth' }); };
-              
+
               carousel.appendChild(btnPrev);
               carousel.appendChild(btnNext);
             }
@@ -1979,11 +2102,11 @@
 
         // Si es producto simple, agregamos directo
         if (priceConfig.tipoRegistroPrecio === 'PRODUCTO SIMPLE') {
-           const variation = product.variations.find(v => v.store_id === managedStore) || product.variations[0];
-           addTpvToCart(product, variation, variety);
+          const variation = product.variations.find(v => v.store_id === managedStore) || product.variations[0];
+          addTpvToCart(product, variation, variety);
         } else {
-           // Si es variable, abrimos modal preseleccionando la variedad
-           window.openTpvVariations(product, null, variety);
+          // Si es variable, abrimos modal preseleccionando la variedad
+          window.openTpvVariations(product, null, variety);
         }
       }
 
@@ -1996,7 +2119,7 @@
         if (!modal) return;
 
         document.getElementById('modal-product-title').innerText = product.model;
-        
+
         // Elementos del DOM
         const varietyOptions = document.getElementById('variety-options');
         const varietyContainer = document.getElementById('variety-container');
@@ -2015,19 +2138,19 @@
             curvaState.product = product;
             curvaState.variety = v;
             curvaState.selection = {};
-            
+
             curvaState.sizes = [...new Set(product.variations
               .filter(varItem => varItem.size !== 'Surtido')
               .map(varItem => varItem.size))];
-            
+
             curvaState.colors = [...new Set(product.variations.map(varItem => varItem.color))];
             curvaState.targetTotal = curvaState.sizes.length;
-            
+
             if (standardContainer) standardContainer.style.display = 'none';
             if (sizeContainer) sizeContainer.style.display = 'none';
             if (curvaWrapper) curvaWrapper.style.display = 'block';
             if (curvaSummary) curvaSummary.style.display = 'block';
-            
+
             window.renderCurvaMatrix();
           } else {
             curvaState.active = false;
@@ -2049,7 +2172,7 @@
               '<span>' + v.nombre + '</span>' +
               '<span class="variety-price-tag">$' + (v.precio_unitario || 0).toLocaleString() + '</span>' +
               '<span class="variety-qty-tag">Mín: ' + (v.cantidad_minima || 1) + ' u.</span>';
-            
+
             vBtn.onclick = function () {
               document.querySelectorAll('.variety-modal-btn').forEach(b => b.classList.remove('active'));
               vBtn.classList.add('active');
@@ -2062,7 +2185,7 @@
             };
             varietyOptions.appendChild(vBtn);
           });
-          
+
           if (_selectedVariety) initCurvaMode(_selectedVariety);
         } else {
           varietyContainer.style.display = 'none';
@@ -2203,7 +2326,7 @@
           label.className = 'stock-label';
           label.innerText = `Stock: ${currentStock}`;
           wrapper.appendChild(label);
-          
+
           sizeCont.appendChild(wrapper);
         });
       }
@@ -2224,12 +2347,12 @@
         body.innerHTML = '';
         colors.forEach(color => {
           const tr = document.createElement('tr');
-          
+
           // Celda Color
           const tdColor = document.createElement('td');
           tdColor.className = 'curva-color-cell';
           if (color.toLowerCase() === 'surtido') tdColor.classList.add('color-surtido-gradient');
-          
+
           let dotHtml = '';
           if (catalog.colors && catalog.colors[color]) {
             const hex = catalog.colors[color].hex.startsWith('#') ? catalog.colors[color].hex : '#' + catalog.colors[color].hex;
@@ -2242,7 +2365,7 @@
           sizes.forEach(size => {
             const td = document.createElement('td');
             const v = product.variations.find(varItem => varItem.color === color && varItem.size === size);
-            
+
             if (v) {
               const varId = v.variation_id;
               const stock = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
@@ -2250,14 +2373,14 @@
 
               const div = document.createElement('div');
               div.className = 'curva-qty-input';
-              
+
               const bMinus = document.createElement('button');
               bMinus.innerText = '-';
               bMinus.onclick = () => updateCurvaMatrixQty(varId, -1);
-              
+
               const sQty = document.createElement('span');
               sQty.innerText = qty;
-              
+
               const bPlus = document.createElement('button');
               bPlus.innerText = '+';
               bPlus.disabled = stock <= qty;
@@ -2266,7 +2389,7 @@
               div.appendChild(bMinus);
               div.appendChild(sQty);
               div.appendChild(bPlus);
-              
+
               td.appendChild(div);
               const hint = document.createElement('span');
               hint.className = 'curva-stock-hint';
@@ -2312,7 +2435,7 @@
       window.fillCurvaRow = function (color) {
         const product = curvaState.product;
         const sizes = curvaState.sizes;
-        
+
         let canFill = true;
         sizes.forEach(size => {
           const v = product.variations.find(varItem => varItem.color === color && varItem.size === size);
@@ -2345,10 +2468,10 @@
         const counter = document.getElementById('curva-counter');
         const btnConfirm = document.getElementById('btn-confirm-curva');
         const msg = document.getElementById('curva-msg');
-        
+
         const product = curvaState.product;
         const sizes = curvaState.sizes;
-        
+
         if (!sizes || !foot || !counter || !btnConfirm || !msg) return;
 
         // Calcular totales por columna (talle)
@@ -2365,7 +2488,7 @@
           footHtml += '<td style="border:none; background:transparent;">' + total + '</td>';
         });
         footHtml += '<td style="border:none; background:transparent;">—</td></tr>';
-        
+
         // Status row below totals
         footHtml += '<tr><td style="text-align:right; font-weight:800; border:none; background:transparent;">ESTADO:</td>';
         const uniqueTotals = [...new Set(colTotals)];
@@ -2378,7 +2501,7 @@
           if (total > 0 && total === target) { statusClass = 'status-ok'; statusText = 'OK'; }
           else if (total > target) { statusClass = 'status-excess'; statusText = 'EXCESO'; }
           else if (total > 0 && total < target) { statusClass = 'status-pending'; statusText = 'INCOMP'; }
-          
+
           footHtml += '<td style="border:none; background:transparent;"><span class="col-status-indicator ' + statusClass + '">' + statusText + '</span></td>';
         });
         footHtml += '<td style="border:none; background:transparent;">—</td></tr>';
@@ -2491,10 +2614,10 @@
         // En modo PRECIO VARIABLE: precio y cantidad mÃ­nima vienen de la variedad
         const isPrecioVariable = checkIsPrecioVariable();
         const itemPrice = isPrecioVariable && variety ? variety.precio_unitario : product.price;
-        
+
         // La cantidad inicial es qtyOverride (para Curva) o la cantidad_minima de la variedad
         const initQty = qtyOverride !== null ? qtyOverride : (isPrecioVariable && variety ? Math.max(1, variety.cantidad_minima) : 1);
-        
+
         const tipoPrecio = variety ? variety.nombre : (isPrecioVariable ? 'â€”' : 'EstÃ¡ndar');
 
         const existing = cart.find(i => i.variation_id === varId && i.tipoPrecio === tipoPrecio);
@@ -2604,22 +2727,22 @@
         // C. Compra MÃ­nima (Visual)
         const minCont = document.getElementById('tpv-min-purchase-container');
         const headerMinWrapper = document.getElementById('header-min-purchase-wrapper');
-        
+
         if (minCont) {
           if (!isPrecioVariable) {
-             minCont.style.display = 'block';
-             if (headerMinWrapper) headerMinWrapper.style.display = 'flex';
-             
-             const display = document.getElementById('tpv-min-purchase-display');
-             const progress = document.getElementById('tpv-min-purchase-progress');
-             const target = selectedMinPurchase || 1;
-             display.innerText = `${totalUnitsSize} / ${target}`;
-             const percent = Math.min(100, (totalUnitsSize / target) * 100);
-             progress.style.width = percent + '%';
-             progress.className = percent >= 100 ? 'bg-emerald-500 h-full transition-all' : 'bg-warning h-full transition-all';
+            minCont.style.display = 'block';
+            if (headerMinWrapper) headerMinWrapper.style.display = 'flex';
+
+            const display = document.getElementById('tpv-min-purchase-display');
+            const progress = document.getElementById('tpv-min-purchase-progress');
+            const target = selectedMinPurchase || 1;
+            display.innerText = `${totalUnitsSize} / ${target}`;
+            const percent = Math.min(100, (totalUnitsSize / target) * 100);
+            progress.style.width = percent + '%';
+            progress.className = percent >= 100 ? 'bg-emerald-500 h-full transition-all' : 'bg-warning h-full transition-all';
           } else {
-             minCont.style.display = 'none';
-             if (headerMinWrapper) headerMinWrapper.style.display = 'none';
+            minCont.style.display = 'none';
+            if (headerMinWrapper) headerMinWrapper.style.display = 'none';
           }
         }
 
@@ -2633,7 +2756,7 @@
         const method = document.getElementById(methodId).value || 'Efectivo';
         const noPaymentSurchargeId = isQr ? 'qr-tpv-modal-deactivate-surcharge' : 'tpv-modal-deactivate-surcharge';
         const noPaymentSurcharge = document.getElementById(noPaymentSurchargeId)?.checked || false;
-        
+
         const customerIdEl = isQr ? document.getElementById('qr-tpv-customer') : document.getElementById('tpv-customer');
         const customerId = customerIdEl ? customerIdEl.value : '';
 
@@ -2642,7 +2765,7 @@
         // La validación cruzada recae sobre el botón de desactivar operado por el TPV
         const m = posMetadata.paymentMethods.find(pm => pm.id === method);
         const percent = m ? m.percent : 0;
-        
+
         // Ocultar/Mostrar checkbox de recargo según proceda
         const surchargeContId = isQr ? 'qr-tpv-surcharge-container' : 'tpv-surcharge-container';
         const surchargeCont = document.getElementById(surchargeContId);
@@ -2713,10 +2836,10 @@
 
         // Función auxiliar para extraer números de texto con formato (moneda)
         const parseCurrency = (id) => {
-            const el = document.getElementById(id);
-            if (!el) return 0;
-            const text = el.innerText || "0";
-            return parseFloat(text.replace(/[^-?\d]/g, '')) || 0;
+          const el = document.getElementById(id);
+          if (!el) return 0;
+          const text = el.innerText || "0";
+          return parseFloat(text.replace(/[^-?\d]/g, '')) || 0;
         };
 
         const minorSurcharge = parseCurrency(preModal + 'minor-surcharge');
@@ -2879,7 +3002,7 @@
               if (res.updatesMap) {
                 Object.assign(realStockCache.map, res.updatesMap);
               }
-              
+
               if (res.cashRegisterId) {
                 posMetadata.activeCashRegisterId = res.cashRegisterId;
               }
@@ -2971,7 +3094,7 @@
         }
       });
 
-      window.updateTpvHeaderUI = function() {
+      window.updateTpvHeaderUI = function () {
         const wrapper = document.getElementById('header-min-purchase-wrapper');
         if (wrapper) {
           const t = (priceConfig.tipoRegistroPrecio || "").toUpperCase();

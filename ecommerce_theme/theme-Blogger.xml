@@ -8,7 +8,7 @@
     <meta content='https://skypia-underwear.blogspot.com' property='og:url'/>
     <meta content='website' property='og:type'/>
     <meta content='Tienda de Ropa Nacional e Importada de la mejor Calidad y Precio, Envio a todo el Pais' property='og:description'/>
-    <meta content='https://cdn.filestackcontent.com/A96uIBVEaSfSGzSE1ZpmVz/border%3Dwidth%3A4%2Ccolor%3A1E90FFFF/shadow%3Dopacity%3A90%2Cvector%3A%5B4%2C4%5D%2Ccolor%3A1E90FFFF%2Cbackground%3AF0F8FFFF/resize%3Dwidth%3A545/cache=expiry:max/auto_image/https://www.appsheet.com/template/gettablefileurl?appName=TiendaOnlineBlogger-337846396&amp;tableName=Info%20Tienda&amp;fileName=Info%20Tienda_Images%2FSkypia%20Underwear.Logotipo.012135.png' property='og:image'/>
+    <meta content='https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&amp;tableName=BD_TIENDAS&amp;fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png' property='og:image'/>
     <meta content='Tienda de Ropa Nacional e Importada de la mejor calidad y precio.' name='description'/>
     <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
     <meta content='width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=yes' name='viewport'/>
@@ -21,6 +21,26 @@
          Solo este bloque se edita al instalar el tema en una nueva tienda.-->
     <script type='text/javascript'>
         //<![CDATA[
+        // CONFIGURACIÓN DE IDENTIDAD VISUAL (ACCESO RÁPIDO)
+        const LOGO_TIENDA_URL = 'https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&tableName=BD_TIENDAS&fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png';
+
+        /**
+         * Actualiza el texto del loader dinámicamente.
+         * @param {string} mensaje - El nuevo mensaje a mostrar.
+         */
+        window.setLoaderText = function(mensaje) {
+            const el = document.getElementById('loader-text');
+            if (el) el.innerText = mensaje;
+        };
+
+        window.showLoader = function(mensaje = "Cargando...") {
+            window.setLoaderText(mensaje);
+            $('.loader-wrapper').fadeIn(300);
+        };
+
+        window.hideLoader = function() {
+            $('.loader-wrapper').fadeOut(500);
+        };
 
         // ── 1. APPS SCRIPT (ID del deployment de la macro/ERP) ───────────────
         var GAS_DEPLOYMENT_ID = 'AKfycbyNBifMp803od61SuOQx6MtnlzCPyFO-famdi_3QIXYuOeQxkVCmqjWUypoWEkJlHkn';
@@ -82,21 +102,26 @@
 </head>
 <style>
     :root {
+        --primary-cyan: #00f2ff;
         --primary-cobalt: #002b5c;
         --secondary-cobalt: #004085;
         --accent-cobalt: #001a35;
-        --premium-shadow: 0 10px 30px rgba(0, 43, 92, 0.08);
+        --premium-shadow: 0 20px 40px rgba(0, 43, 92, 0.1);
         --premium-shadow-hover: 0 15px 45px rgba(0, 43, 92, 0.15);
         --premium-radius: 12px;
         --premium-radius-lg: 20px;
         --glass-bg: rgba(255, 255, 255, 0.85);
         --glass-blur: blur(10px);
         --outfit-font: &#39;Outfit&#39;, sans-serif;
+        --light-bg: #f8fbff;
+        --card-bg: #ffffff;
+        --text-main: #1a1a1a;
+        --text-muted: #4a5568;
     }
 
     body {
         font-family: var(--outfit-font);
-        background-color: #f8fbff;
+        background-color: #f0f2f5;
         color: #1a1a1a;
     }
 
@@ -131,23 +156,502 @@
         margin-right: auto;
     }
 
+    /* --- NUEVOS ESTILOS PREMIUM PRESENTACIÓN --- */
+    
+    .principal {
+        display: flex;
+        flex-direction: column !important;
+        max-width: 1280px;
+        background-color: white !important;
+        box-shadow: 0 10px 40px rgba(78, 167, 250, 0.95);
+        border-radius: 24px;
+        padding: 5px;
+        list-style: none;
+    }
+
+    .presentation-container-premium,
+    .categorias-productos-container {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+        display: block !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .presentation-layout-wrapper {
+        display: grid;
+        grid-template-columns: 1.1fr 1.1fr;
+        gap: 20px;
+        align-items: stretch;
+        margin-bottom: 25px;
+    }
+    
+    @media (max-width: 992px) {
+        .presentation-layout-wrapper {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .presentation-info-column {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .presentation-carousel-column {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        background: #fff;
+        border-radius: 28px;
+        border: 1px solid rgba(0, 43, 92, 0.1);
+        box-shadow: var(--premium-shadow);
+        padding: 25px;
+        height: 100%;
+    }
+
+    .banner-carousel {
+        border-radius: 20px;
+        overflow: hidden;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        background: #f0f4f8;
+        display: flex;
+        align-items: center;
+    }
+
+    .banner-carousel img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #pagina_reseñas {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-top: auto; /* Empuja las reseñas al fondo del contenedor */
+    }
+
+    #pagina_titulo_footer {
+        width: 100%;
+        margin-top: 20px;
+        padding: 20px 0;
+        border-top: 1px dashed rgba(0, 43, 92, 0.1);
+    }
+
+    #pagina_titulo {
+        background: var(--card-bg);
+        border: 1px solid rgba(0, 43, 92, 0.05);
+        border-radius: 28px;
+        padding: 30px;
+        box-shadow: var(--premium-shadow);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+
     .store-title {
+        font-size: 2.2rem; /* Un poco más pequeño para el layout de 2 columnas */
+        font-weight: 800;
         text-align: center;
-        font-size: 32px;
-        font-weight: bold;
-        margin-top: 10px;
-        color: #333;
+        margin-bottom: 5px;
         text-transform: uppercase;
+        letter-spacing: 1px;
+        background: linear-gradient(
+            to right,
+            var(--primary-cobalt) 20%,
+            var(--primary-cyan) 40%,
+            var(--secondary-cobalt) 60%,
+            var(--primary-cobalt) 80%
+        );
+        background-size: 200% auto;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: text-shimmer 5s linear infinite;
     }
 
     .store-description {
         text-align: center;
-        margin-top: 10px;
-        font-weight: 700;
-        color: #0d6efd;
-        font-style: italic;
-        margin-block-end: 15px;
+        color: var(--secondary-cobalt);
+        font-size: 1rem;
+        margin-bottom: 25px;
+        font-weight: 500;
+        opacity: 0.8;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
     }
+
+    .presentation-header-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: center;
+        margin-top: 15px;
+    }
+
+    .logo-column {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .social-column {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .logo-presentacion-container {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        animation: logo-float 4s ease-in-out infinite;
+        width: 100%;
+    }
+
+    .logo-presentacion-frame {
+        position: relative;
+        width: 100%;
+        max-width: 220px; /* Reducido para el layout de 2 columnas */
+        aspect-ratio: 1/1;
+        border-radius: 28px;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid rgba(0, 43, 92, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 15px 35px rgba(0, 43, 92, 0.1);
+    }
+
+    .shimmer-overlay {
+        position: absolute;
+        top: 0;
+        left: -150%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            to right,
+            transparent,
+            rgba(0, 242, 255, 0.2),
+            transparent
+        );
+        transform: skewX(-25deg);
+        animation: shimmer-swipe 3s infinite;
+        z-index: 3;
+    }
+
+    .social-grid-premium {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .btn-premium-social {
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        color: white !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.75rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        white-space: nowrap;
+        border: none;
+        width: 100%;
+    }
+
+    .btn-premium-social i { font-size: 1.1rem; width: 25px; margin-right: 8px; }
+    .btn-premium-social:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0, 43, 92, 0.2);
+        filter: brightness(1.1);
+    }
+
+    .button-group-label {
+        grid-column: span 2;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--primary-cobalt);
+        opacity: 0.5;
+        letter-spacing: 1px;
+        margin-top: 5px;
+        margin-bottom: -4px;
+        border-bottom: 1px solid rgba(0, 43, 92, 0.05);
+        padding-bottom: 2px;
+        display: flex;
+        align-items: center;
+    }
+
+    .contact-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .btn-footer-action {
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: none;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .btn-footer-action:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.1);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .btn-footer-action i {
+        font-size: 0.9rem;
+    }
+
+    /* --- ETIQUETAS COMPACTAS (Para info sin link) --- */
+    .info-tags-container {
+        grid-column: span 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+        justify-content: center;
+    }
+
+    .info-tag-premium {
+        background: rgba(0, 43, 92, 0.04);
+        border: 1px solid rgba(0, 43, 92, 0.08);
+        border-radius: 10px;
+        padding: 6px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: var(--primary-cobalt);
+    }
+
+    .info-tag-premium i {
+        color: var(--secondary-cobalt);
+        font-size: 0.9rem;
+    }
+
+    .info-tag-label {
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        opacity: 0.7;
+        margin-right: 4px;
+    }
+
+    .info-tile-premium {
+        background: #fff;
+        border: 1px solid rgba(0, 43, 92, 0.08);
+        border-radius: 16px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none !important;
+        color: inherit !important;
+    }
+
+    .info-tile-premium.is-link:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 43, 92, 0.08);
+        border-color: var(--primary-cyan);
+        background: rgba(0, 242, 255, 0.02);
+    }
+
+    .info-tile-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(0, 43, 92, 0.03);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-cobalt);
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .info-tile-premium.is-link:hover .info-tile-icon {
+        background: var(--primary-cobalt);
+        color: #fff;
+    }
+
+    .info-tile-text { display: flex; flex-direction: column; overflow: hidden; }
+    .info-tile-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin-bottom: 1px;
+    }
+    .info-tile-value { 
+        font-size: 0.9rem; 
+        font-weight: 600; 
+        color: var(--primary-cobalt);
+        word-break: break-word; /* Permitir que el texto largo (como direcciones) rompa línea */
+        line-height: 1.2;
+    }
+
+    .info-tile-premium.is-link .info-tile-value {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .info-tile-premium.is-link .info-tile-value::after {
+        content: &#39;\f14c&#39;;
+        font-family: FontAwesome;
+        font-size: 0.65rem;
+        opacity: 0.4;
+    }
+
+    /* --- SECCIÓN RESEÑAS --- */
+    .google-reviews-premium {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        width: 100%;
+        background: #f8fbff;
+        border-radius: 20px;
+        padding: 12px 20px;
+        border: 1px solid rgba(0, 43, 92, 0.05);
+        margin-top: 10px;
+        flex-wrap: wrap; /* Permitir que los elementos bajen si no caben */
+    }
+
+    .review-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap; /* Para móviles muy pequeños */
+    }
+
+    .review-stars-interactive {
+        color: #ccc;
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin: 0 !important;
+    }
+
+    .review-stars-interactive i.active, 
+    .review-stars-interactive i:hover, 
+    .review-stars-interactive i:hover ~ i {
+        color: #ffb400;
+        text-shadow: 0 0 12px rgba(255, 180, 0, 0.3);
+    }
+    .review-stars-interactive:hover i { color: #ffb400; }
+    .review-stars-interactive i:hover ~ i { color: #ccc; }
+
+    .btn-google-review {
+        color: var(--secondary-cobalt);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: inline-block;
+        padding: 8px 20px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s;
+        border: 1px solid rgba(0, 43, 92, 0.08);
+    }
+
+    .btn-google-review:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 43, 92, 0.1);
+    }
+
+    /* --- BOTONES DE ACCIÓN FOOTER --- */
+    .action-footer {
+        grid-column: span 2;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    #pagina_titulo .btn-premium-outline {
+        flex: 1;
+        max-width: 200px;
+        padding: 12px 15px;
+        border-radius: 14px;
+        border: 2px solid var(--primary-cobalt) !important;
+        color: var(--primary-cobalt) !important;
+        background: #fff !important;
+        cursor: pointer;
+        font-weight: 700;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        display: inline-block;
+        text-align: center;
+    }
+
+    #pagina_titulo .btn-premium-outline:hover {
+        background: var(--primary-cobalt) !important;
+        color: #fff !important;
+        box-shadow: 0 8px 20px rgba(0, 43, 92, 0.2);
+        transform: translateY(-3px);
+    }
+
+    /* --- ANIMACIONES --- */
+    @keyframes text-shimmer { to { background-position: 200% center; } }
+    @keyframes shimmer-swipe { 0% { left: -150%; } 100% { left: 150%; } }
+    @keyframes logo-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.02); } }
+
+    @media (max-width: 768px) {
+        .presentation-layout-wrapper { grid-template-columns: 1fr; gap: 15px; }
+        .presentation-header-inner { grid-template-columns: 1fr; gap: 15px; }
+        .contact-info-grid { grid-template-columns: 1fr !important; }
+        .store-title { font-size: 1.8rem; text-align: center; }
+        .logo-presentacion-frame { max-width: 180px; margin: 0 auto; }
+        #pagina_titulo { padding: 15px 10px; }
+        .info-tags-container { justify-content: center; }
+    }
+
+    @media (max-width: 480px) {
+        .google-reviews-premium { 
+            flex-direction: column; 
+            text-align: center; 
+            gap: 10px;
+            padding: 15px;
+        }
+        .review-header { justify-content: center; }
+        .social-grid-premium { grid-template-columns: 1fr; } /* Redes sociales en una sola columna en móviles pequeños */
+        .btn-premium-social { font-size: 0.8rem; padding: 10px; }
+        .info-tile-premium { padding: 10px; }
+        .info-tile-icon { width: 36px; height: 36px; font-size: 1rem; }
+    }
+
 
     .titulo-productos {
         display: block;
@@ -167,152 +671,146 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 9999;
+        z-index: 10000;
         flex-direction: column;
+        transition: all 0.5s ease;
     }
 
-    #carouselExampleSlidesOnly {
+    .premium-loader-content {
+        text-align: center;
         display: flex;
-        justify-content: normal;
-        margin: auto;
-        max-width: 100%;
-        height: auto;
-        padding: 5px;
-        border: outset;
+        flex-direction: column;
+        align-items: center;
+        gap: 25px;
     }
 
-    .flex-container {
+    .loader-logo-container {
+        position: relative;
+        width: 150px;
+        height: 150px;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 15px;
+    }
+
+    /* Contenedor principal del logo con Pulso y Glow */
+    .shimmer-wrapper {
+        position: relative;
+        width: 110px;
+        height: 110px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible; /* Permitimos que el brillo se vea */
+        z-index: 2;
+        animation: container-pulse 2s ease-in-out infinite;
+    }
+
+    /* Sub-contenedor interno para el recorte del Shimmer */
+    .shimmer-mask {
+        position: relative;
         width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .icon-container {
-        justify-content: space-evenly;
+    .shimmer-sweep {
+        position: absolute;
+        top: 0;
+        left: -150%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            to right,
+            transparent,
+            rgba(255, 255, 255, 0.4),
+            transparent
+        );
+        transform: skewX(-25deg);
+        animation: shimmer-sweep 2.5s infinite;
+        z-index: 3;
     }
 
-    .products-container {
-        flex-direction: column;
-        justify-content: flex-start;
+    .loader-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        z-index: 2;
     }
 
-    .product {
-        animation: product-move 2s ease-in-out infinite;
-    }
-
-    @keyframes product-move {
-        0% {
-            transform: translateY(-100px);
-            opacity: 0;
+    @keyframes container-pulse {
+        0%, 100% { 
+            transform: scale(1); 
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.4));
         }
-
-        50% {
-            transform: translateY(0);
-            opacity: 1;
+        50% { 
+            transform: scale(1.05); 
+            filter: drop-shadow(0 0 25px rgba(0, 242, 255, 0.7));
         }
+    }
 
-        100% {
-            transform: translateY(100px);
-            opacity: 0;
-        }
+    @keyframes shimmer-sweep {
+        0% { left: -150%; }
+        100% { left: 150%; }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @keyframes logo-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-10px) scale(1.05); }
     }
 
     .loading-text {
-        margin-top: 20px;
-        font-size: 1.4em;
-        color: #34495e;
-        font-weight: bold;
-        animation: fade-in 2s ease-in-out infinite;
+        font-family: var(--outfit-font);
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary-cobalt);
+        letter-spacing: 1px;
+        margin: 0;
+        opacity: 0.8;
+        animation: text-shimmer 2s ease-in-out infinite;
     }
 
-    @keyframes fade-in {
-
-        0%,
-        100% {
-            opacity: 0.5;
-        }
-
-        50% {
-            opacity: 1;
-        }
+    @keyframes text-shimmer {
+        0%, 100% { opacity: 0.5; transform: scale(0.98); }
+        50% { opacity: 1; transform: scale(1); }
     }
 
-    .db-icon,
-    .database {
-        animation: bounce 1.5s ease-in-out infinite;
+    .loader-progress-bar {
+        width: 150px;
+        height: 4px;
+        background: rgba(0, 43, 92, 0.05);
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
     }
 
-    @keyframes bounce {
-
-        0%,
-        100% {
-            transform: translateY(0);
-        }
-
-        50% {
-            transform: translateY(-8px);
-        }
-    }
-
-    .tiendaonline {
-        animation: pulse 2s ease-in-out infinite, glow 1.5s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-
-        0%,
-        100% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.1);
-        }
-    }
-
-    @keyframes glow {
-
-        0%,
-        100% {
-            filter: drop-shadow(0 0 5px rgba(255, 193, 7, 0.5));
-        }
-
-        50% {
-            filter: drop-shadow(0 0 15px rgba(255, 193, 7, 1));
-        }
-    }
-
-    .transfer-line {
+    .loader-progress-fill {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        height: 3px;
-        width: 0;
-        background-color: #e67e22;
-        animation: transfer 1.5s ease-in-out infinite;
+        height: 100%;
+        width: 30%;
+        background: var(--primary-cobalt);
+        border-radius: 10px;
+        animation: progress-move 2s infinite ease-in-out;
     }
 
-    @keyframes transfer {
-        0% {
-            width: 0;
-            opacity: 0;
-        }
-
-        50% {
-            width: 100px;
-            opacity: 1;
-        }
-
-        100% {
-            width: 0;
-            opacity: 0;
-        }
+    @keyframes progress-move {
+        0% { left: -30%; }
+        100% { left: 130%; }
     }
 
     .modal {
@@ -455,21 +953,28 @@
         margin-right: 25px;
     }
 
-    .categoria_icono svg {
+    .categoria_icono img {
         max-width: 50px;
-        /* Ajustar el ancho máximo del SVG */
         max-height: 50px;
-        /* Ajustar la altura máxima del SVG */
-        width: auto;
-        /* Escalar proporcionalmente */
-        height: auto;
-        /* Escalar proporcionalmente */
-        margin-right: 10px;
-        /* Espacio entre el SVG y el texto */
-        display: inline-block;
-        /* Asegura que el SVG se alinee correctamente */
-        vertical-align: middle;
-        /* Alinear verticalmente con el texto */
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+        display: block;
+    }
+
+    /* Estilos para los iconos en el Modal de Filtros */
+    .categoria-icono-modal {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+
+    .categoria-icono svg {
+        width: 32px;
+        height: 32px;
     }
 
     .categoria_contenedor {
@@ -1433,9 +1938,7 @@
 
     .list-group {
         display: flex;
-        padding-left: 0;
         margin-bottom: 0;
-        border-radius: .25rem;
         flex-wrap: wrap;
         align-content: space-around;
         justify-content: center;
@@ -1900,14 +2403,11 @@
     /* 2. Contenedor de Productos (Ahora ocupa el espacio liberado) */
     #contenedorProductos {
         width: 100%;
-        /* Opcional: añade un ancho máximo para mantener la legibilidad en pantallas muy grandes */
         max-width: 1200px;
         margin: 0 auto;
-        /* Centra el contenedor */
-        padding: 20px 15px;
-        /* Añade algo de espacio interno */
+        padding: 5px 5px;
         transition: all 0.3s ease-in-out;
-        /* Para una transición suave si fuera necesario */
+
     }
 
 
@@ -1979,8 +2479,8 @@
         background: white !important;
         border: 1px solid #e2e8f0 !important;
         border-radius: var(--premium-radius) !important;
-        margin-bottom: 2rem !important;
-        padding: 1.5rem !important;
+        margin-bottom: 0px !important;
+        padding: 5px !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
         transition: all 0.3s ease !important;
     }
@@ -2705,168 +3205,28 @@
         </div>
     </div>
     <div class='loader-wrapper'>
-        <div class='loader-content'>
-            <div class='icon-container'>
-                <svg class='database' fill='#000000' height='220px' id='Layer_1' version='1.1' viewBox='0 0 508 508' width='220px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><text fill='black' font-family='Arial' font-size='55' text-anchor='middle' x='50%' y='45'>HOSTINGSHOP</text>
-                    <g id='SVGRepo_bgCarrier' stroke-width='0'/>
-                    <g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'/>
-                    <g id='SVGRepo_iconCarrier'>
-                        <path d='M198,155.8c0-1.2,0.8,0,2,0h104c1.2,0,2-1.2,2,0v8h168.4c17.2,0,27.6-18.8,27.6-34V82.2 c0-16.4-11.2-26-27.6-26H39.2c-16,0-33.2,9.2-33.2,26v47.6c0,16,16.4,34,33.2,34H198v-6L198,155.8L198,155.8z' style='fill:#F4EFEF;'/>
-                        <path d='M335.2,91.8H326h-32H118.8c-8,0-16.8,2.4-16.8,10v8.4c0,7.6,8.8,17.6,16.8,17.6h216.4 c7.6,0,10.8-10,10.8-17.6v-8.4C346,93.8,342.4,91.8,335.2,91.8z' style='fill:#CDEEF9;'/>
-                        <path d='M75.6,100.2c-0.8-5.6-8.8-10-11.6-11.6c-1.6-0.4-3.2-0.8-5.2-0.8c-9.6,0-17.6,8-17.6,17.6 s8,17.6,17.6,17.6s17.6-8,17.6-17.6c0-1.2-0.4-2.4-0.4-3.6C75.6,101.8,75.6,101,75.6,100.2z' style='fill:#E8E3E3;'/>
-                        <g>
-                            <path d='M462.8,115.8c3.2,0,6.4-1.6,8.4-4c1.2-1.2,2.4-3.2,1.6-6c-1.2-7.2-8.8-10-10.4-10.4 c-5.6,0-10,4.8-10,10C452.8,111.4,457.2,115.8,462.8,115.8z' style='fill:#61C2AB;'/>
-                            <path d='M422.8,115.8c2.8,0,5.6-1.2,7.6-3.2c1.6-2,2.8-4.4,2.4-6.8c-0.8-8.8-6-10.4-8.8-10.4 c-0.4,0-0.8,0-0.8,0c-6,0-10.4,4.4-10.4,10C412.8,111.4,417.2,115.8,422.8,115.8z' style='fill:#61C2AB;'/>
-                            <path d='M382.8,115.8c2.8,0,5.6-1.2,7.6-3.2c1.6-2,2.4-4.4,2.4-6.8c-0.8-9.6-8.4-10.4-10-10.4 c-5.6,0-10.4,4.4-10.4,10C372.8,111.4,377.2,115.8,382.8,115.8z' style='fill:#61C2AB;'/>
-                        </g>
-                        <g>
-                            <path d='M118.8,275.8c-10,0-20.8-12.4-20.8-22v-8.4c0-10,10.4-13.6,20.8-13.6H198v-32H39.2 c-16,0-33.2,9.2-33.2,26v47.6c0,16.4,16.4,34,33.2,34h168.4l-26-32h-62.8V275.8z' style='fill:#F4EFEF;'/>
-                            <path d='M338.8,253.4l-38.4,54.4H474c17.2,0,27.6-18.8,27.6-34.4v-47.6c0-16.4-11.2-26-27.6-26H306v50 L338.8,253.4z' style='fill:#F4EFEF;'/>
-                        </g>
-                        <path d='M118.8,235.8c-8,0-16.8,2.4-16.8,9.6v8.4c0,7.6,8.8,18,16.8,18H178l-13.6-17.6 c-0.4-0.4-0.4-0.8-0.4-1.6c0.4-0.8,1.2-0.8,2-0.8h28h4v-10v-6H118.8z' style='fill:#CDEEF9;'/>
-                        <g>
-                            <path d='M335.2,235.8H326h-20v16h8h28c0.8,0,1.6-0.4,2,0c0.4,0.8,0.4,2-0.4,2.8L330,271.8h5.2 c7.6,0,10.8-10.4,10.8-18v-8.4C346,237.4,342.4,235.8,335.2,235.8z' style='fill:#E8E3E3;'/>
-                            <path d='M64,232.6c-1.6-0.4-3.6-0.8-5.2-0.8c-9.6,0-17.6,8-17.6,17.6s8,17.6,17.6,17.6s17.6-8,17.6-17.6 c0-1.6,0-3.6-0.8-5.2C72.4,236.2,64,232.6,64,232.6z' style='fill:#E8E3E3;'/>
-                        </g>
-                        <g>
-                            <path d='M462.8,259.8c2.8,0,6-1.2,7.6-3.2s2.4-4.4,2.4-6.4c-0.8-9.6-10-10.4-10.4-10.4c-5.6,0-10,4.4-10,10 C452.8,255.4,457.2,259.8,462.8,259.8z' style='fill:#61C2AB;'/>
-                            <path d='M422.8,259.8c3.2,0,6.4-1.6,8.4-4c1.2-1.2,2.4-3.2,1.6-6c-1.6-9.6-7.2-10.4-9.6-10.4 c-0.4,0-0.4,0-0.4,0c-6,0-10.4,4.4-10.4,10C412.8,255.4,417.2,259.8,422.8,259.8z' style='fill:#61C2AB;'/>
-                            <path d='M382.8,259.8c3.2,0,6.8-1.6,8.8-4c0.8-1.2,2-3.2,1.6-5.6c-2.4-10-8.8-10.4-10-10.4 c-5.6,0-10.4,4.4-10.4,10C372.8,255.4,377.2,259.8,382.8,259.8z' style='fill:#61C2AB;'/>
-                        </g>
-                        <path d='M474.4,343.8H271.2l-15.6,18.4c-0.4,0.4-0.8,0.4-1.6,0.4s-1.2,0.4-1.6,0l-15.6-18.4H39.2 c-16,0-33.2,9.2-33.2,25.6v47.6c0,16.4,16.4,34.4,33.2,34.4h435.2c17.2,0,27.6-18.8,27.6-34.4v-47.6 C502,353,490.8,343.8,474.4,343.8z' style='fill:#F4EFEF;'/>
-                        <path d='M102,389.4v8.4c0,7.6,8.8,18,16.8,18h216.4c7.6,0,10.8-10.4,10.8-18v-8.4c0-8-3.6-9.6-10.8-9.6H326 h-32H118.8C110.4,379.8,102,382.2,102,389.4z' style='fill:#CDEEF9;'/>
-                        <path d='M75.6,387.8c-0.8-8-11.2-11.2-11.6-11.2c-1.6-0.4-3.6-0.8-5.6-0.8c-9.6,0-17.6,8-17.6,17.6 s8,17.6,17.6,17.6S76,403,76,393.4c0-1.2-0.4-2-0.4-3.2C76,389.4,75.6,388.6,75.6,387.8z' style='fill:#E8E3E3;'/>
-                        <g>
-                            <path d='M462.8,383.4c-5.6,0-10,4.4-10,10s4.4,10,10,10c2.8,0,5.6-1.2,7.6-3.2c1.6-2,2.4-4.4,2.4-6.8 C472.4,383.8,464,383.4,462.8,383.4z' style='fill:#61C2AB;'/>
-                            <path d='M422.8,383.4c-5.6,0-10,4.4-10,10s4.4,10,10,10c2.8,0,5.6-1.2,7.2-3.2c2-2,2.8-4.4,2.8-6.8 C432.8,383.8,424,383.4,422.8,383.4z' style='fill:#61C2AB;'/>
-                            <path d='M382.8,383.4c-5.6,0-10,4.4-10,10s4.4,10,10,10c2.8,0,6-1.2,7.6-3.6c1.6-2,2.4-4,2.4-6.4 C392.4,383.8,383.2,383.4,382.8,383.4z' style='fill:#61C2AB;'/>
-                        </g>
-                        <path d='M316,255.8h-12c-0.8,0-1.6-1.6-2-2.4c0,0,0-1.2,0-1.6v-86v-6H202v2v4v28v4v32v4v18c0,1.2-0.8,4-2,4 h-2h-6h-22l13.6,15.6l25.6,31.2l29.2,35.6l1.2,1.2l2,2.4l12,14.8l12-14.8l2-2.4l1.2-1.6l29.2-36l25.6-30.4l13.6-15.6L316,255.8 L316,255.8z' style='fill:#54B265;'/>
-                        <path d='M474.4,169.8H306c-2.4,0-4-1.6-4-4s1.6-4,4-4h168.4c15.2,0,25.6-16.4,25.6-32V82.2c0-14.8-10-24-25.6-24H39.2 C24,58.2,8,67.4,8,82.2v47.6c0,15.6,16,32,31.2,32H198c2.4,0,4,1.6,4,4s-1.6,4-4,4H39.2c-19.6,0-39.2-20-39.2-40V82.2 c0-20,20-32,39.2-32h435.2c20,0,33.6,12.8,33.6,32v47.6C508,149,494.4,169.8,474.4,169.8z'/>
-                        <path d='M335.2,133.8H118.8c-10.8,0-18.8-8.4-18.8-19.6v-12.4c0-6,2.4-16,18.8-16H294c2.4,0,4,1.6,4,4s-1.6,4-4,4H118.8 c-10,0-10.8,4-10.8,8v12.4c0,6.8,4.4,11.6,10.8,11.6h216.4c7.6,0,8.8-7.2,8.8-11.6v-12.4c0-5.6-1.2-8-8.8-8H326c-2.4,0-4-1.6-4-4 s1.6-4,4-4h9.2c11.2,0,16.8,5.2,16.8,16v12.4C352,126.2,345.2,133.8,335.2,133.8z'/>
-                        <path d='M58.8,129.4c-13.2,0-23.6-10.8-23.6-23.6S46,82.2,58.8,82.2c2.4,0,4.8,0.4,7.2,1.2c2,0.8,3.2,2.8,2.4,5.2 c-0.8,2-2.8,3.2-5.2,2.4c-1.6-0.4-3.2-0.8-4.8-0.8c-8.8,0-15.6,7.2-15.6,15.6s7.2,15.6,15.6,15.6S74,114.2,74,105.8 c0-1.6-0.4-3.2-0.8-4.8c-0.8-2,0.4-4.4,2.8-4.8c2-0.8,4.4,0.4,4.8,2.8c0.8,2.4,1.2,4.4,1.2,6.8C82.4,119,71.6,129.4,58.8,129.4z'/>
-                        <path d='M462.8,121.8c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C479.2,114.6,472,121.8,462.8,121.8z'/>
-                        <path d='M422.8,121.8c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C439.2,114.6,432,121.8,422.8,121.8z'/>
-                        <path d='M382.8,121.8c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C399.2,114.6,391.6,121.8,382.8,121.8z'/>
-                        <path d='M210,313.8H39.2c-19.6,0-39.2-20-39.2-40.4v-47.6c0-20.8,20-32,39.2-32H198c2.4,0,4,1.6,4,4s-1.6,4-4,4H39.2 c-15.2,0-31.2,8.4-31.2,24v47.6c0,15.6,16,32.4,31.2,32.4H210c2.4,0,4,1.6,4,4S212.4,313.8,210,313.8z'/>
-                        <path d='M474.4,313.8H298c-2.4,0-4-1.6-4-4s1.6-4,4-4h176.4c15.2,0,25.6-16.8,25.6-32.4v-47.6c0-14.8-10-24-25.6-24H306 c-2.4,0-4-1.6-4-4s1.6-4,4-4h168.4c20.4,0,33.6,12.4,33.6,32v47.6C508,293,494.4,313.8,474.4,313.8z'/>
-                        <path d='M182,277.8h-63.2c-10.8,0-18.8-8.4-18.8-20v-12.4c0-6,2.4-15.6,18.8-15.6H198c2.4,0,4,1.6,4,4s-1.6,4-4,4h-79.2 c-10,0-10.8,4-10.8,7.6v12.4c0,6,3.6,12,10.8,12H182c2.4,0,4,1.6,4,4S184.4,277.8,182,277.8z'/>
-                        <path d='M335.2,277.8H330c-2.4,0-4-1.6-4-4s1.6-4,4-4h5.2c8,0,8.8-8.4,8.8-12v-12.4c0-5.6-1.2-7.6-8.8-7.6H326c-2.4,0-4-1.6-4-4 s1.6-4,4-4h9.2c11.2,0,16.8,5.2,16.8,15.6v12.4C352,269.8,345.2,277.8,335.2,277.8z'/>
-                        <path d='M58.8,273.4c-13.2,0-23.6-10.8-23.6-23.6c0-13.2,10.8-23.6,23.6-23.6c2.4,0,4.8,0.4,7.2,1.2c2,0.8,3.2,2.8,2.4,5.2 c-0.8,2-2.8,3.2-5.2,2.4c-1.6-0.4-3.2-0.8-4.8-0.8c-8.8,0-15.6,7.2-15.6,15.6s7.2,15.6,15.6,15.6S74,258.2,74,249.8 c0-1.6-0.4-3.2-0.8-4.8c-0.8-2,0.4-4.4,2.8-4.8c2-0.8,4.4,0.4,4.8,2.8c0.8,2.4,1.2,4.4,1.2,6.8C82.4,263,71.6,273.4,58.8,273.4z'/>
-                        <path d='M462.8,265.8c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C479.2,258.6,472,265.8,462.8,265.8z'/>
-                        <path d='M422.8,265.8c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C439.2,258.6,432,265.8,422.8,265.8z'/>
-                        <path d='M382.8,265.8c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C399.2,258.6,391.6,265.8,382.8,265.8z'/>
-                        <path d='M474.4,457.8H39.2C20,457.8,0,437.4,0,417.4v-47.6c0-20.8,20-31.6,39.2-31.6H238c2.4,0,4,1.6,4,4s-1.6,4-4,4H39.2 C24,346.2,8,354.6,8,369.8v47.6c0,15.6,16,32.4,31.2,32.4h435.2c15.2,0,25.6-17.2,25.6-32.4v-47.6c0-14.8-9.6-23.6-25.6-23.6H270 c-2.4,0-4-1.6-4-4s1.6-4,4-4h204.4c20.4,0,33.6,12.4,33.6,31.6v47.6C508,437,494.4,457.8,474.4,457.8z'/>
-                        <path d='M335.2,421.8H118.8c-10.8,0-18.8-8.8-18.8-20v-12.4c0-7.2,3.2-15.6,18.8-15.6H294c2.4,0,4,1.6,4,4s-1.6,4-4,4H118.8 c-10,0-10.8,3.6-10.8,7.6v12.4c0,6,3.6,12,10.8,12h216.4c8,0,8.8-8.4,8.8-12v-12.4c0-5.6-1.2-7.6-8.8-7.6H326c-2.4,0-4-1.6-4-4 s1.6-4,4-4h9.2c7.2,0,16.8,1.6,16.8,15.6v12.4C352,413.8,345.2,421.8,335.2,421.8z'/>
-                        <path d='M58.8,417.4c-13.2,0-23.6-10.8-23.6-23.6s10.8-23.6,23.6-23.6c2.4,0,4.8,0.4,7.2,1.2c2,0.8,3.2,2.8,2.4,5.2 c-0.8,2-2.8,3.2-5.2,2.4c-1.6-0.4-3.2-0.8-4.8-0.8c-8.8,0-15.6,7.2-15.6,15.6c0,8.8,7.2,15.6,15.6,15.6S74,402.2,74,393.8 c0-1.6-0.4-3.2-0.8-4.8c-0.8-2,0.4-4.4,2.8-5.2c2-0.8,4.4,0.4,4.8,2.8c0.8,2.4,1.2,4.4,1.2,6.8C82.4,406.6,71.6,417.4,58.8,417.4z'/>
-                        <path d='M462.8,409.4c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C479.2,402.2,472,409.4,462.8,409.4z'/>
-                        <path d='M422.8,409.4c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C439.2,402.2,432,409.4,422.8,409.4z'/>
-                        <path d='M382.8,409.4c-8.8,0-16-7.2-16-16s7.2-16,16-16c2.4,0,4,1.6,4,4s-1.6,4-4,4c-4.4,0-8,3.6-8,8s3.6,8,8,8s8-3.6,8-8 c0-2.4,1.6-4,4-4s4,1.6,4,4C399.2,402.2,391.6,409.4,382.8,409.4z'/>
-                        <path d='M254,365.8c-1.2,0-2.4-0.4-3.2-1.6l-88-108c-0.8-1.2-1.2-2.8-0.4-4.4c0.8-1.2,2-2.4,3.6-2.4h30v-92c0-2.4,1.6-4,4-4h104 c2.4,0,4,1.6,4,4v92h34c1.6,0,2.8,0.8,3.6,2.4c0.8,1.2,0.4,3.2-0.4,4.4l-88,108C256.4,365.4,255.2,365.8,254,365.8z M174.4,257.8 l79.6,97.6l79.6-97.6H304c-2.4,0-4-1.6-4-4v-92h-96v92c0,2.4-1.6,4-4,4H174.4z'/>
-                    </g>
-                </svg>
+        <div class='premium-loader-content'>
+            <div class='loader-logo-container'>
+                <div class='shimmer-wrapper'>
+                    <div class='shimmer-mask'>
+                        <div class='shimmer-sweep'/>
+                        <img alt='Logo Tienda' class='loader-logo' id='loader-img' src=''/>
+                    </div>
+                </div>
+                <script>document.getElementById(&#39;loader-img&#39;).src = LOGO_TIENDA_URL;</script>
             </div>
-            <div class='products-container'>
-                <svg class='product' height='40' viewBox='0 0 24 24' width='40' xmlns='http://www.w3.org/2000/svg'>
-                    <rect fill='#e67e22' height='14' rx='4' ry='4' width='14' x='5' y='5'/>
-                    <text fill='white' font-size='10' text-anchor='middle' x='12' y='17'>P1</text>
-                </svg>
-                <svg class='product' height='40' viewBox='0 0 24 24' width='40' xmlns='http://www.w3.org/2000/svg'>
-                    <rect fill='#e67e22' height='14' rx='4' ry='4' width='14' x='5' y='5'/>
-                    <text fill='white' font-size='10' text-anchor='middle' x='12' y='17'>P2</text>
-                </svg>
-                <svg class='product' height='40' viewBox='0 0 24 24' width='40' xmlns='http://www.w3.org/2000/svg'>
-                    <rect fill='#e67e22' height='14' rx='4' ry='4' width='14' x='5' y='5'/>
-                    <text fill='white' font-size='10' text-anchor='middle' x='12' y='17'>P3</text>
-                </svg>
-                <svg class='product' height='40' viewBox='0 0 24 24' width='40' xmlns='http://www.w3.org/2000/svg'>
-                    <rect fill='#e67e22' height='14' rx='4' ry='4' width='14' x='5' y='5'/>
-                    <text fill='white' font-size='10' text-anchor='middle' x='12' y='17'>P4</text>
-                </svg>
-                <svg class='product' height='40' viewBox='0 0 24 24' width='40' xmlns='http://www.w3.org/2000/svg'>
-                    <rect fill='#e67e22' height='14' rx='4' ry='4' width='14' x='5' y='5'/>
-                    <text fill='white' font-size='10' text-anchor='middle' x='12' y='17'>P5</text>
-                </svg>
+            <p class='loading-text' id='loader-text'>Sincronizando catálogo...</p>
+            <div class='loader-progress-bar'>
+                <div class='loader-progress-fill'/>
             </div>
-            <svg class='tiendaonline' fill='#000000' height='220px' id='Layer_1' version='1.1' viewBox='0 0 426.917 426.917' width='220px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'>
-                <g id='SVGRepo_bgCarrier' stroke-width='0'/>
-                <g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'/>
-                <g id='SVGRepo_iconCarrier'>
-                    <g>
-                        <rect height='47.048' style='fill:#666666;' width='88' x='169.463' y='371.636'/>
-                        <path d='M397.194,112.92v250.49c0,9.94-8.05,18-17.99,18H47.714c-9.94,0-18-8.06-18-18V112.92H397.194z' style='fill:#808080;'/>
-                        <rect height='218.487' style='fill:#FFFFFF;' width='317.482' x='54.722' y='137.917'/>
-                        <g>
-                            <rect height='18.707' style='fill:#CCCCCC;' width='290' x='68.463' y='220.368'/>
-                            <rect height='18.707' style='fill:#CCCCCC;' width='290' x='68.463' y='186.781'/>
-                            <rect height='18.707' style='fill:#CCCCCC;' width='290' x='68.463' y='321.13'/>
-                            <rect height='18.707' style='fill:#CCCCCC;' width='290' x='68.463' y='287.543'/>
-                            <rect height='18.707' style='fill:#CCCCCC;' width='290' x='68.463' y='253.956'/>
-                        </g>
-                        <path d='M397.194,112.92v250.49c0,9.94-8.05,18-17.99,18h-91.98 l-81.83-268.49L397.194,112.92L397.194,112.92z' style='opacity:0.32;fill:#FFFFFF;enable-background:new ;'/>
-                        <path d='M317.314,112.92v-0.56h-7.7v0.56h-279.9v93.36 c16.03,3.96,33.56,0.17,46.73-11.36h0.01l0.01,0.01c12.65,11.07,29.33,14.99,44.84,11.77v72.37c-19.18,1.93-34.15,18.11-34.15,37.8 c0,20.98,17.01,37.99,38,37.99c20.98,0,37.99-17.01,37.99-37.99c0-19.69-14.97-35.87-34.14-37.8v-74.6 c5.71-2.14,11.12-5.32,15.94-9.54l0.01-0.01c19.6,17.17,48.89,17.17,68.49,0l0.01,0.01c2.51,2.19,5.19,4.11,7.97,5.74v109.09 l-7.24,5.11l-14.47,10.24v56.3h51.12v-56.3l-21.71-15.35v-105.4c17.55,6.71,37.96,3.57,52.81-9.43l0.01-0.01l0.01,0.01 c8.04,7.04,17.7,11.19,27.66,12.45v76.24l-4.42,3.12l-10.79,7.64v74.352h38.12V294.38l-15.21-10.76v-75.84 c11.85-0.25,23.62-4.53,33.12-12.85l0.01-0.01l0.01,0.01c13.17,11.54,30.71,15.32,46.74,11.36v-93.37 C397.194,112.92,317.314,112.92,317.314,112.92z M134.535,296c0,5.18-4.2,9.38-9.38,9.38c-5.18,0-9.38-4.2-9.38-9.38 c0-3.8,2.27-7.08,5.53-8.55v6.41c0,2.12,1.72,3.85,3.85,3.85c2.12,0,3.85-1.73,3.85-3.85v-6.41 C132.264,288.92,134.535,292.2,134.535,296z M234.064,326.21c0,4.85-3.93,8.79-8.79,8.79s-8.79-3.94-8.79-8.79 c0-3.48,2.02-6.47,4.94-7.9v4.6c0,2.12,1.72,3.85,3.85,3.85c2.12,0,3.85-1.73,3.85-3.85v-4.6 C232.055,319.74,234.064,322.73,234.064,326.21z M320.025,295.2c0,3.62-2.94,6.56-6.56,6.56s-6.56-2.94-6.56-6.56 c0-2.19,1.07-4.11,2.71-5.31v2.38c0,2.12,1.72,3.85,3.85,3.85c2.12,0,3.85-1.73,3.85-3.85v-2.38 C318.954,291.09,320.025,293.01,320.025,295.2z' style='opacity:0.32;fill:#333333;enable-background:new ;'/>
-                        <path d='M323.619,426.917h-220.31c0-4.97,2.02-9.47,5.27-12.73c3.26-3.25,7.76-5.27,12.73-5.27h184.31 C315.559,408.917,323.619,416.977,323.619,426.917z' style='fill:#808080;'/>
-                        <path d='M323.619,426.917h-105.91l-5.49-18h93.4 C315.559,408.917,323.619,416.977,323.619,426.917z' style='opacity:0.32;fill:#FFFFFF;enable-background:new ;'/>
-                        <g>
-                            <g>
-                                <path d='M213.463,307.037l-11.091,7.837l-14.465,10.233v75.052h51.112v-75.052L213.463,307.037z M213.463,335c-4.858,0-8.793-3.935-8.793-8.793s3.935-8.793,8.793-8.793s8.793,3.935,8.793,8.793S218.321,335,213.463,335z' style='fill:#FC7A51;'/>
-                            </g>
-                            <path d='M217.314,143v179.91c0,2.12-1.73,3.85-3.85,3.85c-2.13,0-3.85-1.73-3.85-3.85V143H217.314z' style='fill:#29ABE2;'/>
-                            <path d='M209.614,135.747h7.7v40.01 c-1.32-0.96-2.61-1.99-3.86-3.08l-0.01-0.01c-1.24,1.09-2.52,2.1-3.83,3.06V135.747z' style='opacity:0.32;fill:#333333;enable-background:new ;'/>
-                            <g>
-                                <g>
-                                    <path d='M201.884,369.122c-4.151,0-7.529-3.377-7.529-7.529s3.377-7.529,7.529-7.529 c4.151,0,7.529,3.378,7.529,7.529S206.036,369.122,201.884,369.122z M201.884,357.268c-2.385,0-4.324,1.94-4.324,4.325 s1.94,4.325,4.324,4.325c2.385,0,4.325-1.94,4.325-4.325S204.269,357.268,201.884,357.268z' style='fill:#666666;'/>
-                                    <path d='M225.04,389.521c-4.151,0-7.529-3.378-7.529-7.529c0-4.152,3.378-7.529,7.529-7.529 s7.529,3.378,7.529,7.529C232.57,386.144,229.192,389.521,225.04,389.521z M225.04,377.667c-2.385,0-4.325,1.94-4.325,4.325 s1.94,4.325,4.325,4.325s4.325-1.94,4.325-4.325S227.425,377.667,225.04,377.667z' style='fill:#666666;'/>
-                                </g>
-                                <rect height='38.223' style='fill:#666666;' transform='matrix(-0.9809 -0.1947 0.1947 -0.9809 350.5022 778.0496)' width='3.204' x='211.885' y='352.688'/>
-                            </g>
-                        </g>
-                        <g>
-                            <path d='M120.464,274.011c-20.984,0-37.994,17.011-37.994,37.994c0,20.984,17.011,37.994,37.994,37.994 s37.994-17.011,37.994-37.994C158.459,291.022,141.448,274.011,120.464,274.011z M120.464,300.523c-5.181,0-9.381-4.2-9.381-9.381 s4.2-9.381,9.381-9.381s9.381,4.2,9.381,9.381C129.846,296.323,125.646,300.523,120.464,300.523z' style='fill:#F9DE58;'/>
-                            <path d='M124.314,143v146c0,2.12-1.73,3.85-3.85,3.85c-2.13,0-3.85-1.73-3.85-3.85V143H124.314z' style='fill:#86D359;'/>
-                            <path d='M116.614,149.667h7.7v47.99c-2.53,0.69-5.11,1.18-7.7,1.48 V149.667z' style='opacity:0.32;fill:#333333;enable-background:new ;'/>
-                            <polygon points='121.868,337.524 105.693,317.265 111.529,312.552 121.139,324.683 137.597,298.401 143.928,302.425 ' style='fill:#FFFFFF;'/>
-                        </g>
-                        <g>
-                            <g>
-                                <path d='M306.464,276.037l-8.273,5.846l-10.79,7.633v74.356h38.126v-74.356L306.464,276.037z M306.464,296.896c-3.624,0-6.559-2.935-6.559-6.559s2.935-6.559,6.559-6.559s6.559,2.935,6.559,6.559 C313.024,293.96,310.088,296.896,306.464,296.896z' style='fill:#29ABE2;'/>
-                            </g>
-                            <path d='M310.314,107.5v179.91c0,2.12-1.73,3.85-3.85,3.85c-2.13,0-3.85-1.73-3.85-3.85V107.5H310.314z' style='fill:#FC7A51;'/>
-                            <path d='M310.314,140.667v49.48c-2.59-0.3-5.17-0.79-7.7-1.47 v-48.01H310.314z' style='opacity:0.32;fill:#333333;enable-background:new ;'/>
-                            <g>
-                                <path d='M306.464,344.621h-7.734v-4.307h7.734c3.077,0,5.581-2.503,5.581-5.58s-2.504-5.58-5.581-5.58 c-5.452,0-9.887-4.435-9.887-9.887s4.436-9.888,9.887-9.888h7.734v4.307h-7.734c-3.077,0-5.58,2.503-5.58,5.58 s2.503,5.58,5.58,5.58c5.452,0,9.888,4.436,9.888,9.888C316.352,340.185,311.916,344.621,306.464,344.621z' style='fill:#666666;'/>
-                                <rect height='10.533' style='fill:#666666;' width='4.307' x='304.309' y='301'/>
-                                <rect height='10.533' style='fill:#666666;' width='4.307' x='304.309' y='342.467'/>
-                            </g>
-                        </g>
-                        <path d='M416.187,153.894l-9.517-51.977l-6.85-37.39c-2.18-11.94-12.59-20.61-24.73-20.61H335.2h-60.87 h-60.87h-60.87H91.72h-39.9c-12.13,0-22.54,8.67-24.73,20.61l-6.85,37.39l-9.51,51.97c-1.979,10.813,4.192,21.519,14.588,25.09 c17.156,5.894,36.748,2.54,51.131-10.06h0.01l0.01,0.01c19.6,17.16,48.88,17.16,68.48,0l0.01-0.01c19.6,17.17,48.89,17.17,68.49,0 l0.01,0.01c19.6,17.16,48.88,17.16,68.48,0l0.01-0.01l0.01,0.01c19.59,17.17,48.88,17.17,68.48,0l0.01-0.01l0.01,0.01 c14.384,12.6,33.98,15.954,51.138,10.061C411.996,175.416,418.167,164.708,416.187,153.894z' style='fill:#E6E6E6;'/>
-                        <path d='M350.459,168.927l-0.01-0.01l-0.01,0.01c-19.6,17.17-48.89,17.17-68.48,0l-4.09-67.01l-3.54-58 h60.87l7.08,58L350.459,168.927z' style='fill:#FC7A51;'/>
-                        <path d='M213.459,43.917v125.01l-0.01-0.01c-19.6,17.17-48.89,17.17-68.49,0h-0.01l4.1-67l3.54-58 C152.589,43.917,213.459,43.917,213.459,43.917z' style='fill:#FC7A51;'/>
-                        <path d='M91.719,43.917l-7.09,58l-8.18,67c-14.384,12.601-33.976,15.954-51.131,10.06 c-10.397-3.572-16.567-14.277-14.588-25.09l9.51-51.97l6.85-37.39c2.19-11.94,12.6-20.61,24.73-20.61 C51.82,43.917,91.719,43.917,91.719,43.917z' style='fill:#FC7A51;'/>
-                        <rect height='80' style='fill:#2BE0C6;' width='180' x='123.454'/>
-                        <rect height='56' style='fill:#E6E6E6;' width='156' x='135.459' y='12'/>
-                        <g>
-                            <path d='M183.264,32.967c-0.193-0.191-0.543-0.453-1.053-0.783c-0.508-0.33-1.127-0.653-1.855-0.97 c-0.729-0.315-1.52-0.584-2.371-0.805c-0.854-0.22-1.721-0.33-2.6-0.33c-1.568,0-2.736,0.289-3.506,0.866 c-0.771,0.578-1.156,1.39-1.156,2.435c0,0.604,0.145,1.107,0.434,1.505c0.289,0.399,0.709,0.75,1.258,1.053 c0.551,0.303,1.244,0.577,2.084,0.824c0.838,0.248,1.809,0.51,2.908,0.784c1.43,0.386,2.729,0.798,3.898,1.237 c1.168,0.44,2.158,0.99,2.969,1.65c0.813,0.66,1.438,1.45,1.877,2.372c0.439,0.921,0.66,2.056,0.66,3.402 c0,1.568-0.295,2.908-0.887,4.022c-0.592,1.113-1.389,2.015-2.393,2.702s-2.158,1.189-3.465,1.505 c-1.307,0.316-2.674,0.475-4.104,0.475c-2.201,0-4.373-0.33-6.518-0.99c-2.146-0.659-4.07-1.594-5.775-2.805l2.516-4.909 c0.248,0.248,0.695,0.571,1.342,0.97c0.645,0.399,1.408,0.798,2.289,1.196c0.879,0.399,1.855,0.736,2.928,1.011 c1.072,0.275,2.172,0.412,3.301,0.412c3.135,0,4.703-1.003,4.703-3.011c0-0.633-0.18-1.169-0.537-1.609 c-0.357-0.439-0.865-0.824-1.525-1.154s-1.459-0.633-2.393-0.908c-0.936-0.274-1.98-0.577-3.135-0.907 c-1.404-0.385-2.621-0.805-3.652-1.258c-1.031-0.454-1.891-0.99-2.578-1.609c-0.688-0.618-1.203-1.333-1.547-2.145 c-0.344-0.811-0.516-1.78-0.516-2.908c0-1.485,0.275-2.805,0.826-3.96c0.549-1.155,1.313-2.117,2.289-2.888 c0.977-0.77,2.109-1.354,3.402-1.753s2.682-0.599,4.168-0.599c2.063,0,3.959,0.324,5.691,0.97s3.244,1.409,4.537,2.289 L183.264,32.967z' style='fill:#29ABE2;'/>
-                            <path d='M199.433,25.295h5.033l11.137,29.287h-5.857l-2.723-7.301h-10.23l-2.682,7.301h-5.857 L199.433,25.295z M205.992,43.279l-4.043-11.509l-4.207,11.509H205.992z' style='fill:#29ABE2;'/>
-                            <path d='M218.82,54.582V25.295h5.693v24.296h14.932v4.991H218.82z' style='fill:#29ABE2;'/>
-                            <path d='M263.248,49.591v4.991h-20.336V25.295h19.965v4.991h-14.273v7.054h12.334v4.62h-12.334v7.631 H263.248z' style='fill:#29ABE2;'/>
-                        </g>
-                        <polygon points='123.458,80 112.101,43.917 123.458,43.917 ' style='opacity:0.32;fill:#333333;enable-background:new ;'/>
-                        <polygon points='303.458,80 314.816,43.917 303.458,43.917 ' style='opacity:0.32;fill:#333333;enable-background:new ;'/>
-                        <polygon points='303.454,0 303.454,80 236.414,80 212.035,0 ' style='opacity:0.32;fill:#FFFFFF;enable-background:new ;'/>
-                    </g>
-                </g>
-            </svg>
-            <p class='loading-text'>Cargando productos...</p>
         </div>
     </div>
     <div class='container-sm'>
         <header class='navbar navbar-expand-lg navbar-dark bg-dark fixed-top'>
             <div class='container-fluid d-flex justify-content-between align-items-center' style='flex-basis: content;'>
-                <!-- Logo y nombre de la tienda -->
                 <a class='navbar-brand d-flex align-items-center' href='#pagina_titulo'>
-                    <img alt='Logo' class='d-inline-block align-text-top' height='30' src='https://importadorasaletodo.com/img/whatsapp-icon.svg' width='30'/>
-                    <span class='ms-2'>HostingShop</span>
+                    <img alt='Logo' class='d-inline-block align-text-top rounded-circle shadow-sm' height='35' src='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.png' width='35'/>
+                    <span class='ms-2 fw-bold' style='letter-spacing: 0.5px;'>BlogShop</span>
                 </a>
                 <!-- Listado de categorías -->
                 <div class='carousel slide' data-bs-ride='carousel' id='carouselCategorias' style='width: 190px;'>
@@ -2924,47 +3284,40 @@
                             <a class='nav-link' href='#' id='celularLink'>Celular:</a>
                         </li>
                         <li class='nav-item'>
-                            <a class='nav-link' href='#' id='formularioClienteLink' target='_blank'>Formulario
-                                Cliente</a>
+                            <a class='nav-link' href='#' id='formularioClienteLink' target='_blank'>Formulario Cliente</a>
                         </li>
                         <li class='nav-item'>
-                            <a class='nav-link' href='#' id='catalogodriveLink' target='_blank'>Catálogo
-                                Drive</a>
+                            <a class='nav-link' href='#' id='catalogodriveLink' target='_blank'>Catálogo Drive</a>
                         </li>
                     </ul>
                 </div>
             </div>
         </header>
         <ul class='list-group list-group-flush principal'>
-            <li class='list-group-item margen_0 titulo-seccion'>
-                <ul class='list-group list-group-horizontal justify-content-center'>
-                    <li class='list-group-item px-2 border-0'>
-                        <!-- Loader para el título con texto -->
+            <li class='list-group-item margen_0 presentation-container-premium'>
+                <div class='presentation-layout-wrapper'>
+                    <!-- Columna Izquierda: Información Principal -->
+                    <div class='presentation-info-column'>
                         <span class='loader-section' id='title-loader' style='display: none;'>
                             <div class='spinner-border text-primary' role='status'/>
                             <p>Cargando datos del Comercio...</p>
                         </span>
-                        <span class='pagina_titulo' id='pagina_titulo'/>
-                    </li>
-                </ul>
-            </li>
-            <li class='list-group-item margen_0'>
-                <!-- Loader para el carrusel con texto -->
-                <div class='loader-section' id='carousel-loader' style='display: none;'>
-                    <div class='spinner-border text-primary' role='status'/>
-                    <p>Cargando Banner...</p>
-                </div>
+                        <div id='pagina_titulo'/>
+                    </div>
 
-                <!-- Contenedor responsivo para el iframe -->
-                &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; <div style='width: 100%;height: 360px;overflow: hidden;position: relative;border-style: groove;'>
-                    &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; <iframe allowfullscreen='' loading='lazy' referrerpolicy='no-referrer-when-downgrade' src='https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3282.312845527815!2d-58.69493702494112!3d-34.646801359773605!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcbf9ff0b6a2d9%3A0xb4f996804ed70413!2sCnel.%20Jos%C3%A9%20Mar%C3%ADa%20Vilela%202206%2C%20B1714JWT%20Ituzaing%C3%B3%2C%20Provincia%20de%20Buenos%20Aires!5e0!3m2!1ses!2sar!4v1774482037554!5m2!1ses!2sar' style='width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0;'>
-                        &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; </iframe>
-                    &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; </div>
-
-                <!-- Contenedor del carrusel con clase única -->
-                <div class='carousel slide position-relative banner-carousel' data-bs-ride='carousel' id='carouselExampleSlidesOnly'>
-                    <!-- Carrusel dinámico generado por el macro -->
+                    <!-- Columna Derecha: Carrusel de Banners -->
+                    <div class='presentation-carousel-column'>
+                        <div class='loader-section' id='carousel-loader' style='display: none;'>
+                            <div class='spinner-border text-primary' role='status'/>
+                            <p>Cargando Banner...</p>
+                        </div>
+                        <div class='carousel slide position-relative banner-carousel' data-bs-ride='carousel' id='carouselExampleSlidesOnly'>
+                            <!-- Carrusel dinámico -->
+                        </div>
+                        <div id='pagina_reseñas'/>
+                    </div>
                 </div>
+                <div id='pagina_titulo_footer'/>
             </li>
             <!-- Contenedor de Categorías de Productos -->
             <li class='list-group-item margen_0 categorias-productos-container'>
@@ -3077,9 +3430,10 @@
                 </div>
 
                 <!-- Footer simple -->
-                <div style='height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f4f4f4; color: #333; padding: 5px 10px;'>
-                    <div style='font-size: 20px; font-weight: bold;'>
-                        HOSTINGSHOP
+                <div style='height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8f9fa; color: #333; padding: 15px; border-top: 1px solid #eee;'>
+                    <div class='d-flex align-items-center mb-1'>
+                        <img alt='BlogShop Logo' height='30' src='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.png' style='opacity: 0.8; filter: grayscale(20%);' width='30'/>
+                        <span class='ms-2' style='font-size: 18px; font-weight: 800; letter-spacing: 1px; color: #444;'>BlogShop</span>
                     </div>
                     <div id='info-actualizacion' style='font-size: 0.9em; color: gray; margin-top: 4px; text-align: center;'>
                         Cargando información...
@@ -4106,7 +4460,7 @@
             // v15.7.1 - Cerrar modal, carrito y mostrar loader global inmediatamente
             $('#modalPedido').modal('hide');
             if (typeof closeSidebarCarrito === 'function') closeSidebarCarrito();
-            toggleLoader(true);
+            toggleLoader(true, "Registrando venta...");
 
             fetch(url_final_venta, {
                 method: "POST",
@@ -4178,8 +4532,12 @@
             window.location.href = `https://api.whatsapp.com/send/?phone=${phone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
         }
 
-        function toggleLoader(show = true) {
-            $(".loader-wrapper")[show ? "fadeIn" : "fadeOut"]("slow");
+        function toggleLoader(show = true, mensaje = "Cargando...") {
+            if (show) {
+                window.showLoader(mensaje);
+            } else {
+                window.hideLoader();
+            }
         }
 
         function initializeMutationObserver() {
@@ -4893,15 +5251,15 @@
             $("#carousel-loader").show();
             $("#title-loader").show();
             const finalizeUI = () => {
-                $(".loader-wrapper").fadeOut("slow");
+                toggleLoader(false);
                 $("#carousel-loader").hide();
                 $("#title-loader").hide();
             };
             // 1. MODO EDICIÓN: Carga forzosa desde GAS (bypass de todo caché)
             if (operacion === "e") {
                 console.log("🛠 Modo edición: Carga directa desde GAS");
-                $(".loader-wrapper").fadeIn("slow", function () {
-                    cargarDesdeAppsScript(idpedido)
+                toggleLoader(true, "Sincronizando con el catálogo...");
+                cargarDesdeAppsScript(idpedido)
                         .done((respuesta) => {
                             if (respuesta.status == '0') {
                                 guardarConfiguracionEnLocal(respuesta);
@@ -4912,7 +5270,6 @@
                         })
                         .fail(() => Swal.fire("Error!", "Fallo carga desde GAS (Edición).", "error"))
                         .always(finalizeUI);
-                });
                 return;
             }
             // 2. MODO NORMAL: Verificar Caché local (6 min)
@@ -4931,8 +5288,7 @@
                 }
             }
             // 3. MODO NORMAL: Cascada de fuentes Inteligente (Donweb > GitHub > Drive)
-            $("#loader-categorias span").text("Conectando con el catálogo...");
-            $(".loader-wrapper").fadeIn("slow", function () {
+            toggleLoader(true, "Conectando con el catálogo...");
                 const urlGAS = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/exec';
 
                 const fuentes = [
@@ -4970,7 +5326,6 @@
                 };
 
                 intentarCargar(0);
-            });
         }
 
         /**
@@ -5036,68 +5391,114 @@
                 const botonFormasPago = `<button class="btn btn-outline-primary btn-sm" onclick="abrirModalFormasPago()">Ver Formas de Pago</button>`;
                 const botonAgencias = `<button class="btn btn-outline-success btn-sm" onclick="abrirModalAgencias()">Ver Agencias</button>`;
 
-                const botonesMetodosAgencias = `
-          <div style="text-align: center; margin: 20px 0;">
-            ${botonFormasPago}
-            ${botonAgencias}
-          </div>
-        `;
+                const htmlHeader = `
+                    <div class="store-title">${tienda.tienda_id}</div>
+                    <div class="store-description">${tienda.descripcion}</div>
+                    
+                    <div class="presentation-header-inner">
+                        <!-- Columna Logo -->
+                        <div class="logo-column">
+                            <div class="logo-presentacion-container">
+                                <div class="logo-presentacion-frame">
+                                    <div class="shimmer-overlay"></div>
+                                    <img src="${tienda.logo_url}" class="logo-img-premium" style="max-width: 85%; max-height: 85%; object-fit: contain; z-index: 2;">
+                                </div>
+                            </div>
+                        </div>
 
-                const html = `
-          <div class="store-title">${tienda.tienda_id}</div>
-          <div class="store-description">${tienda.descripcion}</div>
-          <table><tbody>
-            <tr>
-              <td style="width: 50%; text-align: left; padding: 2px;">
-                <div class="store-logo">
-                  <img alt="Logo de la tienda" class="d-md-block d-sm-block d-block" style="max-width: 100%; height: auto;" src="${tienda.logo_url}" />
-                </div>
-              </td>
-              <td style="width: 50%; text-align: right; padding: 2px;">
-                <div class="social-buttons">
-                  ${tienda.redes_sociales?.facebook ? `<a class="btn btn-primary" style="margin-right: 5px;" href="${tienda.redes_sociales.facebook}" target="_blank"><i class="fa fa-facebook"></i> Facebook</a>` : ""}
-                  ${tienda.redes_sociales?.tiktok ? `<a class="btn btn-dark" style="margin-right: 5px;" href="${tienda.redes_sociales.tiktok}" target="_blank"><i class="fa fa-video-camera"></i> TikTok</a>` : ""}
-                  ${tienda.redes_sociales?.instagram ? `<a class="btn btn-danger" href="${tienda.redes_sociales.instagram}" target="_blank"><i class="fa fa-instagram"></i> Instagram</a>` : ""}
-                </div>
-                ${tienda.vcard_url ? `
-                  <p class="download-vcard" style="margin-top: 10px;">
-                    <button class="btn-download-vcard" onclick="window.open('${tienda.vcard_url}', '_blank')">📤 Descargar 📇VCARD de Contacto</button>
-                  </p>` : ''}
-              </td>
-            </tr>
-          </tbody></table>
+                        <!-- Columna Social y Botones -->
+                        <div class="social-column">
+                            <div class="social-grid-premium">
+                                <!-- Categoría: Redes -->
+                                <div class="button-group-label">Redes Sociales</div>
+                                ${tienda.redes_sociales?.facebook ? `<a href="${tienda.redes_sociales.facebook}" target="_blank" class="btn-premium-social" style="background: #1877f2;"><i class="fa fa-facebook"></i> Facebook</a>` : ""}
+                                ${tienda.redes_sociales?.instagram ? `<a href="${tienda.redes_sociales.instagram}" target="_blank" class="btn-premium-social" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);"><i class="fa fa-instagram"></i> Instagram</a>` : ""}
+                                ${tienda.redes_sociales?.tiktok ? `<a href="${tienda.redes_sociales.tiktok}" target="_blank" class="btn-premium-social" style="background: #000;"><i class="fa fa-video-camera"></i> TikTok</a>` : ""}
+                                
+                                <!-- Categoría: Contacto Directo -->
+                                <div class="button-group-label" style="margin-top: 8px;">Contacto Directo</div>
+                                ${tienda.correo ? `<a href="mailto:${tienda.correo}" target="_blank" class="btn-premium-social" style="background: #ea4335;"><i class="fa fa-envelope"></i> Email</a>` : ""}
+                                ${tienda.telefono ? `<a href="https://wa.me/${tienda.telefono.replace(/\s+/g, '')}" target="_blank" class="btn-premium-social" style="background: #25d366;"><i class="fa fa-whatsapp"></i> WhatsApp</a>` : ""}
+                                ${tienda.formularios?.cliente ? `<a href="${tienda.formularios.cliente}" target="_blank" class="btn-premium-social" style="background: #34a853;"><i class="fa fa-pencil-square-o"></i> Form. Cliente</a>` : ""}
+                                ${tienda.vcard_url ? `<a href="${tienda.vcard_url}" target="_blank" class="btn-premium-social" style="background: var(--primary-cobalt);"><i class="fa fa-address-book-o"></i> Mi VCARD</a>` : ""}
+                            </div>
+                        </div>
+                    </div>
+                `;
 
-          <div style="font-size: 14px; line-height: 1.5; margin-top: 10px;">
-            ${tienda.direccion ? `<p class="direccion"><strong>🏪 Dirección: </strong><a href="https://maps.google.com/?q=${encodeURIComponent(tienda.direccion)}" target="_blank">${tienda.direccion}</a></p>` : ''}
-            ${tienda.coordenadas ? `<p class="vista-360"><strong>👁️ Vista 360°: </strong><a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${tienda.coordenadas}" target="_blank">Ver en Google Street View</a></p>` : ''}
-            ${tienda.telefono ? `<p class="celular"><strong>📱 Celular: </strong><a href="tel:${tienda.telefono}">${tienda.telefono}</a></p>` : ''}
-            ${tienda.correo ? `<p class="correo"><strong>📧 Correo: </strong><a href="mailto:${tienda.correo}">${tienda.correo}</a></p>` : ''}
-            ${(tienda.horario?.apertura && tienda.horario?.cierre) ? `<p class="horario-atencion"><strong>🕢 Horario de Atención: </strong>${tienda.horario.apertura} a ${tienda.horario.cierre} de lunes a Viernes</p>` : ''}
-            ${tienda.compra_minima ? `<p class="compra-minima"><strong>⚠ Compra Mínima: </strong>${tienda.compra_minima} prendas</p>` : ''}
-            ${tienda.formularios?.cliente ? `<p class="formulario-cliente"><strong>📄 Formulario de Cliente: </strong><a href="${tienda.formularios.cliente}" target="_blank">Hacer Clic Aquí</a></p>` : ''}
-            ${tienda.formularios?.catalogo_drive ? `<p class="catalogo-drive"><strong>📂 Catálogo Drive para Revendedores: </strong><a href="${tienda.formularios.catalogo_drive}" target="_blank">Hacer Clic Aquí</a></p>` : ''}
+                const htmlReviews = tienda.google_review?.place_id ? `
+                    <div class="google-reviews-premium">
+                        <div class="review-header">
+                            <img src="https://www.gstatic.com/images/branding/product/1x/maps_64dp.png" width="22" alt="G-Maps">
+                            <span style="font-weight: 600;">¿Qué opinan de nosotros?</span>
+                        </div>
+                        <div class="review-stars-interactive">
+                            <i class="fa fa-star active"></i><i class="fa fa-star active"></i><i class="fa fa-star active"></i><i class="fa fa-star active"></i><i class="fa fa-star active"></i>
+                        </div>
+                        <a href="https://search.google.com/local/writereview?placeid=${tienda.google_review.place_id}" target="_blank" class="btn-google-review">Dejar Reseña</a>
+                    </div>` : '';
 
-            ${botonesMetodosAgencias}
+                const htmlFooter = `
+                    <!-- Información de Contacto (Links) -->
+                    <div class="contact-info-grid">
+                        ${tienda.direccion ? `
+                        <a href="https://maps.google.com/?q=${encodeURIComponent(tienda.direccion)}" target="_blank" class="info-tile-premium is-link">
+                            <div class="info-tile-icon"><i class="fa fa-map-marker"></i></div>
+                            <div class="info-tile-text">
+                                <span class="info-tile-label">Dirección</span>
+                                <span class="info-tile-value">${tienda.direccion}</span>
+                            </div>
+                        </a>` : ''}
 
-            ${tienda.google_review?.place_id ? `
-              <div class="review-section">
-                <p>¡Deja tu reseña en Google Maps!</p>
-                <a href="https://search.google.com/local/writereview?placeid=${tienda.google_review.place_id}" target="_blank">
-                  <ul class="stars-list">
-                    <li class="star" data-value="1" onclick="rateAndRedirect(event)">★</li>
-                    <li class="star" data-value="2" onclick="rateAndRedirect(event)">★</li>
-                    <li class="star" data-value="3" onclick="rateAndRedirect(event)">★</li>
-                    <li class="star" data-value="4" onclick="rateAndRedirect(event)">★</li>
-                    <li class="star" data-value="5" onclick="rateAndRedirect(event)">★</li>
-                  </ul>
-                </a>
-                <p class="thanks-msg" id="thanksMsg">¡Gracias por tu calificación!</p>
-              </div>
-            ` : ''}
-          </div>
-        `;
+                        ${tienda.coordenadas ? `
+                        <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${tienda.coordenadas}" target="_blank" class="info-tile-premium is-link">
+                            <div class="info-tile-icon"><i class="fa fa-eye"></i></div>
+                            <div class="info-tile-text">
+                                <span class="info-tile-label">Vista 360°</span>
+                                <span class="info-tile-value">Google Street View</span>
+                            </div>
+                        </a>` : ''}
 
-                $("#pagina_titulo").html(html);
+                        ${tienda.formularios?.catalogo_drive ? `
+                        <a href="${tienda.formularios.catalogo_drive}" target="_blank" class="info-tile-premium is-link">
+                            <div class="info-tile-icon"><i class="fa fa-folder-open"></i></div>
+                            <div class="info-tile-text">
+                                <span class="info-tile-label">Catálogo Drive</span>
+                                <span class="info-tile-value">Acceso Revendedores</span>
+                            </div>
+                        </a>` : ''}
+
+                        <div class="info-tile-premium" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; background: white; border: 1px solid rgba(0, 43, 92, 0.08); box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                            <button onclick="abrirModalFormasPago()" class="btn-footer-action" style="background: #5c6bc0;"><i class="fa fa-credit-card"></i> Ver Formas de Pago</button>
+                            <button onclick="abrirModalAgencias()" class="btn-footer-action" style="background: #66bb6a;"><i class="fa fa-truck"></i> Ver Agencias</button>
+                        </div>
+                    </div>
+
+                    <!-- Etiquetas de Información (Estáticas) -->
+                    <div class="info-tags-container">
+                        ${(tienda.horario?.apertura && tienda.horario?.cierre) ? `
+                        <div class="info-tag-premium">
+                            <i class="fa fa-clock-o"></i>
+                            <span class="info-tag-label">Horario:</span>
+                            <span>${tienda.horario.apertura} a ${tienda.horario.cierre} (L-V)</span>
+                        </div>` : ''}
+
+                        ${tienda.compra_minima ? `
+                        <div class="info-tag-premium">
+                            <i class="fa fa-shopping-cart"></i>
+                            <span class="info-tag-label">Mínimo:</span>
+                            <span>${tienda.compra_minima} prendas</span>
+                        </div>` : ''}
+                    </div>
+
+                    <div class="presentation-footer-actions">
+                        <!-- Botones movidos a la cabecera principal -->
+                    </div>
+                `;
+
+                $("#pagina_titulo").html(htmlHeader);
+                $("#pagina_reseñas").html(htmlReviews);
+                $("#pagina_titulo_footer").html(htmlFooter);
             }
 
             if (respuesta.pagina_carrusel && Array.isArray(respuesta.pagina_carrusel)) {
@@ -5673,9 +6074,19 @@
                     boton.setAttribute('onclick', `filtrarPorCategoria('${categoria.codigo}')`);
 
                     const spanIcono = document.createElement('span');
-                    spanIcono.className = 'categoria-icono';
+                    spanIcono.className = 'categoria-icono d-flex align-items-center';
                     if (categoria.icono) {
-                        spanIcono.innerHTML = categoria.icono;
+                        const iconoTrim = categoria.icono.trim();
+                        if (iconoTrim.startsWith('<svg') || iconoTrim.startsWith('<?xml')) {
+                            spanIcono.innerHTML = categoria.icono;
+                        } else {
+                            const img = document.createElement('img');
+                            img.src = categoria.icono;
+                            img.alt = categoria.nombre;
+                            img.loading = "lazy";
+                            img.className = "categoria-icono-modal";
+                            spanIcono.appendChild(img);
+                        }
                     }
 
                     const spanNombre = document.createElement('span');
@@ -6971,7 +7382,12 @@
                   aria-expanded="false" aria-controls="flush-collapse-${categoria.codigo}"
                   data-categoria="${categoria.codigo}">
                 <div class="categoria_contenedor">
-                  <div class="categoria_icono">${categoria.icono || ''}</div>
+                  <div class="categoria_icono">
+                    ${categoria.icono && (categoria.icono.trim().startsWith('<svg') || categoria.icono.trim().startsWith('<?xml'))
+                        ? categoria.icono 
+                        : `<img src="${categoria.icono || ''}" alt="${categoria.nombre}" loading="lazy">`
+                    }
+                  </div>
                   <div class="categoria_nombre">
                     ${categoria.nombre}
                     <span class="contador_productos">${productos.length} Prod.</span>
