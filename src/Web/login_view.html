@@ -78,9 +78,9 @@
                         sessionStorage.setItem('loggedInUser', JSON.stringify(response.user));
                         sessionStorage.setItem('userPassword', password);
 
-                        // Enviar sesión a la shell
-                        if (window !== window.parent) {
-                            window.parent.postMessage({
+                        // Enviar sesión a la shell (usamos window.top para atravesar sandboxes de Google)
+                        if (window !== window.top) {
+                            window.top.postMessage({
                                 type: 'SAVE_SESSION',
                                 session: { user: response.user, password: password }
                             }, '*');

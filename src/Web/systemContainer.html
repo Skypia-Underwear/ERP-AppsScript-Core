@@ -712,9 +712,9 @@
 
     window.onload = () => {
       handleInitialRoute();
-      if (window !== window.parent) {
+      if (window !== window.top) {
         console.info('📡 [ERP] Enviando ERP_READY al Shell...');
-        window.parent.postMessage({ type: 'ERP_READY' }, '*');
+        window.top.postMessage({ type: 'ERP_READY' }, '*');
       }
     };
 

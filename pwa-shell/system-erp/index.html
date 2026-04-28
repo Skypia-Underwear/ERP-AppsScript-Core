@@ -65,15 +65,20 @@
       position: relative;
       margin-bottom: 30px;
       overflow: hidden;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      background-color: #ffffff;
       border-radius: 50%;
       padding: 20px;
+      box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 140px;
+      height: 140px;
     }
 
     .loader-logo {
-      width: 120px;
+      width: 100px;
       height: auto;
-      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.4));
     }
 
     /* Efecto de Brillo Metálico (Shimmer) */
@@ -154,7 +159,7 @@
       // --- PROTOCOLO DE SINCRONIZACIÓN ---
       // Escuchamos el mensaje del ERP indicando que terminó de cargar su lógica interna
       window.addEventListener('message', function(event) {
-        if (!event.origin.includes('script.google.com')) return;
+        if (!event.origin.includes('script.google.com') && !event.origin.includes('googleusercontent.com')) return;
         
         if (event.data.type === 'ERP_READY') {
           console.info('🚀 [Shell] ERP reporta listo. Liberando pantalla.');
