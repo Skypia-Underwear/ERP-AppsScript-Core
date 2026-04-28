@@ -3,7 +3,11 @@
 <html lang='en' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
 
 <head>
-    <!-- Open Graph -->
+    <meta charset='UTF-8'/>
+    <meta content='width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=yes' name='viewport'/>
+    <title>Skypia Underwear</title>
+    
+    <!-- SEO & Open Graph -->
     <meta content='Skypia Underwear' property='og:title'/>
     <meta content='https://skypia-underwear.blogspot.com' property='og:url'/>
     <meta content='website' property='og:type'/>
@@ -11,120 +15,164 @@
     <meta content='https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&amp;tableName=BD_TIENDAS&amp;fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png' property='og:image'/>
     <meta content='Tienda de Ropa Nacional e Importada de la mejor calidad y precio.' name='description'/>
     <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
-    <meta content='width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=yes' name='viewport'/>
-    <b:skin version='1.3.0'><![CDATA[
-        
     
-    ]]></b:skin>
+    <!-- Bloqueo de CSS de Blogger -->
+    <b:skin><![CDATA[]]></b:skin>
 
-    <!-- CONFIGURACIÓN DE INSTALACIÓN ERP; buscar esto para configurar
-         Solo este bloque se edita al instalar el tema en una nueva tienda.-->
+    <script src='https://code.jquery.com/jquery-3.6.0.min.js'/>
+
     <script type='text/javascript'>
         //<![CDATA[
-        // CONFIGURACIÓN DE IDENTIDAD VISUAL (ACCESO RÁPIDO)
+        // CONFIGURACIÓN GLOBAL (Reubicada en el Head para evitar errores de referencia inicial)
         const LOGO_TIENDA_URL = 'https://www.appsheet.com/template/gettablefileurl?appName=HOSTINGSHOPBLOGGER-227675214&tableName=BD_TIENDAS&fileName=BD_TIENDAS_Images%2FSkypia%20Underwear.LOGOTIPO.220950.png';
+        var GAS_DEPLOYMENT_ID = 'AKfycbyNBifMp803od61SuOQx6MtnlzCPyFO-famdi_3QIXYuOeQxkVCmqjWUypoWEkJlHkn';
+        var GAS_BASE_URL = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/exec';
+        var DONWEB_BASE_URL = 'https://castfer.com.ar/';
+        var DONWEB_READ_SCRIPT = 'api_json_read.php';
+        var GITHUB_USER = 'Skypia-Underwear';
+        var GITHUB_REPO = 'api-tienda';
+        var GITHUB_BRANCH = 'main';
+        var BLOGGER_JSON_FILE = 'skypia-underwear-blogger-config.json';
+        var TPV_JSON_FILE = 'skypia-underwear-catalog-tpv.json';
+        var url_final_venta = GAS_BASE_URL;
+        var DONWEB_BLOGGER_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + BLOGGER_JSON_FILE;
+        var GITHUB_BLOGGER_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + BLOGGER_JSON_FILE;
+        var DONWEB_TPV_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + TPV_JSON_FILE;
+        var GITHUB_TPV_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + BLOGGER_JSON_FILE;
 
-        /**
-         * Actualiza el texto del loader dinámicamente.
-         * @param {string} mensaje - El nuevo mensaje a mostrar.
-         */
         window.setLoaderText = function(mensaje) {
             const el = document.getElementById('loader-text');
             if (el) el.innerText = mensaje;
         };
-
         window.showLoader = function(mensaje = "Cargando...") {
             window.setLoaderText(mensaje);
             $('.loader-wrapper').fadeIn(300);
         };
-
         window.hideLoader = function() {
             $('.loader-wrapper').fadeOut(500);
         };
-
-        // ── 1. APPS SCRIPT (ID del deployment de la macro/ERP) ───────────────
-        var GAS_DEPLOYMENT_ID = 'AKfycbyNBifMp803od61SuOQx6MtnlzCPyFO-famdi_3QIXYuOeQxkVCmqjWUypoWEkJlHkn';
-        var GAS_BASE_URL = 'https://script.google.com/macros/s/' + GAS_DEPLOYMENT_ID + '/exec';
-
-        // ── 2. HOSTING / DONWEB ──────────────────────────────────────────────
-        var DONWEB_BASE_URL = 'https://castfer.com.ar/';
-        var DONWEB_READ_SCRIPT = 'api_json_read.php';   // script lector ya existente en el server
-
-        // ── 3. GITHUB ────────────────────────────────────────────────────────
-        var GITHUB_USER = 'Skypia-Underwear';
-        var GITHUB_REPO = 'api-tienda';
-        var GITHUB_BRANCH = 'main';
-
-        // ── 4. ARCHIVOS JSON DE ESTA TIENDA ──────────────────────────────────
-        var BLOGGER_JSON_FILE = 'skypia-underwear-blogger-config.json';
-        var TPV_JSON_FILE = 'skypia-underwear-catalog-tpv.json';
-
-        // ── URLs construidas automáticamente (no editar debajo de esta línea) ─
-        var url_final_venta = GAS_BASE_URL;   // alias de compatibilidad con código existente
-        var DONWEB_BLOGGER_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + BLOGGER_JSON_FILE;
-        var GITHUB_BLOGGER_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + BLOGGER_JSON_FILE;
-        var DONWEB_TPV_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + TPV_JSON_FILE;
-        var GITHUB_TPV_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + TPV_JSON_FILE;
-
-        function gestionarBloqueoCampos(bloquear) {
-            const selectores = [
-                '#txt_correo', '#txt_nombre_real', '#txt_telefono', 
-                '#txt_rut', '#txt_condicion_fiscal',
-                '#txt_provincia', '#txt_municipio', '#txt_localidad',
-                '#txt_codigo_postal', '#txt_calle', '#txt_numero',
-                '#txt_piso', '#txt_departamento', '#txt_observacion'
-            ];
-            
-            selectores.forEach(sel => {
-                const el = document.querySelector(sel);
-                if (el) {
-                    if (el.tagName === 'SELECT') {
-                        el.disabled = bloquear;
-                    } else {
-                        el.readOnly = bloquear;
-                    }
-                }
-            });
-        }
-
         //]]>
     </script>
 
-    <!-- CSS -->
-    <title>Skypia Underwear</title>
-    <link id='manifest' rel='manifest'/>
+    <!-- CSS Externos Críticos (Precarga) -->
+    <link as='style' href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&amp;family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;display=swap' rel='preload'/>
     <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&amp;family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;display=swap' rel='stylesheet'/>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'/>
     <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css' rel='stylesheet'/>
-    <link href='https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.0/dist/fancybox/fancybox.css' rel='stylesheet'/>
-    <link href='https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css' rel='stylesheet'/>
-    <link href='https://cdn.datatables.net/buttons/2.3.2/css/buttons.dataTables.min.css' rel='stylesheet'/>
+    <link href='https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.0/dist/fancybox/fancybox.css' media='print' onload='this.media=&apos;all&apos;' rel='stylesheet'/>
+    <link href='https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css' media='print' onload='this.media=&apos;all&apos;' rel='stylesheet'/>
+    <link href='https://cdn.datatables.net/buttons/2.3.2/css/buttons.dataTables.min.css' media='print' onload='this.media=&apos;all&apos;' rel='stylesheet'/>
+    
+    <link id='manifest' rel='manifest'/>
+
+    <!-- Preconnect a CDNs para ahorrar tiempo de conexión -->
+    <link crossorigin='' href='https://fonts.gstatic.com' rel='preconnect'/>
+    <link crossorigin='' href='https://cdn.jsdelivr.net' rel='preconnect'/>
+    
+    <!-- Preload del Logo (Uso inmediato en el header) - AHORA EN SVG -->
+    <link as='image' href='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.svg' rel='preload'/>
+    
+    <style>
+        /* CSS CRÍTICO: Inline para evitar FCP delay */
+        :root {
+            --primary-cyan: #00f2ff;
+            --primary-cobalt: #002b5c;
+            --secondary-cobalt: #004085;
+            --accent-cobalt: #001a35;
+            --premium-shadow: 0 20px 40px rgba(0, 43, 92, 0.1);
+            --premium-shadow-hover: 0 15px 45px rgba(0, 43, 92, 0.15);
+            --premium-radius: 12px;
+            --premium-radius-lg: 20px;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-blur: blur(10px);
+            --outfit-font: &#39;Outfit&#39;, sans-serif;
+            --light-bg: #f8fbff;
+            --card-bg: #ffffff;
+            --text-main: #1a1a1a;
+            --text-muted: #4a5568;
+        }
+
+        body {
+            font-family: var(--outfit-font);
+            background-color: #f0f2f5;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Estilos del Cargador Crítico */
+        .loader-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            flex-direction: column;
+        }
+
+        .premium-loader-content {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .shimmer-wrapper {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: container-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes container-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .presentation-container-premium {
+            width: 100% !important;
+            display: block !important;
+            padding: 0 !important;
+        }
+
+        .banner-carousel {
+            border-radius: 20px;
+            overflow: hidden;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #f0f4f8;
+            display: flex;
+            align-items: center;
+        }
+        /* Efecto Metallic Machine para el Logo */
+        .logo-metallic-effect {
+            filter: drop-shadow(0 0 1px rgba(0, 242, 255, 0.5)) brightness(1.1) contrast(1.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgb(255 255 255 / 99%) 50%, rgba(255, 255, 255, 0.1) 100%);
+        }
+        .logo-metallic-effect:hover {
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.8)) brightness(1.3) contrast(1.2);
+            transform: scale(1.1) rotate(5deg);
+        }
+        /* Estabilización de CLS */
+        .presentation-container-premium {
+            min-height: 450px;
+        }
+
+    </style>
 </head>
 <style>
-    :root {
-        --primary-cyan: #00f2ff;
-        --primary-cobalt: #002b5c;
-        --secondary-cobalt: #004085;
-        --accent-cobalt: #001a35;
-        --premium-shadow: 0 20px 40px rgba(0, 43, 92, 0.1);
-        --premium-shadow-hover: 0 15px 45px rgba(0, 43, 92, 0.15);
-        --premium-radius: 12px;
-        --premium-radius-lg: 20px;
-        --glass-bg: rgba(255, 255, 255, 0.85);
-        --glass-blur: blur(10px);
-        --outfit-font: &#39;Outfit&#39;, sans-serif;
-        --light-bg: #f8fbff;
-        --card-bg: #ffffff;
-        --text-main: #1a1a1a;
-        --text-muted: #4a5568;
-    }
-
-    body {
-        font-family: var(--outfit-font);
-        background-color: #f0f2f5;
-        color: #1a1a1a;
-    }
-
     .tiktok-button {
         display: inline-block;
         background-color: black;
@@ -1287,20 +1335,27 @@
         #txt_search {
             font-size: 14px !important;
         }
-    }
 
-    /* 🛒 Estilo Premium: Selector de Variedad Unificado y Mini Carrito */
     .variety-selector-unified {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid rgba(0, 43, 92, 0.1) !important;
+        border: 1px solid rgba(0, 43, 92, 0.15) !important;
         position: relative;
+        background: #e0f7fa !important; /* Cian claro / Celeste */
+        color: var(--primary-cobalt) !important;
+        cursor: pointer;
+        border-radius: 50px !important; /* Forma de píldora redondeada */
+        overflow: hidden;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .variety-selector-unified:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 43, 92, 0.12) !important;
-        border-color: var(--primary-cobalt) !important;
-        background: white !important;
+        box-shadow: 0 8px 20px rgba(0, 43, 92, 0.15) !important;
+        border-color: var(--primary-cyan) !important;
+        background: #001a35 !important;
     }
 
     .variety-selector-unified .price-tag-premium-pill {
@@ -1309,8 +1364,35 @@
         border: none !important;
         box-shadow: none !important;
         background: transparent !important;
-        padding: 4px 30px; /* Espacio para flechas */
+        color: var(--primary-cobalt) !important;
+        padding: 4px 30px;
+        transition: color 0.3s ease;
     }
+
+    .variety-selector-unified:hover .price-tag-premium-pill,
+    .variety-selector-unified:hover .variant-label {
+        color: white !important;
+    }
+
+    /* 🚀 Botones de Acción Rápidas */
+    .btn-action-premium {
+        border-radius: 50px !important; /* Forma de píldora redondeada */
+        transition: all 0.3s ease !important;
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        font-weight: 600 !important;
+    }
+    .btn-action-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        filter: brightness(0.95);
+    }
+    .btn-action-share { background: #f8fafc !important; color: #1e293b !important; }
+    .btn-action-whatsapp { background: #f0fdf4 !important; color: #15803d !important; }
+    .btn-action-video { background: #fff1f2 !important; color: #be123c !important; }
+    
+    .btn-action-share:hover { background: #e2e8f0 !important; }
+    .btn-action-whatsapp:hover { background: #dcfce7 !important; }
+    .btn-action-video:hover { background: #ffe4e6 !important; }
 
     /* Flechas del carrusel de precios */
     .price-carousel-control {
@@ -1728,6 +1810,7 @@
     /* Imagen por defecto (modo lista, escritorio) */
     .image-parent {
         max-width: 200px;
+        min-height: 200px;
         padding: 5px;
     }
 
@@ -3225,7 +3308,7 @@
         <header class='navbar navbar-expand-lg navbar-dark bg-dark fixed-top'>
             <div class='container-fluid d-flex justify-content-between align-items-center' style='flex-basis: content;'>
                 <a class='navbar-brand d-flex align-items-center' href='#pagina_titulo'>
-                    <img alt='Logo' class='d-inline-block align-text-top rounded-circle shadow-sm' height='35' src='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.png' width='35'/>
+                    <img alt='Logo' class='d-inline-block align-text-top rounded-circle shadow-sm logo-metallic-effect' height='35' src='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.svg' width='35'/>
                     <span class='ms-2 fw-bold' style='letter-spacing: 0.5px;'>BlogShop</span>
                 </a>
                 <!-- Listado de categorías -->
@@ -3312,7 +3395,12 @@
                             <p>Cargando Banner...</p>
                         </div>
                         <div class='carousel slide position-relative banner-carousel' data-bs-ride='carousel' id='carouselExampleSlidesOnly'>
-                            <!-- Carrusel dinámico -->
+                            <!-- Placeholder Estático para mejorar LCP Discovery -->
+                            <div class='carousel-inner' id='carousel-placeholder'>
+                                <div class='carousel-item active'>
+                                    <img alt='Cargando Banner' fetchpriority='high' height='436' loading='eager' src='https://placehold.co/800x436/0088f2/white?text=Cargando+Banner' width='800'/>
+                                </div>
+                            </div>
                         </div>
                         <div id='pagina_reseñas'/>
                     </div>
@@ -3430,12 +3518,18 @@
                 </div>
 
                 <!-- Footer simple -->
-                <div style='height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8f9fa; color: #333; padding: 15px; border-top: 1px solid #eee;'>
+                <div style='height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8f9fa; color: #333; padding: 20px; border-top: 1px solid #eee;'>
                     <div class='d-flex align-items-center mb-1'>
-                        <img alt='BlogShop Logo' height='30' src='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.png' style='opacity: 0.8; filter: grayscale(20%);' width='30'/>
-                        <span class='ms-2' style='font-size: 18px; font-weight: 800; letter-spacing: 1px; color: #444;'>BlogShop</span>
+                        <!-- Enlace profesional a tu servicio -->
+                        <a href='https://wa.me/541123890659' style='text-decoration: none; color: inherit; display: flex; align-items: center;' target='_blank' title='Crear mi propia tienda online'>
+                            <img alt='BlogShop Logo' height='28' src='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.svg' style='opacity: 0.9;' width='28'/>
+                            <span class='ms-2' style='font-size: 14px; font-weight: 700; letter-spacing: 0.5px; color: #555;'>Creado por BlogShop</span>
+                        </a>
                     </div>
-                    <div id='info-actualizacion' style='font-size: 0.9em; color: gray; margin-top: 4px; text-align: center;'>
+                    <div style='font-size: 12px; color: #888; margin-bottom: 4px;'>
+                        &#169; 2026 <span class='fw-bold'>Skypia Underwear</span> - Todos los derechos reservados.
+                    </div>
+                    <div id='info-actualizacion' style='font-size: 11px; color: #aaa; text-align: center;'>
                         Cargando información...
                     </div>
                 </div>
@@ -3899,29 +3993,7 @@
         </div>
     </div>
 
-    <!-- jQuery: sin defer, debe estar disponible globalmente primero -->
-    <script src='https://code.jquery.com/jquery-3.6.0.min.js'/>
 
-    <!--  Bootstrap: puede tener defer -->
-    <script crossorigin='anonymous' defer='defer' integrity='sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p' src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'/>
-
-    <!-- Fancybox SIN defer -->
-    <script src='https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.0/dist/fancybox/fancybox.umd.js'/>
-
-    <!-- SweetAlert2: defer está bien -->
-    <script defer='defer' src='https://cdn.jsdelivr.net/npm/sweetalert2@11'/>
-
-    <!-- DataTables y extensiones: defer también, ya que se usan después -->
-    <script defer='defer' src='https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js'/>
-    <script defer='defer' src='https://cdn.datatables.net/buttons/2.3.2/js/dataTables.buttons.min.js'/>
-    <script defer='defer' src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js'/>
-    <script defer='defer' src='https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js'/>
-    <script defer='defer' src='https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js'/>
-    <script defer='defer' src='https://cdn.datatables.net/buttons/2.3.2/js/buttons.html5.min.js'/>
-    <script defer='defer' src='https://cdn.datatables.net/buttons/2.3.2/js/buttons.print.min.js'/>
-
-    <!-- Elfsight: dejar como async -->
-    <script async='async' src='https://static.elfsight.com/platform/platform.js'/>
 
         <script type='text/javascript'>
         //<![CDATA[
@@ -5401,7 +5473,7 @@
                             <div class="logo-presentacion-container">
                                 <div class="logo-presentacion-frame">
                                     <div class="shimmer-overlay"></div>
-                                    <img src="${tienda.logo_url}" class="logo-img-premium" style="max-width: 85%; max-height: 85%; object-fit: contain; z-index: 2;">
+                                    <img src="${tienda.logo_url}" class="logo-img-premium logo-metallic-effect" style="max-width: 85%; max-height: 85%; object-fit: contain; z-index: 2;">
                                 </div>
                             </div>
                         </div>
@@ -5418,9 +5490,9 @@
                                 <!-- Categoría: Contacto Directo -->
                                 <div class="button-group-label" style="margin-top: 8px;">Contacto Directo</div>
                                 ${tienda.correo ? `<a href="mailto:${tienda.correo}" target="_blank" class="btn-premium-social" style="background: #ea4335;"><i class="fa fa-envelope"></i> Email</a>` : ""}
-                                ${tienda.telefono ? `<a href="https://wa.me/${tienda.telefono.replace(/\s+/g, '')}" target="_blank" class="btn-premium-social" style="background: #25d366;"><i class="fa fa-whatsapp"></i> WhatsApp</a>` : ""}
+                                ${tienda.telefono ? `<a href="tel:${tienda.telefono.replace(/\s+/g, '')}" class="btn-premium-social" style="background: #25d366;"><i class="fa fa-phone"></i> Llamar</a>` : ""}
                                 ${tienda.formularios?.cliente ? `<a href="${tienda.formularios.cliente}" target="_blank" class="btn-premium-social" style="background: #34a853;"><i class="fa fa-pencil-square-o"></i> Form. Cliente</a>` : ""}
-                                ${tienda.vcard_url ? `<a href="${tienda.vcard_url}" target="_blank" class="btn-premium-social" style="background: var(--primary-cobalt);"><i class="fa fa-address-book-o"></i> Mi VCARD</a>` : ""}
+                                ${tienda.vcard_url ? `<a href="${tienda.vcard_url}" target="_blank" class="btn-premium-social" style="background: var(--primary-cobalt);"><i class="fa fa-user"></i> Mi VCARD</a>` : ""}
                             </div>
                         </div>
                     </div>
@@ -5509,10 +5581,14 @@
                     const urlBanner = banner.url || placeholderURL;
                     const tituloBanner = banner.titulo || `Promoción ${index + 1}`;
                     const descBanner = banner.descripcion || '';
+                    const isFirstBanner = index === 0;
+                    const priorityAttr = isFirstBanner ? 'fetchpriority="high"' : '';
+                    const loadingAttr = isFirstBanner ? 'loading="eager"' : 'loading="lazy"';
+                    
                     lstCarrusel += `
               <div class="carousel-item ${isActive}">
                 <a href="${urlBanner}" data-fancybox="banners" data-caption="<div class='banner-caption'><strong>${tituloBanner}</strong><br>${descBanner}</div>">
-                  <img src="${urlBanner}" class="d-block w-100" width="800" height="436" alt="${tituloBanner}" loading="lazy" onerror="this.src='${placeholderURL}'">
+                  <img src="${urlBanner}" class="d-block w-100" width="800" height="436" alt="${tituloBanner}" ${priorityAttr} ${loadingAttr} onerror="this.src='${placeholderURL}'">
                 </a>
               </div>`;
                 });
@@ -5585,7 +5661,7 @@
 
             if (!AppState.productosCargados) {
                 cargar_productos("", "");
-                actualizarMenu();
+                actualizarMenu(respuesta.pagina_tienda);
                 AppState.productosCargados = true;
             }
 
@@ -6107,45 +6183,30 @@
         }
 
         // Función que se encarga de actualizar los enlaces en el menú
-        function actualizarMenu() {
-            // Datos predeterminados si los enlaces no se encuentran
-            const vista360URL = document.querySelector(".vista-360 a")?.href || "#";
-            const correo = document.querySelector(".correo a")?.href.replace("mailto:", "") || "";
-            const celular = document.querySelector(".celular a")?.href.replace("tel:", "") || "";
-            const formularioClienteURL = document.querySelector(".formulario-cliente a")?.href || "#";
-            const catalogodriveURL = document.querySelector(".catalogo-drive a")?.href || "#";
+        function actualizarMenu(tienda) {
+            if (!tienda) return;
 
-            // Verificación de los valores obtenidos
-            console.log("Vista 360 URL:", vista360URL);
-            console.log("Correo:", correo);
-            console.log("Celular:", celular);
-            console.log("Formulario Cliente URL:", formularioClienteURL);
-            console.log("Catalogo Drive URL:", catalogodriveURL);
+            const vista360URL = tienda.google_review?.url_street_view || "#";
+            const correo = tienda.correo || "";
+            const celular = tienda.telefono || "";
+            const formularioClienteURL = tienda.formularios?.cliente || "#";
+            const catalogodriveURL = tienda.formularios?.catalogo_drive || "#";
 
-            // Actualización de los enlaces en el menú 
+            console.log("Sincronizando Menú Superior con datos del JSON...");
+
             const vista360Link = document.getElementById("vista360Link");
             if (vista360Link) vista360Link.href = vista360URL;
 
             const correoLink = document.getElementById("correoLink");
             if (correoLink) {
                 correoLink.href = `mailto:${correo}`;
-                correoLink.textContent = "Correo";
                 correoLink.title = correo;
-
-                // Reemplazar el comportamiento por uno más robusto
-                correoLink.addEventListener("click", function (e) {
-                    e.preventDefault(); // Previene la acción por defecto
-
-                    const subject = encodeURIComponent("Consulta desde el sitio web");
-                    const body = encodeURIComponent("Hola, me gustaría recibir más información sobre sus productos.");
-                    window.location.href = `mailto:${correo}?subject=${subject}&body=${body}`;
-                });
             }
-
 
             const celularLink = document.getElementById("celularLink");
             if (celularLink) {
-                celularLink.href = `tel:${celular}`;
+                const telLimpio = celular.replace(/\s+/g, '');
+                celularLink.href = `tel:${telLimpio}`;
                 celularLink.textContent = `Celular: ${celular}`;
             }
 
@@ -6923,7 +6984,7 @@
                 ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                     <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
                         <a href="${img.url}" data-fancybox="gallery-${producto.codigo}" class="h-100 d-block">
-                            <img src="${img.url}" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="${producto.nombre}">
+                            <img src="${img.url}" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="${producto.nombre}" loading="lazy">
                         </a>
                         ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
                     </div>`).join('') : `
@@ -6967,20 +7028,7 @@
         
         <!-- 🛒 Fila Unificada: Precio/Variedad y Mini Carrito -->
         <div class="mt-auto pt-3 d-flex align-items-center gap-2">
-            <style>
-                .variety-selector-unified {
-                    background: #1e293b; /* Fondo inicial más oscuro para legibilidad */
-                    color: white;
-                    transition: all 0.3s ease;
-                }
-                .variety-selector-unified:hover {
-                    background: #020617 !important;
-                }
-                .variety-selector-unified:hover .price-tag-premium-pill {
-                    background: transparent !important;
-                }
-            </style>
-            <div class="variety-selector-unified flex-grow-1 shadow-sm" style="cursor: pointer; border-radius: 12px; overflow: hidden; height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
+            <div class="variety-selector-unified flex-grow-1 shadow-sm" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">
                 ${preciosCarrusel}
             </div>
             <div class="mini-cart-container">
@@ -6993,13 +7041,13 @@
 
         <!-- 🚀 Acciones Rápidas -->
         <div class="mt-3 d-flex flex-wrap gap-2 border-top pt-3">
-            <button class="btn btn-sm btn-outline-light text-dark flex-grow-1 border" style="background: #f8fafc; border-radius: 8px;" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
+            <button class="btn btn-sm btn-action-premium btn-action-share flex-grow-1" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
                 <i class="fa fa-share-alt"></i> Compartir
             </button>
-            ${urlWhatsApp ? `<button class="btn btn-sm btn-outline-light text-whatsapp flex-grow-1 border" style="background: #f0fdf4; border-radius: 8px;" onclick="window.open('${urlWhatsApp}', '_blank')">
+            ${urlWhatsApp ? `<button class="btn btn-sm btn-action-premium btn-action-whatsapp flex-grow-1" onclick="window.open('${urlWhatsApp}', '_blank')">
                 <i class="fa fa-whatsapp"></i> Consulta
             </button>` : ''}
-            ${producto.descripcion?.video?.url ? `<a class="btn btn-sm btn-outline-light text-danger flex-grow-1 border" style="background: #fff1f2; border-radius: 8px;" data-fancybox href="${producto.descripcion.video.url}">
+            ${producto.descripcion?.video?.url ? `<a class="btn btn-sm btn-action-premium btn-action-video flex-grow-1" data-fancybox href="${producto.descripcion.video.url}">
                 <i class="fa fa-play-circle"></i> Video
             </a>` : ''}
         </div>
@@ -7101,10 +7149,10 @@
 
             <div class="acciones-compactas">
                 <div class="d-flex gap-1 mb-1">
-                    <button class="btn btn-sm btn-outline-secondary flex-grow-1 p-1" style="font-size: 0.7rem; border-radius: 6px;" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
+                    <button class="btn btn-sm btn-action-premium btn-action-share flex-grow-1 p-1" style="font-size: 0.7rem;" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
                         <i class="fa fa-share-alt"></i>
                     </button>
-                    ${urlWhatsApp ? `<button class="btn btn-sm btn-outline-success flex-grow-1 p-1" style="font-size: 0.7rem; border-radius: 6px;" onclick="window.open('${urlWhatsApp}', '_blank')">
+                    ${urlWhatsApp ? `<button class="btn btn-sm btn-action-premium btn-action-whatsapp flex-grow-1 p-1" style="font-size: 0.7rem;" onclick="window.open('${urlWhatsApp}', '_blank')">
                         <i class="fa fa-whatsapp"></i>
                     </button>` : ''}
                 </div>
@@ -7169,6 +7217,9 @@
         }
 
         function filtrarProductosEnMemoria(productos) {
+            // 🛑 SI ESTAMOS EN MODO RESALTAR, NO FILTRAMOS (Queremos ver todos para resaltarlos luego)
+            if (typeof modoBusqueda !== "undefined" && modoBusqueda === "resaltar") return productos;
+
             const filtrosActivos = {};
             const keys = ["Variedad", "Modelo", "Estilo", "Marca", "Género", "Material", "Temporada", "Talles", "Color", "video"];
             let hayFiltros = false;
@@ -7259,6 +7310,15 @@
                 });
                 if (typeof inicializarCarruselesPrecios === "function") inicializarCarruselesPrecios();
                 if (typeof cargarPuntuaciones === "function") cargarPuntuaciones();
+
+                // 🚀 Aplicar resaltado/filtrado inmediatamente a los nuevos productos del lote
+                if (typeof resaltarFiltrarProductosCoincidentes === "function") {
+                    const filtrosActivos = obtenerFiltrosActivos();
+                    if (filtrosActivos && Object.keys(filtrosActivos).length > 0) {
+                        resaltarFiltrarProductosCoincidentes(filtrosActivos);
+                    }
+                }
+
                 if (onComplete) onComplete();
             }, 50);
         }
@@ -8648,25 +8708,19 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
         }
 
-        function aplicarResaltadoFiltradoPorOpciones() {
+        function obtenerFiltrosActivos() {
             let resaltadoAplicado = {};
             let filtrosActivos = false;
 
-            // Eliminar clases de resaltado de todos los productos
-            document.querySelectorAll('.producto-item').forEach(producto => {
-                producto.classList.remove('resaltado-filtro', 'no-coincide', 'color-surtido');
-                producto.style.display = "";
-            });
-
-            // Obtener filtros activos
+            // 1. Obtener de Selects
             document.querySelectorAll(".filtro-select").forEach(select => {
                 if (select.value) {
-                    // Convertir a array para uniformizar
                     resaltadoAplicado[select.name] = [select.value];
                     filtrosActivos = true;
                 }
             });
 
+            // 2. Obtener de Checkboxes
             document.querySelectorAll(".filtro-checkbox:checked").forEach(checkbox => {
                 const valor = checkbox.value;
                 if (!valor) return;
@@ -8675,35 +8729,31 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     try {
                         const parsed = JSON.parse(valor);
                         if (!parsed.nombre || parsed.nombre.trim() === '') return;
-                    } catch (e) {
-                        console.warn('⚠️ Error al parsear valor JSON del checkbox:', valor);
-                        return;
-                    }
+                    } catch (e) { return; }
                 }
 
-                if (!resaltadoAplicado[checkbox.name]) {
-                    resaltadoAplicado[checkbox.name] = [];
-                }
+                if (!resaltadoAplicado[checkbox.name]) resaltadoAplicado[checkbox.name] = [];
                 resaltadoAplicado[checkbox.name].push(valor);
                 filtrosActivos = true;
             });
 
-            // Si no hay filtros activos, mostrar todos los productos
+            // 3. Manejo de estado vacío
             if (!filtrosActivos) {
-                console.log("🔄 No hay filtros activos. Activando mostrar_todos...");
                 resaltadoAplicado['mostrar_todos'] = true;
-            } else {
-                console.log("📌 Filtros activos encontrados. Desactivando mostrar_todos...");
-                if (resaltadoAplicado['mostrar_todos']) {
-                    delete resaltadoAplicado['mostrar_todos'];
-                }
             }
 
-            // Si no hay filtros activos ni la opción de mostrar todos, no hacer nada
-            if (!filtrosActivos && !resaltadoAplicado['mostrar_todos']) {
-                console.log("🚫 No se aplican filtros ni resaltar ya que no hay filtros activos.");
-                return;
-            }
+            return resaltadoAplicado;
+        }
+
+        function aplicarResaltadoFiltradoPorOpciones() {
+            // Obtener filtros usando la nueva función centralizada
+            const resaltadoAplicado = obtenerFiltrosActivos();
+
+            // Eliminar clases previas de todos los productos (Reset visual base)
+            document.querySelectorAll('.producto-item').forEach(producto => {
+                producto.classList.remove('resaltado-filtro', 'no-coincide', 'color-surtido', 'oculto');
+                producto.style.display = "";
+            });
 
             console.log("📌 Aplicando", (modoBusqueda === "resaltar" ? "resaltado" : "filtrado"), ":", resaltadoAplicado);
 
@@ -8929,35 +8979,19 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 if (modoBusqueda === "resaltar") {
                     if (coincide) {
                         producto.classList.add('resaltado-filtro');
+                        producto.classList.remove('no-coincide', 'oculto');
                     } else {
                         producto.classList.add('no-coincide');
+                        producto.classList.remove('resaltado-filtro', 'oculto');
                     }
                 } else if (modoBusqueda === "filtrar") {
                     if (coincide) {
-                        producto.classList.remove('oculto');
+                        producto.classList.remove('oculto', 'no-coincide', 'resaltado-filtro');
                     } else {
                         producto.classList.add('oculto');
                     }
                 }
-
-                aplicarVisibilidad(producto, coincide);
             });
-        }
-
-        function aplicarVisibilidad(producto, coincide) {
-            if (modoBusqueda === "resaltar") {
-                if (coincide) {
-                    producto.classList.add('resaltado-filtro');
-                } else {
-                    producto.classList.add('no-coincide');
-                }
-            } else if (modoBusqueda === "filtrar") {
-                if (coincide) {
-                    producto.classList.remove('oculto');
-                } else {
-                    producto.classList.add('oculto');
-                }
-            }
         }
 
         function productoCoincideConColores(producto, productData, valoresFiltro) {
@@ -11879,9 +11913,21 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 }
             });
         }
-
         //]]>
     </script>
+
+    <!-- Scripts de Librerías (Diferidos al final para Core Web Vitals) -->
+    <script crossorigin='anonymous' defer='defer' integrity='sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p' src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'/>
+    <script defer='defer' src='https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.0/dist/fancybox/fancybox.umd.js'/>
+    <script defer='defer' src='https://cdn.jsdelivr.net/npm/sweetalert2@11'/>
+    <script defer='defer' src='https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js'/>
+    <script defer='defer' src='https://cdn.datatables.net/buttons/2.3.2/js/dataTables.buttons.min.js'/>
+    <script defer='defer' src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js'/>
+    <script defer='defer' src='https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js'/>
+    <script defer='defer' src='https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js'/>
+    <script defer='defer' src='https://cdn.datatables.net/buttons/2.3.2/js/buttons.html5.min.js'/>
+    <script defer='defer' src='https://cdn.datatables.net/buttons/2.3.2/js/buttons.print.min.js'/>
+    <script async='async' src='https://static.elfsight.com/platform/platform.js'/>
 </body>
 
 </html>

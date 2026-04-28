@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  
+  <title>ERP Castfer</title>
+  
+  <meta name="description" content="Sistema de Gestión Empresarial - Castfer" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://system-erp.castfer.com.ar/" />
+  <meta property="og:title" content="ERP Castfer" />
+  <meta property="og:description" content="Acceso directo al sistema de gestión operativa." />
+  <meta property="og:image" content="https://system-erp.castfer.com.ar/icon-512x512.png" />
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ERP Castfer" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  
+  <link rel="icon" href="./favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="./icon-192x192.png" />
+  <link rel="manifest" href="./manifest.json" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0f172a; 
+      font-family: -apple-system, system-ui, sans-serif;
+    }
+
+    #erp-frame {
+      display: block;
+      border: none;
+      width: 100%;
+      height: 100dvh; 
+      background-color: #0f172a;
+    }
+
+    /* ===================================================
+       APP SHELL LOADER (Metallic Machine Style)
+    =================================================== */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #0f172a;
+      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+    }
+
+    #loader.hidden { opacity: 0; visibility: hidden; }
+
+    /* Contenedor del Logo con Animación Metálica */
+    .logo-container {
+      position: relative;
+      margin-bottom: 30px;
+      overflow: hidden;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      padding: 20px;
+    }
+
+    .loader-logo {
+      width: 120px;
+      height: auto;
+      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.4));
+    }
+
+    /* Efecto de Brillo Metálico (Shimmer) */
+    .logo-container::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 45%,
+        rgba(255, 255, 255, 0.1) 48%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0.1) 52%,
+        transparent 55%
+      );
+      transform: rotate(25deg);
+      animation: metallicShine 3s infinite;
+    }
+
+    @keyframes metallicShine {
+      0% { transform: translateX(-100%) rotate(25deg); }
+      100% { transform: translateX(100%) rotate(25deg); }
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.05);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      margin-top: 15px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  </style>
+</head>
+
+<body>
+
+  <div id="loader">
+    <div class="logo-container">
+      <img src="./icon-192x192.png" alt="Logo" class="loader-logo">
+    </div>
+    <div class="spinner"></div>
+    <p class="loader-text">Iniciando Ecosistema...</p>
+  </div>
+
+  <iframe id="erp-frame"
+    src="https://script.google.com/a/~/macros/s/AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg/exec"
+    title="ERP Castfer" allowfullscreen loading="eager"></iframe>
+
+  <script>
+    (function () {
+      'use strict';
+      const loader = document.getElementById('loader');
+
+      function hideLoader() {
+        if (!loader) return;
+        loader.classList.add('hidden');
+        loader.addEventListener('transitionend', () => loader.remove());
+      }
+
+      // --- PROTOCOLO DE SINCRONIZACIÓN ---
+      // Escuchamos el mensaje del ERP indicando que terminó de cargar su lógica interna
+      window.addEventListener('message', function(event) {
+        if (!event.origin.includes('script.google.com')) return;
+        
+        if (event.data.type === 'ERP_READY') {
+          console.info('🚀 [Shell] ERP reporta listo. Liberando pantalla.');
+          hideLoader();
+
+          const session = localStorage.getItem('erp_session');
+          if (session) {
+            console.info('🔑 [Shell] Restaurando sesión...');
+            document.getElementById('erp-frame').contentWindow.postMessage({ type: 'LOAD_SESSION', session: JSON.parse(session) }, '*');
+          }
+        }
+
+        if (event.data.type === 'SAVE_SESSION') {
+          console.info('💾 [Shell] Guardando sesión...');
+          localStorage.setItem('erp_session', JSON.stringify(event.data.session));
+        }
+      });
+
+      // Fallback: si en 15 segundos el ERP no responde, liberamos de todos modos
+      setTimeout(() => {
+        if (document.getElementById('loader')) {
+          console.warn('⚠️ [Shell] ERP tardó demasiado. Liberando por tiempo.');
+          hideLoader();
+        }
+      }, 15000);
+
+      // Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js', { scope: './' })
+            .catch(err => console.warn('[SW] Error:', err));
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

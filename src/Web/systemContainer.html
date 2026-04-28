@@ -712,7 +712,23 @@
 
     window.onload = () => {
       handleInitialRoute();
+      if (window !== window.parent) {
+        console.info('📡 [ERP] Enviando ERP_READY al Shell...');
+        window.parent.postMessage({ type: 'ERP_READY' }, '*');
+      }
     };
+
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'LOAD_SESSION') {
+        const session = event.data.session;
+        if (session && session.user) {
+          console.info('🔑 [ERP] Sesión restaurada desde Shell.');
+          sessionStorage.setItem('loggedInUser', JSON.stringify(session.user));
+          if (session.password) sessionStorage.setItem('userPassword', session.password);
+          handleInitialRoute();
+        }
+      }
+    });
 
     // Actualizar clase active en mobile nav
     function updateMobileNavActive(view) {

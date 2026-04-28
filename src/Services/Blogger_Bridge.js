@@ -282,6 +282,24 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
             nombreTiendaData.logo_url = (tiendaLive.URL_LOGOTIPO || tiendaLive.LOGO || nombreTiendaData.logo_url || "").replace('&amp;', '&');
             nombreTiendaData.descripcion = tiendaLive.SOBRE_NOSOTROS || nombreTiendaData.descripcion;
             nombreTiendaData.telefono = (tiendaLive.CELULAR || nombreTiendaData.telefono || "").toString().replace(/\s/g, "");
+            nombreTiendaData.correo = tiendaLive.EMAIL || tiendaLive.CORREO || nombreTiendaData.correo;
+            nombreTiendaData.compra_minima = tiendaLive.COMPRA_MINIMA || nombreTiendaData.compra_minima;
+
+            // Enriquecer Redes Sociales
+            nombreTiendaData.redes_sociales = nombreTiendaData.redes_sociales || {};
+            nombreTiendaData.redes_sociales.facebook = tiendaLive.FACEBOOK || nombreTiendaData.redes_sociales.facebook;
+            nombreTiendaData.redes_sociales.instagram = tiendaLive.INSTAGRAM || nombreTiendaData.redes_sociales.instagram;
+            nombreTiendaData.redes_sociales.tiktok = tiendaLive.TIKTOK || nombreTiendaData.redes_sociales.tiktok;
+
+            // Enriquecer Formularios
+            nombreTiendaData.formularios = nombreTiendaData.formularios || {};
+            nombreTiendaData.formularios.cliente = tiendaLive.FORMULARIO_CLIENTE || nombreTiendaData.formularios.cliente;
+            nombreTiendaData.formularios.catalogo_drive = tiendaLive.CATALOGO_DRIVE || nombreTiendaData.formularios.catalogo_drive;
+
+            // Enriquecer Horarios
+            nombreTiendaData.horario = nombreTiendaData.horario || {};
+            nombreTiendaData.horario.apertura = tiendaLive.APERTURA || nombreTiendaData.horario.apertura;
+            nombreTiendaData.horario.cierre = tiendaLive.CIERRE || nombreTiendaData.horario.cierre;
             
             // Enriquecer datos de ubicación y reseñas
             nombreTiendaData.google_review = nombreTiendaData.google_review || { place_id: "" };
