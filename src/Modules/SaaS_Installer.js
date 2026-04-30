@@ -18,17 +18,14 @@ function generarPaquetePWA() {
     var generalId = "BlogShop ERP"; // Fallback por defecto
     for (var i = 0; i < data.length; i++) {
       for (var j = 0; j < data[i].length; j++) {
-        // Asumiendo que la clave está en una celda y el valor en la contigua,
-        // o si es una columna con cabecera. Buscamos el texto exacto.
-        if (data[i][j] === "GENERAL_ID" && (j + 1) < data[i].length) {
-          generalId = data[i][j+1];
+        // En la estructura actual, el encabezado está en la fila 1 y el valor en la fila 2
+        // Buscamos "GENERAL_ID" y tomamos el valor exactamente debajo (data[i+1][j])
+        if (data[i][j] === "GENERAL_ID" && (i + 1) < data.length) {
+          generalId = data[i+1][j];
           break;
-        } else if (data[i][j] === "GENERAL_ID" && (i + 1) < data.length) {
-           // En caso de que sea estructura de encabezado y fila abajo
-           generalId = data[i+1][j];
-           break;
         }
       }
+      if (generalId !== "BlogShop ERP") break;
     }
     
     // Generar nombre de directorio sanitizado (minúsculas, sin espacios ni especiales)
@@ -167,7 +164,9 @@ function generarPaquetePWA() {
       "Sigue estos pasos para poner el sistema en producción:\n\n" +
       "Paso 1: Obtener Certificado SSL de 90 días gratis\n" +
       "- Ve a PunchSalad (o proveedor similar).\n" +
-      "- Sigue las instrucciones para verificar el dominio. Deberás crear la ruta .well-known/acme-challenge/ en tu servidor y subir el archivo de validación que te provean.\n\n" +
+      "- Sigue las instrucciones para verificar el dominio.\n" +
+      "- Notarás que dentro de este .zip ya viene generada la estructura de carpetas: .well-known/acme-challenge/\n" +
+      "- Guarda el archivo de validación que te dé PunchSalad EXACTAMENTE dentro de la carpeta acme-challenge/.\n\n" +
       "Paso 2: Configurar los certificados en el Hosting\n" +
       "- Ingresa al panel de control de tu hosting (Ferozo, cPanel, etc.).\n" +
       "- Ve a la sección de SSL/TLS y pega los contenidos de los certificados .crt y .key obtenidos en el Paso 1.\n\n" +
@@ -179,6 +178,13 @@ function generarPaquetePWA() {
       "- Asegúrate de respetar las dimensiones y los nombres de los archivos.\n\n" +
       "¡Listo! Tu ERP ahora es instalable como aplicación nativa.\n";
 
+    // Carpeta .well-known/acme-challenge/
+    var acmeChallengeBlob = Utilities.newBlob(
+      "Guarda o sube el archivo de validación que te provee PunchSalad EXACTAMENTE en esta carpeta (junto a este archivo o reemplazándolo).", 
+      MimeType.PLAIN_TEXT, 
+      '.well-known/acme-challenge/PUNCHSALAD_AQUI.txt'
+    );
+
     // 6. Empaquetado
     var blobs = [
       Utilities.newBlob(indexContent, MimeType.HTML, 'index.html'),
@@ -187,7 +193,8 @@ function generarPaquetePWA() {
       Utilities.newBlob(readmeContent, MimeType.PLAIN_TEXT, 'LEEME_INSTALACION.txt'),
       icon192Blob,
       icon512Blob,
-      faviconBlob
+      faviconBlob,
+      acmeChallengeBlob
     ];
     
     var zipBlob = Utilities.zip(blobs, nombreDirectorio + '.zip');
