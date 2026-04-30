@@ -4,63 +4,50 @@
 
 ---
 
-## 📅 Sesión: 2026-04-27
+## 📅 Sesión: 2026-04-28 (Chat ID: 2b364471-18d8-44df-bbf7-b8640a55b56a)
 
-**Agente:** Antigravity (Claude Sonnet 4.6 Thinking)  
-**Colaborador externo:** Agente Gemini (gemini.google.com)  
+**Agente:** Antigravity (Gemini 3.1 Pro)  
 **Rol del Ideador:** Arquitecto y validador de decisiones técnicas en campo.
 
 ---
 
 ## ✅ Qué se completó hoy
 
-### Fase: Infraestructura PWA Shell para ERP Castfer en Donweb
+### Fase: Consolidación Infraestructura PWA Shell (Fase 2)
 
-#### 1. Certificación SSL ✅
-- Se obtuvo un certificado SSL de 90 días para el subdominio del cliente mediante **PunchSalad** (API de Let's Encrypt), como bypass al autoinstalador de Ferozo que falló.
-- Validación de propiedad: token subido a `public_html/system-erp/.well-known/acme-challenge/`.
-- Instalación manual de `.crt` y `.key` en el panel de Ferozo.
+#### 1. Persistencia de Sesión (Login Shell ↔ ERP) ✅
+- Se orquestó un puente de sesión bidireccional usando `postMessage` atravesando los sandboxes de Google (`window.top.postMessage` para superar las limitaciones del iframe anidado).
+- **SAVE_SESSION:** Al hacer login exitoso (`login_view.html`), las credenciales viajan hacia la Shell (`index.html`) y se guardan persistentemente en su `localStorage`.
+- **LOAD_SESSION:** Al cargar el ERP, envía un `ERP_READY`. La Shell lo escucha y le responde inyectándole el token almacenado, que el ERP procesa (`systemContainer.html`) y guarda en `sessionStorage`, manteniendo al usuario vivo sin cierres de sesión por inactividad.
 
-#### 2. App Shell PWA generada ✅
+#### 2. Corrección de Bug de Comunicación (Timeout del Loader) ✅
+- El loader infinito y el error `dropping postMessage.. was from unexpected window` se resolvieron.
+- Se ajustó el `event.origin` en `index.html` para aceptar mensajes de `script.google.com` y `googleusercontent.com` (los subdominios dinámicos de los sandboxes de Google).
 
-Archivos en `pwa-shell/`:
+#### 3. Mejora Visual y Branding (Logo) ✅
+- Se le dio legibilidad completa al logo en PNG (fondo transparente + letras negras) encapsulándolo dentro de un contenedor circular con fondo blanco puro (`#ffffff`), sombra dinámica y centrado flexbox, creando un aspecto visual impecable contra el fondo oscuro `#0f172a`.
 
-| Archivo | Versión | Estado |
-|---|---|---|
-| `index.html` | v1.0.1 | ✅ Producción |
-| `manifest.json` | v1.0.0 | ✅ Producción |
-| `sw.js` | v1.0.1 | ✅ Producción |
+#### 4. Limpieza Estructural de Activos ✅
+- Se eliminó del `README-INFRAESTRUCTURA.md` la dependencia obsoleta de la subcarpeta `/icons/`.
+- La arquitectura consolidó el uso de los activos (`icon-192x192.png`, `icon-512x512.png`, `favicon.ico`) alojados directamente en la raíz `/system-erp/` evadiendo las protecciones de Anti-Hotlink y eliminando la necesidad del archivo `/icons/.htaccess`.
 
-**Decisiones de arquitectura registradas:**
-- **iframe a 100vh limpio:** Se descartó el truco `margin-top: -36px`. Google oculta el banner automáticamente en HTTPS. Implementado en `index.html` v1.0.1.
-- **Fix chrome-extension://:** `sw.js` v1.0.1 agrega `if (!event.request.url.startsWith('http')) return;` al inicio del evento `fetch` para evitar errores de consola por extensiones de Chrome.
-
-#### 3. Ingeniería de servidor ✅
-- **Escudo Raíz** (`/system-erp/.htaccess`): `DirectoryIndex index.html`, `RewriteEngine On` → fuerza HTTPS 301.
-- **Escudo de Assets** (`/icons/.htaccess`): `<FilesMatch>` con `Require all granted` para evadir el Anti-Hotlink del dominio padre.
-- **Permisos:** CHMOD 644 archivos / 755 directorios confirmados.
-
-#### 4. Documentación ✅
-- `pwa-shell/README-INFRAESTRUCTURA.md` generado — SOP completo para replicar en futuros clientes de la marca BlogShop.
+#### 5. Despliegue Masivo Exitoso ✅
+- Se ejecutó el flujo coordinado `@[/deploy-all]`, actualizando tanto la base de código central en GitHub, como la macro principal de desarrollo y la macro en producción del cliente Castfer (Versión 534/535).
 
 ---
 
 ## 🔜 Próxima sesión — Pendiente
 
-### Fase: Autenticación con Persistencia (Login Shell)
+### Fase: [Por definir con el Ideador]
 
 | Tarea | Prioridad | Estado |
 |---|---|---|
-| Crear `login.html` en Donweb con form Correo + PIN | Alta | ⏳ Pendiente |
-| Implementar `localStorage` para persistencia de sesión | Alta | ⏳ Pendiente |
-| Protocolo `postMessage` entre Donweb ↔ iframe GAS | Alta | ⏳ Pendiente |
-| Endpoint de validación de token en Apps Script | Alta | ⏳ Pendiente |
+| Definir y avanzar en módulos internos del ERP | Alta | ⏳ Pendiente |
+| Auditoría de funciones existentes o creación de nuevos módulos | Media | ⏳ Pendiente |
 
 **Contexto técnico para la próxima sesión:**
-- El dominio de la shell es Donweb (subdominio del cliente).
-- El iframe apunta a Google Apps Script (`script.google.com`).
-- La comunicación cross-origin requiere `postMessage` + listener en el GAS con validación de `event.origin`.
-- La persistencia de sesión se guarda en `localStorage` del dominio Donweb, NO en el iframe.
+- La infraestructura externa (PWA, Login Persistente, Routing inicial) ya funciona al 100% como un SaaS.
+- Los desarrollos a partir de ahora se centran enteramente en potenciar las lógicas de negocio, reportes y herramientas del ERP.
 
 ---
 
@@ -69,10 +56,11 @@ Archivos en `pwa-shell/`:
 ```
 Macros HostingShop/
 └── pwa-shell/
-    ├── index.html                  ← App Shell (v1.0.1)
-    ├── manifest.json               ← PWA Manifest
-    ├── sw.js                       ← Service Worker (v1.0.1)
-    └── README-INFRAESTRUCTURA.md   ← SOP BlogShop (este doc es la fuente)
+    └── system-erp/
+        ├── index.html                  ← App Shell (Actualizada comunicación y diseño)
+        ├── manifest.json               
+        ├── sw.js                       
+        └── ...
 ```
 
 ---
@@ -82,10 +70,8 @@ Macros HostingShop/
 | Recurso | Valor |
 |---|---|
 | URL Web App GAS | `https://script.google.com/macros/s/AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg/exec` |
-| Herramienta SSL | [PunchSalad](https://punchsalad.com/) |
-| Panel de hosting | Ferozo / Donweb |
-| Directorio servidor | `public_html/system-erp/` |
+| PWA Cliente | `https://system-erp.castfer.com.ar/` |
 
 ---
 
-*Última actualización: 2026-04-27T22:38 ART · Agente: Antigravity*
+*Última actualización: 2026-04-28T19:04 ART · Agente: Antigravity*
