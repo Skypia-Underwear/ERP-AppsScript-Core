@@ -111,6 +111,23 @@
         </div>
     </div>
 
+    <!-- Admin SaaS (NUEVO) -->
+    <div id="saas-admin-section" class="mb-8 hidden">
+        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <i class="ph-bold ph-package text-emerald-400"></i> Empaquetador SaaS
+        </h3>
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between group gap-4">
+            <div>
+                <p class="text-sm font-bold text-white uppercase tracking-wider mb-1">Generar Instalador PWA</p>
+                <p class="text-[10px] text-slate-500">Empaqueta el App Shell con los datos de este ERP listo para descargar y subir al hosting.</p>
+            </div>
+            <button onclick="ejecutarEmpaquetadorSaaS()"
+                class="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-white transition active:scale-95 flex items-center gap-2 whitespace-nowrap">
+                <i class="ph-bold ph-download-simple"></i> Generar .zip
+            </button>
+        </div>
+    </div>
+
     <!-- IA & Facturación (NUEVO) -->
     <div class="mb-8">
         <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -172,6 +189,12 @@
         if (userStr) {
             const user = JSON.parse(userStr);
             document.getElementById('home-user-name').innerText = user.name || "Usuario";
+            
+            // Mostrar Empaquetador SaaS solo a Administradores
+            if (user.role === 'ADMIN' || user.role === 'Administrador' || user.email === 'administrador') {
+                const saasSection = document.getElementById('saas-admin-section');
+                if (saasSection) saasSection.classList.remove('hidden');
+            }
         }
 
         // Carga de Telemetría desde servidor
@@ -266,6 +289,58 @@
                         });
                     })
                     .publicarCatalogo();
+            }
+        });
+    }
+
+    function ejecutarEmpaquetadorSaaS() {
+        Swal.fire({
+            title: '¿Generar Instalador PWA?',
+            text: "Se extraerán los datos y se creará un archivo .zip en Drive listo para descargar.",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Generar .zip',
+            cancelButtonText: 'Cancelar',
+            background: '#1e293b',
+            color: '#fff',
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#334155'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setGlobalStatus(true, "Empaquetando App Shell...");
+                google.script.run
+                    .withSuccessHandler(res => {
+                        setGlobalStatus(false);
+                        if (res.success) {
+                            Swal.fire({
+                                title: '¡Empaquetado Exitoso!',
+                                html: `El archivo <b>${res.fileName}</b> se guardó en Drive.<br><br><a href="${res.downloadUrl}" target="_blank" class="text-emerald-400 font-bold underline mt-4 block">Descargar el .zip ahora</a>`,
+                                icon: 'success',
+                                background: '#1e293b',
+                                color: '#fff',
+                                confirmButtonColor: '#10b981'
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: res.error || 'Error desconocido al generar paquete.',
+                                icon: 'error',
+                                background: '#1e293b',
+                                color: '#fff'
+                            });
+                        }
+                    })
+                    .withFailureHandler(err => {
+                        setGlobalStatus(false);
+                        Swal.fire({
+                            title: 'Error de Red',
+                            text: err.message,
+                            icon: 'error',
+                            background: '#1e293b',
+                            color: '#fff'
+                        });
+                    })
+                    .generarPaquetePWA();
             }
         });
     }
