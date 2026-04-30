@@ -190,8 +190,9 @@
             const user = JSON.parse(userStr);
             document.getElementById('home-user-name').innerText = user.name || "Usuario";
             
-            // Mostrar Empaquetador SaaS solo a Administradores
-            if (user.role === 'ADMIN' || user.role === 'Administrador' || user.email === 'administrador') {
+            // Mostrar Empaquetador SaaS solo a Administradores (insensible a mayúsculas y flexible con la propiedad)
+            const userRole = String(user.role || user.rol || user.rolTienda || user.ROL_TIENDA || '').toUpperCase();
+            if (userRole === 'ADMIN' || userRole === 'ADMINISTRADOR' || user.email === 'administrador') {
                 const saasSection = document.getElementById('saas-admin-section');
                 if (saasSection) saasSection.classList.remove('hidden');
             }
