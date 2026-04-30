@@ -148,10 +148,60 @@ function generarPaquetePWA() {
       "  // Pass-through genérico sin caché estricto para no interferir con la lógica del ERP\n" +
       "});";
 
-    // 4. Inclusión de Iconos Base (Placeholders)
-    // Generamos un PNG transparente de 1x1 en Base64
-    var transparentPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-    var iconBytes = Utilities.base64Decode(transparentPngBase64);
+    // 4. Inclusión de Iconos Base (Dinámico desde LOGOTIPO en BD_TIENDAS)
+    var logoPath = "";
+    var sheetTiendas = ss.getSheetByName("BD_TIENDAS");
+    if (sheetTiendas) {
+      var tiendasData = sheetTiendas.getDataRange().getValues();
+      var colId = -1;
+      var colLogo = -1;
+      
+      if (tiendasData.length > 0) {
+        for (var j = 0; j < tiendasData[0].length; j++) {
+          if (tiendasData[0][j] === "TIENDA_ID") colId = j;
+          if (tiendasData[0][j] === "LOGOTIPO") colLogo = j;
+        }
+      }
+      
+      if (colId !== -1 && colLogo !== -1) {
+        for (var i = 1; i < tiendasData.length; i++) {
+          if (tiendasData[i][colId] === generalId) {
+            logoPath = tiendasData[i][colLogo];
+            break;
+          }
+        }
+      }
+    }
+
+    var iconBytes;
+    if (logoPath) {
+      try {
+        var appNameGlobal = (typeof GLOBAL_CONFIG !== 'undefined' && GLOBAL_CONFIG.APPSHEET && GLOBAL_CONFIG.APPSHEET.APP_NAME) ? GLOBAL_CONFIG.APPSHEET.APP_NAME : "CASTFERSYSTEMV1-201513855";
+        var logoUrl = "https://www.appsheet.com/template/gettablefileurl?appName=" + encodeURIComponent(appNameGlobal) + "&tableName=BD_TIENDAS&fileName=" + encodeURIComponent(logoPath);
+        var response = UrlFetchApp.fetch(logoUrl, {muteHttpExceptions: true});
+        
+        if (response.getResponseCode() === 200) {
+          iconBytes = response.getBlob().getBytes();
+        } else {
+          // Si la ruta ya es una URL completa
+          if (logoPath.toString().indexOf('http') === 0) {
+            var directResponse = UrlFetchApp.fetch(logoPath, {muteHttpExceptions: true});
+            if (directResponse.getResponseCode() === 200) {
+              iconBytes = directResponse.getBlob().getBytes();
+            }
+          }
+        }
+      } catch (e) {
+        Logger.log("Error al obtener logo para PWA: " + e.toString());
+      }
+    }
+
+    if (!iconBytes) {
+      // Fallback a PNG transparente
+      var transparentPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+      iconBytes = Utilities.base64Decode(transparentPngBase64);
+    }
+
     var icon192Blob = Utilities.newBlob(iconBytes, 'image/png', 'icon-192x192.png');
     var icon512Blob = Utilities.newBlob(iconBytes, 'image/png', 'icon-512x512.png');
     var faviconBlob = Utilities.newBlob(iconBytes, 'image/x-icon', 'favicon.ico');
