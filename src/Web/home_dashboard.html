@@ -5,10 +5,15 @@
 
 <div class="p-4 sm:p-8 h-full overflow-y-auto custom-scrollbar bg-slate-950">
     <!-- Encabezado Dinámico -->
-    <div class="mb-8">
-        <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Panel de Control</h1>
-        <p class="text-slate-400 text-sm mt-1">Hola <span id="home-user-name"
-                class="text-indigo-400 font-semibold">...</span>, esto está pasando hoy en el sistema.</p>
+    <div class="mb-8 flex justify-between items-start">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Panel de Control</h1>
+            <p class="text-slate-400 text-sm mt-1">Hola <span id="home-user-name"
+                    class="text-indigo-400 font-semibold">...</span>, esto está pasando hoy en el sistema.</p>
+        </div>
+        <button onclick="limpiarCacheGlobal()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition" title="Forzar limpieza de caché">
+            <i class="ph-bold ph-broom text-xl"></i>
+        </button>
     </div>
 
     <!-- Grid de KPIs -->
@@ -241,6 +246,32 @@
             })
             .getHomeDashboardData();
     })();
+
+    function limpiarCacheGlobal() {
+        setGlobalStatus(true, "Limpiando caché del sistema...");
+        google.script.run
+            .withSuccessHandler(res => {
+                setGlobalStatus(false);
+                if (res.success) {
+                    Swal.fire({
+                        title: '¡Caché Limpiada!',
+                        text: res.message,
+                        icon: 'success',
+                        background: '#1e293b', color: '#fff',
+                        confirmButtonColor: '#4f46e5'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({ title: 'Error', text: res.message, icon: 'error', background: '#1e293b', color: '#fff' });
+                }
+            })
+            .withFailureHandler(err => {
+                setGlobalStatus(false);
+                Swal.fire({ title: 'Error', text: err.message, icon: 'error', background: '#1e293b', color: '#fff' });
+            })
+            .clearSystemCache();
+    }
 
     function ejecutarSincronizacionCatalogo() {
         Swal.fire({

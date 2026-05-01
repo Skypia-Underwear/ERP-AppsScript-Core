@@ -238,8 +238,20 @@ function getActiveSS() {
 }
 
 function getAppScriptConfig() {
-  // Solo devolvemos caché si tiene datos (evita propagar fallos temporales)
+  // Solo devolvemos caché de memoria local si tiene datos (evita propagar fallos temporales)
   if (_cacheConfig && Object.keys(_cacheConfig).length > 0) return _cacheConfig;
+
+  // Intentar leer de CacheService (Caché global de Google súper rápida)
+  const cache = CacheService.getScriptCache();
+  const cachedData = cache.get("GLOBAL_SCRIPT_CONFIG");
+  if (cachedData) {
+    try {
+      _cacheConfig = JSON.parse(cachedData);
+      return _cacheConfig;
+    } catch(e) {
+      console.warn("Error parseando cache config: " + e.message);
+    }
+  }
 
   try {
     const config = executeWithRetry(() => {
@@ -257,7 +269,11 @@ function getAppScriptConfig() {
       return cfg;
     });
 
-    if (Object.keys(config).length > 0) _cacheConfig = config;
+    if (Object.keys(config).length > 0) {
+      _cacheConfig = config;
+      // Guardar en caché por 15 minutos (900 segundos)
+      cache.put("GLOBAL_SCRIPT_CONFIG", JSON.stringify(config), 900);
+    }
     return config;
   } catch (e) {
     console.error("Error cargando SCRIPT_CONFIG: " + e.message);

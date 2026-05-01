@@ -5,6 +5,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de Gestión ERP (Punto de Venta, Inventario, Auditoría).">
   <title>Sistema de Gestión CastFer</title>
 
   <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
@@ -405,6 +406,8 @@
     const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
 
     window.catalogFetchPromise = null;
+    window.cachedCatalogData = null; // Caché en memoria para validación
+
     window.getGlobalCatalog = function (readUrl, fallbackUrl) {
       // Usar URLs globales si no se pasan (para llamadas desde el Shell)
       const rUrl = readUrl || CATALOG_URL;
@@ -413,52 +416,80 @@
       if (window.catalogFetchPromise) return window.catalogFetchPromise;
 
       window.catalogFetchPromise = (async () => {
-        console.log("🛰️ [Global Fetch] Intentando carga directa desde Drive (Ultra-Fast)...");
+        let initialData = null;
+        console.log("⚡ [Global Fetch] Estrategia Stale-while-revalidate iniciada.");
+
+        // 1. Carga Ultra Rápida desde Donweb (Caché CDN/Host)
         try {
-          // 1. Intentar Carga desde Drive (Server-Side)
-          const driveRes = await new Promise((resolve) => {
-            google.script.run
-              .withSuccessHandler(res => resolve(res))
-              .withFailureHandler(() => resolve({ success: false }))
-              .tpv_obtenerCatalogoDesdeDrive();
-          });
-
-          if (driveRes && driveRes.success) {
-            console.log("🚀 [Global Fetch] Catálogo cargado instantáneamente desde Drive.");
-            return driveRes.catalog;
-          }
-
-          console.warn("⚠️ [Global Fetch] Drive no disponible, recurriendo a Donweb...");
-
-          // 2. Fallback: Donweb
+          console.log("🚀 [Global Fetch] Solicitando a Donweb...");
           const response = await fetch(rUrl);
-          if (!response.ok) throw new Error("HTTP Error o CORS en Donweb");
-          const data = await response.json();
-
-          // Validación de Caducidad (30 minutos = 1800000 ms)
-          const MAX_AGE_MS = 1800000;
-          const dataAge = Date.now() - (data.timestamp_ms || 0);
-
-          if (dataAge > MAX_AGE_MS) {
-            console.warn(`⏳ [Global Fetch] Datos de Donweb caducos (${Math.round(dataAge / 60000)} min). Forzando Fallback...`);
-            throw new Error("Stale Data");
+          if (response.ok) {
+            initialData = await response.json();
+            window.cachedCatalogData = initialData;
+            console.log("✅ [Global Fetch] Catálogo cargado al instante desde Donweb.");
+          } else {
+            throw new Error("Donweb no respondió OK");
           }
-
-          console.log("✅ [Global Fetch] Catálogo fresco listo desde Donweb.");
-          return data;
-        } catch (error) {
-          console.error(`⚠️ [Global Fetch] Fallo principal: ${error.message}. Activando respaldo GitHub...`);
+        } catch (e) {
+          console.warn("⚠️ [Global Fetch] Fallo en Donweb, recurriendo a Github...", e.message);
           try {
-            const fbResponse = await fetch(fUrl);
-            if (!fbResponse.ok) throw new Error("Fallback también falló.");
-            const fbData = await fbResponse.json();
-            console.log("✅ [Global Fetch] Catálogo listo desde Respaldo.");
-            return fbData;
-          } catch (e) {
-            console.error("❌ [Global Fetch] Fallo total de carga del catálogo.");
-            throw e;
+             const fbResponse = await fetch(fUrl);
+             if (fbResponse.ok) {
+               initialData = await fbResponse.json();
+               window.cachedCatalogData = initialData;
+               console.log("✅ [Global Fetch] Catálogo cargado al instante desde Github.");
+             }
+          } catch(errFb) {
+             console.error("❌ [Global Fetch] Fallo en Donweb y Github.");
           }
         }
+
+        // 2. Validación y Sincronización en Segundo Plano con Drive (Background Refresh)
+        setTimeout(() => {
+          console.log("🔄 [Global Fetch] Sincronizando en segundo plano con Drive...");
+          google.script.run
+            .withSuccessHandler(res => {
+              if (res && res.success && res.catalog) {
+                const driveData = res.catalog;
+                const driveTime = driveData.timestamp_ms || 0;
+                const localTime = window.cachedCatalogData ? (window.cachedCatalogData.timestamp_ms || 0) : 0;
+                
+                // Si Drive tiene datos más recientes (o no teníamos datos)
+                if (driveTime > localTime || !window.cachedCatalogData) {
+                  console.log("✨ [Global Fetch] Nueva versión del catálogo detectada en Drive. Actualizando UI...");
+                  window.cachedCatalogData = driveData;
+                  // Actualizar la promesa para futuras llamadas
+                  window.catalogFetchPromise = Promise.resolve(driveData);
+                  // Despachar evento para que los módulos se actualicen si están abiertos
+                  window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: driveData }));
+                } else {
+                  console.log("👍 [Global Fetch] El catálogo local ya está actualizado.");
+                }
+              }
+            })
+            .withFailureHandler(err => console.error("⚠️ [Global Fetch] Fallo al validar con Drive en 2do plano:", err.message))
+            .tpv_obtenerCatalogoDesdeDrive();
+        }, 100);
+
+        // Devolver lo que pudimos cargar de la red rápida
+        if (initialData) return initialData;
+
+        // 3. Fallback Síncrono (Si fallaron Donweb y Github, forzar espera de Drive)
+        console.warn("⏳ [Global Fetch] Carga rápida falló. Esperando respuesta síncrona de Drive...");
+        return new Promise((resolve, reject) => {
+             google.script.run
+            .withSuccessHandler(res => {
+                if (res && res.success) {
+                   window.cachedCatalogData = res.catalog;
+                   window.catalogFetchPromise = Promise.resolve(res.catalog);
+                   resolve(res.catalog);
+                } else {
+                   reject(new Error("Drive devolvió error."));
+                }
+            })
+            .withFailureHandler(reject)
+            .tpv_obtenerCatalogoDesdeDrive();
+        });
       })();
 
       return window.catalogFetchPromise;
@@ -722,10 +753,14 @@
       if (event.data && event.data.type === 'LOAD_SESSION') {
         const session = event.data.session;
         if (session && session.user) {
+          const currentUserStr = sessionStorage.getItem('loggedInUser');
           console.info('🔑 [ERP] Sesión restaurada desde Shell.');
           sessionStorage.setItem('loggedInUser', JSON.stringify(session.user));
           if (session.password) sessionStorage.setItem('userPassword', session.password);
-          handleInitialRoute();
+          
+          if (!currentUserStr) {
+            handleInitialRoute();
+          }
         }
       }
     });

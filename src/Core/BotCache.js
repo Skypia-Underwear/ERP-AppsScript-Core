@@ -120,6 +120,12 @@ function getFastDailyResumen() {
  * Provee datos de telemetría para el Dashboard de Inicio.
  */
 function getHomeDashboardData() {
+    const cache = CacheService.getScriptCache();
+    const cachedData = cache.get('TELEMETRY_DASHBOARD');
+    if (cachedData) {
+        try { return JSON.parse(cachedData); } catch (e) {}
+    }
+
     try {
         const ventas = getFastDailyResumen();
         const ss = getActiveSS();
@@ -141,13 +147,31 @@ function getHomeDashboardData() {
             }
         }
 
-        return {
+        const returnObj = {
             ventas: { total: ventas.total, cantidad: ventas.cantidad },
             stock: { bajo: stockBajo },
             system: { mode: GLOBAL_CONFIG.TELEGRAM.MODE || "PROD", target: GLOBAL_CONFIG.PUBLICATION_TARGET || "DONWEB" }
         };
+
+        try { cache.put('TELEMETRY_DASHBOARD', JSON.stringify(returnObj), 60); } catch(e) {} // 60 segundos cache
+        return returnObj;
     } catch (e) {
         console.error("Error en getHomeDashboardData: " + e.message);
         return { error: e.message };
+    }
+}
+
+/**
+ * Función pública para limpiar caché global bajo demanda.
+ */
+function clearSystemCache() {
+    try {
+        const cache = CacheService.getScriptCache();
+        cache.remove('GLOBAL_SCRIPT_CONFIG');
+        cache.remove('TELEMETRY_DASHBOARD');
+        cache.remove('BOT_PROD_LIST_MIN');
+        return { success: true, message: "Caché de servidor eliminada. Recarga para ver cambios." };
+    } catch(e) {
+        return { success: false, message: "Error al limpiar caché: " + e.message };
     }
 }

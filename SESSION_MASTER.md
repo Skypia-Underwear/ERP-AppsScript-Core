@@ -4,35 +4,36 @@
 
 ---
 
-## 📅 Sesión: 2026-04-28 (Chat ID: 2b364471-18d8-44df-bbf7-b8640a55b56a)
+## 📅 Sesión: 2026-04-30 (Chat ID: 07a03b83-4476-4d46-8ccd-33563052044a)
 
-**Agente:** Antigravity (Gemini 3.1 Pro)  
+**Agente:** Antigravity (Gemini)  
 **Rol del Ideador:** Arquitecto y validador de decisiones técnicas en campo.
 
 ---
 
 ## ✅ Qué se completó hoy
 
-### Fase: Consolidación Infraestructura PWA Shell (Fase 2)
+### Fase: Industrialización del Empaquetador SaaS (PWA Installer)
 
-#### 1. Persistencia de Sesión (Login Shell ↔ ERP) ✅
-- Se orquestó un puente de sesión bidireccional usando `postMessage` atravesando los sandboxes de Google (`window.top.postMessage` para superar las limitaciones del iframe anidado).
-- **SAVE_SESSION:** Al hacer login exitoso (`login_view.html`), las credenciales viajan hacia la Shell (`index.html`) y se guardan persistentemente en su `localStorage`.
-- **LOAD_SESSION:** Al cargar el ERP, envía un `ERP_READY`. La Shell lo escucha y le responde inyectándole el token almacenado, que el ERP procesa (`systemContainer.html`) y guarda en `sessionStorage`, manteniendo al usuario vivo sin cierres de sesión por inactividad.
+#### 1. Implementación del Backend (SaaS_Installer.gs) ✅
+- Se creó el módulo `SaaS_Installer.js` para la generación automatizada de archivos `.zip` que contienen el App Shell preconfigurado para nuevos clientes.
+- **Bypass Android:** Se incluyó lógica de reemplazo en la URL (`/macros/s/` -> `/a/~/macros/s/`) para asegurar compatibilidad en dispositivos Android con múltiples cuentas de Google.
+- **Generación de manifiesto:** El script inyecta el `GENERAL_ID` extraído dinámicamente para configurar el nombre de la App (`manifest.json` e `index.html`).
 
-#### 2. Corrección de Bug de Comunicación (Timeout del Loader) ✅
-- El loader infinito y el error `dropping postMessage.. was from unexpected window` se resolvieron.
-- Se ajustó el `event.origin` en `index.html` para aceptar mensajes de `script.google.com` y `googleusercontent.com` (los subdominios dinámicos de los sandboxes de Google).
+#### 2. Íconos Dinámicos (Integración con BD_TIENDAS) ✅
+- Se optimizó el proceso de generación de íconos base descargando el logo oficial de la marca desde la ruta generada con la API estática de AppSheet.
+- Se implementó un *fallback* a un PNG 1x1 transparente (Base64) en caso de que la imagen original no exista o la descarga falle, garantizando así la instalación de la PWA sin errores.
 
-#### 3. Mejora Visual y Branding (Logo) ✅
-- Se le dio legibilidad completa al logo en PNG (fondo transparente + letras negras) encapsulándolo dentro de un contenedor circular con fondo blanco puro (`#ffffff`), sombra dinámica y centrado flexbox, creando un aspecto visual impecable contra el fondo oscuro `#0f172a`.
+#### 3. Estructura de SSL y Documentación ✅
+- El generador inyecta un archivo placeholder (`PUNCHSALAD_AQUI.txt`) que crea automáticamente la ruta `.well-known/acme-challenge/` en el `.zip` para facilitar la configuración del SSL gratuito (PunchSalad).
+- Se redactó dinámicamente un archivo `LEEME_INSTALACION.txt` instruyendo paso a paso al operador.
 
-#### 4. Limpieza Estructural de Activos ✅
-- Se eliminó del `README-INFRAESTRUCTURA.md` la dependencia obsoleta de la subcarpeta `/icons/`.
-- La arquitectura consolidó el uso de los activos (`icon-192x192.png`, `icon-512x512.png`, `favicon.ico`) alojados directamente en la raíz `/system-erp/` evadiendo las protecciones de Anti-Hotlink y eliminando la necesidad del archivo `/icons/.htaccess`.
+#### 4. Interfaz Administrativa ✅
+- Se integró un botón de generación en el dashboard principal (`home_dashboard.html`), visible exclusivamente para usuarios con roles de administrador.
+- Se solucionó la sensibilidad de mayúsculas (case-sensitivity) en la validación del rol en el frontend para que la vista renderice de forma robusta e infalible.
 
-#### 5. Despliegue Masivo Exitoso ✅
-- Se ejecutó el flujo coordinado `@[/deploy-all]`, actualizando tanto la base de código central en GitHub, como la macro principal de desarrollo y la macro en producción del cliente Castfer (Versión 534/535).
+#### 5. Sincronización Exitosa ✅
+- Múltiples despliegues globales (`@[/deploy-all]`) realizados para actualizar la Macro Principal, GitHub y el Entorno de Producción del Cliente.
 
 ---
 
@@ -42,12 +43,11 @@
 
 | Tarea | Prioridad | Estado |
 |---|---|---|
-| Definir y avanzar en módulos internos del ERP | Alta | ⏳ Pendiente |
-| Auditoría de funciones existentes o creación de nuevos módulos | Media | ⏳ Pendiente |
+| Auditoría de nuevos módulos o refinamiento del TPV | Alta | ⏳ Pendiente |
 
 **Contexto técnico para la próxima sesión:**
-- La infraestructura externa (PWA, Login Persistente, Routing inicial) ya funciona al 100% como un SaaS.
-- Los desarrollos a partir de ahora se centran enteramente en potenciar las lógicas de negocio, reportes y herramientas del ERP.
+- El sistema de empaquetado "SaaS Installer Plug & Play" ya es 100% operativo.
+- Futuros desarrollos apuntan directamente a lógicas de negocio, reportes y herramientas del propio ERP.
 
 ---
 
@@ -55,12 +55,11 @@
 
 ```
 Macros HostingShop/
-└── pwa-shell/
-    └── system-erp/
-        ├── index.html                  ← App Shell (Actualizada comunicación y diseño)
-        ├── manifest.json               
-        ├── sw.js                       
-        └── ...
+├── src/
+│   ├── Modules/
+│   │   └── SaaS_Installer.js   ← Motor de empaquetado ZIP
+│   └── Web/
+│       └── home_dashboard.html ← Interfaz de disparo
 ```
 
 ---
@@ -74,4 +73,4 @@ Macros HostingShop/
 
 ---
 
-*Última actualización: 2026-04-28T19:04 ART · Agente: Antigravity*
+*Última actualización: 2026-04-30 ART · Agente: Antigravity*
