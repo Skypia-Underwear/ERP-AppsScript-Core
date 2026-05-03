@@ -27,6 +27,7 @@ function archivarVentasEnBigQuery() {
         const dPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DETALLE_VENTAS));
         const clientes = convertirRangoAObjetos(ss.getSheetByName(SHEETS.CLIENTS));
         const cajas = convertirRangoAObjetos(ss.getSheetByName(SHEETS.GESTION_CAJA));
+        const transferencia = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DATOS_TRANSFERENCIA));
 
         // --- 2. MAPEO DINÁMICO (FUENTE DE VERDAD: COLUMNS) ---
         const mapRows = (data, colArray, extra = {}) => {
@@ -46,27 +47,33 @@ function archivarVentasEnBigQuery() {
         };
 
         // --- 3. CONSOLIDAR VENTAS Y DETALLES ---
+        
+        // Ventas (Pedidos + Blogger mapeados al esquema de VENTAS_PEDIDOS)
         const vLocalesBQ = mapRows(vPedidos, COLUMNS.VENTAS_PEDIDOS, { ORIGEN: () => "Pedido Local" });
         const vBloggerBQ = mapRows(vBlogger, COLUMNS.VENTAS_PEDIDOS, { 
             VENTA_ID: (d) => String(d.CODIGO || ""),
             ORIGEN: () => "Blogger" 
         });
 
+        // Detalles (Pedidos + Blogger mapeados al esquema de DETALLE_VENTAS)
         const dLocalesBQ = mapRows(dPedidos, COLUMNS.DETALLE_VENTAS);
         const dBloggerBQ = mapRows(dBlogger, COLUMNS.DETALLE_VENTAS, {
             VARIACION_ID: (d) => String(d.VARIEDAD_ID || d.VARIACION_ID || ""),
             DESCRIPCION_VENTA: (d) => String(d.PRODUCTO_VARIACION || d.DESCRIPCION_VENTA || "")
         });
 
-        // --- 4. SUBIR A BIGQUERY (MODO ESPEJO) ---
+        // --- 4. SUBIR A BIGQUERY (MODO ESPEJO / TRUNCATE) ---
         const sync = (tab, data) => pushToBigQuery(BQ_CONFIG.DATASET_ID, tab, data, 'WRITE_TRUNCATE');
 
         if (vLocalesBQ.length || vBloggerBQ.length) sync(BQ_CONFIG.TABLE_VENTAS, [...vLocalesBQ, ...vBloggerBQ]);
         if (dLocalesBQ.length || dBloggerBQ.length) sync(BQ_CONFIG.TABLE_DETALLES, [...dLocalesBQ, ...dBloggerBQ]);
+        
+        // Tablas de Referencia (Espejo de tus hojas de cálculo)
         if (clientes.length) sync("HISTORIAL_CLIENTES", mapRows(clientes, COLUMNS.CLIENTS));
         if (cajas.length) sync("HISTORIAL_CAJAS", mapRows(cajas, COLUMNS.GESTION_CAJA));
+        if (transferencia.length) sync("HISTORIAL_TRANSFERENCIAS", mapRows(transferencia, COLUMNS.DATOS_TRANSFERENCIA));
 
-        debugLog(`🚀 BigQuery Industrial: Sincronización exitosa.`);
+        debugLog(`🚀 BigQuery Industrial: Sincronización completa (Ventas, Clientes, Cajas, Bancos).`);
         return { success: true };
 
     } catch (e) {
@@ -76,7 +83,7 @@ function archivarVentasEnBigQuery() {
 }
 
 /**
- * Consulta optimizada para el Dashboard.
+ * Consulta optimizada para el Dashboard (Cabeceras).
  */
 function tpv_querySalesFromBigQuery() {
     const projectId = BQ_CONFIG.PROJECT_ID;
@@ -90,7 +97,7 @@ function tpv_querySalesFromBigQuery() {
             const bqRow = {};
             row.f.forEach((field, index) => { bqRow[results.schema.fields[index].name] = field.v; });
 
-            // Parsear Transferencia si existe
+            // Parsear Transferencia si existe (Formato BCO: XXX, ALIAS: YYY)
             let bco = "N/A", ali = "N/A";
             const dt = bqRow.DATOS_TRANSFERENCIA || "";
             if (dt.includes("BCO:")) bco = dt.split("BCO:")[1].split(",")[0].trim();
@@ -120,9 +127,7 @@ function tpv_querySalesFromBigQuery() {
                 detalles: []
             };
         });
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
 /**
@@ -170,5 +175,6 @@ function pushToBigQuery(datasetId, tableId, rows, writeDisposition = 'WRITE_APPE
         }
     };
     const data = rows.map(r => JSON.stringify(r)).join('\n');
-    return BigQuery.Jobs.insert(job, projectId, Utilities.newBlob(data, 'application/octet-stream'));
+    const blob = Utilities.newBlob(data, 'application/octet-stream');
+    return BigQuery.Jobs.insert(job, projectId, blob);
 }
