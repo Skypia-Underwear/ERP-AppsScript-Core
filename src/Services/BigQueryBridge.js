@@ -1,6 +1,7 @@
 /**
  * ARCHIVO: BigQueryBridge.js
  * LÓGICA DE CONEXIÓN CON DATA WAREHOUSE (V1.0)
+ * RESPETANDO ESTRICTAMENTE CONSTANTS.JS
  */
 
 const BQ_CONFIG = {
@@ -11,150 +12,89 @@ const BQ_CONFIG = {
 };
 
 /**
- * Función Maestra: Toma las ventas y sus detalles de las hojas y las sube a BigQuery.
+ * Función Maestra: Sincroniza el ecosistema completo con BigQuery usando COLUMNS.
  */
 function archivarVentasEnBigQuery() {
-    if (!GLOBAL_CONFIG.ENABLE_BIGQUERY) {
-        debugLog("ℹ️ BigQuery está desactivado en la configuración global.");
-        return { success: true, message: "BigQuery desactivado (Postergado)." };
-    }
+    if (!GLOBAL_CONFIG.ENABLE_BIGQUERY) return { success: true };
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    const timezone = Session.getScriptTimeZone();
 
     try {
-        // --- 1. PROCESAR CABECERAS DE VENTAS ---
-        const ventasBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES));
-        const ventasPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.VENTAS_PEDIDOS));
+        // --- 1. CARGAR DATOS ---
+        const vBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES));
+        const vPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.VENTAS_PEDIDOS));
+        const dBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS));
+        const dPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DETALLE_VENTAS));
+        const clientes = convertirRangoAObjetos(ss.getSheetByName(SHEETS.CLIENTS));
+        const cajas = convertirRangoAObjetos(ss.getSheetByName(SHEETS.GESTION_CAJA));
 
-        const timezone = Session.getScriptTimeZone();
-        const todasLasVentas = [...ventasBlogger, ...ventasPedidos].map(v => {
-            let fechaObj = v.FECHA instanceof Date ? v.FECHA : new Date(v.FECHA);
-            let fechaStr = isNaN(fechaObj.getTime()) ? String(v.FECHA || "") : Utilities.formatDate(fechaObj, timezone, "yyyy-MM-dd");
-
-            return {
-                VENTA_ID: String(v.CODIGO || v.VENTA_ID || ""),
-                TIENDA_ID: String(v.TIENDA_ID || ""),
-                ASESOR_ID: String(v.ASESOR_ID || ""),
-                FECHA: fechaStr,
-                HORA: String(v.HORA || ""),
-                CLIENTE_ID: String(v.CLIENTE_ID || ""),
-                CAJA_ID: String(v.CAJA_ID || v.CAJA || ""),
-                TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
-                COMPRA_MINIMA: parseFloat(v.COMPRA_MINIMA || 0) || 0,
-                PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase(),
-                METODO_PAGO: String(v.METODO_PAGO || ""),
-                DATOS_TRANSFERENCIA: String(v.DATOS_TRANSFERENCIA || ""),
-                DESACTIVAR_RECARGO_TRANSFERENCIA: String(v.DESACTIVAR_RECARGO_TRANSFERENCIA || "FALSE").toUpperCase(),
-                MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-                PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
-                SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
-                RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
-                COSTO_ENVIO: parseFloat(v.COSTO_ENVIO || 0) || 0,
-                RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA || 0) || 0,
-                TOTAL_VENTA: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-                ESTADO: String(v.ESTADO || ""),
-                CAMBIOS: String(v.CAMBIOS || ""),
-                COMPROBANTE_FILE: String(v.COMPROBANTE_FILE || ""),
-                DETALLE_AUDITORIA_IA: String(v.DETALLE_AUDITORIA_IA || ""),
-                DETALLE_JSON: typeof v.DETALLE_JSON === 'string' ? v.DETALLE_JSON : JSON.stringify(v.DETALLE_JSON || {}),
-                ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local"
-            };
-        });
-
-        // --- 2. PROCESAR DETALLES DE VENTAS ---
-        const detallesBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS));
-        const detallesPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DETALLE_VENTAS));
-
-        const todosLosDetalles = [...detallesBlogger, ...detallesPedidos].map(d => ({
-            VENTA_ID: String(d.CODIGO || d.VENTA_ID || ""),
-            REGISTRO_ID: String(d.REGISTRO_ID || ""),
-            SCAN: String(d.SCAN || ""),
-            VARIACION_ID: String(d.VARIEDAD_ID || d.VARIACION_ID || ""),
-            CATEGORIA_PADRE: String(d.CATEGORIA_PADRE || ""),
-            CATEGORIA: String(d.CATEGORIA || ""),
-            TEMPORADA: String(d.TEMPORADA || ""),
-            PRODUCTO_ID: String(d.PRODUCTO_ID || d.CODIGO_ID || ""),
-            COLOR: String(d.COLOR || ""),
-            TALLE: String(d.TALLE || ""),
-            TIPO_PRECIO: String(d.TIPO_PRECIO || ""),
-
-        return {
-            success: true,
-            message: `Archivado exitoso: ${todasLasVentas.length} ventas y ${todosLosDetalles.length} detalles.`
+        // --- 2. MAPEO DINÁMICO (FUENTE DE VERDAD: COLUMNS) ---
+        const mapRows = (data, colArray, extra = {}) => {
+            return data.map(d => {
+                const row = {};
+                colArray.forEach(col => {
+                    let val = d[col];
+                    if (val instanceof Date) {
+                        const fmt = (col === "FECHA") ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm:ss";
+                        val = Utilities.formatDate(val, timezone, fmt);
+                    }
+                    row[col] = (val !== undefined && val !== null) ? val : "";
+                });
+                Object.keys(extra).forEach(k => { row[k] = extra[k](d); });
+                return row;
+            });
         };
 
+        // --- 3. CONSOLIDAR VENTAS Y DETALLES ---
+        const vLocalesBQ = mapRows(vPedidos, COLUMNS.VENTAS_PEDIDOS, { ORIGEN: () => "Pedido Local" });
+        const vBloggerBQ = mapRows(vBlogger, COLUMNS.VENTAS_PEDIDOS, { 
+            VENTA_ID: (d) => String(d.CODIGO || ""),
+            ORIGEN: () => "Blogger" 
+        });
+
+        const dLocalesBQ = mapRows(dPedidos, COLUMNS.DETALLE_VENTAS);
+        const dBloggerBQ = mapRows(dBlogger, COLUMNS.DETALLE_VENTAS, {
+            VARIACION_ID: (d) => String(d.VARIEDAD_ID || d.VARIACION_ID || ""),
+            DESCRIPCION_VENTA: (d) => String(d.PRODUCTO_VARIACION || d.DESCRIPCION_VENTA || "")
+        });
+
+        // --- 4. SUBIR A BIGQUERY (MODO ESPEJO) ---
+        const sync = (tab, data) => pushToBigQuery(BQ_CONFIG.DATASET_ID, tab, data, 'WRITE_TRUNCATE');
+
+        if (vLocalesBQ.length || vBloggerBQ.length) sync(BQ_CONFIG.TABLE_VENTAS, [...vLocalesBQ, ...vBloggerBQ]);
+        if (dLocalesBQ.length || dBloggerBQ.length) sync(BQ_CONFIG.TABLE_DETALLES, [...dLocalesBQ, ...dBloggerBQ]);
+        if (clientes.length) sync("HISTORIAL_CLIENTES", mapRows(clientes, COLUMNS.CLIENTS));
+        if (cajas.length) sync("HISTORIAL_CAJAS", mapRows(cajas, COLUMNS.GESTION_CAJA));
+
+        debugLog(`🚀 BigQuery Industrial: Sincronización exitosa.`);
+        return { success: true };
+
     } catch (e) {
-        debugLog(`❌ Error en archivarVentasEnBigQuery: ${e.message}`);
+        debugLog(`❌ Error BigQuery Bridge: ${e.message}`);
         return { success: false, message: e.message };
     }
 }
 
 /**
- * Función genérica de carga (JSON Newline) con reintentos (V2.0)
+ * Consulta optimizada para el Dashboard.
  */
-function pushToBigQuery(datasetId, tableId, rows) {
-    const projectId = BQ_CONFIG.PROJECT_ID;
-
-    const job = {
-        configuration: {
-            load: {
-                destinationTable: { projectId: projectId, datasetId: datasetId, tableId: tableId },
-                writeDisposition: 'WRITE_APPEND',
-                sourceFormat: 'NEWLINE_DELIMITED_JSON',
-                autodetect: true
-            }
-        }
-    };
-
-    const data = rows.map(row => JSON.stringify(row)).join('\n');
-    const blob = Utilities.newBlob(data, 'application/octet-stream');
-
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    while (attempts < maxAttempts) {
-        try {
-            attempts++;
-            const loadJob = BigQuery.Jobs.insert(job, projectId, blob);
-            return loadJob;
-        } catch (e) {
-            const msg = e.message || "";
-            const isTransient = msg.includes("503") || msg.includes("Service Unavailable") || msg.includes("Rate limit");
-
-            if (isTransient && attempts < maxAttempts) {
-                const delay = Math.pow(2, attempts) * 1000;
-                debugLog(`⚠️ [BigQuery] Error temporal (503). Reintentando en ${delay}ms... (Intento ${attempts})`);
-                Utilities.sleep(delay);
-            } else {
-                throw e;
-            }
-        }
-    }
-}
-
 function tpv_querySalesFromBigQuery() {
     const projectId = BQ_CONFIG.PROJECT_ID;
-    const datasetId = BQ_CONFIG.DATASET_ID;
-    const tableVentas = BQ_CONFIG.TABLE_VENTAS;
-
-    const query = `SELECT * FROM \`${projectId}.${datasetId}.${tableVentas}\` ORDER BY FECHA DESC, HORA DESC LIMIT 5000`;
+    const query = `SELECT * FROM \`${projectId}.${BQ_CONFIG.DATASET_ID}.${BQ_CONFIG.TABLE_VENTAS}\` ORDER BY FECHA DESC, HORA DESC LIMIT 5000`;
 
     try {
-        let queryResults = BigQuery.Jobs.query({ query: query, useLegacySql: false }, projectId);
-        const rows = queryResults.rows;
-        if (!rows) return [];
+        let results = BigQuery.Jobs.query({ query: query, useLegacySql: false }, projectId);
+        if (!results.rows) return [];
 
-        return rows.map(row => {
+        return results.rows.map(row => {
             const bqRow = {};
-            row.f.forEach((field, index) => {
-                const colName = queryResults.schema.fields[index].name;
-                bqRow[colName] = field.v;
-            });
+            row.f.forEach((field, index) => { bqRow[results.schema.fields[index].name] = field.v; });
 
-            // Extraer Banco/Alias de DATOS_TRANSFERENCIA si existe
-            let banco = "N/A", alias = "N/A";
+            // Parsear Transferencia si existe
+            let bco = "N/A", ali = "N/A";
             const dt = bqRow.DATOS_TRANSFERENCIA || "";
-            if (dt.includes("BCO:")) banco = dt.split("BCO:")[1].split(",")[0].trim();
-            if (dt.includes("ALIAS:")) alias = dt.split("ALIAS:")[1].split(",")[0].trim();
+            if (dt.includes("BCO:")) bco = dt.split("BCO:")[1].split(",")[0].trim();
+            if (dt.includes("ALIAS:")) ali = dt.split("ALIAS:")[1].split(",")[0].trim();
 
             return {
                 id: String(bqRow.VENTA_ID),
@@ -175,35 +115,30 @@ function tpv_querySalesFromBigQuery() {
                 subtotal: parseFloat(bqRow.SUBTOTAL) || 0,
                 tipoVenta: bqRow.TIPO_VENTA,
                 pagoMixto: String(bqRow.PAGO_MIXTO).toUpperCase() === 'TRUE',
-                bancoTransferencia: banco,
-                aliasTransferencia: alias,
+                bancoTransferencia: bco,
+                aliasTransferencia: ali,
                 detalles: []
             };
         });
     } catch (e) {
-        debugLog("❌ Error BigQuery: " + e.message);
         return null;
     }
 }
 
+/**
+ * Detalles on-demand para Lazy Loading.
+ */
 function tpv_getSaleDetailsFromBigQuery(ventaId) {
     const projectId = BQ_CONFIG.PROJECT_ID;
-    const datasetId = BQ_CONFIG.DATASET_ID;
-    const tableDetalles = BQ_CONFIG.TABLE_DETALLES;
-
-    const query = `SELECT * FROM \`${projectId}.${datasetId}.${tableDetalles}\` WHERE VENTA_ID = '${ventaId}'`;
+    const query = `SELECT * FROM \`${projectId}.${BQ_CONFIG.DATASET_ID}.${BQ_CONFIG.TABLE_DETALLES}\` WHERE VENTA_ID = '${ventaId}'`;
 
     try {
-        const queryResults = BigQuery.Jobs.query({ query: query, useLegacySql: false }, projectId);
-        if (!queryResults.rows) return [];
+        const res = BigQuery.Jobs.query({ query: query, useLegacySql: false }, projectId);
+        if (!res.rows) return [];
 
-        return queryResults.rows.map(row => {
+        return res.rows.map(row => {
             const d = {};
-            row.f.forEach((field, index) => {
-                const colName = queryResults.schema.fields[index].name;
-                d[colName] = field.v;
-            });
-
+            row.f.forEach((field, index) => { d[res.schema.fields[index].name] = field.v; });
             return {
                 registroId: d.REGISTRO_ID,
                 productoId: d.PRODUCTO_ID,
@@ -216,7 +151,24 @@ function tpv_getSaleDetailsFromBigQuery(ventaId) {
                 variedadId: d.VARIACION_ID
             };
         });
-    } catch (e) {
-        return [];
-    }
+    } catch (e) { return []; }
+}
+
+/**
+ * Carga genérica JSON a BigQuery.
+ */
+function pushToBigQuery(datasetId, tableId, rows, writeDisposition = 'WRITE_APPEND') {
+    const projectId = BQ_CONFIG.PROJECT_ID;
+    const job = {
+        configuration: {
+            load: {
+                destinationTable: { projectId, datasetId, tableId },
+                writeDisposition: writeDisposition,
+                sourceFormat: 'NEWLINE_DELIMITED_JSON',
+                autodetect: true
+            }
+        }
+    };
+    const data = rows.map(r => JSON.stringify(r)).join('\n');
+    return BigQuery.Jobs.insert(job, projectId, Utilities.newBlob(data, 'application/octet-stream'));
 }
