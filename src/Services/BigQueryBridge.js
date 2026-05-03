@@ -112,7 +112,7 @@ function pushToBigQuery(datasetId, tableId, rows) {
                 destinationTable: { projectId: projectId, datasetId: datasetId, tableId: tableId },
                 writeDisposition: 'WRITE_APPEND',
                 sourceFormat: 'NEWLINE_DELIMITED_JSON',
-                autodetect: false
+                autodetect: true
             }
         }
     };
