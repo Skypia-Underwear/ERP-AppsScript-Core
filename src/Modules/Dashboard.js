@@ -53,6 +53,16 @@ function cargarDashboardVentas() {
 }
 
 /**
+ * Función puente para obtener detalles de una venta específica (Lazy Loading).
+ */
+function getSaleDetails(saleId, origen) {
+    if (GLOBAL_CONFIG.ENABLE_BIGQUERY) {
+        return tpv_getSaleDetailsFromBigQuery(saleId);
+    }
+    return []; 
+}
+
+/**
  * Consolida y devuelve todas las ventas procesando las hojas de cálculo (Carga Pesada).
  */
 function cargarDashboardVentas_HEAVY() {

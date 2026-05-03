@@ -149,42 +149,21 @@ function pushToBigQuery(datasetId, tableId, rows) {
     }
 }
 /**
- * Consulta el historial de ventas completo (con detalles) desde BigQuery.
- * Usa ARRAY_AGG para traer los detalles anidados de forma eficiente.
+ * Consulta el historial de ventas (cabeceras solamente para velocidad) desde BigQuery.
  */
 function tpv_querySalesFromBigQuery() {
     const projectId = BQ_CONFIG.PROJECT_ID;
     const datasetId = BQ_CONFIG.DATASET_ID;
     const tableVentas = BQ_CONFIG.TABLE_VENTAS;
-    const tableDetalles = BQ_CONFIG.TABLE_DETALLES;
 
-    // Consulta SQL Industrial: Join entre cabecera y detalle con agregación anidada
     const query = `
-        SELECT 
-            v.*,
-            ARRAY_AGG(STRUCT(
-                d.REGISTRO_ID, d.PRODUCTO_ID, d.DESCRIPCION_VENTA as descripcion, 
-                d.CANTIDAD as cantidad, d.PRECIO as precioUnitario, d.MONTO as subtotal,
-                d.COLOR as color, d.TALLE as talle, d.VARIACION_ID as variedadId
-            )) as detalles_anidados
-        FROM \`${projectId}.${datasetId}.${tableVentas}\` v
-        LEFT JOIN \`${projectId}.${datasetId}.${tableDetalles}\` d ON v.VENTA_ID = d.VENTA_ID
-        GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26
-        ORDER BY v.FECHA DESC, v.HORA DESC
+        SELECT * FROM \`${projectId}.${datasetId}.${tableVentas}\`
+        ORDER BY FECHA DESC, HORA DESC
         LIMIT 5000
     `;
 
-    const request = { query: query, useLegacySql: false };
-
     try {
-        let queryResults = BigQuery.Jobs.query(request, projectId);
-        const jobId = queryResults.jobReference.jobId;
-
-        while (!queryResults.jobComplete) {
-            Utilities.sleep(500);
-            queryResults = BigQuery.Jobs.getQueryResults(projectId, jobId);
-        }
-
+        let queryResults = BigQuery.Jobs.query({ query: query, useLegacySql: false }, projectId);
         const rows = queryResults.rows;
         if (!rows) return [];
 
@@ -195,38 +174,22 @@ function tpv_querySalesFromBigQuery() {
                 bqRow[colName] = field.v;
             });
 
-            // Recomponer Detalles con nombres de campos exactos para el Ranking del Dashboard
-            const detalles = (bqRow.detalles_anidados || []).map(d => {
-              const item = {};
-              if (!d.v || !d.v.f) return null;
-              
-              // Mapeo por índice según el STRUCT del SQL en la consulta
-              // d.REGISTRO_ID, d.PRODUCTO_ID, d.DESCRIPCION_VENTA, d.CANTIDAD, d.PRECIO, d.MONTO, d.COLOR, d.TALLE, d.VARIEDAD_ID
-              const fieldNames = ['registroId', 'productoId', 'descripcion', 'cantidad', 'precioUnitario', 'subtotal', 'color', 'talle', 'variedadId'];
-              d.v.f.forEach((field, idx) => {
-                 let val = field.v;
-                 // Forzar números para campos de cálculo
-                 if (idx === 3 || idx === 4 || idx === 5) val = parseFloat(val) || 0;
-                 item[fieldNames[idx]] = val;
-              });
-              return item;
-            }).filter(d => d && d.productoId);
-
-            // Formatear Fecha para compatibilidad con filtros (yyyy-MM-dd HH:mm)
-            let fechaLimpia = String(bqRow.FECHA || "").trim();
-            let horaLimpia = String(bqRow.HORA || "").trim();
-            // Si la fecha viene como DD/MM/YYYY o similar, habría que normalizarla aquí. 
-            // Asumimos YYYY-MM-DD que es el estándar de BQ.
-            const fechaFinal = horaLimpia ? `${fechaLimpia} ${horaLimpia}` : `${fechaLimpia} 00:00`;
+            // Normalización de Origen y Datos de Transferencia
+            let origenNormalizado = bqRow.ORIGEN === "Blogger" ? "Blogger" : "Pedido Local";
+            
+            // Intentar extraer Banco y Alias de la cadena DATOS_TRANSFERENCIA
+            let banco = "N/A", alias = "N/A";
+            const dt = bqRow.DATOS_TRANSFERENCIA || "";
+            if (dt.includes("BCO:")) banco = dt.split("BCO:")[1].split(",")[0].trim();
+            if (dt.includes("ALIAS:")) alias = dt.split("ALIAS:")[1].split(",")[0].trim();
 
             return {
                 id: String(bqRow.VENTA_ID),
-                fecha: fechaFinal,
-                origen: bqRow.ORIGEN,
+                fecha: `${bqRow.FECHA} ${bqRow.HORA || "00:00"}`,
+                origen: origenNormalizado,
                 estado: bqRow.ESTADO,
                 total: parseFloat(bqRow.TOTAL_VENTA) || 0,
                 clienteId: bqRow.CLIENTE_ID,
-                nombreCliente: bqRow.CLIENTE_NOMBRE || 'Cliente',
                 tiendaId: bqRow.TIENDA_ID,
                 metodoPago: bqRow.METODO_PAGO,
                 cajaId: bqRow.CAJA_ID,
@@ -240,12 +203,55 @@ function tpv_querySalesFromBigQuery() {
                 subtotal: parseFloat(bqRow.SUBTOTAL) || 0,
                 tipoVenta: bqRow.TIPO_VENTA,
                 pagoMixto: String(bqRow.PAGO_MIXTO).toUpperCase() === 'TRUE',
-                detalles: detalles
+                bancoTransferencia: banco,
+                aliasTransferencia: alias,
+                detalles: [] // Carga diferida activa
             };
         });
-
     } catch (e) {
         debugLog("❌ Error consultando BigQuery: " + e.message);
         return null;
+    }
+}
+
+/**
+ * Obtiene los detalles de una venta específica desde BigQuery.
+ */
+function tpv_getSaleDetailsFromBigQuery(ventaId) {
+    const projectId = BQ_CONFIG.PROJECT_ID;
+    const datasetId = BQ_CONFIG.DATASET_ID;
+    const tableDetalles = BQ_CONFIG.TABLE_DETALLES;
+
+    const query = `
+        SELECT * FROM \`${projectId}.${datasetId}.${tableDetalles}\`
+        WHERE VENTA_ID = '${ventaId}'
+    `;
+
+    try {
+        const queryResults = BigQuery.Jobs.query({ query: query, useLegacySql: false }, projectId);
+        if (!queryResults.rows) return [];
+
+        return queryResults.rows.map(row => {
+            const d = {};
+            row.f.forEach((field, index) => {
+                const colName = queryResults.schema.fields[index].name;
+                d[colName] = field.v;
+            });
+
+            return {
+                registroId: d.REGISTRO_ID,
+                productoId: d.PRODUCTO_ID,
+                descripcion: d.DESCRIPCION_VENTA,
+                cantidad: parseFloat(d.CANTIDAD) || 0,
+                precioUnitario: parseFloat(d.PRECIO) || 0,
+                subtotal: parseFloat(d.MONTO) || 0,
+                color: d.COLOR,
+                talle: d.TALLE,
+                variedadId: d.VARIACION_ID
+            };
+        });
+    } catch (e) {
+        debugLog("❌ Error buscando detalles en BigQuery: " + e.message);
+        return [];
     }
 }

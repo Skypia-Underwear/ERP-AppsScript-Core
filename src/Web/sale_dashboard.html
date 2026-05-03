@@ -786,9 +786,31 @@
   // --- MODAL (Compactado y Adaptado a Dark Mode) ---
   function openModal(saleId) {
     const s = allSalesData.find(x => x.id === saleId); if (!s) return;
-    document.getElementById('modal-subtitle').textContent = `ID: ${s.id} | ${s.fecha}`;
+    
+    // Si no hay detalles (Modo Industrial / Lazy Load), los pedimos al servidor
+    if (!s.detalles || s.detalles.length === 0) {
+      document.getElementById('modal-subtitle').textContent = `Cargando detalles de ID: ${s.id}...`;
+      google.script.run.withSuccessHandler(detalles => {
+        s.detalles = detalles.map(d => ({ ...d, precioUnitario: parseMonto(d.precioUnitario), subtotal: parseMonto(d.subtotal) }));
+        renderModalContent(s);
+      }).getSaleDetails(s.id, s.origen);
+      
+      // Mostrar pantalla de carga interna
+      document.getElementById('modal-body-content').innerHTML = `
+        <div class="flex flex-col items-center justify-center py-12 text-slate-500">
+            <div class="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+            <p class="text-xs font-bold uppercase tracking-widest">Consultando BigQuery...</p>
+        </div>`;
+      modalElement.classList.add('active');
+    } else {
+      renderModalContent(s);
+    }
+  }
 
-    // TEMPLATE STRINGS ADAPTADOS A DARK MODE
+  function renderModalContent(s) {
+    document.getElementById('modal-subtitle').textContent = `ID: ${s.id} | ${s.fecha}`;
+    const modalBody = document.getElementById('modal-body-content');
+
     let h = `<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <!-- CLIENT CARD -->
             <div class="p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden">
@@ -797,11 +819,11 @@
                     <span class="material-icons text-indigo-400 bg-indigo-500/10 p-1 rounded-md text-sm">person</span>
                     <h4 class="font-bold text-slate-400 text-xs uppercase">Cliente</h4>
                 </div>
-                <p class="text-base font-bold text-white truncate">${s.nombreCliente}</p>
+                <p class="text-base font-bold text-white truncate">${s.nombreCliente || 'Cliente'}</p>
                 <p class="text-xs text-slate-500 mb-2">ID: ${s.clienteId}</p>
                 <div class="text-xs text-slate-400 bg-slate-900/50 p-2 rounded border border-slate-700">
-                    <div class="flex justify-between"><span>Asesor:</span> <span class="font-bold text-slate-200">${s.asesor}</span></div>
-                    <div class="flex justify-between mt-1"><span>Caja:</span> <span class="font-mono text-slate-200">${s.cajaId}</span></div>
+                    <div class="flex justify-between"><span>Asesor:</span> <span class="font-bold text-slate-200">${s.asesor || 'N/A'}</span></div>
+                    <div class="flex justify-between mt-1"><span>Caja:</span> <span class="font-mono text-slate-200">${s.cajaId || 'N/A'}</span></div>
                 </div>
             </div>
 
@@ -816,7 +838,7 @@
                     <span class="${s.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'} text-xs">${s.origen}</span>
                     <span class="px-2 py-0.5 bg-slate-700 text-slate-200 rounded text-xs font-bold border border-slate-600">${s.metodoPago}</span>
                 </div>
-                ${s.metodoPago.toLowerCase().includes('transferencia') ? `<div class="bg-blue-900/20 p-2 rounded border border-blue-500/20 text-xs text-blue-300 mb-2"><p><strong>BCO:</strong> ${s.bancoTransferencia}</p><p><strong>ALIAS:</strong> ${s.aliasTransferencia}</p></div>` : ''}
+                ${s.metodoPago.toLowerCase().includes('transferencia') ? `<div class="bg-blue-900/20 p-2 rounded border border-blue-500/20 text-xs text-blue-300 mb-2"><p><strong>BCO:</strong> ${s.bancoTransferencia || 'N/A'}</p><p><strong>ALIAS:</strong> ${s.aliasTransferencia || 'N/A'}</p></div>` : ''}
                 
                 <div class="flex flex-wrap gap-2 mt-2 pt-2 border-t border-slate-700">
                     ${s.pagoMixto ? '<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 text-[10px] font-bold border border-purple-500/20">Pago Mixto</span>' : ''}
@@ -825,7 +847,7 @@
                 </div>
             </div>
 
-            <!-- TOTALS CARD (No change needed, already dark styled in original, just removed white styles) -->
+            <!-- TOTALS CARD -->
             <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 shadow-sm text-white flex flex-col justify-center relative overflow-hidden">
               <div class="absolute -top-6 -right-6 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl"></div>
               <div class="space-y-1 text-sm mb-3 relative z-10">
