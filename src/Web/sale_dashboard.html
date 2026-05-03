@@ -786,7 +786,7 @@
   // --- MODAL (Compactado y Adaptado a Dark Mode) ---
   function openModal(saleId) {
     const s = allSalesData.find(x => x.id === saleId); if (!s) return;
-    
+
     // Si no hay detalles (Modo Industrial / Lazy Load), los pedimos al servidor
     if (!s.detalles || s.detalles.length === 0) {
       document.getElementById('modal-subtitle').textContent = `Cargando detalles de ID: ${s.id}...`;
@@ -794,7 +794,7 @@
         s.detalles = detalles.map(d => ({ ...d, precioUnitario: parseMonto(d.precioUnitario), subtotal: parseMonto(d.subtotal) }));
         renderModalContent(s);
       }).getSaleDetails(s.id, s.origen);
-      
+
       // Mostrar pantalla de carga interna
       document.getElementById('modal-body-content').innerHTML = `
         <div class="flex flex-col items-center justify-center py-12 text-slate-500">
@@ -928,25 +928,12 @@
 
       // 1. FILTRADO LÓGICO
       const filtered = data.filter(s => {
-        const sID = String(s.id || "").toLowerCase();
-        const sCliente = String(s.nombreCliente || "").toLowerCase();
-        const sAsesor = String(s.asesor || "").toLowerCase();
-        const sSearch = search.toLowerCase();
-
         // Búsqueda Texto
-        if (sSearch && !(sID.includes(sSearch) || sCliente.includes(sSearch) || sAsesor.includes(sSearch))) return false;
+        if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
 
-        // Filtros Select (Normalizados)
-        if (fOri) {
-           const oriMatch = String(s.origen || "").toLowerCase() === fOri.toLowerCase();
-           if (!oriMatch) return false;
-        }
-        
-        if (fCaja) {
-           const cajaMatch = String(s.cajaId || "").toLowerCase() === fCaja.toLowerCase();
-           if (!cajaMatch) return false;
-        }
-
+        // Filtros Select
+        if (fOri && s.origen !== fOri) return false;
+        if (fCaja && s.cajaId !== fCaja) return false;
         if (fStat && s.estado !== fStat) return false;
 
         // Multi-selección de Pagos
@@ -1013,22 +1000,22 @@
           topEnd: 'search'
         },
         buttons: [
-          { 
-            extend: 'csv', 
-            text: '<span class="material-icons text-sm">download</span> CSV', 
-            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700' 
+          {
+            extend: 'csv',
+            text: '<span class="material-icons text-sm">download</span> CSV',
+            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700'
           },
-          { 
-            extend: 'pdf', 
-            text: '<span class="material-icons text-sm">picture_as_pdf</span> PDF', 
-            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700', 
-            orientation: 'landscape', 
-            pageSize: 'A4' 
+          {
+            extend: 'pdf',
+            text: '<span class="material-icons text-sm">picture_as_pdf</span> PDF',
+            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700',
+            orientation: 'landscape',
+            pageSize: 'A4'
           },
-          { 
-            extend: 'print', 
-            text: '<span class="material-icons text-sm">print</span> Imprimir', 
-            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700' 
+          {
+            extend: 'print',
+            text: '<span class="material-icons text-sm">print</span> Imprimir',
+            className: 'dt-button !bg-slate-800 !border-slate-700 !text-slate-300 hover:!bg-slate-700'
           }
         ],
         language: {
@@ -1134,14 +1121,14 @@
           return s;
         });
         productImageMap = res.productImageMap || {}; populateFilters(res.filterOptions);
-        
+
         // Sincronizar fechas sin disparar renderizado múltiple
         if (!filterDateStart.value) {
-            setDateRange('today', false); 
+          setDateRange('today', false);
         }
-        
+
         // ÚNICO renderizado oficial
-        renderTable(allSalesData); 
+        renderTable(allSalesData);
         showStatus(`Datos actualizados`, 'success');
       } else showStatus(res.message, 'error');
     }).withFailureHandler(err => { loadingSpinner.classList.add('hidden'); showStatus(err.message, 'error'); }).cargarDashboardVentas();
@@ -1191,7 +1178,7 @@
     else if (v === 'week') { const p = new Date(n); p.setDate(n.getDate() - 7); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(n); }
     else if (v === 'month') { const f = new Date(n.getFullYear(), n.getMonth(), 1); filterDateStart.value = fmt(f); filterDateEnd.value = fmt(n); }
     else { filterDateStart.value = ''; filterDateEnd.value = ''; }
-    
+
     if (shouldRender) renderTable(allSalesData);
   }
   filterDateStart.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
