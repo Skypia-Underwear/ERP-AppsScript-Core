@@ -45,14 +45,14 @@ function archivarVentasEnBigQuery() {
             });
         };
 
-        const vLocalesBQ = mapRows(vPedidos, COLUMNS.VENTAS_PEDIDOS, { ORIGEN: () => "Pedido Local" });
-        const vBloggerBQ = mapRows(vBlogger, COLUMNS.VENTAS_PEDIDOS, { 
+        const vLocalesBQ = mapRows(vPedidos, SHEET_SCHEMA.VENTAS_PEDIDOS, { ORIGEN: () => "Pedido Local" });
+        const vBloggerBQ = mapRows(vBlogger, SHEET_SCHEMA.VENTAS_PEDIDOS, { 
             VENTA_ID: (d) => String(d.CODIGO || ""),
             ORIGEN: () => "Blogger" 
         });
 
-        const dLocalesBQ = mapRows(dPedidos, COLUMNS.DETALLE_VENTAS);
-        const dBloggerBQ = mapRows(dBlogger, COLUMNS.DETALLE_VENTAS, {
+        const dLocalesBQ = mapRows(dPedidos, SHEET_SCHEMA.DETALLE_VENTAS);
+        const dBloggerBQ = mapRows(dBlogger, SHEET_SCHEMA.DETALLE_VENTAS, {
             VARIACION_ID: (d) => String(d.VARIEDAD_ID || d.VARIACION_ID || ""),
             DESCRIPCION_VENTA: (d) => String(d.PRODUCTO_VARIACION || d.DESCRIPCION_VENTA || "")
         });
@@ -61,10 +61,10 @@ function archivarVentasEnBigQuery() {
 
         sync(BQ_CONFIG.TABLE_VENTAS, [...vLocalesBQ, ...vBloggerBQ]);
         sync(BQ_CONFIG.TABLE_DETALLES, [...dLocalesBQ, ...dBloggerBQ]);
-        sync("HISTORIAL_CLIENTES", mapRows(clientes, COLUMNS.CLIENTS));
-        sync("HISTORIAL_CAJAS", mapRows(cajas, COLUMNS.GESTION_CAJA));
-        sync("HISTORIAL_TRANSFERENCIAS", mapRows(bancos, COLUMNS.DATOS_TRANSFERENCIA));
-        sync("HISTORIAL_USUARIOS", mapRows(usuarios, COLUMNS.USUARIOS_SISTEMAS));
+        sync("HISTORIAL_CLIENTES", mapRows(clientes, SHEET_SCHEMA.CLIENTS));
+        sync("HISTORIAL_CAJAS", mapRows(cajas, SHEET_SCHEMA.GESTION_CAJA));
+        sync("HISTORIAL_TRANSFERENCIAS", mapRows(bancos, SHEET_SCHEMA.DATOS_TRANSFERENCIA));
+        sync("HISTORIAL_USUARIOS", mapRows(usuarios, SHEET_SCHEMA.USUARIOS_SISTEMAS));
 
         debugLog(`🚀 BigQuery: Sincronización industrial completada.`);
         return { success: true };
