@@ -165,7 +165,7 @@ function tpv_querySalesFromBigQuery() {
             ARRAY_AGG(STRUCT(
                 d.REGISTRO_ID, d.PRODUCTO_ID, d.DESCRIPCION_VENTA as descripcion, 
                 d.CANTIDAD as cantidad, d.PRECIO as precioUnitario, d.MONTO as subtotal,
-                d.COLOR as color, d.TALLE as talle, d.VARIEDAD_ID as variedadId
+                d.COLOR as color, d.TALLE as talle, d.VARIACION_ID as variedadId
             )) as detalles_anidados
         FROM \`${projectId}.${datasetId}.${tableVentas}\` v
         LEFT JOIN \`${projectId}.${datasetId}.${tableDetalles}\` d ON v.VENTA_ID = d.VENTA_ID
