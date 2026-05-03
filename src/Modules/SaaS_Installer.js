@@ -117,31 +117,67 @@ function generarPaquetePWA() {
 '    <iframe id="app-frame" src="' + bypassUrl + '" allow="camera; microphone; fullscreen"></iframe>\n' +
 '    \n' +
 '    <script>\n' +
-'        // Forward query parameters to the iframe\n' +
-'        var currentUrl = new URL(window.location.href);\n' +
-'        var iframe = document.getElementById("app-frame");\n' +
-'        var baseUrl = iframe.src;\n' +
-'        var params = currentUrl.search;\n' +
-'        if (params) {\n' +
-'            var separator = baseUrl.indexOf("?") === -1 ? "?" : "&";\n' +
-'            iframe.src = baseUrl + separator + params.substring(1);\n' +
+'    (function () {\n' +
+'      \'use strict\';\n' +
+'      const loader = document.getElementById(\'loader\');\n' +
+'      const iframe = document.getElementById(\'app-frame\');\n' +
+'\n' +
+'      // --- REENVÍO DE PARÁMETROS (Deep Linking) ---\n' +
+'      const currentUrl = new URL(window.location.href);\n' +
+'      const params = currentUrl.search;\n' +
+'      if (params && iframe) {\n' +
+'        const baseUrl = iframe.src;\n' +
+'        const separator = baseUrl.indexOf(\'?\') === -1 ? \'?\' : \'&\';\n' +
+'        iframe.src = baseUrl + separator + params.substring(1);\n' +
+'      }\n' +
+'\n' +
+'      function hideLoader() {\n' +
+'        if (!loader) return;\n' +
+'        loader.style.opacity = \'0\';\n' +
+'        setTimeout(() => {\n' +
+'          loader.style.display = \'none\';\n' +
+'          iframe.style.display = \'block\';\n' +
+'        }, 500);\n' +
+'      }\n' +
+'\n' +
+'      // --- PROTOCOLO DE SINCRONIZACIÓN DE SESIÓN ---\n' +
+'      window.addEventListener(\'message\', function(event) {\n' +
+'        if (!event.origin.includes(\'script.google.com\') && !event.origin.includes(\'googleusercontent.com\')) return;\n' +
+'        \n' +
+'        if (event.data.type === \'ERP_READY\') {\n' +
+'          console.info(\'🚀 [Shell] ERP listo. Sincronizando sesión...\');\n' +
+'          hideLoader();\n' +
+'\n' +
+'          const session = localStorage.getItem(\'erp_session\');\n' +
+'          if (session && iframe.contentWindow) {\n' +
+'            iframe.contentWindow.postMessage({ \n' +
+'              type: \'LOAD_SESSION\', \n' +
+'              session: JSON.parse(session) \n' +
+'            }, \'*\');\n' +
+'          }\n' +
 '        }\n' +
-'        \n' +
-'        if ("serviceWorker" in navigator) {\n' +
-'            navigator.serviceWorker.register("sw.js").catch(function(err) {\n' +
-'                console.error("Service Worker registration failed:", err);\n' +
-'            });\n' +
+'\n' +
+'        if (event.data.type === \'SAVE_SESSION\') {\n' +
+'          console.info(\'💾 [Shell] Guardando sesión...\');\n' +
+'          localStorage.setItem(\'erp_session\', JSON.stringify(event.data.session));\n' +
 '        }\n' +
-'        \n' +
-'        var loader = document.getElementById("loader");\n' +
-'        \n' +
-'        iframe.onload = function() {\n' +
-'            loader.style.opacity = "0";\n' +
-'            setTimeout(function() {\n' +
-'                loader.style.display = "none";\n' +
-'                iframe.style.display = "block";\n' +
-'            }, 500);\n' +
-'        };\n' +
+'      });\n' +
+'\n' +
+'      // Fallback de carga\n' +
+'      setTimeout(() => {\n' +
+'        if (loader && loader.style.display !== \'none\') {\n' +
+'          console.warn(\'⚠️ [Shell] Tiempo de espera agotado.\');\n' +
+'          hideLoader();\n' +
+'        }\n' +
+'      }, 15000);\n' +
+'\n' +
+'      // Service Worker\n' +
+'      if (\'serviceWorker\' in navigator) {\n' +
+'        window.addEventListener(\'load\', () => {\n' +
+'          navigator.serviceWorker.register(\'./sw.js\').catch(err => console.warn(\'[SW] Error:\', err));\n' +
+'        });\n' +
+'      }\n' +
+'    })();\n' +
 '    </script>\n' +
 '</body>\n' +
 '</html>';
