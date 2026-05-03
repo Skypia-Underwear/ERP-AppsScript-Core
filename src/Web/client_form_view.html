@@ -96,6 +96,11 @@
 </style>
 
 <script>
+    // --- PROTOCOLO DE CONEXIÓN CON APP SHELL ---
+    if (window !== window.top) {
+        window.top.postMessage({ type: 'ERP_READY' }, '*');
+    }
+
     let UBIGEO_DATA = [];
     let STORE_CONFIG = {};
     const STORAGE_KEY = 'UBIGEO_CACHE_V3';

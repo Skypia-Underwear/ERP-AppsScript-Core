@@ -452,7 +452,13 @@
     ?>
     </div>
     <!-- SCRIPTS -->
-        <script> // --- PRELOADER ---
+        <script> 
+            // --- PROTOCOLO DE CONEXIÓN CON APP SHELL ---
+            if (window !== window.top) {
+                window.top.postMessage({ type: 'ERP_READY' }, '*');
+            }
+
+            // --- PRELOADER ---
 
             window.onload = () => {
                 const overlay = document.getElementById('loading-overlay');
