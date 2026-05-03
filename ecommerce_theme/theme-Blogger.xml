@@ -429,7 +429,7 @@
         font-weight: 800;
         text-transform: uppercase;
         color: var(--primary-cobalt);
-        opacity: 0.5;
+        opacity: 0.9;
         letter-spacing: 1px;
         margin-top: 5px;
         margin-bottom: -4px;
@@ -3333,18 +3333,20 @@
                 </button>
 
                 <!-- Botón de Carrito SOLO en móvil -->
-                <button class='btn btn-primary d-md-none' onclick='toggleSidebarCarrito()' type='button'>
+                <button aria-label='Ver carrito' class='btn btn-primary d-md-none' onclick='toggleSidebarCarrito()' type='button'>
                     Mini <i class='fa fa-shopping-cart'/>
                 </button>
 
                 <!-- Buscador -->
                 <form class='d-flex align-items-center' onsubmit='buscarYResaltarProducto(); return false;' role='search'>
                     <input aria-label='Buscar' class='form-control me-2' id='txt_search' placeholder='Buscar..' style='width: 100%; max-width: 90px;' type='search'/>
-                    <button class='fa fa-search fa-2x' type='submit'/>
+                    <button aria-label='Buscar' class='btn btn-link p-0 border-0' type='submit'>
+                        <i class='fa fa-search fa-2x'/>
+                    </button>
                 </form>
 
                 <!-- Botón de Filtros SOLO en móvil -->
-                <button class='btn btn-primary d-md-none me-2' onclick='toggleSidebarFiltros()' type='button'>
+                <button aria-label='Ver filtros' class='btn btn-primary d-md-none me-2' onclick='toggleSidebarFiltros()' type='button'>
                     Filtro <i class='fa fa-bars'/>
                 </button>
 
@@ -3409,9 +3411,9 @@
             </li>
             <!-- Contenedor de Categorías de Productos -->
             <li class='list-group-item margen_0 categorias-productos-container'>
-                <div id='productos-container' style='display:none;'>
+                <div id='productos-container' role='main' style='display:none;'>
                     <div class='titulo-productos-container'>
-                        <span class='titulo-productos'>PRODUCTOS POR CATEGORIA</span>
+                        <h2 class='titulo-productos'>PRODUCTOS POR CATEGORIA</h2>
 
                         <div class='acciones-productos d-flex flex-wrap gap-2 mt-2 justify-content-center align-items-baseline'>
 
@@ -3458,7 +3460,7 @@
 
                     <!-- Barra lateral de Búsqueda -->
                     <aside class='filter-sidebar bg-light p-3 border rounded' id='sidebarFiltros'>
-                        <button class='sidebar-close-btn' onclick='closeSidebarFiltros()'>
+                        <button aria-label='Cerrar filtros' class='sidebar-close-btn' onclick='closeSidebarFiltros()'>
                             <span>&#9664;</span> </button>
                         <h4>Filtrado de productos</h4>
 
@@ -3477,7 +3479,7 @@
 
                     <!-- Barra lateral de Carrito -->
                     <aside class='cart-sidebar bg-light p-3 border rounded' id='sidebarCarrito'>
-                        <button class='sidebar-close-btn' onclick='closeSidebarCarrito()'>
+                        <button aria-label='Cerrar carrito' class='sidebar-close-btn' onclick='closeSidebarCarrito()'>
                             <span>&#9654;</span>
                         </button>
 
@@ -3607,7 +3609,7 @@
         <div class='mx-auto'>
             <div class='d-flex justify-content-center bd-highlight'>
                 <a aria-label='Abrir WhatsApp' class='whatsapp-floating-button' href='#' onclick='abrir_whatsapp();'>
-                    <img alt='' height='70' src='https://importadorasaletodo.com/img/whatsapp-icon.svg' width='70'/>
+                    <img alt='WhatsApp' height='70' src='https://importadorasaletodo.com/img/whatsapp-icon.svg' width='70'/>
                 </a>
                 <button class='btn btn-dark btn-sm' id='btn_nuevo' onclick='iniciarCheckout()' type='button'>
                     <i class='fa fa-whatsapp'/>
@@ -5464,7 +5466,7 @@
                 const botonAgencias = `<button class="btn btn-outline-success btn-sm" onclick="abrirModalAgencias()">Ver Agencias</button>`;
 
                 const htmlHeader = `
-                    <div class="store-title">${tienda.tienda_id}</div>
+                    <h1 class="store-title">${tienda.tienda_id}</h1>
                     <div class="store-description">${tienda.descripcion}</div>
                     
                     <div class="presentation-header-inner">
@@ -5473,7 +5475,7 @@
                             <div class="logo-presentacion-container">
                                 <div class="logo-presentacion-frame">
                                     <div class="shimmer-overlay"></div>
-                                    <img src="${tienda.logo_url}" class="logo-img-premium logo-metallic-effect" style="max-width: 85%; max-height: 85%; object-fit: contain; z-index: 2;">
+                                    <img src="${tienda.logo_url}" alt="Logo Tienda" width="200" height="80" class="logo-img-premium logo-metallic-effect" style="max-width: 85%; max-height: 85%; object-fit: contain; z-index: 2;">
                                 </div>
                             </div>
                         </div>
@@ -6984,12 +6986,12 @@
                 ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                     <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
                         <a href="${img.url}" data-fancybox="gallery-${producto.codigo}" class="h-100 d-block">
-                            <img src="${img.url}" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="${producto.nombre}" loading="lazy">
+                            <img src="${img.url}" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="${producto.nombre}" loading="lazy" width="300" height="300">
                         </a>
                         ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
                     </div>`).join('') : `
                     <div class="carousel-item active h-100">
-                        <img src="https://placehold.co/400x500/002b5c/white?text=No+Disponible" class="img-fluid h-100 w-100" style="object-fit: cover;">
+                        <img src="https://placehold.co/400x500/002b5c/white?text=No+Disponible" class="img-fluid h-100 w-100" style="object-fit: cover;" alt="Imagen no disponible" width="300" height="375">
                     </div>`}
             </div>
             ${imagenesOrdenadas.length > 1 ? `
@@ -7032,7 +7034,7 @@
                 ${preciosCarrusel}
             </div>
             <div class="mini-cart-container">
-                <button class="btn btn-link toggle-mini-cart-link p-0" id="toggle_button_${producto.codigo}" onclick="mostrarDetalleEnCarrito(${producto.codigo})" style="height: 48px; width: 48px; border: 1px solid #e2e8f0; border-radius: 12px; display: flex !important; align-items: center; justify-content: center; background: white;">
+                <button aria-label="Ver detalle en carrito" class="btn btn-link toggle-mini-cart-link p-0" id="toggle_button_${producto.codigo}" onclick="mostrarDetalleEnCarrito(${producto.codigo})" style="height: 48px; width: 48px; border: 1px solid #e2e8f0; border-radius: 12px; display: flex !important; align-items: center; justify-content: center; background: white;">
                     <i class="fa fa-shopping-cart"></i>
                     <span class="mini-cart-badge" style="display: none;">0</span>
                 </button>
@@ -7445,7 +7447,7 @@
                   <div class="categoria_icono">
                     ${categoria.icono && (categoria.icono.trim().startsWith('<svg') || categoria.icono.trim().startsWith('<?xml'))
                         ? categoria.icono 
-                        : `<img src="${categoria.icono || ''}" alt="${categoria.nombre}" loading="lazy">`
+                        : `<img src="${categoria.icono || ''}" alt="${categoria.nombre}" loading="lazy" width="24" height="24">`
                     }
                   </div>
                   <div class="categoria_nombre">

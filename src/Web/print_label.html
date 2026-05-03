@@ -13,6 +13,16 @@
             height: 100%;
             background-color: #f5f5f5;
         }
+
+        /* Ocultar elementos de Google Apps Script al imprimir */
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            /* Selectores comunes para banners de Google */
+            div[class*="google-header"], 
+            div[class*="script-application-sidebar"],
+            iframe { border: none !important; }
+        }
         .container {
             width: 280mm; /* Large Landscape Width */
             height: 190mm; /* Fits comfortably in A4 Landscape (210mm height) */

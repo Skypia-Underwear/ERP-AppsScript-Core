@@ -4,50 +4,42 @@
 
 ---
 
-## 📅 Sesión: 2026-04-30 (Chat ID: 07a03b83-4476-4d46-8ccd-33563052044a)
+## 📅 Sesión: 2026-05-02 (Chat ID: 27a00275-d0a2-4b37-92a2-8c097ceb8c6d)
 
 **Agente:** Antigravity (Gemini)  
-**Rol del Ideador:** Arquitecto y validador de decisiones técnicas en campo.
+**Rol del Ideador:** Arquitecto de Infraestructura PWA.
 
 ---
 
 ## ✅ Qué se completó hoy
 
-### Fase: Industrialización del Empaquetador SaaS (PWA Installer)
+### Fase: Optimización de Navegación PWA (Deep Linking)
 
-#### 1. Implementación del Backend (SaaS_Installer.gs) ✅
-- Se creó el módulo `SaaS_Installer.js` para la generación automatizada de archivos `.zip` que contienen el App Shell preconfigurado para nuevos clientes.
-- **Bypass Android:** Se incluyó lógica de reemplazo en la URL (`/macros/s/` -> `/a/~/macros/s/`) para asegurar compatibilidad en dispositivos Android con múltiples cuentas de Google.
-- **Generación de manifiesto:** El script inyecta el `GENERAL_ID` extraído dinámicamente para configurar el nombre de la App (`manifest.json` e `index.html`).
+#### 1. Forwarding de Parámetros en App Shell ✅
+- Se modificó `SaaS_Installer.js` para inyectar un script inteligente en el `index.html` del cliente.
+- El nuevo script captura `window.location.search` del navegador y lo concatena a la URL del `iframe` de Google Apps Script.
+- Esto permite acceder a vistas específicas (como el formulario de registro o detalle de pedidos) directamente desde el subdominio del cliente conservando la interfaz PWA (sin cabeceras de Google).
 
-#### 2. Íconos Dinámicos (Integración con BD_TIENDAS) ✅
-- Se optimizó el proceso de generación de íconos base descargando el logo oficial de la marca desde la ruta generada con la API estática de AppSheet.
-- Se implementó un *fallback* a un PNG 1x1 transparente (Base64) en caso de que la imagen original no exista o la descarga falle, garantizando así la instalación de la PWA sin errores.
-
-#### 3. Estructura de SSL y Documentación ✅
-- El generador inyecta un archivo placeholder (`PUNCHSALAD_AQUI.txt`) que crea automáticamente la ruta `.well-known/acme-challenge/` en el `.zip` para facilitar la configuración del SSL gratuito (PunchSalad).
-- Se redactó dinámicamente un archivo `LEEME_INSTALACION.txt` instruyendo paso a paso al operador.
-
-#### 4. Interfaz Administrativa ✅
-- Se integró un botón de generación en el dashboard principal (`home_dashboard.html`), visible exclusivamente para usuarios con roles de administrador.
-- Se solucionó la sensibilidad de mayúsculas (case-sensitivity) en la validación del rol en el frontend para que la vista renderice de forma robusta e infalible.
-
-#### 5. Sincronización Exitosa ✅
-- Múltiples despliegues globales (`@[/deploy-all]`) realizados para actualizar la Macro Principal, GitHub y el Entorno de Producción del Cliente.
+#### 2. Soporte para Vistas Específicas ✅
+- Se validó el funcionamiento para:
+  - `?view=client_form`: Registro de cliente.
+  - `?view=customer_order&oid=...`: Detalle de pedido para el cliente final.
+  - `?mode=print_label`: Generación de rótulos de envío.
 
 ---
 
 ## 🔜 Próxima sesión — Pendiente
 
-### Fase: [Por definir con el Ideador]
+### Fase: Auditoría TPV y Reportes
 
 | Tarea | Prioridad | Estado |
 |---|---|---|
-| Auditoría de nuevos módulos o refinamiento del TPV | Alta | ⏳ Pendiente |
+| Auditoría del módulo TPV (Terminal de Venta) | Alta | ⏳ Pendiente |
+| Refinamiento de reportes financieros | Media | ⏳ Pendiente |
 
 **Contexto técnico para la próxima sesión:**
-- El sistema de empaquetado "SaaS Installer Plug & Play" ya es 100% operativo.
-- Futuros desarrollos apuntan directamente a lógicas de negocio, reportes y herramientas del propio ERP.
+- El App Shell ahora soporta navegación por parámetros, lo que facilita el envío de enlaces directos a clientes por WhatsApp/Email.
+- El sistema de empaquetado SaaS ya genera versiones actualizadas con esta funcionalidad.
 
 ---
 
@@ -57,9 +49,9 @@
 Macros HostingShop/
 ├── src/
 │   ├── Modules/
-│   │   └── SaaS_Installer.js   ← Motor de empaquetado ZIP
-│   └── Web/
-│       └── home_dashboard.html ← Interfaz de disparo
+│   │   └── SaaS_Installer.js   ← Actualizado con lógica de forwarding
+│   └── Core/
+│       └── Main.js             ← Ruteador principal (doGet_MainRouter)
 ```
 
 ---
@@ -73,4 +65,4 @@ Macros HostingShop/
 
 ---
 
-*Última actualización: 2026-04-30 ART · Agente: Antigravity*
+*Última actualización: 2026-05-02 ART · Agente: Antigravity*

@@ -1925,15 +1925,31 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                const dataUrl = canvas.toDataURL('image/webp', quality);
+                let dataUrl = canvas.toDataURL('image/webp', quality);
+                let actualMimeType = dataUrl.substring(dataUrl.indexOf(':') + 1, dataUrl.indexOf(';'));
+
+                // Si el navegador no soporta WEBP (devuelve PNG), forzamos JPEG para evitar archivos gigantes
+                if (actualMimeType === 'image/png' || actualMimeType !== 'image/webp') {
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    actualMimeType = 'image/jpeg';
+                }
+
+                const extension = actualMimeType === 'image/webp' ? '.webp' : '.jpg';
+                let finalName = file.name;
+                if (finalName.includes('.')) {
+                    finalName = finalName.substring(0, finalName.lastIndexOf('.')) + extension;
+                } else {
+                    finalName += extension;
+                }
+
                 const compressedSize = Math.round(dataUrl.length * 3 / 4 / 1024);
                 const originalSize = Math.round(file.size / 1024);
-                log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px | ${originalSize}KB → ${compressedSize}KB (WEBP ${Math.round(quality * 100)}%)`, 'info');
+                log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px | ${originalSize}KB → ${compressedSize}KB (${extension.toUpperCase()} ${Math.round(quality * 100)}%)`, 'info');
 
                 resolve({
                     base64: dataUrl.split(',')[1],
-                    mimeType: 'image/webp',
-                    name: file.name.replace(/\.[^.]+$/, '.webp')
+                    mimeType: actualMimeType,
+                    name: finalName
                 });
             };
             img.onerror = () => {

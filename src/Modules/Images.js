@@ -492,7 +492,8 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
             const expectedPrefix = `${prod.sku}-${shortId}`;
             // Solo renombrar a TMP si el nombre va a cambiar (no ya es estable)
             if (!currentName.startsWith(expectedPrefix)) {
-              try { file.setName("TMP_" + file.getId().substring(0, 8)); } catch (e) { }
+              const currentExt = currentName.includes('.') ? '.' + currentName.split('.').pop() : '';
+              try { file.setName("TMP_" + file.getId().substring(0, 8) + currentExt); } catch (e) { }
             }
           }
         });

@@ -117,13 +117,22 @@ function generarPaquetePWA() {
 '    <iframe id="app-frame" src="' + bypassUrl + '" allow="camera; microphone; fullscreen"></iframe>\n' +
 '    \n' +
 '    <script>\n' +
+'        // Forward query parameters to the iframe\n' +
+'        var currentUrl = new URL(window.location.href);\n' +
+'        var iframe = document.getElementById("app-frame");\n' +
+'        var baseUrl = iframe.src;\n' +
+'        var params = currentUrl.search;\n' +
+'        if (params) {\n' +
+'            var separator = baseUrl.indexOf("?") === -1 ? "?" : "&";\n' +
+'            iframe.src = baseUrl + separator + params.substring(1);\n' +
+'        }\n' +
+'        \n' +
 '        if ("serviceWorker" in navigator) {\n' +
 '            navigator.serviceWorker.register("sw.js").catch(function(err) {\n' +
 '                console.error("Service Worker registration failed:", err);\n' +
 '            });\n' +
 '        }\n' +
 '        \n' +
-'        var iframe = document.getElementById("app-frame");\n' +
 '        var loader = document.getElementById("loader");\n' +
 '        \n' +
 '        iframe.onload = function() {\n' +
