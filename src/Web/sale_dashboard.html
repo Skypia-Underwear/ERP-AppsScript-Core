@@ -928,12 +928,25 @@
 
       // 1. FILTRADO LÓGICO
       const filtered = data.filter(s => {
-        // Búsqueda Texto
-        if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
+        const sID = String(s.id || "").toLowerCase();
+        const sCliente = String(s.nombreCliente || "").toLowerCase();
+        const sAsesor = String(s.asesor || "").toLowerCase();
+        const sSearch = search.toLowerCase();
 
-        // Filtros Select
-        if (fOri && s.origen !== fOri) return false;
-        if (fCaja && s.cajaId !== fCaja) return false;
+        // Búsqueda Texto
+        if (sSearch && !(sID.includes(sSearch) || sCliente.includes(sSearch) || sAsesor.includes(sSearch))) return false;
+
+        // Filtros Select (Normalizados)
+        if (fOri) {
+           const oriMatch = String(s.origen || "").toLowerCase() === fOri.toLowerCase();
+           if (!oriMatch) return false;
+        }
+        
+        if (fCaja) {
+           const cajaMatch = String(s.cajaId || "").toLowerCase() === fCaja.toLowerCase();
+           if (!cajaMatch) return false;
+        }
+
         if (fStat && s.estado !== fStat) return false;
 
         // Multi-selección de Pagos

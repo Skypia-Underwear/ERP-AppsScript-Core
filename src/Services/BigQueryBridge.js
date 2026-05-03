@@ -15,56 +15,58 @@ const BQ_CONFIG = {
  */
 function archivarVentasEnBigQuery() {
     if (!GLOBAL_CONFIG.ENABLE_BIGQUERY) {
-        debugLog("ℹ️ BigQuery está desactivado en la configuración global.");
-        return { success: true, message: "BigQuery desactivado (Postergado)." };
+        debugLog("ℹ️ BigQuery está desactivado.");
+        return { success: true };
     }
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    const timezone = Session.getScriptTimeZone();
 
     try {
-        // --- 1. PROCESAR CABECERAS DE VENTAS ---
-        const ventasBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES));
-        const ventasPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.VENTAS_PEDIDOS));
+        // --- 1. CARGAR DATOS ---
+        const vBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES));
+        const vPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.VENTAS_PEDIDOS));
+        const dBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS));
+        const dPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DETALLE_VENTAS));
+        const clientes = convertirRangoAObjetos(ss.getSheetByName(SHEETS.CLIENTS));
+        const cajas = convertirRangoAObjetos(ss.getSheetByName(SHEETS.GESTION_CAJA));
 
-        const timezone = Session.getScriptTimeZone();
-        const todasLasVentas = [...ventasBlogger, ...ventasPedidos].map(v => {
-            let fechaObj = v.FECHA instanceof Date ? v.FECHA : new Date(v.FECHA);
-            let fechaStr = isNaN(fechaObj.getTime()) ? String(v.FECHA || "") : Utilities.formatDate(fechaObj, timezone, "yyyy-MM-dd");
+        // --- 2. MAPEAR VENTAS (CONSOLIDADO) ---
+        const todasLasVentas = [...vBlogger, ...vPedidos].map(v => {
+            const f = v.FECHA instanceof Date ? v.FECHA : new Date(v.FECHA);
+            const h = v.HORA instanceof Date ? v.HORA : null;
             
             return {
                 VENTA_ID: String(v.CODIGO || v.VENTA_ID || ""),
                 TIENDA_ID: String(v.TIENDA_ID || ""),
                 ASESOR_ID: String(v.ASESOR_ID || ""),
-                FECHA: fechaStr,
-                HORA: String(v.HORA || ""),
+                FECHA: isNaN(f.getTime()) ? "" : Utilities.formatDate(f, timezone, "yyyy-MM-dd"),
+                HORA: h ? Utilities.formatDate(h, timezone, "HH:mm:ss") : String(v.HORA || ""),
                 CLIENTE_ID: String(v.CLIENTE_ID || ""),
                 CAJA_ID: String(v.CAJA_ID || v.CAJA || ""),
                 TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
-                COMPRA_MINIMA: parseFloat(v.COMPRA_MINIMA || 0) || 0,
-                PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase(),
+                COMPRA_MINIMA: parseFloat(v.COMPRA_MINIMA) || 0,
+                PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase() === "TRUE",
                 METODO_PAGO: String(v.METODO_PAGO || ""),
                 DATOS_TRANSFERENCIA: String(v.DATOS_TRANSFERENCIA || ""),
-                DESACTIVAR_RECARGO_TRANSFERENCIA: String(v.DESACTIVAR_RECARGO_TRANSFERENCIA || "FALSE").toUpperCase(),
-                MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-                PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
-                SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
-                RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
-                COSTO_ENVIO: parseFloat(v.COSTO_ENVIO || 0) || 0,
-                RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA || 0) || 0,
+                DESACTIVAR_RECARGO_TRANSFERENCIA: String(v.DESACTIVAR_RECARGO_TRANSFERENCIA || "FALSE").toUpperCase() === "TRUE",
+                MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS) || 0,
+                PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO) || 0,
+                SUBTOTAL: parseFloat(v.SUBTOTAL) || 0,
+                RECARGO_MENOR: parseFloat(v.RECARGO_MENOR) || 0,
+                COSTO_ENVIO: parseFloat(v.COSTO_ENVIO) || 0,
+                RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA) || 0,
                 TOTAL_VENTA: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
                 ESTADO: String(v.ESTADO || ""),
                 CAMBIOS: String(v.CAMBIOS || ""),
                 COMPROBANTE_FILE: String(v.COMPROBANTE_FILE || ""),
                 DETALLE_AUDITORIA_IA: String(v.DETALLE_AUDITORIA_IA || ""),
-                DETALLE_JSON: typeof v.DETALLE_JSON === 'string' ? v.DETALLE_JSON : JSON.stringify(v.DETALLE_JSON || {}),
+                DETALLE_JSON: "", 
                 ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local"
             };
         });
 
-        // --- 2. PROCESAR DETALLES DE VENTAS ---
-        const detallesBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS));
-        const detallesPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DETALLE_VENTAS));
-
-        const todosLosDetalles = [...detallesBlogger, ...detallesPedidos].map(d => ({
+        // --- 3. MAPEAR DETALLES (CONSOLIDADO) ---
+        const todosLosDetalles = [...dBlogger, ...dPedidos].map(d => ({
             VENTA_ID: String(d.CODIGO || d.VENTA_ID || ""),
             REGISTRO_ID: String(d.REGISTRO_ID || ""),
             SCAN: String(d.SCAN || ""),
@@ -82,26 +84,40 @@ function archivarVentasEnBigQuery() {
             INVERSION: parseFloat(d.INVERSION || 0) || 0,
             GANANCIA: parseFloat(d.GANANCIA || 0) || 0,
             DESCRIPCION_VENTA: String(d.DESCRIPCION_VENTA || d.PRODUCTO_VARIACION || d.NOMBRE || "")
-        })).filter(d => d.VENTA_ID !== "");
+        }));
 
-        // --- 3. EMPUJAR A BIGQUERY ---
-        if (todasLasVentas.length > 0) {
-            pushToBigQuery(BQ_CONFIG.DATASET_ID, BQ_CONFIG.TABLE_VENTAS, todasLasVentas);
-            debugLog(`✅ BigQuery: ${todasLasVentas.length} cabeceras sincronizadas.`);
-        }
+        // --- 4. MAPEAR CLIENTES Y CAJAS ---
+        const clientesBQ = clientes.map(c => ({
+            CLIENTE_ID: String(c.CLIENTE_ID || ""),
+            NOMBRE: String(c.NOMBRE || ""),
+            TELEFONO: String(c.TELEFONO || ""),
+            EMAIL: String(c.EMAIL || ""),
+            DIRECCION: String(c.DIRECCION || ""),
+            CATEGORIA: String(c.CATEGORIA || ""),
+            NOTAS: String(c.NOTAS || "")
+        }));
 
-        if (todosLosDetalles.length > 0) {
-            pushToBigQuery(BQ_CONFIG.DATASET_ID, BQ_CONFIG.TABLE_DETALLES, todosLosDetalles);
-            debugLog(`✅ BigQuery: ${todosLosDetalles.length} líneas de detalle sincronizadas.`);
-        }
+        const cajasBQ = cajas.map(c => {
+            const fA = c.FECHA_APERTURA instanceof Date ? c.FECHA_APERTURA : new Date(c.FECHA_APERTURA);
+            return {
+                CAJA_ID: String(c.CAJA_ID || ""),
+                FECHA_APERTURA: isNaN(fA.getTime()) ? "" : Utilities.formatDate(fA, timezone, "yyyy-MM-dd HH:mm:ss"),
+                SALDO_INICIAL: parseFloat(c.SALDO_INICIAL) || 0,
+                ESTADO: String(c.ESTADO || "")
+            };
+        });
 
-        return { 
-            success: true, 
-            message: `Archivado exitoso: ${todasLasVentas.length} ventas y ${todosLosDetalles.length} detalles.` 
-        };
+        // --- 5. SUBIR TODO ---
+        if (todasLasVentas.length) pushToBigQuery(BQ_CONFIG.DATASET_ID, BQ_CONFIG.TABLE_VENTAS, todasLasVentas, 'WRITE_TRUNCATE');
+        if (todosLosDetalles.length) pushToBigQuery(BQ_CONFIG.DATASET_ID, BQ_CONFIG.TABLE_DETALLES, todosLosDetalles, 'WRITE_TRUNCATE');
+        if (clientesBQ.length) pushToBigQuery(BQ_CONFIG.DATASET_ID, "HISTORIAL_CLIENTES", clientesBQ, 'WRITE_TRUNCATE');
+        if (cajasBQ.length) pushToBigQuery(BQ_CONFIG.DATASET_ID, "HISTORIAL_CAJAS", cajasBQ, 'WRITE_TRUNCATE');
+
+        debugLog(`🚀 BigQuery Industrial: Sincronización completa.`);
+        return { success: true };
 
     } catch (e) {
-        debugLog(`❌ Error en archivarVentasEnBigQuery: ${e.message}`);
+        debugLog(`❌ Error en BigQuery Industrial: ${e.message}`);
         return { success: false, message: e.message };
     }
 }
@@ -109,14 +125,14 @@ function archivarVentasEnBigQuery() {
 /**
  * Función genérica de carga (JSON Newline) con reintentos (V2.0)
  */
-function pushToBigQuery(datasetId, tableId, rows) {
+function pushToBigQuery(datasetId, tableId, rows, writeDisposition = 'WRITE_APPEND') {
     const projectId = BQ_CONFIG.PROJECT_ID;
 
     const job = {
         configuration: {
             load: {
                 destinationTable: { projectId: projectId, datasetId: datasetId, tableId: tableId },
-                writeDisposition: 'WRITE_APPEND',
+                writeDisposition: writeDisposition,
                 sourceFormat: 'NEWLINE_DELIMITED_JSON',
                 autodetect: true
             }
