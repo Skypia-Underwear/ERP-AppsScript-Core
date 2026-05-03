@@ -25,34 +25,40 @@ function archivarVentasEnBigQuery() {
         const ventasBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES));
         const ventasPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.VENTAS_PEDIDOS));
 
-        const todasLasVentas = [...ventasBlogger, ...ventasPedidos].map(v => ({
-            VENTA_ID: String(v.CODIGO || v.VENTA_ID || ""),
-            TIENDA_ID: String(v.TIENDA_ID || ""),
-            ASESOR_ID: String(v.ASESOR_ID || ""),
-            FECHA: String(v.FECHA || ""),
-            HORA: String(v.HORA || ""),
-            CLIENTE_ID: String(v.CLIENTE_ID || ""),
-            CAJA_ID: String(v.CAJA_ID || v.CAJA || ""),
-            TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
-            COMPRA_MINIMA: parseFloat(v.COMPRA_MINIMA || 0) || 0,
-            PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase(),
-            METODO_PAGO: String(v.METODO_PAGO || ""),
-            DATOS_TRANSFERENCIA: String(v.DATOS_TRANSFERENCIA || ""),
-            DESACTIVAR_RECARGO_TRANSFERENCIA: String(v.DESACTIVAR_RECARGO_TRANSFERENCIA || "FALSE").toUpperCase(),
-            MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-            PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
-            SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
-            RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
-            COSTO_ENVIO: parseFloat(v.COSTO_ENVIO || 0) || 0,
-            RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA || 0) || 0,
-            TOTAL_VENTA: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-            ESTADO: String(v.ESTADO || ""),
-            CAMBIOS: String(v.CAMBIOS || ""),
-            COMPROBANTE_FILE: String(v.COMPROBANTE_FILE || ""),
-            DETALLE_AUDITORIA_IA: String(v.DETALLE_AUDITORIA_IA || ""),
-            DETALLE_JSON: typeof v.DETALLE_JSON === 'string' ? v.DETALLE_JSON : JSON.stringify(v.DETALLE_JSON || {}),
-            ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local"
-        }));
+        const timezone = Session.getScriptTimeZone();
+        const todasLasVentas = [...ventasBlogger, ...ventasPedidos].map(v => {
+            let fechaObj = v.FECHA instanceof Date ? v.FECHA : new Date(v.FECHA);
+            let fechaStr = isNaN(fechaObj.getTime()) ? String(v.FECHA || "") : Utilities.formatDate(fechaObj, timezone, "yyyy-MM-dd");
+            
+            return {
+                VENTA_ID: String(v.CODIGO || v.VENTA_ID || ""),
+                TIENDA_ID: String(v.TIENDA_ID || ""),
+                ASESOR_ID: String(v.ASESOR_ID || ""),
+                FECHA: fechaStr,
+                HORA: String(v.HORA || ""),
+                CLIENTE_ID: String(v.CLIENTE_ID || ""),
+                CAJA_ID: String(v.CAJA_ID || v.CAJA || ""),
+                TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
+                COMPRA_MINIMA: parseFloat(v.COMPRA_MINIMA || 0) || 0,
+                PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase(),
+                METODO_PAGO: String(v.METODO_PAGO || ""),
+                DATOS_TRANSFERENCIA: String(v.DATOS_TRANSFERENCIA || ""),
+                DESACTIVAR_RECARGO_TRANSFERENCIA: String(v.DESACTIVAR_RECARGO_TRANSFERENCIA || "FALSE").toUpperCase(),
+                MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
+                PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
+                SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
+                RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
+                COSTO_ENVIO: parseFloat(v.COSTO_ENVIO || 0) || 0,
+                RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA || 0) || 0,
+                TOTAL_VENTA: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
+                ESTADO: String(v.ESTADO || ""),
+                CAMBIOS: String(v.CAMBIOS || ""),
+                COMPROBANTE_FILE: String(v.COMPROBANTE_FILE || ""),
+                DETALLE_AUDITORIA_IA: String(v.DETALLE_AUDITORIA_IA || ""),
+                DETALLE_JSON: typeof v.DETALLE_JSON === 'string' ? v.DETALLE_JSON : JSON.stringify(v.DETALLE_JSON || {}),
+                ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local"
+            };
+        });
 
         // --- 2. PROCESAR DETALLES DE VENTAS ---
         const detallesBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS));
@@ -143,36 +149,45 @@ function pushToBigQuery(datasetId, tableId, rows) {
     }
 }
 /**
- * Consulta el historial de ventas desde BigQuery.
+ * Consulta el historial de ventas completo (con detalles) desde BigQuery.
+ * Usa ARRAY_AGG para traer los detalles anidados de forma eficiente.
  */
 function tpv_querySalesFromBigQuery() {
     const projectId = BQ_CONFIG.PROJECT_ID;
     const datasetId = BQ_CONFIG.DATASET_ID;
-    const tableId = BQ_CONFIG.TABLE_VENTAS;
+    const tableVentas = BQ_CONFIG.TABLE_VENTAS;
+    const tableDetalles = BQ_CONFIG.TABLE_DETALLES;
 
-    // Consulta SQL: Traemos todo, ordenado por fecha descendente
-    const query = `SELECT * FROM \`${projectId}.${datasetId}.${tableId}\` ORDER BY FECHA DESC`;
+    // Consulta SQL Industrial: Join entre cabecera y detalle con agregación anidada
+    const query = `
+        SELECT 
+            v.*,
+            ARRAY_AGG(STRUCT(
+                d.REGISTRO_ID, d.PRODUCTO_ID, d.DESCRIPCION_VENTA as descripcion, 
+                d.CANTIDAD as cantidad, d.PRECIO as precioUnitario, d.MONTO as subtotal,
+                d.COLOR as color, d.TALLE as talle, d.VARIEDAD_ID as variedadId
+            )) as detalles_anidados
+        FROM \`${projectId}.${datasetId}.${tableVentas}\` v
+        LEFT JOIN \`${projectId}.${datasetId}.${tableDetalles}\` d ON v.VENTA_ID = d.VENTA_ID
+        GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+        ORDER BY v.FECHA DESC, v.HORA DESC
+        LIMIT 5000
+    `;
 
-    const request = {
-        query: query,
-        useLegacySql: false
-    };
+    const request = { query: query, useLegacySql: false };
 
     try {
-        const queryResults = BigQuery.Jobs.query(request, projectId);
+        let queryResults = BigQuery.Jobs.query(request, projectId);
         const jobId = queryResults.jobReference.jobId;
 
-        // Esperar a que el trabajo termine si es necesario (generalmente es rápido)
-        let sleepTime = 500;
         while (!queryResults.jobComplete) {
-            Utilities.sleep(sleepTime);
+            Utilities.sleep(500);
             queryResults = BigQuery.Jobs.getQueryResults(projectId, jobId);
         }
 
         const rows = queryResults.rows;
         if (!rows) return [];
 
-        // Mapear el formato de BigQuery a objetos JSON compatibles con el Dashboard
         return rows.map(row => {
             const bqRow = {};
             row.f.forEach((field, index) => {
@@ -180,19 +195,42 @@ function tpv_querySalesFromBigQuery() {
                 bqRow[colName] = field.v;
             });
 
-            // Mapeo de Nombres (Mayúsculas BQ -> camelCase Dashboard)
+            // Recomponer Detalles con nombres de campos exactos para el Ranking del Dashboard
+            const detalles = (bqRow.detalles_anidados || []).map(d => {
+              const item = {};
+              if (!d.v || !d.v.f) return null;
+              
+              // Mapeo por índice según el STRUCT del SQL en la consulta
+              // d.REGISTRO_ID, d.PRODUCTO_ID, d.DESCRIPCION_VENTA, d.CANTIDAD, d.PRECIO, d.MONTO, d.COLOR, d.TALLE, d.VARIEDAD_ID
+              const fieldNames = ['registroId', 'productoId', 'descripcion', 'cantidad', 'precioUnitario', 'subtotal', 'color', 'talle', 'variedadId'];
+              d.v.f.forEach((field, idx) => {
+                 let val = field.v;
+                 // Forzar números para campos de cálculo
+                 if (idx === 3 || idx === 4 || idx === 5) val = parseFloat(val) || 0;
+                 item[fieldNames[idx]] = val;
+              });
+              return item;
+            }).filter(d => d && d.productoId);
+
+            // Formatear Fecha para compatibilidad con filtros (yyyy-MM-dd HH:mm)
+            let fechaLimpia = String(bqRow.FECHA || "").trim();
+            let horaLimpia = String(bqRow.HORA || "").trim();
+            // Si la fecha viene como DD/MM/YYYY o similar, habría que normalizarla aquí. 
+            // Asumimos YYYY-MM-DD que es el estándar de BQ.
+            const fechaFinal = horaLimpia ? `${fechaLimpia} ${horaLimpia}` : `${fechaLimpia} 00:00`;
+
             return {
-                id: bqRow.VENTA_ID,
-                fecha: bqRow.FECHA,
+                id: String(bqRow.VENTA_ID),
+                fecha: fechaFinal,
                 origen: bqRow.ORIGEN,
                 estado: bqRow.ESTADO,
-                total: parseFloat(bqRow.TOTAL) || 0,
+                total: parseFloat(bqRow.TOTAL_VENTA) || 0,
                 clienteId: bqRow.CLIENTE_ID,
-                nombreCliente: bqRow.CLIENTE_NOMBRE || 'Cliente', // Ajustar si tienes el nombre en BQ
+                nombreCliente: bqRow.CLIENTE_NOMBRE || 'Cliente',
                 tiendaId: bqRow.TIENDA_ID,
                 metodoPago: bqRow.METODO_PAGO,
                 cajaId: bqRow.CAJA_ID,
-                asesor: bqRow.ASESOR,
+                asesor: bqRow.ASESOR_ID,
                 fechaCaja: bqRow.FECHA_CAJA,
                 costoEnvio: parseFloat(bqRow.COSTO_ENVIO) || 0,
                 recargoTransferencia: parseFloat(bqRow.RECARGO_TRANSFERENCIA) || 0,
@@ -202,7 +240,7 @@ function tpv_querySalesFromBigQuery() {
                 subtotal: parseFloat(bqRow.SUBTOTAL) || 0,
                 tipoVenta: bqRow.TIPO_VENTA,
                 pagoMixto: String(bqRow.PAGO_MIXTO).toUpperCase() === 'TRUE',
-                detalles: [] // Los detalles históricos suelen consultarse on-demand o archivarse aparte
+                detalles: detalles
             };
         });
 
