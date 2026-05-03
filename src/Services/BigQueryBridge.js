@@ -27,24 +27,31 @@ function archivarVentasEnBigQuery() {
 
         const todasLasVentas = [...ventasBlogger, ...ventasPedidos].map(v => ({
             VENTA_ID: String(v.CODIGO || v.VENTA_ID || ""),
-            FECHA: String(v.FECHA || ""),
-            ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local",
-            ESTADO: String(v.ESTADO || ""),
-            TOTAL: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-            CLIENTE_ID: String(v.CLIENTE_ID || ""),
             TIENDA_ID: String(v.TIENDA_ID || ""),
-            METODO_PAGO: String(v.METODO_PAGO || ""),
+            ASESOR_ID: String(v.ASESOR_ID || ""),
+            FECHA: String(v.FECHA || ""),
+            HORA: String(v.HORA || ""),
+            CLIENTE_ID: String(v.CLIENTE_ID || ""),
             CAJA_ID: String(v.CAJA_ID || v.CAJA || ""),
-            ASESOR: String(v.ASESOR_ID || ""),
-            FECHA_CAJA: String(v.FECHA_CAJA || ""),
+            TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
+            COMPRA_MINIMA: parseFloat(v.COMPRA_MINIMA || 0) || 0,
+            PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase(),
+            METODO_PAGO: String(v.METODO_PAGO || ""),
+            DATOS_TRANSFERENCIA: String(v.DATOS_TRANSFERENCIA || ""),
+            DESACTIVAR_RECARGO_TRANSFERENCIA: String(v.DESACTIVAR_RECARGO_TRANSFERENCIA || "FALSE").toUpperCase(),
+            MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
+            PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
+            SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
+            RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
             COSTO_ENVIO: parseFloat(v.COSTO_ENVIO || 0) || 0,
             RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA || 0) || 0,
-            RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
-            PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
-            MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-            SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
-            TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
-            PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase()
+            TOTAL_VENTA: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
+            ESTADO: String(v.ESTADO || ""),
+            CAMBIOS: String(v.CAMBIOS || ""),
+            COMPROBANTE_FILE: String(v.COMPROBANTE_FILE || ""),
+            DETALLE_AUDITORIA_IA: String(v.DETALLE_AUDITORIA_IA || ""),
+            DETALLE_JSON: typeof v.DETALLE_JSON === 'string' ? v.DETALLE_JSON : JSON.stringify(v.DETALLE_JSON || {}),
+            ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local"
         }));
 
         // --- 2. PROCESAR DETALLES DE VENTAS ---
@@ -53,14 +60,22 @@ function archivarVentasEnBigQuery() {
 
         const todosLosDetalles = [...detallesBlogger, ...detallesPedidos].map(d => ({
             VENTA_ID: String(d.CODIGO || d.VENTA_ID || ""),
+            REGISTRO_ID: String(d.REGISTRO_ID || ""),
+            SCAN: String(d.SCAN || ""),
+            VARIACION_ID: String(d.VARIEDAD_ID || d.VARIACION_ID || ""),
+            CATEGORIA_PADRE: String(d.CATEGORIA_PADRE || ""),
+            CATEGORIA: String(d.CATEGORIA || ""),
+            TEMPORADA: String(d.TEMPORADA || ""),
             PRODUCTO_ID: String(d.PRODUCTO_ID || d.CODIGO_ID || ""),
-            DESCRIPCION: String(d.PRODUCTO_VARIACION || d.NOMBRE || d.VARIACION_ID || ""),
-            CANTIDAD: parseFloat(d.CANTIDAD || 0) || 0,
-            PRECIO_UNITARIO: parseFloat(d.PRECIO || d.PRECIO_UNITARIO || 0) || 0,
-            SUBTOTAL: parseFloat(d.SUBTOTAL || d.MONTO || 0) || 0,
             COLOR: String(d.COLOR || ""),
             TALLE: String(d.TALLE || ""),
-            VARIEDAD_ID: String(d.VARIEDAD_ID || d.VARIACION_ID || "")
+            TIPO_PRECIO: String(d.TIPO_PRECIO || ""),
+            PRECIO: parseFloat(d.PRECIO || d.PRECIO_UNITARIO || 0) || 0,
+            CANTIDAD: parseFloat(d.CANTIDAD || 0) || 0,
+            MONTO: parseFloat(d.MONTO || d.SUBTOTAL || 0) || 0,
+            INVERSION: parseFloat(d.INVERSION || 0) || 0,
+            GANANCIA: parseFloat(d.GANANCIA || 0) || 0,
+            DESCRIPCION_VENTA: String(d.DESCRIPCION_VENTA || d.PRODUCTO_VARIACION || d.NOMBRE || "")
         })).filter(d => d.VENTA_ID !== "");
 
         // --- 3. EMPUJAR A BIGQUERY ---
