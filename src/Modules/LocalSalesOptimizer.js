@@ -41,13 +41,7 @@ function tpv_consolidarVentasJson() {
             debugLog(`✅ Archivo '${fileName}' creado en Drive.`);
         }
 
-        // 3. Invalidar Caché para que el dashboard tome lo nuevo (Turbo Mode)
-        try {
-            CacheService.getScriptCache().remove("DASHBOARD_VENTAS_JSON");
-            debugLog("🧹 [Caché] El caché previo ha sido invalidado para refrescar el Dashboard.");
-        } catch (errCache) { }
-
-        // 4. Notificar éxito
+        // 3. Notificar éxito
         return {
             success: true,
             message: "Ventas consolidadas con éxito.",

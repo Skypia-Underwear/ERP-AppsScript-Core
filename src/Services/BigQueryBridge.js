@@ -111,3 +111,72 @@ function pushToBigQuery(datasetId, tableId, rows) {
         }
     }
 }
+/**
+ * Consulta el historial de ventas desde BigQuery.
+ */
+function tpv_querySalesFromBigQuery() {
+    const projectId = BQ_CONFIG.PROJECT_ID;
+    const datasetId = BQ_CONFIG.DATASET_ID;
+    const tableId = BQ_CONFIG.TABLE_VENTAS;
+
+    // Consulta SQL: Traemos todo, ordenado por fecha descendente
+    const query = `SELECT * FROM \`${projectId}.${datasetId}.${tableId}\` ORDER BY FECHA DESC`;
+
+    const request = {
+        query: query,
+        useLegacySql: false
+    };
+
+    try {
+        const queryResults = BigQuery.Jobs.query(request, projectId);
+        const jobId = queryResults.jobReference.jobId;
+
+        // Esperar a que el trabajo termine si es necesario (generalmente es rápido)
+        let sleepTime = 500;
+        while (!queryResults.jobComplete) {
+            Utilities.sleep(sleepTime);
+            queryResults = BigQuery.Jobs.getQueryResults(projectId, jobId);
+        }
+
+        const rows = queryResults.rows;
+        if (!rows) return [];
+
+        // Mapear el formato de BigQuery a objetos JSON compatibles con el Dashboard
+        return rows.map(row => {
+            const bqRow = {};
+            row.f.forEach((field, index) => {
+                const colName = queryResults.schema.fields[index].name;
+                bqRow[colName] = field.v;
+            });
+
+            // Mapeo de Nombres (Mayúsculas BQ -> camelCase Dashboard)
+            return {
+                id: bqRow.VENTA_ID,
+                fecha: bqRow.FECHA,
+                origen: bqRow.ORIGEN,
+                estado: bqRow.ESTADO,
+                total: parseFloat(bqRow.TOTAL) || 0,
+                clienteId: bqRow.CLIENTE_ID,
+                nombreCliente: bqRow.CLIENTE_NOMBRE || 'Cliente', // Ajustar si tienes el nombre en BQ
+                tiendaId: bqRow.TIENDA_ID,
+                metodoPago: bqRow.METODO_PAGO,
+                cajaId: bqRow.CAJA_ID,
+                asesor: bqRow.ASESOR,
+                fechaCaja: bqRow.FECHA_CAJA,
+                costoEnvio: parseFloat(bqRow.COSTO_ENVIO) || 0,
+                recargoTransferencia: parseFloat(bqRow.RECARGO_TRANSFERENCIA) || 0,
+                recargoMenor: parseFloat(bqRow.RECARGO_MENOR) || 0,
+                pagoEfectivo: parseFloat(bqRow.PAGO_EFECTIVO) || 0,
+                montoProductos: parseFloat(bqRow.MONTO_TOTAL_PRODUCTOS) || 0,
+                subtotal: parseFloat(bqRow.SUBTOTAL) || 0,
+                tipoVenta: bqRow.TIPO_VENTA,
+                pagoMixto: String(bqRow.PAGO_MIXTO).toUpperCase() === 'TRUE',
+                detalles: [] // Los detalles históricos suelen consultarse on-demand o archivarse aparte
+            };
+        });
+
+    } catch (e) {
+        debugLog("❌ Error consultando BigQuery: " + e.message);
+        return null;
+    }
+}

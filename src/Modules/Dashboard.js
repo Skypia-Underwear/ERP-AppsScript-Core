@@ -8,18 +8,26 @@
  * Si no existe, realiza la carga pesada tradicional.
  */
 function cargarDashboardVentas() {
-    const cache = CacheService.getScriptCache();
-    const CACHE_KEY = "DASHBOARD_VENTAS_JSON";
-
     try {
-        // 1. Intentar recuperar del Caché de GAS (Muy rápido)
-        const cachedContent = cache.get(CACHE_KEY);
-        if (cachedContent) {
-            debugLog("⚡ [Dashboard] Cargado desde Caché de Script (Instantáneo).");
-            return cachedContent;
+        // 1. CASO INDUSTRIAL: BigQuery habilitado
+        if (GLOBAL_CONFIG.ENABLE_BIGQUERY) {
+            debugLog("🔍 [Dashboard] Consultando vía BigQuery (Industrial Mode)...");
+            const bqData = tpv_querySalesFromBigQuery();
+            if (bqData) {
+                // Obtenemos los assets (imágenes y filtros) de forma ligera
+                const assets = cargarDashboardAssets(); 
+                return JSON.stringify({
+                    success: true,
+                    data: bqData,
+                    filterOptions: assets.filterOptions,
+                    productImageMap: assets.productImageMap
+                });
+            }
+            debugLog("⚠️ Falló consulta BigQuery, reintentando vía Bake & Serve...");
         }
 
-        // 2. Si no hay caché, buscar en Drive (Bake & Serve)
+        // 2. CASO ESTÁNDAR: Bake & Serve (Drive JSON)
+        // NOTA: Eliminamos CacheService para evitar el error "Argumento demasiado grande" (>100KB)
         const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
         const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "erp";
         const appSlug = appName.toLowerCase().replace(/\s+/g, '-');
@@ -31,26 +39,17 @@ function cargarDashboardVentas() {
             if (files.hasNext()) {
                 const file = files.next();
                 const content = file.getBlob().getDataAsString();
-                
-                // Guardar en caché por 10 minutos (600 segundos)
-                cache.put(CACHE_KEY, content, 600);
-                
-                debugLog("🚀 [Dashboard] Cargado desde Drive y guardado en Caché.");
+                debugLog("🚀 [Dashboard] Cargado desde Drive (Bake & Serve).");
                 return content;
             }
         }
     } catch (e) {
-        debugLog("⚠️ Error cargando JSON: " + e.message);
+        debugLog("⚠️ Error en ruteo de Dashboard: " + e.message);
     }
 
-    // Fallback a carga pesada
-    debugLog("🐢 [Dashboard] Fallback a carga pesada...");
-    const heavyContent = cargarDashboardVentas_HEAVY();
-    
-    // También cacheamos el resultado pesado para que la siguiente carga sea rápida
-    try { cache.put(CACHE_KEY, heavyContent, 300); } catch(err) {}
-    
-    return heavyContent;
+    // Fallback a carga pesada tradicional
+    debugLog("🐢 [Dashboard] Fallback a procesamiento de hojas de cálculo...");
+    return cargarDashboardVentas_HEAVY();
 }
 
 /**
@@ -459,3 +458,62 @@ function actualizarEstadoVenta(ventaId, nuevoEstado, origen) {
         return { success: false, message: `❌ Error interno al actualizar el estado: ${e.message}` };
     }
 }
+
+/**
+ * Carga solo los assets necesarios para el dashboard (Filtros e Imágenes).
+ * Se usa como complemento para la carga desde BigQuery.
+ */
+function cargarDashboardAssets() {
+    const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    
+    // Cargar hojas de configuración
+    const cajaData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.GESTION_CAJA));
+    const metodosPagoData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.METODOS_PAGO));
+    const imagenesData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.PRODUCT_IMAGES));
+    const svgGalleryData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.SVG_GALLERY));
+
+    // 1. Imágenes de Producto
+    const productImageMap = {};
+    imagenesData.forEach(img => {
+        if (img.PRODUCTO_ID && String(img.PORTADA).toUpperCase() === 'TRUE' && !productImageMap[img.PRODUCTO_ID]) {
+            productImageMap[img.PRODUCTO_ID] = img.URL;
+        }
+    });
+
+    // 2. Iconos de Pago
+    const svgIdToNameMap = {};
+    svgGalleryData.forEach(s => { 
+        if (s.SVG_ID) {
+            const nombreLimpio = s.NOMBRE ? String(s.NOMBRE).trim().toLowerCase().replace(/\s+/g, "_") : String(s.SVG_ID).trim().toLowerCase();
+            svgIdToNameMap[s.SVG_ID] = nombreLimpio;
+        }
+    });
+
+    const metodosPagoIcons = {};
+    const uniquePagos = new Set();
+    metodosPagoData.forEach(m => {
+        if (m.MOVIMIENTO_ID) {
+            uniquePagos.add(m.MOVIMIENTO_ID);
+            const rawIcon = m.ICONO || m.MOVIMIENTO_ID;
+            const sid = svgIdToNameMap[rawIcon] || rawIcon;
+            metodosPagoIcons[m.MOVIMIENTO_ID] = {
+                porcentaje: parseFloat(m.PORCENTAJE) || 0,
+                iconUrl: asset_getUrlParaIcono(sid)
+            };
+        }
+    });
+
+    // 3. Opciones de Filtro
+    const uniqueCajas = new Set();
+    cajaData.forEach(c => { if (c.CAJA_ID) uniqueCajas.add(c.CAJA_ID); });
+
+    return {
+        productImageMap: productImageMap,
+        filterOptions: {
+            cajas: Array.from(uniqueCajas).sort(),
+            origenes: ["Blogger", "Pedido Local"],
+            metodosPago: Array.from(uniquePagos).sort(),
+            metodosPagoIcons: metodosPagoIcons
+        }
+    };
+}
