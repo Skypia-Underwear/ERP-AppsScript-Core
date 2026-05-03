@@ -1099,7 +1099,14 @@
           return s;
         });
         productImageMap = res.productImageMap || {}; populateFilters(res.filterOptions);
-        if (!filterDateStart.value) setDateRange('today'); else renderTable(allSalesData);
+        
+        // Sincronizar fechas sin disparar renderizado múltiple
+        if (!filterDateStart.value) {
+            setDateRange('today', false); 
+        }
+        
+        // ÚNICO renderizado oficial
+        renderTable(allSalesData); 
         showStatus(`Datos actualizados`, 'success');
       } else showStatus(res.message, 'error');
     }).withFailureHandler(err => { loadingSpinner.classList.add('hidden'); showStatus(err.message, 'error'); }).cargarDashboardVentas();
@@ -1136,7 +1143,7 @@
       }
     });
   }
-  window.setDateRange = function (v) {
+  window.setDateRange = function (v, shouldRender = true) {
     const n = new Date();
     const fmt = d => {
       const y = d.getFullYear();
@@ -1149,7 +1156,8 @@
     else if (v === 'week') { const p = new Date(n); p.setDate(n.getDate() - 7); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(n); }
     else if (v === 'month') { const f = new Date(n.getFullYear(), n.getMonth(), 1); filterDateStart.value = fmt(f); filterDateEnd.value = fmt(n); }
     else { filterDateStart.value = ''; filterDateEnd.value = ''; }
-    renderTable(allSalesData);
+    
+    if (shouldRender) renderTable(allSalesData);
   }
   filterDateStart.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
   filterDateEnd.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });

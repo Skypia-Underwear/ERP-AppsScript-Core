@@ -8,7 +8,18 @@
  * Si no existe, realiza la carga pesada tradicional.
  */
 function cargarDashboardVentas() {
+    const cache = CacheService.getScriptCache();
+    const CACHE_KEY = "DASHBOARD_VENTAS_JSON";
+
     try {
+        // 1. Intentar recuperar del Caché de GAS (Muy rápido)
+        const cachedContent = cache.get(CACHE_KEY);
+        if (cachedContent) {
+            debugLog("⚡ [Dashboard] Cargado desde Caché de Script (Instantáneo).");
+            return cachedContent;
+        }
+
+        // 2. Si no hay caché, buscar en Drive (Bake & Serve)
         const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
         const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "erp";
         const appSlug = appName.toLowerCase().replace(/\s+/g, '-');
@@ -20,17 +31,26 @@ function cargarDashboardVentas() {
             if (files.hasNext()) {
                 const file = files.next();
                 const content = file.getBlob().getDataAsString();
-                debugLog("🚀 [Dashboard] Cargado instantáneamente desde Drive (Bake & Serve).");
+                
+                // Guardar en caché por 10 minutos (600 segundos)
+                cache.put(CACHE_KEY, content, 600);
+                
+                debugLog("🚀 [Dashboard] Cargado desde Drive y guardado en Caché.");
                 return content;
             }
         }
     } catch (e) {
-        debugLog("⚠️ Error cargando JSON desde Drive: " + e.message);
+        debugLog("⚠️ Error cargando JSON: " + e.message);
     }
 
     // Fallback a carga pesada
-    debugLog("🐢 [Dashboard] JSON no encontrado o error. Iniciando carga pesada...");
-    return cargarDashboardVentas_HEAVY();
+    debugLog("🐢 [Dashboard] Fallback a carga pesada...");
+    const heavyContent = cargarDashboardVentas_HEAVY();
+    
+    // También cacheamos el resultado pesado para que la siguiente carga sea rápida
+    try { cache.put(CACHE_KEY, heavyContent, 300); } catch(err) {}
+    
+    return heavyContent;
 }
 
 /**
