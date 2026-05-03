@@ -6,62 +6,78 @@
 const BQ_CONFIG = {
     get PROJECT_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["GCP_PROJECT_ID"] || "SkypiaUnderwearApi"; },
     DATASET_ID: "ERP_MASTER",
-    TABLE_VENTAS: "HISTORIAL_VENTAS"
+    TABLE_VENTAS: "HISTORIAL_VENTAS",
+    TABLE_DETALLES: "HISTORIAL_DETALLES"
 };
 
 /**
- * Función Maestra: Toma las ventas actuales de las hojas y las sube a BigQuery.
- * Se puede llamar manualmente o durante el Reseteo de Sistema.
+ * Función Maestra: Toma las ventas y sus detalles de las hojas y las sube a BigQuery.
  */
 function archivarVentasEnBigQuery() {
     if (!GLOBAL_CONFIG.ENABLE_BIGQUERY) {
         debugLog("ℹ️ BigQuery está desactivado en la configuración global.");
         return { success: true, message: "BigQuery desactivado (Postergado)." };
     }
-    const logArray = ["🚀 Iniciando archivado en BigQuery..."];
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
 
     try {
-        // 1. Cargar Ventas de ambos orígenes (Blogger y Pedidos)
+        // --- 1. PROCESAR CABECERAS DE VENTAS ---
         const ventasBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES));
         const ventasPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.VENTAS_PEDIDOS));
 
-        // 2. Unificar y Formatear para el esquema de BigQuery
-        // Debemos asegurarnos de que los nombres de campos coincidan con el SQL ejecutado
-        const todasLasVentas = [...ventasBlogger, ...ventasPedidos].map(v => {
-            return {
-                VENTA_ID: String(v.CODIGO || v.VENTA_ID || ""),
-                FECHA: String(v.FECHA || ""),
-                ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local",
-                ESTADO: String(v.ESTADO || ""),
-                TOTAL: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-                CLIENTE_ID: String(v.CLIENTE_ID || ""),
-                TIENDA_ID: String(v.TIENDA_ID || ""),
-                METODO_PAGO: String(v.METODO_PAGO || ""),
-                CAJA_ID: String(v.CAJA_ID || v.CAJA || ""),
-                ASESOR: String(v.ASESOR_ID || ""),
-                FECHA_CAJA: String(v.FECHA_CAJA || ""),
-                COSTO_ENVIO: parseFloat(v.COSTO_ENVIO || 0) || 0,
-                RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA || 0) || 0,
-                RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
-                PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
-                MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
-                SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
-                TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
-                PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase()
-            };
-        });
+        const todasLasVentas = [...ventasBlogger, ...ventasPedidos].map(v => ({
+            VENTA_ID: String(v.CODIGO || v.VENTA_ID || ""),
+            FECHA: String(v.FECHA || ""),
+            ORIGEN: v.CODIGO ? "Blogger" : "Pedido Local",
+            ESTADO: String(v.ESTADO || ""),
+            TOTAL: parseFloat(v.TOTAL_VENTA || v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
+            CLIENTE_ID: String(v.CLIENTE_ID || ""),
+            TIENDA_ID: String(v.TIENDA_ID || ""),
+            METODO_PAGO: String(v.METODO_PAGO || ""),
+            CAJA_ID: String(v.CAJA_ID || v.CAJA || ""),
+            ASESOR: String(v.ASESOR_ID || ""),
+            FECHA_CAJA: String(v.FECHA_CAJA || ""),
+            COSTO_ENVIO: parseFloat(v.COSTO_ENVIO || 0) || 0,
+            RECARGO_TRANSFERENCIA: parseFloat(v.RECARGO_TRANSFERENCIA || 0) || 0,
+            RECARGO_MENOR: parseFloat(v.RECARGO_MENOR || 0) || 0,
+            PAGO_EFECTIVO: parseFloat(v.PAGO_EFECTIVO || 0) || 0,
+            MONTO_TOTAL_PRODUCTOS: parseFloat(v.MONTO_TOTAL_PRODUCTOS || 0) || 0,
+            SUBTOTAL: parseFloat(v.SUBTOTAL || 0) || 0,
+            TIPO_VENTA: String(v.TIPO_VENTA || "DIRECTA"),
+            PAGO_MIXTO: String(v.PAGO_MIXTO || "FALSE").toUpperCase()
+        }));
 
-        if (todasLasVentas.length === 0) {
-            debugLog("⚠️ No hay ventas para archivar.");
-            return { success: true, message: "No hay datos nuevos." };
+        // --- 2. PROCESAR DETALLES DE VENTAS ---
+        const detallesBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS));
+        const detallesPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.DETALLE_VENTAS));
+
+        const todosLosDetalles = [...detallesBlogger, ...detallesPedidos].map(d => ({
+            VENTA_ID: String(d.CODIGO || d.VENTA_ID || ""),
+            PRODUCTO_ID: String(d.PRODUCTO_ID || d.CODIGO_ID || ""),
+            DESCRIPCION: String(d.PRODUCTO_VARIACION || d.NOMBRE || d.VARIACION_ID || ""),
+            CANTIDAD: parseFloat(d.CANTIDAD || 0) || 0,
+            PRECIO_UNITARIO: parseFloat(d.PRECIO || d.PRECIO_UNITARIO || 0) || 0,
+            SUBTOTAL: parseFloat(d.SUBTOTAL || d.MONTO || 0) || 0,
+            COLOR: String(d.COLOR || ""),
+            TALLE: String(d.TALLE || ""),
+            VARIEDAD_ID: String(d.VARIEDAD_ID || d.VARIACION_ID || "")
+        })).filter(d => d.VENTA_ID !== "");
+
+        // --- 3. EMPUJAR A BIGQUERY ---
+        if (todasLasVentas.length > 0) {
+            pushToBigQuery(BQ_CONFIG.DATASET_ID, BQ_CONFIG.TABLE_VENTAS, todasLasVentas);
+            debugLog(`✅ BigQuery: ${todasLasVentas.length} cabeceras sincronizadas.`);
         }
 
-        // 3. Empujar a BigQuery
-        pushToBigQuery(BQ_CONFIG.DATASET_ID, BQ_CONFIG.TABLE_VENTAS, todasLasVentas);
+        if (todosLosDetalles.length > 0) {
+            pushToBigQuery(BQ_CONFIG.DATASET_ID, BQ_CONFIG.TABLE_DETALLES, todosLosDetalles);
+            debugLog(`✅ BigQuery: ${todosLosDetalles.length} líneas de detalle sincronizadas.`);
+        }
 
-        debugLog(`✅ Se enviaron ${todasLasVentas.length} registros a BigQuery.`);
-        return { success: true, message: `Archivado exitoso: ${todasLasVentas.length} ventas.` };
+        return { 
+            success: true, 
+            message: `Archivado exitoso: ${todasLasVentas.length} ventas y ${todosLosDetalles.length} detalles.` 
+        };
 
     } catch (e) {
         debugLog(`❌ Error en archivarVentasEnBigQuery: ${e.message}`);
