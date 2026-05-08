@@ -980,6 +980,16 @@ function doGet_MainRouter(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
 
+  // --- Vista AI Laboratory (Modo Escuela) ---
+  if (view === 'ai_lab') {
+    const template = HtmlService.createTemplateFromFile('Web/ai_lab');
+    template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    return template.evaluate()
+      .setTitle('AI Laboratory - Forensic School')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
   // --- CASO 1: SOLICITUD DIRECTA / APPSHEET (LEGACY) ---
   // Si la URL tiene una acción O pide la vista 'inventario' explícitamente
   // Y NO es una llamada interna del SPA (embedded)...

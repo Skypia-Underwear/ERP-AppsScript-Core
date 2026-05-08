@@ -53,7 +53,11 @@ const AIService = {
           const resText = response.getContentText();
           const json = JSON.parse(resText);
           const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) return this.extraerContenido(rawText);
+          
+          if (rawText) {
+            // Pasamos los headers autorizados para filtrar el monólogo de Gemma
+            return this.extraerContenido(rawText, configOverride.whitelistHeaders);
+          }
         }
         ultimoError = `Mod ${modelo} -> HTTP ${response.getResponseCode()}`;
       } catch (e) {
@@ -119,12 +123,166 @@ const AIService = {
   },
 
   /**
-   * UTILIDAD: Extracción robusta de JSON y limpieza de Markdown
+   * UTILIDAD: Extracción robusta y Saneamiento de Datos (Whitelist)
+   * Elimina monólogos, repeticiones y markdown de Gemma 4.
    */
-  extraerContenido(text) {
-    if (!text) return "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return jsonMatch[0];
-    return text.replace(/```json/g, "").replace(/```/g, "").trim();
+  extraerContenido: function(texto, whitelistHeaders = null) {
+    if (!texto) return "";
+    let lineas = texto.split('\n');
+    let contenidoLimpio = [];
+    let vistos = new Set(); // Para prevenir duplicados exactos (Gemma loop)
+    
+    for (let linea of lineas) {
+      let l = linea.trim();
+      if (!l) continue;
+      
+      // 🛡️ FILTRO 1: Whitelist Estricta (Si se define)
+      if (whitelistHeaders && whitelistHeaders.length > 0) {
+        let esValida = whitelistHeaders.some(header => {
+          // Soporta "Header:" o "- Header:"
+          const regex = new RegExp(`^[-*\\s]*(${header}):`, 'i');
+          return regex.test(l);
+        });
+        if (!esValida) continue;
+      }
+
+      // 🛡️ FILTRO 2: Protección Anti-Instrucción (Ignorar si tiene placeholders ej: [Type])
+      if (l.includes("[e.g.") || l.includes("[Type]") || l.includes("[Name]") || l.includes("[Hex]")) {
+        continue;
+      }
+
+      // 🛡️ FILTRO 3: Limpieza de Markdown y Duplicados
+      const cleanLine = l.replace(/[*_#]/g, '').trim();
+      if (cleanLine && !vistos.has(cleanLine.toLowerCase())) {
+        contenidoLimpio.push(cleanLine);
+        vistos.add(cleanLine.toLowerCase());
+      }
+    }
+    
+    return contenidoLimpio.join('\n');
+  },
+
+  /**
+   * 🔬 LABORATORIO DE IA: Auditoría Transparente (Modo Escuela)
+   * Realiza un análisis forense completo pero sin guardar resultados.
+   */
+  ejecutarPruebaLaboratorio: function(imagenId) {
+    try {
+      console.log(`🔬 [Lab-IA] Iniciando diagnóstico para imagen: ${imagenId}`);
+      
+      const ss = getActiveSS();
+      const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+      const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", imagenId);
+        
+      if (!imgRow) throw new Error("Imagen no encontrada en BD_PRODUCTO_IMAGENES.");
+
+      const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+      const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
+      
+      const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
+      
+      // Construir Prompt Forense (Fase Industrial: Ignora metadata, reporta lo que ve)
+      const contextoProducto = prodRow ? `PRODUCT: ${prodRow.MODELO || prodRow.NOMBRE_PRODUCTO} | BRAND: ${prodRow.MARCA}` : "";
+      const promptForense = `Forensic Clothing Analyst for a high-precision ERP.
+Pixel Sovereignty (ignore metadata, report only what is seen).
+Plain text, one line per field, no bold, no markdown, no introductions.
+
+* Context: ${contextoProducto}
+* Analysis Request: Provide a technical breakdown of the garment.
+* Schema: 
+Brand: [Brand]
+Model: [Model]
+Category: [Category]
+Material: [Material]
+Gender: [Gender]
+TIPO_PRENDA: [Type]
+POSICIÓN_DETECTADA: [Position]
+SOPORTE_O_CONTEXTO: [Context]
+COLOR_PRINCIPAL: [Name] | [Hex] | [Type]
+LOGO_VISIBLE: [Yes/No]
+ESTADO_VISUAL: [Condition]`;
+
+      // PREPARAR BLOB (Optimizado para Gemma 4)
+      const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, true);
+
+      // EJECUCIÓN RAW
+      const modelo = this.MODELS_FREE[0]; // Gemma 4
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+      
+      const response = UrlFetchApp.fetch(url, {
+        method: "post", contentType: "application/json",
+        payload: JSON.stringify({
+          contents: [{ parts: [{ text: promptForense }, fileDataRef] }],
+          generationConfig: { 
+            temperature: 0.1,
+            maxOutputTokens: 1024
+          }
+        }),
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() !== 200) throw new Error(`API Error ${response.getResponseCode()}: ${response.getContentText()}`);
+
+      const resBody = JSON.parse(response.getContentText());
+      if (!resBody.candidates || !resBody.candidates[0]) throw new Error("La IA no devolvió candidatos.");
+      
+      const rawResponse = resBody.candidates[0].content.parts[0].text;
+
+      // EJECUCIÓN CLEAN (Saneamiento Industrial)
+      const forensicWhitelist = [
+        "Brand", "Model", "Category", "Material", "Gender",
+        "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
+        "COLOR_PRINCIPAL", "LOGO_VISIBLE", "ESTADO_VISUAL"
+      ];
+      const cleanResponse = this.extraerContenido(rawResponse, forensicWhitelist);
+
+      return {
+        success: true,
+        imagenId: imagenId,
+        imageUrl: imgRow.URL || imgRow.THUMBNAIL_URL,
+        modelo: modelo,
+        raw: rawResponse,
+        clean: cleanResponse,
+        debug: this.generarLogDiferencial(rawResponse, cleanResponse)
+      };
+
+    } catch (e) {
+      console.error(`❌ [Lab-IA] Error fatal: ${e.message}`);
+      return { success: false, error: e.message };
+    }
+  },
+
+  /**
+   * Helper para buscar una fila por valor en una hoja mapeada.
+   */
+  buscarFilaPorValor: function(sheet, sheetAlias, headerName, valor) {
+    if (!sheet) return null;
+    const map = HeaderManager.getMapping(sheetAlias);
+    if (!map || map[headerName] === undefined) return null;
+    
+    const data = sheet.getDataRange().getValues();
+    const colIdx = map[headerName];
+    const target = String(valor).trim().toLowerCase();
+    
+    const row = data.find(r => String(r[colIdx]).trim().toLowerCase() === target);
+    if (!row) return null;
+    
+    // Convertir fila a objeto usando el mapa
+    const obj = {};
+    Object.keys(map).forEach(key => {
+      obj[key] = row[map[key]];
+    });
+    return obj;
+  },
+
+  generarLogDiferencial: function(raw, clean) {
+    const rawLines = raw.split('\n');
+    const cleanLines = clean.split('\n').map(l => l.trim().toLowerCase());
+    return rawLines.map(line => {
+      const l = line.trim();
+      if (!l) return null;
+      const isKept = cleanLines.some(c => l.toLowerCase().includes(c));
+      return { text: l, status: isKept ? 'KEPT' : 'DISCARDED' };
+    }).filter(Boolean);
   }
 };

@@ -1419,61 +1419,55 @@ function escanearPrenda(imagenId, forzar = false) {
     // Subir imagen vía Base64 para evitar errores 403 en File API
     const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `forense_${imagenId}`, 'alta', apiKey, true);
 
+    const forensicWhitelist = [
+      "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
+      "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", "LOGO_O_MARCA", 
+      "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL"
+    ];
+
     const promptForense = `
-      You are a forensic garment analyst. Describe the physical attributes of the garment in the photo.
+      [SISTEMA]: Eres un Analista Forense de Indumentaria para un ERP de alta precisión.
       
-      CRITICAL INSTRUCTION: PIXEL SOVEREIGNTY
-      Ignore any external color metadata. You must report ONLY what you see in the pixels of the photo. 
-      If there is a conflict between the Reference Data and the Photo, the Photo MANDATES the reality.
+      [REGLA DE ORO]: SOBERANÍA DEL PÍXEL. Ignora metadatos externos. Reporta solo lo que ves.
+      [FORMATO]: TEXTO PLANO. Una línea por campo. Sin negritas, sin markdown, sin introducciones.
 
       ${contextoProducto}
-      Instructions:
-      Analyze the actual photo and report the following in SPANISH:
 
-      TIPO_PRENDA: [e.g., Remera, Pantalón, Campera, Short]
-      POSICIÓN_DETECTADA: [FRENTE / ESPALDA / LATERAL / PLANO / GHOST_MANNEQUIN / PILA_O_DOBLADO / INDETERMINADO]
-      SOPORTE_O_CONTEXTO: [FOTO_ESTUDIO / COLGADA_EN_PERCHA / DOBLADA_EN_SUPERFICIE / SOBRE_MANIQUÍ / EN_PERCHERO_MULTIPLE]
+      [FEW-SHOT EXAMPLES]:
+      Input: (Imagen de un boxer azul)
+      Output:
+      TIPO_PRENDA: Boxer
+      POSICIÓN_DETECTADA: FRENTE
+      SOPORTE_O_CONTEXTO: FOTO_ESTUDIO
       COLOR_PRINCIPAL:
-        - Nombre técnico: [e.g., Azul Marino]
-        - Código HEX: [e.g., #1A2B5C]
-        - Tipo: [LISO / ESTAMPADO / SUBLIMADO / RAYADO / JASPEADO]
-        - Si es estampado: describir el patrón brevemente.
-      MATERIAL_ESTIMADO: [e.g., Jersey de algodón, Trama Dri-FIT, Cordura, Punto]
-      LOGO_O_MARCA:
-        - Visible: [SÍ / NO]
-        - Si SÍ: Descripción exacta, posición y tamaño aproximado.
-      DETALLES_CONSTRUCTIVOS:
-        - Costuras: [e.g., Flatlock, Overlock, Doble aguja]
-        - Cierres: [e.g., Cierre YKK frontal, Sin cierre, Botones a presión]
-        - Bolsillos: [e.g., 2 laterales con cierre, Sin bolsillos]
-        - Elásticos: [e.g., Cintura elástica con cordón, Sin elástico]
-      AVISOS_DE_LIMPIEZA_VISIBLES: [SÍ / NO]
-      ESTADO_VISUAL: [LIMPIO y PRESENTABLE / Con etiquetas visibles que deben retocarse / Con maniquí visible]
+        - Nombre técnico: Azul Marino
+        - Código HEX: #1A2B5C
+        - Tipo: LISO
+      MATERIAL_ESTIMADO: Algodón
+      LOGO_O_MARCA: Visible: SÍ. Logo UOMO en cintura.
+      DETALLES_CONSTRUCTIVOS: Costuras reforzadas.
+      AVISOS_DE_LIMPIEZA_VISIBLES: NO
+      ESTADO_VISUAL: LIMPIO
+
+      [TAREA]: Analiza la foto adjunta y genera la ficha técnica siguiendo el esquema anterior:
     `;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${apiKey}`;
-    const payload = { contents: [{ parts: [{ text: promptForense }, fileDataRef] }] };
-    const response = UrlFetchApp.fetch(url, {
-      method: "post", contentType: "application/json",
-      payload: JSON.stringify(payload), muteHttpExceptions: true
-    });
+    const config = {
+      temperature: 0.1,
+      whitelistHeaders: forensicWhitelist,
+      stopSequences: ["Input:", "[TAREA]"]
+    };
 
-    const textResponse = response.getContentText(); // Captura el JSON de error de Google
-    if (response.getResponseCode() === 200) {
-      const json = JSON.parse(textResponse);
-      const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
-        garantizarColumnaANALISIS(sheetImg);
-        actualizarCeldaPorHeader(imagenId, 'ANALISIS_FORENSE', text);
-        console.log(`✅ [Forense|OK] ${imagenId} con gemma-3-27b-it.`);
-        return JSON.stringify({ success: true, text: text, model: "gemma-3-27b-it" });
-      }
-      throw new Error("IA no devolvió texto.");
-    } else {
-      // Esto te dirá si es un 404 (Modelo no encontrado), 429 (Cuota) o 400 (Payload mal formado)
-      console.error("DETALLE DEL ERROR GOOGLE:", textResponse);
-      throw new Error(`Error API ${response.getResponseCode()}: ${textResponse}`);
+    // Ejecución centralizada vía AIService (Motor de limpieza)
+    const text = AIService.consultarGemma(promptForense, fileDataRef, config);
+
+    if (text) {
+      garantizarColumnaANALISIS(sheetImg);
+      actualizarCeldaPorHeader(imagenId, 'ANALISIS_FORENSE', text);
+      console.log(`✅ [Forense|OK] ${imagenId} procesada con Gemma 4 (Limpieza activa).`);
+      return JSON.stringify({ success: true, text: text, model: "gemma-4-26b-a4b-it" });
     }
+    throw new Error("IA no devolvió texto.");
 
   } catch (e) {
     console.error(`[escanearPrenda] ${e.message}`);
@@ -1632,78 +1626,48 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
       })()}
     `;
 
-    // Modelos según cuenta: Free = Gemma 3 primero. Paid = Gemini solo.
-    const modelos = freeKey
-      ? ["gemma-3-27b-it", "gemma-3-12b-it", "gemini-2.5-flash"]
-      : ["gemini-2.5-flash", "gemini-2.0-flash"];
-    let erroresAcumulados = [];
+    // --- EJECUCIÓN CENTRALIZADA VÍA AISERVICE ---
+    // Usamos el motor de Gemma 4 para la generación de la directiva maestra
+    const config = {
+      temperature: 0.2,
+      stopSequences: ["INPUT METADATA:"]
+    };
 
-    for (let i = 0; i < modelos.length; i++) {
-      const modelo = modelos[i];
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+    const promptGenerado = AIService.consultarGemma(
+      [promptSystem, `\n\nINPUT METADATA:\n${contextoTecnico}\n${extraSpecsPrompt}`], 
+      fileDataRef, 
+      config
+    );
 
-      // Payload condicional: Gemini soporta systemInstruction, Gemma no
-      const mainText = `${promptSystem}\n\nINPUT METADATA:\n${contextoTecnico}\n${extraSpecsPrompt}`;
+    if (promptGenerado) {
+      actualizarCeldaPorHeader(imagenId, 'PROMPT', promptGenerado);
 
-      let payload;
-      if (modelo.startsWith('gemini')) {
-        payload = {
-          "systemInstruction": { "parts": [{ "text": promptSystem }] },
-          "contents": [{ "parts": [{ "text": contextoTecnico + (extraSpecsPrompt || "") }, fileDataRef] }],
-          "safetySettings": GEMINI_SAFETY_SETTINGS
-        };
-      } else {
-        payload = {
-          "contents": [{ "parts": [{ "text": mainText }, fileDataRef] }],
-          "safetySettings": GEMINI_SAFETY_SETTINGS
-        };
-      }
+      let resObj = { success: true, text: promptGenerado };
 
-      const options = {
-        "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true
-      };
+      // INTEGRACIÓN CORE: Renderizamos usando la imagen actual como referencia
+      if (modo === 'image' && pin) {
+        try {
+          console.log(`🎨 [Core-Flow] Renderizando imagen para ${imagenId}...`);
+          const resImg = generarImagenDesdePrompt([imagenId], promptGenerado, pin, null, null, extraSpecs);
 
-      try {
-        const response = UrlFetchApp.fetch(url, options);
-        if (response.getResponseCode() === 200) {
-          const json = JSON.parse(response.getContentText());
-          if (json.candidates && json.candidates[0].content.parts[0].text) {
-            const promptGenerado = json.candidates[0].content.parts[0].text;
-            actualizarCeldaPorHeader(imagenId, 'PROMPT', promptGenerado);
-
-            let resObj = { success: true, text: promptGenerado, model: modelo };
-
-            // INTEGRACIÓN CORE: Renderizamos usando la imagen actual como referencia
-            if (modo === 'image' && pin) {
-              try {
-                console.log(`🎨 [Core-Flow] Renderizando imagen para ${imagenId} con especificaciones:`, extraSpecs);
-                const resImg = generarImagenDesdePrompt([imagenId], promptGenerado, pin, null, null, extraSpecs);
-
-                if (resImg.success) {
-                  resObj.imageSuccess = true;
-                  resObj.imageFileId = resImg.fileId;
-                  resObj.imagenId = resImg.imagenId;
-                  resObj.renderModel = resImg.modelUsed;
-                  resObj.text += `\n\n✅ IMAGEN GENERADA EXITOSAMENTE CON ${resImg.modelUsed}.`;
-                } else {
-                  throw new Error(resImg.message || resImg.error);
-                }
-              } catch (e) {
-                resObj.imageSuccess = false;
-                resObj.text += `\n\n❌ ERROR EN RENDERIZADO: ${e.message}`;
-              }
-            }
-
-            return JSON.stringify(resObj);
+          if (resImg.success) {
+            resObj.imageSuccess = true;
+            resObj.imageFileId = resImg.fileId;
+            resObj.imagenId = resImg.imagenId;
+            resObj.renderModel = resImg.modelUsed;
+            resObj.text += `\n\n✅ IMAGEN GENERADA EXITOSAMENTE CON ${resImg.modelUsed}.`;
+          } else {
+            throw new Error(resImg.message || resImg.error);
           }
-        } else {
-          erroresAcumulados.push(`${modelo}: ${response.getContentText()}`);
+        } catch (e) {
+          resObj.imageSuccess = false;
+          resObj.text += `\n\n❌ ERROR EN RENDERIZADO: ${e.message}`;
         }
-      } catch (err) {
-        erroresAcumulados.push(`${modelo} Error: ${err.message}`);
       }
+
+      return JSON.stringify(resObj);
     }
-    throw new Error(`Error IA: ${erroresAcumulados.join(" | ")}`);
+    throw new Error("No se pudo generar el prompt maestro con el motor de IA.");
 
   } catch (e) {
     return JSON.stringify({ success: false, error: e.message });

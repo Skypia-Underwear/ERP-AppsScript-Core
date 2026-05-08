@@ -1,0 +1,345 @@
+<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
+  <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+<? } ?>
+
+<!-- Estilos Experimentales para el Laboratorio -->
+<style>
+  .raw-console {
+    background: #020617;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    border: 1px solid #1e293b;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+  }
+  .log-kept { color: #4ade80; background: rgba(74, 222, 128, 0.05); }
+  .log-discarded { color: #64748b; opacity: 0.6; text-decoration: line-through; }
+  .ai-thought { color: #818cf8; font-style: italic; border-left: 2px solid #4338ca; padding-left: 10px; margin: 4px 0; }
+  
+  .glass-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+</style>
+
+<div class="min-h-screen bg-slate-950 p-4 md:p-8">
+  <!-- Header del Laboratorio -->
+  <div class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <h1 class="text-3xl font-black text-white flex items-center gap-3">
+        <span class="material-icons text-blue-500 text-4xl">biotech</span>
+        AI LAB <span class="text-blue-500/50">| Forensic School</span>
+      </h1>
+      <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest font-bold">Auditoría de Transparencia para Gemma 4</p>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="location.reload()" class="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition">
+        <span class="material-icons">refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Panel de Control (Buscador TPV) -->
+  <div class="max-w-7xl mx-auto glass-card p-6 rounded-2xl mb-8 shadow-2xl">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Selector de Categoría -->
+      <div>
+        <label class="block text-xs font-black text-slate-500 uppercase mb-2">1. Filtrar Categoría</label>
+        <select id="cat-selector" onchange="updateProductList()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
+          <option value="">Cargando catálogo...</option>
+        </select>
+      </div>
+      <!-- Selector de Producto -->
+      <div>
+        <label class="block text-xs font-black text-slate-500 uppercase mb-2">2. Seleccionar Producto</label>
+        <select id="prod-selector" onchange="loadProductImages()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
+          <option value="">Primero elige categoría</option>
+        </select>
+      </div>
+      <!-- Resumen -->
+      <div class="flex items-center gap-4 bg-blue-500/5 border border-blue-500/20 p-4 rounded-xl">
+        <span class="material-icons text-blue-400 text-3xl">inventory_2</span>
+        <div>
+          <div id="stats-total" class="text-white font-bold text-lg">0 Productos</div>
+          <div class="text-blue-400/60 text-[10px] uppercase font-black">Catálogo TPV Sincronizado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workspace del Laboratorio -->
+  <div id="lab-workspace" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 hidden">
+    
+    <!-- Sidebar: Galería de Imágenes -->
+    <div class="lg:col-span-3 space-y-6">
+      <div class="glass-card p-4 rounded-2xl sticky top-8">
+        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+          <span class="material-icons text-sm text-blue-400">photo_library</span> Galería del Producto
+        </h3>
+        <div id="image-gallery" class="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-2 scroll-thin">
+          <!-- Imágenes inyectadas aquí -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Main: Comparador Forense -->
+    <div class="lg:col-span-9 space-y-8">
+      <!-- Preview de Imagen Seleccionada -->
+      <div class="glass-card rounded-2xl overflow-hidden border-2 border-blue-500/20 shadow-blue-500/5 shadow-2xl">
+        <div class="grid grid-cols-1 md:grid-cols-2">
+          <div class="aspect-[3/4] bg-slate-900 flex items-center justify-center overflow-hidden">
+            <img id="selected-img-view" src="" class="w-full h-full object-cover" alt="Prenda a analizar">
+          </div>
+          <div class="p-8 flex flex-col justify-center">
+            <div id="img-id-badge" class="inline-block bg-blue-500/20 text-blue-400 text-[10px] font-black px-2 py-1 rounded mb-4">IMG-ID: NO_SELECTED</div>
+            <h2 id="prod-title-view" class="text-2xl font-bold text-white mb-2 uppercase">Selecciona una imagen</h2>
+            <p id="prod-sku-view" class="text-slate-500 font-mono text-sm mb-6">SKU: ---</p>
+            
+            <button id="run-test-btn" onclick="confirmAndRunTest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 group">
+              <span class="material-icons group-hover:rotate-12 transition">biotech</span>
+              INICIAR SIMULACIÓN FORENSE
+            </button>
+            <p class="text-center text-[10px] text-slate-500 mt-4 uppercase font-bold tracking-widest italic">Análisis de transparencia con Gemma 4 IT</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resultados (Split View) -->
+      <div id="results-panel" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
+        <!-- RAW: La mente de la IA -->
+        <div class="space-y-3">
+          <div class="flex justify-between items-center px-2">
+            <h4 class="text-xs font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
+              <span class="material-icons text-sm">psychology</span> Mente de la IA (RAW)
+            </h4>
+            <span class="text-[10px] text-slate-500 font-mono">Gemma 4 IT (26B)</span>
+          </div>
+          <div id="raw-view" class="raw-console p-6 rounded-2xl h-[500px] overflow-y-auto text-[11px] leading-relaxed scroll-thin">
+            <!-- Texto RAW inyectado -->
+          </div>
+        </div>
+
+        <!-- CLEAN: Resultado ERP -->
+        <div class="space-y-3">
+          <div class="flex justify-between items-center px-2">
+            <h4 class="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+              <span class="material-icons text-sm">assignment_turned_in</span> Ficha Técnica (CLEAN)
+            </h4>
+            <span class="text-[10px] text-slate-500 font-mono">Input para ERP</span>
+          </div>
+          <div id="clean-view" class="bg-slate-900 p-8 rounded-2xl h-[500px] overflow-y-auto shadow-inner border border-slate-800 scroll-thin">
+            <!-- Resultado filtrado -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer vacío para espacio -->
+  <div class="h-20"></div>
+</div>
+
+<script>
+  let CATALOGO = [];
+  let CATEGORIAS = new Set();
+  let selectedImageId = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+  });
+
+  async function init() {
+    await loadCatalog();
+  }
+
+  // 1. CARGA DE CATÁLOGO (Usa el motor global del Shell)
+  async function loadCatalog() {
+    try {
+      // Intentar obtener el catálogo desde el Shell (vía window.getGlobalCatalog)
+      const data = await window.getGlobalCatalog();
+      if (data && data.products) {
+        CATALOGO = data.products.map(p => ({
+          sku: p.id,
+          nombre: p.model || "Sin Nombre",
+          categoria: p.categoryName || "Sin Categoría",
+          thumbnail: p.image || ""
+        }));
+        
+        document.getElementById('stats-total').innerText = `${CATALOGO.length} Productos`;
+        populateCategories();
+      }
+    } catch (e) {
+      console.error("Error cargando catálogo global:", e);
+      // Fallback: Intentar carga directa si falló el shell
+      google.script.run.withSuccessHandler(data => {
+        if (data && data.products) {
+          CATALOGO = data.products.map(p => ({
+            sku: p.id,
+            nombre: p.model || "Sin Nombre",
+            categoria: p.categoryName || "Sin Categoría"
+          }));
+          document.getElementById('stats-total').innerText = `${CATALOGO.length} Productos`;
+          populateCategories();
+        }
+      }).obtenerCatalogoJSON();
+    }
+  }
+
+  function populateCategories() {
+    const selector = document.getElementById('cat-selector');
+    selector.innerHTML = '<option value="">-- Elige Categoría --</option>';
+    
+    CATEGORIAS.clear();
+    CATALOGO.forEach(p => CATEGORIAS.add(p.categoria));
+    
+    [...CATEGORIAS].sort().forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat;
+      selector.appendChild(opt);
+    });
+  }
+
+  function updateProductList() {
+    const cat = document.getElementById('cat-selector').value;
+    const selector = document.getElementById('prod-selector');
+    selector.innerHTML = '<option value="">-- Selecciona Producto --</option>';
+    
+    const prods = CATALOGO.filter(p => p.categoria === cat);
+    prods.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.sku;
+      opt.textContent = `[${p.sku}] ${p.nombre}`;
+      selector.appendChild(opt);
+    });
+  }
+
+  // 2. CARGA DE IMÁGENES
+  function loadProductImages() {
+    const sku = document.getElementById('prod-selector').value;
+    const prod = CATALOGO.find(p => p.sku === sku);
+    if (!prod) return;
+
+    document.getElementById('lab-workspace').classList.remove('hidden');
+    
+    const gallery = document.getElementById('image-gallery');
+    gallery.innerHTML = '<div class="col-span-2 py-4 text-center text-slate-500 animate-pulse text-[10px]">Cargando...</div>';
+
+    google.script.run.withSuccessHandler(res => {
+      let imgs = [];
+      try {
+        imgs = typeof res === 'string' ? JSON.parse(res) : res;
+      } catch(e) {
+        console.error("Error parseando imágenes:", e);
+      }
+      renderGallery(imgs, prod);
+    }).obtenerImagenesDeProducto(sku);
+  }
+
+  function renderGallery(imgs, prod) {
+    const gallery = document.getElementById('image-gallery');
+    gallery.innerHTML = '';
+    
+    if (imgs.length === 0) {
+      gallery.innerHTML = '<div class="col-span-2 py-4 text-center text-slate-500 text-[10px]">Sin imágenes.</div>';
+      return;
+    }
+
+    imgs.forEach(img => {
+      const card = document.createElement('div');
+      card.className = "cursor-pointer rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 transition-all bg-slate-900";
+      card.innerHTML = `<img src="${img.THUMBNAIL_URL || img.URL}" class="w-full aspect-square object-cover opacity-80 hover:opacity-100 transition">`;
+      card.onclick = () => selectImage(img, prod);
+      gallery.appendChild(card);
+    });
+  }
+
+  function selectImage(img, prod) {
+    selectedImageId = img.IMAGEN_ID || img.ID;
+    document.getElementById('selected-img-view').src = img.URL || img.THUMBNAIL_URL;
+    document.getElementById('img-id-badge').innerText = `IMG-ID: ${selectedImageId}`;
+    document.getElementById('prod-title-view').innerText = prod.nombre;
+    document.getElementById('prod-sku-view').innerText = `SKU: ${prod.sku}`;
+    document.getElementById('results-panel').classList.add('hidden');
+    document.getElementById('selected-img-view').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // 3. EJECUCIÓN CON SWAL
+  function confirmAndRunTest() {
+    if (!selectedImageId) return Swal.fire({
+      title: 'Atención',
+      text: 'Primero elige una imagen de la galería.',
+      icon: 'warning',
+      background: '#0f172a',
+      color: '#fff'
+    });
+
+    Swal.fire({
+      title: '🔬 Iniciar Simulación',
+      text: "¿Deseas ejecutar el diagnóstico forense transparente? Esto consumirá cuota de Gemma 4.",
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#3b82f6',
+      cancelButtonColor: '#1e293b',
+      confirmButtonText: 'Sí, analizar ahora',
+      background: '#0f172a',
+      color: '#fff'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        runTest();
+      }
+    });
+  }
+
+  function runTest() {
+    const btn = document.getElementById('run-test-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-icons animate-spin">sync</span> PROCESANDO...`;
+    
+    google.script.run.withSuccessHandler(res => {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="material-icons">biotech</span> INICIAR SIMULACIÓN FORENSE`;
+      
+      if (res.success) {
+        renderResults(res);
+      } else {
+        Swal.fire({
+          title: 'Error de Laboratorio',
+          text: res.error || "Error desconocido en la simulación.",
+          icon: 'error',
+          background: '#0f172a',
+          color: '#fff'
+        });
+      }
+    }).ejecutarPruebaLaboratorio(selectedImageId);
+  }
+
+  function renderResults(res) {
+    document.getElementById('results-panel').classList.remove('hidden');
+    
+    const rawView = document.getElementById('raw-view');
+    rawView.innerHTML = '';
+    
+    res.debug.forEach(line => {
+      const div = document.createElement('div');
+      div.className = line.status === 'KEPT' ? 'log-kept p-1 mb-1 rounded' : 'log-discarded p-1 mb-1 opacity-40';
+      div.innerText = line.text;
+      rawView.appendChild(div);
+    });
+
+    const cleanView = document.getElementById('clean-view');
+    cleanView.innerHTML = `<pre class="text-emerald-400 font-bold whitespace-pre-wrap font-mono text-[11px] leading-tight">${res.clean}</pre>`;
+    
+    document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
+
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'Análisis completado',
+      showConfirmButton: false,
+      timer: 3000,
+      background: '#1e293b',
+      color: '#fff'
+    });
+  }
+</script>
