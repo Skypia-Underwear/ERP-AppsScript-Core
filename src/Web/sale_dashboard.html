@@ -546,6 +546,60 @@
       height: 16px;
     }
   }
+
+  /* Trend Chart Buttons */
+  .trend-controls {
+    display: flex;
+    gap: 0.35rem;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 3px;
+    border-radius: 12px;
+    border: 1px solid rgba(51, 65, 85, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  .trend-btn {
+    padding: 4px 12px;
+    border-radius: 9px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .trend-btn:hover {
+    color: #e2e8f0;
+    background: rgba(51, 65, 85, 0.4);
+  }
+
+  .trend-btn.active {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  @media (max-width: 640px) {
+    .trend-controls {
+      overflow-x: auto;
+      max-width: 200px;
+      scrollbar-width: none;
+    }
+
+    .trend-controls::-webkit-scrollbar {
+      display: none;
+    }
+
+    .trend-btn {
+      padding: 4px 8px;
+      font-size: 0.55rem;
+    }
+  }
 </style>
 
 <div class="dashboard-container p-4 md:p-6">
@@ -593,19 +647,13 @@
           </div>
         </div>
 
-        <div class="flex items-center bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
-          <span class="material-icons text-slate-500 text-sm mr-1">calendar_month</span>
-          <select id="filter-date-quick"
-            class="bg-transparent text-[11px] font-bold text-indigo-400 outline-none cursor-pointer py-1 border-none focus:ring-0"
-            onchange="setDateRange(this.value)">
-            <option value="today">📅 Hoy</option>
-            <option value="yesterday">Ayer</option>
-            <option value="week">Semana</option>
-            <option value="month">Mes</option>
-            <option value="">Manual</option>
-          </select>
-          <input type="date" id="filter-date-start" class="hidden"><input type="date" id="filter-date-end"
-            class="hidden">
+        <div class="flex items-center bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 shadow-inner">
+          <span class="material-icons text-indigo-400 text-sm mr-2">calendar_today</span>
+          <div id="display-date-range" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Cargando...
+          </div>
+          <input type="date" id="filter-date-start" class="hidden">
+          <input type="date" id="filter-date-end" class="hidden">
         </div>
       </div>
 
@@ -632,12 +680,19 @@
 
       <!-- Controles de Origen, Caja y Acciones -->
       <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
-        <select id="filter-origen" class="header-select">
-          <option value="">Origen</option>
-        </select>
-        <select id="filter-caja" class="header-select">
-          <option value="">Caja</option>
-        </select>
+        <div class="h-6 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+        <div class="flex items-center gap-1">
+          <div class="relative">
+            <input type="date" id="filter-caja-date" class="header-select pr-8" title="Filtrar por Jornada (Caja)">
+            <div class="absolute -top-2 left-2 px-1 bg-slate-900 text-[8px] font-bold text-indigo-500 uppercase">
+              Jornada/Caja</div>
+          </div>
+          <button id="btn-filter-no-caja" onclick="toggleNoCajaFilter()"
+            class="p-2 bg-slate-800 text-slate-400 rounded-lg border border-slate-700 hover:bg-amber-500/10 hover:text-amber-500 transition"
+            title="Ver Ventas sin Caja (Pendientes)">
+            <span class="material-icons text-sm">assignment_late</span>
+          </button>
+        </div>
         <div class="h-6 w-px bg-slate-700 mx-1 hidden sm:block"></div>
         <button onclick="clearAllFilters()"
           class="header-refresh-desktop p-2 bg-slate-800 text-slate-400 rounded-lg shadow hover:bg-slate-700 transition"
@@ -681,30 +736,60 @@
 
   <div class="container mx-auto max-w-7xl">
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-      <div class="card-dashboard lg:col-span-3">
-        <div class="card-header-label">
-          <span class="material-icons text-indigo-400 text-sm">trending_up</span> Tendencia de Ventas
+    <div class="mb-8">
+      <div class="card-dashboard w-full">
+        <div class="card-header-label flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-icons text-indigo-400 text-sm">trending_up</span> Tendencia de Ventas
+          </div>
+          <div class="trend-controls" id="trend-mode-container">
+            <button onclick="setTrendMode('today', this)" class="trend-btn">Hoy</button>
+            <button onclick="setTrendMode('yesterday', this)" class="trend-btn">Ayer</button>
+            <button onclick="setTrendMode('week', this)" class="trend-btn">Semana</button>
+            <button onclick="setTrendMode('month', this)" class="trend-btn">Mes</button>
+            <button onclick="setTrendMode('year', this)" class="trend-btn">Año</button>
+            <button onclick="setTrendMode('history', this)" class="trend-btn">Histórico</button>
+            <button onclick="setTrendMode('manual', this)" class="trend-btn">Manual</button>
+          </div>
         </div>
-        <div class="h-44 w-full relative"><canvas id="dailySalesChart"></canvas></div>
+        <div class="h-64 w-full relative mt-4"><canvas id="dailySalesChart"></canvas></div>
       </div>
-      <div class="card-dashboard lg:col-span-1 flex flex-col">
-        <div class="card-header-label">
-          <span class="material-icons text-amber-400 text-sm">emoji_events</span> Top Productos
-        </div>
-        <div id="ranking-list" class="space-y-2 overflow-y-auto flex-1 max-h-44 pr-1 custom-scroll"></div>
-      </div>
-      <div class="card-dashboard lg:col-span-2">
-        <div class="card-header-label">
-          <span class="material-icons text-emerald-400 text-sm">pie_chart</span> Por Origen
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div class="card-dashboard">
+        <div class="card-header-label flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-icons text-emerald-400 text-sm">pie_chart</span> Por Tienda / Canal
+          </div>
+          <div class="flex gap-2">
+            <select id="filter-origen"
+              class="bg-slate-800 text-[10px] border border-slate-700 rounded px-1 py-0.5 text-slate-300 outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="">Tiendas</option>
+            </select>
+            <select id="filter-tipo-venta"
+              class="bg-slate-800 text-[10px] border border-slate-700 rounded px-1 py-0.5 text-slate-300 outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="">Tipos</option>
+              <option value="DIRECTA">Mostrador (Directa)</option>
+              <option value="PEDIDO">Pedidos / Web</option>
+            </select>
+          </div>
         </div>
         <div class="h-44 w-full relative"><canvas id="salesByOriginChart"></canvas></div>
       </div>
-      <div class="card-dashboard lg:col-span-2">
+
+      <div class="card-dashboard">
         <div class="card-header-label">
           <span class="material-icons text-sky-400 text-sm">donut_large</span> Métodos de Pago
         </div>
         <div class="h-44 w-full relative"><canvas id="paymentMethodChart"></canvas></div>
+      </div>
+
+      <div class="card-dashboard flex flex-col">
+        <div class="card-header-label">
+          <span class="material-icons text-amber-400 text-sm">emoji_events</span> Top Productos
+        </div>
+        <div id="ranking-list" class="space-y-2 overflow-y-auto flex-1 max-h-44 pr-1 custom-scroll"></div>
       </div>
     </div>
 
@@ -735,13 +820,21 @@
 
 <script>
   // --- VARIABLES ---
-  var allSalesData = [], productImageMap = {}, chartInstances = { daily: null, origin: null, payment: null };
+  var allSalesData = [];
+  var fullHierarchy = {};
+  var cajasMetadata = {};
+  var productImageMap = {};
+  var filterNoCajaActive = false;
+  var chartInstances = { daily: null, origin: null, payment: null };
   var dtInstance = null, metodosPagoIcons = {}, activePaymentFilters = new Set(), isRendering = false;
+  var currentTrendMode = 'month';
 
   var modalElement = document.getElementById('detail-modal'), modalBody = document.getElementById('modal-body-content'), loadingSpinner = document.getElementById('loading-spinner');
 
-  // Inputs del Header
-  var filterStatus = document.getElementById('filter-status'), filterOrigen = document.getElementById('filter-origen'), filterCaja = document.getElementById('filter-caja'), filterDateQuick = document.getElementById('filter-date-quick'), filterDateStart = document.getElementById('filter-date-start'), filterDateEnd = document.getElementById('filter-date-end');
+  // Inputs del Header & Cards
+  var filterStatus = document.getElementById('filter-status'), filterOrigen = document.getElementById('filter-origen'), filterCajaDate = document.getElementById('filter-caja-date');
+  var filterTipoVenta = document.getElementById('filter-tipo-venta');
+  var filterDateQuick = document.getElementById('filter-date-quick'), filterDateStart = document.getElementById('filter-date-start'), filterDateEnd = document.getElementById('filter-date-end');
 
   // Botones de Estado
   var btnStatComplete = document.getElementById('btn-stat-complete'), btnStatPending = document.getElementById('btn-stat-pending'), btnStatCanceled = document.getElementById('btn-stat-canceled');
@@ -786,31 +879,9 @@
   // --- MODAL (Compactado y Adaptado a Dark Mode) ---
   function openModal(saleId) {
     const s = allSalesData.find(x => x.id === saleId); if (!s) return;
-
-    // Si no hay detalles (Modo Industrial / Lazy Load), los pedimos al servidor
-    if (!s.detalles || s.detalles.length === 0) {
-      document.getElementById('modal-subtitle').textContent = `Cargando detalles de ID: ${s.id}...`;
-      google.script.run.withSuccessHandler(detalles => {
-        s.detalles = detalles.map(d => ({ ...d, precioUnitario: parseMonto(d.precioUnitario), subtotal: parseMonto(d.subtotal) }));
-        renderModalContent(s);
-      }).getSaleDetails(s.id, s.origen);
-
-      // Mostrar pantalla de carga interna
-      document.getElementById('modal-body-content').innerHTML = `
-        <div class="flex flex-col items-center justify-center py-12 text-slate-500">
-            <div class="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-            <p class="text-xs font-bold uppercase tracking-widest">Consultando BigQuery...</p>
-        </div>`;
-      modalElement.classList.add('active');
-    } else {
-      renderModalContent(s);
-    }
-  }
-
-  function renderModalContent(s) {
     document.getElementById('modal-subtitle').textContent = `ID: ${s.id} | ${s.fecha}`;
-    const modalBody = document.getElementById('modal-body-content');
 
+    // TEMPLATE STRINGS ADAPTADOS A DARK MODE
     let h = `<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <!-- CLIENT CARD -->
             <div class="p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden">
@@ -819,11 +890,11 @@
                     <span class="material-icons text-indigo-400 bg-indigo-500/10 p-1 rounded-md text-sm">person</span>
                     <h4 class="font-bold text-slate-400 text-xs uppercase">Cliente</h4>
                 </div>
-                <p class="text-base font-bold text-white truncate">${s.nombreCliente || 'Cliente'}</p>
+                <p class="text-base font-bold text-white truncate">${s.nombreCliente}</p>
                 <p class="text-xs text-slate-500 mb-2">ID: ${s.clienteId}</p>
                 <div class="text-xs text-slate-400 bg-slate-900/50 p-2 rounded border border-slate-700">
-                    <div class="flex justify-between"><span>Asesor:</span> <span class="font-bold text-slate-200">${s.asesor || 'N/A'}</span></div>
-                    <div class="flex justify-between mt-1"><span>Caja:</span> <span class="font-mono text-slate-200">${s.cajaId || 'N/A'}</span></div>
+                    <div class="flex justify-between"><span>Asesor:</span> <span class="font-bold text-slate-200">${s.asesor}</span></div>
+                    <div class="flex justify-between mt-1"><span>Caja:</span> <span class="font-mono text-slate-200">${s.cajaId}</span></div>
                 </div>
             </div>
 
@@ -838,7 +909,7 @@
                     <span class="${s.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'} text-xs">${s.origen}</span>
                     <span class="px-2 py-0.5 bg-slate-700 text-slate-200 rounded text-xs font-bold border border-slate-600">${s.metodoPago}</span>
                 </div>
-                ${s.metodoPago.toLowerCase().includes('transferencia') ? `<div class="bg-blue-900/20 p-2 rounded border border-blue-500/20 text-xs text-blue-300 mb-2"><p><strong>BCO:</strong> ${s.bancoTransferencia || 'N/A'}</p><p><strong>ALIAS:</strong> ${s.aliasTransferencia || 'N/A'}</p></div>` : ''}
+                ${s.metodoPago.toLowerCase().includes('transferencia') ? `<div class="bg-blue-900/20 p-2 rounded border border-blue-500/20 text-xs text-blue-300 mb-2"><p><strong>BCO:</strong> ${s.bancoTransferencia}</p><p><strong>ALIAS:</strong> ${s.aliasTransferencia}</p></div>` : ''}
                 
                 <div class="flex flex-wrap gap-2 mt-2 pt-2 border-t border-slate-700">
                     ${s.pagoMixto ? '<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 text-[10px] font-bold border border-purple-500/20">Pago Mixto</span>' : ''}
@@ -847,7 +918,7 @@
                 </div>
             </div>
 
-            <!-- TOTALS CARD -->
+            <!-- TOTALS CARD (No change needed, already dark styled in original, just removed white styles) -->
             <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 shadow-sm text-white flex flex-col justify-center relative overflow-hidden">
               <div class="absolute -top-6 -right-6 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl"></div>
               <div class="space-y-1 text-sm mb-3 relative z-10">
@@ -917,7 +988,9 @@
       const search = dtInstance ? dtInstance.search().toLowerCase() : "",
         fStat = filterStatus.value,
         fOri = filterOrigen.value,
-        fCaja = filterCaja.value;
+        fTipo = filterTipoVenta.value,
+        fCajaDate = document.getElementById('filter-caja-date').value;
+
       const dStart = filterDateStart.value ? new Date(filterDateStart.value + 'T00:00:00') : null,
         dEnd = filterDateEnd.value ? new Date(filterDateEnd.value + 'T23:59:59') : null;
 
@@ -931,9 +1004,17 @@
         // Búsqueda Texto
         if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
 
-        // Filtros Select
-        if (fOri && s.origen !== fOri) return false;
-        if (fCaja && s.cajaId !== fCaja) return false;
+        // Filtros Select / Jerarquía
+        if (fOri && s.tiendaId !== fOri) return false;
+        if (fTipo && s.tipoVenta !== fTipo) return false;
+
+        if (filterNoCajaActive) {
+          if (s.cajaId !== 'N/A' && s.cajaId !== 'WEB' && s.cajaId !== '' && s.cajaId !== null) return false;
+        } else if (fCajaDate) {
+          const meta = cajasMetadata[s.cajaId];
+          if (!meta || meta.fecha !== fCajaDate) return false;
+        }
+
         if (fStat && s.estado !== fStat) return false;
 
         // Multi-selección de Pagos
@@ -970,7 +1051,7 @@
         dtInstance.clear().rows.add(filtered).draw(false);
       }
 
-      if (search || fStat || fOri || fCaja || dStart || dEnd || activePaymentFilters.size > 0) {
+      if (search || fStat || fOri || fTipo || fCajaDate || dStart || dEnd || activePaymentFilters.size > 0) {
         if (fabClearBtn) fabClearBtn.classList.remove('hidden');
       } else {
         if (fabClearBtn) fabClearBtn.classList.add('hidden');
@@ -1069,8 +1150,11 @@
             className: 'text-center',
             render: function (data) {
               return `<div class="flex flex-col items-center gap-1">
-                <span class="${data.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'} text-[9px]">${data.origen}</span>
-                <span class="text-[9px] uppercase font-bold text-slate-600 truncate max-w-[80px]">${data.metodoPago}</span>
+                <span class="${data.origen === 'Blogger' ? 'badge-blogger' : 'badge-local'} text-[9px] py-0.5 px-1.5 inline-block w-fit">${data.tiendaId}</span>
+                <div class="flex gap-1 items-center">
+                  <span class="text-[8px] bg-slate-800 text-slate-500 border border-slate-700 px-1 rounded font-bold">${data.tipoVenta}</span>
+                  <span class="text-[9px] uppercase font-bold text-slate-400 truncate max-w-[60px]">${data.metodoPago}</span>
+                </div>
               </div>`;
             }
           },
@@ -1101,8 +1185,16 @@
   // --- DATA & FILTERS ---
   function loadSalesData(force) {
     if (allSalesData.length && !force) { renderTable(allSalesData); return; }
-    loadingSpinner.classList.remove('hidden');
+
+    // Si estamos en el Shell, usamos el estado global para una carga más limpia
+    if (typeof setGlobalStatus === 'function') {
+      setGlobalStatus(true, "Cloud Drive Sync...");
+    } else {
+      loadingSpinner.classList.remove('hidden');
+    }
+
     google.script.run.withSuccessHandler(resRaw => {
+      if (typeof setGlobalStatus === 'function') setGlobalStatus(false);
       loadingSpinner.classList.add('hidden');
       if (!resRaw) { showStatus('Error: Payload vacío o corrupto enviado por el servidor.', 'error'); return; }
 
@@ -1113,30 +1205,45 @@
       }
 
       if (res.success) {
-        allSalesData = res.data.map(s => {
-          s.total = parseMonto(s.total); s.costoEnvio = parseMonto(s.costoEnvio); s.recargoTransferencia = parseMonto(s.recargoTransferencia); s.recargoMenor = parseMonto(s.recargoMenor);
-          // Nuevos Campos
-          s.pagoEfectivo = parseMonto(s.pagoEfectivo); s.montoProductos = parseMonto(s.montoProductos); s.subtotal = parseMonto(s.subtotal); s.compraMinima = parseMonto(s.compraMinima);
-          s.detalles = s.detalles.map(d => ({ ...d, precioUnitario: parseMonto(d.precioUnitario), subtotal: parseMonto(d.subtotal) }));
-          return s;
-        });
-        productImageMap = res.productImageMap || {}; populateFilters(res.filterOptions);
+        fullHierarchy = res.hierarchy || {};
+        cajasMetadata = res.cajasMetadata || {};
+        productImageMap = res.productImageMap || {};
 
-        // Sincronizar fechas sin disparar renderizado múltiple
+        // Aplanar Jerarquía para la tabla inicial
+        allSalesData = [];
+        Object.keys(fullHierarchy).forEach(ori => {
+          Object.keys(fullHierarchy[ori]).forEach(boxId => {
+            const salesInBox = fullHierarchy[ori][boxId].map(s => {
+              s.total = parseMonto(s.total); s.costoEnvio = parseMonto(s.costoEnvio);
+              s.recargoTransferencia = parseMonto(s.recargoTransferencia); s.recargoMenor = parseMonto(s.recargoMenor);
+              s.pagoEfectivo = parseMonto(s.pagoEfectivo); s.montoProductos = parseMonto(s.montoProductos);
+              s.subtotal = parseMonto(s.subtotal); s.compraMinima = parseMonto(s.compraMinima);
+              s.detalles = s.detalles.map(d => ({ ...d, precioUnitario: parseMonto(d.precioUnitario), subtotal: parseMonto(d.subtotal) }));
+              return s;
+            });
+            allSalesData = allSalesData.concat(salesInBox);
+          });
+        });
+
+        // Ordenar por fecha descendente
+        allSalesData.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        populateFilters(res.filterOptions);
+
         if (!filterDateStart.value) {
           setDateRange('today', false);
         }
 
-        // ÚNICO renderizado oficial
         renderTable(allSalesData);
-        showStatus(`Datos actualizados`, 'success');
+        showStatus(`Datos sincronizados`, 'success');
       } else showStatus(res.message, 'error');
-    }).withFailureHandler(err => { loadingSpinner.classList.add('hidden'); showStatus(err.message, 'error'); }).cargarDashboardVentas();
+    }).withFailureHandler(err => { loadingSpinner.classList.add('hidden'); showStatus(err.message, 'error'); }).cargarDashboardVentas(force);
   }
 
   function populateFilters(o) {
     const fill = (el, a) => { el.innerHTML = `<option value="">${el.options[0].text}</option>` + a.map(x => `<option value="${x}">${x}</option>`).join(''); };
-    fill(filterOrigen, o.origenes); fill(filterCaja, o.cajas);
+    fill(filterOrigen, o.origenes);
+    if (o.tiposVenta) fill(filterTipoVenta, o.tiposVenta);
 
     // Renderizar iconos de pago
     const container = document.getElementById('payment-icons-container');
@@ -1167,27 +1274,77 @@
   }
   window.setDateRange = function (v, shouldRender = true) {
     const n = new Date();
-    const fmt = d => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
-    if (v === 'today') { filterDateStart.value = fmt(n); filterDateEnd.value = fmt(n); }
-    else if (v === 'yesterday') { const p = new Date(n); p.setDate(n.getDate() - 1); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(p); }
-    else if (v === 'week') { const p = new Date(n); p.setDate(n.getDate() - 7); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(n); }
-    else if (v === 'month') { const f = new Date(n.getFullYear(), n.getMonth(), 1); filterDateStart.value = fmt(f); filterDateEnd.value = fmt(n); }
-    else { filterDateStart.value = ''; filterDateEnd.value = ''; }
+    const fmt = d => d.toISOString().split('T')[0];
 
+    if (v === 'today') { filterDateStart.value = fmt(n); filterDateEnd.value = fmt(n); currentTrendMode = 'today'; }
+    else if (v === 'yesterday') { const p = new Date(); p.setDate(n.getDate() - 1); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(p); currentTrendMode = 'yesterday'; }
+    else if (v === 'week') { const p = new Date(); p.setDate(n.getDate() - 7); filterDateStart.value = fmt(p); filterDateEnd.value = fmt(n); currentTrendMode = 'week'; }
+    else if (v === 'month') { const f = new Date(n.getFullYear(), n.getMonth(), 1); filterDateStart.value = fmt(f); filterDateEnd.value = fmt(n); currentTrendMode = 'month'; }
+    else if (v === 'year') { const f = new Date(n.getFullYear(), 0, 1); filterDateStart.value = fmt(f); filterDateEnd.value = fmt(n); currentTrendMode = 'year'; }
+    else if (v === 'history') { filterDateStart.value = ''; filterDateEnd.value = ''; currentTrendMode = 'history'; }
+    else { currentTrendMode = 'manual'; }
+
+    // Actualizar texto de rango en el header
+    const display = document.getElementById('display-date-range');
+    if (display) {
+      if (currentTrendMode === 'today') display.textContent = 'Hoy';
+      else if (currentTrendMode === 'yesterday') display.textContent = 'Ayer';
+      else if (filterDateStart.value && filterDateEnd.value) {
+        const d1 = filterDateStart.value.split('-').reverse().slice(0, 2).join('/');
+        const d2 = filterDateEnd.value.split('-').reverse().slice(0, 2).join('/');
+        display.textContent = `${d1} - ${d2}`;
+      } else display.textContent = 'Manual';
+    }
+
+    syncTrendButtons(currentTrendMode);
     if (shouldRender) renderTable(allSalesData);
   }
-  filterDateStart.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
-  filterDateEnd.addEventListener('change', () => { filterDateQuick.value = ''; renderTable(allSalesData); });
+
+  window.syncTrendButtons = function (mode) {
+    document.querySelectorAll('.trend-btn').forEach(b => {
+      b.classList.remove('active');
+      if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${mode}'`)) b.classList.add('active');
+    });
+  }
+
+  filterDateStart.addEventListener('change', () => { currentTrendMode = 'manual'; filterDateQuick.value = ''; filterCajaDate.value = ''; syncTrendButtons('manual'); renderTable(allSalesData); });
+  filterDateEnd.addEventListener('change', () => { currentTrendMode = 'manual'; filterDateQuick.value = ''; filterCajaDate.value = ''; syncTrendButtons('manual'); renderTable(allSalesData); });
+  filterOrigen.addEventListener('change', () => { renderTable(allSalesData); });
+  filterTipoVenta.addEventListener('change', () => { renderTable(allSalesData); });
+  document.getElementById('filter-caja-date').addEventListener('change', () => {
+    if (filterNoCajaActive) toggleNoCajaFilter();
+    currentTrendMode = 'manual';
+    syncTrendButtons('manual');
+    renderTable(allSalesData);
+  });
+
+  window.toggleNoCajaFilter = function () {
+    filterNoCajaActive = !filterNoCajaActive;
+    const btn = document.getElementById('btn-filter-no-caja');
+    const inputDate = document.getElementById('filter-caja-date');
+
+    if (filterNoCajaActive) {
+      btn.classList.replace('bg-slate-800', 'bg-amber-500/20');
+      btn.classList.replace('text-slate-400', 'text-amber-500');
+      inputDate.value = ''; // Limpiar fecha si activamos este modo
+    } else {
+      btn.classList.replace('bg-amber-500/20', 'bg-slate-800');
+      btn.classList.replace('text-amber-500', 'text-slate-400');
+    }
+    renderTable(allSalesData);
+  }
 
   window.updateSaleStatus = function (id, st, ori) {
     if (!id || !st) return;
-    loadingSpinner.classList.remove('hidden');
+
+    if (typeof setGlobalStatus === 'function') {
+      setGlobalStatus(true, "Pushing to Cloud...");
+    } else {
+      loadingSpinner.classList.remove('hidden');
+    }
+
     google.script.run.withSuccessHandler(r => {
+      if (typeof setGlobalStatus === 'function') setGlobalStatus(false);
       loadingSpinner.classList.add('hidden');
       if (r && r.success) {
         const i = allSalesData.findIndex(x => x.id === id);
@@ -1206,10 +1363,17 @@
     if (dtInstance) dtInstance.search('').draw();
     filterStatus.value = '';
     filterStatus.dataset.activeMacro = '';
-    filterOrigen.value = '';
-    filterCaja.value = '';
-    filterDateQuick.value = '';
     filterDateStart.value = '';
+    filterDateEnd.value = '';
+    filterCajaDate.value = '';
+    filterOrigen.value = '';
+    filterTipoVenta.value = '';
+    filterNoCajaActive = false;
+    const btnNoCaja = document.getElementById('btn-filter-no-caja');
+    btnNoCaja.classList.replace('bg-amber-500/20', 'bg-slate-800');
+    btnNoCaja.classList.replace('text-amber-500', 'text-slate-400');
+
+    filterDateQuick.value = '';
     filterDateEnd.value = '';
     activePaymentFilters.clear();
     document.querySelectorAll('.payment-icon-filter').forEach(i => i.classList.remove('active'));
@@ -1235,55 +1399,305 @@
   }
 
   function calculateChartData(d) {
-    const D = new Map(), O = new Map(), P = new Map();
-    d.filter(s => ['COMPLETADA', 'ENTREGADO', 'PAGADO'].includes(s.estado)).forEach(s => {
-      const dy = s.fecha.split(' ')[0];
-      const grossTotal = s.total + (s.pagoEfectivo || 0);
-      D.set(dy, (D.get(dy) || 0) + grossTotal);
-      O.set(s.tiendaId || 'N/A', (O.get(s.tiendaId) || 0) + grossTotal);
-      P.set(s.metodoPago || 'N/A', (P.get(s.metodoPago) || 0) + grossTotal);
-    });
-    return { daily: Array.from(D.entries()).sort((a, b) => new Date(a[0]) - new Date(b[0])), origin: Array.from(O.entries()), payment: Array.from(P.entries()) };
-  }
+    const T = new Map(), O = new Map(), P = new Map();
+    const now = new Date();
 
-  function renderCharts(c) {
-    if (typeof Chart === 'undefined') return;
+    // Configuración de límites de tiempo según modo
+    let startTime, endTime;
+    if (currentTrendMode === 'today') {
+      startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (currentTrendMode === 'yesterday') {
+      startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+    } else if (currentTrendMode === 'week') {
+      startTime = new Date(now); startTime.setDate(now.getDate() - 7);
+      endTime = new Date(now);
+    } else if (currentTrendMode === 'month') {
+      startTime = new Date(now.getFullYear(), now.getMonth(), 1);
+      endTime = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    } else if (currentTrendMode === 'year') {
+      startTime = new Date(now.getFullYear(), 0, 1);
+      endTime = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    } else if (currentTrendMode === 'history') {
+      startTime = null;
+      endTime = null;
+    }
 
-    // Método ultra-seguro para destruir gráficos previos por ID de Canvas
-    ['dailySalesChart', 'salesByOriginChart', 'paymentMethodChart'].forEach(id => {
-      const existingChart = Chart.getChart(id);
-      if (existingChart) existingChart.destroy();
-    });
+    // Modo Manual: Tomar fechas de los filtros globales
+    if (currentTrendMode === 'manual' || !currentTrendMode) {
+      startTime = filterDateStart.value ? new Date(filterDateStart.value + 'T00:00:00') : null;
+      endTime = filterDateEnd.value ? new Date(filterDateEnd.value + 'T23:59:59') : null;
+    }
 
-    const dailyEl = document.getElementById('dailySalesChart');
-    if (dailyEl) chartInstances.daily = new Chart(dailyEl, { type: 'line', data: { labels: c.daily.map(d => d[0]), datasets: [{ data: c.daily.map(d => d[1]), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => formatMoneda.format(x.raw) } } }, scales: { x: { display: true, ticks: { font: { size: 10 }, color: '#94a3b8' }, grid: { display: false } }, y: { display: true, beginAtZero: true, ticks: { font: { size: 10 }, color: '#94a3b8', callback: v => '$' + v.toLocaleString('es-AR') }, grid: { borderDash: [2, 4], color: '#334155' } } } } });
+    const diffDays = (startTime && endTime) ? Math.ceil(Math.abs(endTime - startTime) / (1000 * 60 * 60 * 24)) : 0;
+    const isSingleDay = (startTime && endTime && startTime.toISOString().split('T')[0] === endTime.toISOString().split('T')[0]);
 
-    const originEl = document.getElementById('salesByOriginChart');
-    if (originEl) chartInstances.origin = new Chart(originEl, { type: 'bar', data: { labels: c.origin.map(d => d[0]), datasets: [{ data: c.origin.map(d => d[1]), backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'] }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, y: { grid: { display: false }, ticks: { color: '#94a3b8' } } } } });
+    const completeStatuses = ['COMPLETADA', 'ENTREGADO', 'PAGADO'];
 
-    const paymentEl = document.getElementById('paymentMethodChart');
-    if (paymentEl) chartInstances.payment = new Chart(paymentEl, { type: 'doughnut', data: { labels: c.payment.map(d => d[0]), datasets: [{ data: c.payment.map(d => d[1]), backgroundColor: ['#34d399', '#60a5fa', '#f87171', '#fbbf24'], borderColor: '#1e293b', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: '#cbd5e1' } } } } });
-  }
+      // 1. Filtrado y Agrupación
+      d.filter(s => completeStatuses.includes(s.estado)).forEach(s => {
+        // Normalización robusta de la fecha (manejo de guiones y espacios)
+        const datePart = s.fecha.split(' ')[0].replace(/-/g, '/');
+        const timePart = s.fecha.split(' ')[1] || '00:00';
+        const sDate = new Date(`${datePart} ${timePart}`);
 
-  // --- INICIALIZACION ASINCRONA ---
-  var initAttempts = 0;
-  function initDashboard() {
-    if (typeof Chart === 'undefined' || typeof $ === 'undefined' || !$.fn.DataTable) {
-      initAttempts++;
-      if (initAttempts > 50) {
-        console.error('Error crítico: Librerías no cargadas tras 5s.');
-        loadSalesData(true);
+        const grossTotal = s.total + (s.pagoEfectivo || 0);
+
+        // Filtro de rango de tiempo (Solo si hay límites definidos)
+        if (startTime && sDate < startTime) return;
+        if (endTime && sDate > endTime) return;
+
+        // 1. Lógica de Agrupación para Tendencia (X-Axis)
+        let key;
+        if (currentTrendMode === 'today' || currentTrendMode === 'yesterday' || isSingleDay) {
+          key = sDate.getHours().toString().padStart(2, '0') + ':00';
+        } else if (currentTrendMode === 'week') {
+          const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+          key = days[sDate.getDay()];
+        } else if (currentTrendMode === 'month') {
+          key = sDate.getDate().toString();
+        } else if (currentTrendMode === 'year') {
+          const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+          key = months[sDate.getMonth()];
+        } else if (currentTrendMode === 'history') {
+          // Histórico siempre agrupa por Mes Año para visión de largo plazo
+          const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+          key = `${months[sDate.getMonth()]} ${sDate.getFullYear().toString().slice(-2)}`;
+        } else {
+          // Modo manual inteligente:
+          if (isSingleDay) {
+            key = sDate.getHours().toString().padStart(2, '0') + ':00';
+          } else {
+            const diff = (startTime && endTime) ? Math.ceil(Math.abs(endTime - startTime) / (1000 * 60 * 60 * 24)) : 0;
+            if (diff > 60) {
+              const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+              key = `${months[sDate.getMonth()]} ${sDate.getFullYear().toString().slice(-2)}`;
+            } else {
+              key = s.fecha.split(' ')[0];
+            }
+          }
+        }
+
+        T.set(key, (T.get(key) || 0) + grossTotal);
+
+        // 2. Origen y Pago (Siempre igual)
+        O.set(s.tiendaId || 'N/A', (O.get(s.tiendaId) || 0) + grossTotal);
+        P.set(s.metodoPago || 'N/A', (P.get(s.metodoPago) || 0) + grossTotal);
+      });
+
+      // Post-procesamiento de Tendencia para asegurar orden y ceros
+      let trendData = [];
+      if (currentTrendMode === 'today' || currentTrendMode === 'yesterday' || (currentTrendMode === 'manual' && isSingleDay)) {
+        for (let i = 0; i < 24; i++) {
+          const h = i.toString().padStart(2, '0') + ':00';
+          trendData.push([h, T.get(h) || 0]);
+        }
+      } else if (currentTrendMode === 'week') {
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        // Reordenar para que empiece desde hace 7 días
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          const dayLabel = days[d.getDay()];
+          trendData.push([dayLabel, T.get(dayLabel) || 0]);
+        }
+      } else if (currentTrendMode === 'month') {
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        for (let i = 1; i <= lastDay; i++) {
+          trendData.push([i.toString(), T.get(i.toString()) || 0]);
+        }
+      } else {
+        // Ordenamiento Cronológico Robusto
+        const monthMap = { 'Ene': 0, 'Feb': 1, 'Mar': 2, 'Abr': 3, 'May': 4, 'Jun': 5, 'Jul': 6, 'Ago': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dic': 11 };
+        trendData = Array.from(T.entries()).sort((a, b) => {
+          const partsA = a[0].split(' '), partsB = b[0].split(' ');
+          const yearA = partsA[1] ? 2000 + parseInt(partsA[1]) : now.getFullYear();
+          const yearB = partsB[1] ? 2000 + parseInt(partsB[1]) : now.getFullYear();
+          const dateA = new Date(yearA, monthMap[partsA[0]], 1);
+          const dateB = new Date(yearB, monthMap[partsB[0]], 1);
+          return dateA - dateB;
+        });
+      }
+
+      return {
+        trend: trendData,
+        origin: Array.from(O.entries()),
+        payment: Array.from(P.entries())
+      };
+    }
+
+    window.setTrendMode = function (mode, btn) {
+      currentTrendMode = mode;
+      // Solo limpiamos fechas para el modo HISTÓRICO TOTAL
+      if (mode === 'history') {
+        filterDateStart.value = '';
+        filterDateEnd.value = '';
+      }
+      setDateRange(mode, true);
+    }
+
+    function renderCharts(c) {
+      if (typeof Chart === 'undefined') return;
+
+      // Método ultra-seguro para destruir gráficos previos por ID de Canvas
+      ['dailySalesChart', 'salesByOriginChart', 'paymentMethodChart'].forEach(id => {
+        const existingChart = Chart.getChart(id);
+        if (existingChart) existingChart.destroy();
+      });
+
+      const dailyEl = document.getElementById('dailySalesChart');
+      if (dailyEl) {
+        // Configuración dinámica de colores para el modo Mes y Año
+        let bgColors = 'rgba(99,102,241,0.1)';
+        let borderColors = '#6366f1';
+        let pointColors = '#6366f1';
+
+        if (currentTrendMode === 'month') {
+          // Colores por semana del mes
+          bgColors = c.trend.map((_, i) => {
+            const day = i + 1;
+            if (day <= 7) return 'rgba(99,102,241,0.2)';
+            if (day <= 14) return 'rgba(16,185,129,0.2)';
+            if (day <= 21) return 'rgba(245,158,11,0.2)';
+            return 'rgba(236,72,153,0.2)';
+          });
+          borderColors = c.trend.map((_, i) => {
+            const day = i + 1;
+            if (day <= 7) return '#6366f1';
+            if (day <= 14) return '#10b981';
+            if (day <= 21) return '#f59e0b';
+            return '#ec4899';
+          });
+        } else if (currentTrendMode === 'manual' || currentTrendMode === 'year' || currentTrendMode === 'history') {
+          // Colores por Año: 23 (Esmeralda), 24 (Indigo), 25 (Ambar)
+          borderColors = c.trend.map(t => {
+            const yr = t[0].split(' ').pop();
+            return yr === '23' ? '#10b981' : (yr === '25' ? '#f59e0b' : '#6366f1');
+          });
+          bgColors = borderColors.map(c => c + '33');
+        }
+
+        chartInstances.daily = new Chart(dailyEl, {
+          type: (currentTrendMode === 'month' || currentTrendMode === 'year') ? 'bar' : 'line',
+          data: {
+            labels: c.trend.map(d => d[0]),
+            datasets: [{
+              data: c.trend.map(d => d[1]),
+              borderColor: borderColors,
+              backgroundColor: bgColors,
+              fill: true,
+              tension: 0.4,
+              pointRadius: (currentTrendMode === 'month' || currentTrendMode === 'year') ? 0 : 5,
+              pointBackgroundColor: borderColors,
+              borderWidth: 3,
+              segment: {
+                borderColor: ctx => {
+                  const label = ctx.p0.label || '';
+                  const yr = label.split(' ').pop();
+                  return yr === '23' ? '#10b981' : (yr === '25' ? '#f59e0b' : '#6366f1');
+                }
+              }
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#1e293b',
+                titleColor: '#94a3b8',
+                bodyColor: '#fff',
+                borderColor: '#334155',
+                borderWidth: 1,
+                padding: 10,
+                displayColors: true,
+                callbacks: { label: x => ' Ventas: ' + formatMoneda.format(x.raw) }
+              }
+            },
+            scales: {
+              x: {
+                display: true,
+                ticks: { font: { size: 9, weight: 'bold' }, color: '#94a3b8', maxRotation: 0 },
+                grid: { display: false }
+              },
+              y: {
+                display: true,
+                beginAtZero: true,
+                ticks: {
+                  font: { size: 9 },
+                  color: '#64748b',
+                  callback: v => v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'k' : '$' + v
+                },
+                grid: { color: 'rgba(51, 65, 85, 0.3)', borderDash: [4, 4] }
+              }
+            }
+          }
+        });
+      }
+
+      const originEl = document.getElementById('salesByOriginChart');
+      if (originEl) chartInstances.origin = new Chart(originEl, {
+        type: 'bar',
+        data: { labels: c.origin.map(d => d[0]), datasets: [{ data: c.origin.map(d => d[1]), backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'] }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          onClick: (e, activeEls) => {
+            if (activeEls.length > 0) {
+              const idx = activeEls[0].index;
+              const label = c.origin[idx][0];
+              filterOrigen.value = label;
+              renderTable(allSalesData);
+            }
+          },
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, y: { grid: { display: false }, ticks: { color: '#94a3b8' } } }
+        }
+      });
+
+      const paymentEl = document.getElementById('paymentMethodChart');
+      if (paymentEl) chartInstances.payment = new Chart(paymentEl, {
+        type: 'doughnut',
+        data: { labels: c.payment.map(d => d[0]), datasets: [{ data: c.payment.map(d => d[1]), backgroundColor: ['#34d399', '#60a5fa', '#f87171', '#fbbf24'], borderColor: '#1e293b', borderWidth: 2 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          onClick: (e, activeEls) => {
+            if (activeEls.length > 0) {
+              const idx = activeEls[0].index;
+              const label = c.payment[idx][0];
+              if (activePaymentFilters.has(label)) activePaymentFilters.delete(label);
+              else activePaymentFilters.add(label);
+              // Sincronizar UI de iconos si existen
+              document.querySelectorAll('.payment-icon-filter').forEach(btn => {
+                if (btn.title === label) btn.classList.toggle('active');
+              });
+              renderTable(allSalesData);
+            }
+          },
+          plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 }, color: '#cbd5e1' } } }
+        }
+      });
+    }
+
+    // --- INICIALIZACION ASINCRONA ---
+    var initAttempts = 0;
+    function initDashboard() {
+      if (typeof Chart === 'undefined' || typeof $ === 'undefined' || !$.fn.DataTable) {
+        initAttempts++;
+        if (initAttempts > 50) {
+          console.error('Error crítico: Librerías no cargadas tras 5s.');
+          loadSalesData(true);
+          return;
+        }
+        setTimeout(initDashboard, 100);
         return;
       }
-      setTimeout(initDashboard, 100);
-      return;
+      initDataTable();
+      Chart.defaults.color = '#94a3b8';
+      // Chart.defaults.scale.grid.color = '#334155';
+      loadSalesData();
     }
-    initDataTable();
-    Chart.defaults.color = '#94a3b8';
-    // Chart.defaults.scale.grid.color = '#334155';
-    loadSalesData();
-  }
-  initDashboard();
+    initDashboard();
 </script>
 </body>
 

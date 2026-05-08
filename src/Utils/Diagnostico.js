@@ -48,7 +48,7 @@ function probarLlaveGemini(key, label, log) {
     }
 
     // 2. Prueba de Generación simple (Text Only)
-    const currentModel = label.includes("Gratuita") ? "gemma-3-27b-it" : "gemini-1.5-flash-latest";
+    const currentModel = label.includes("Gratuita") ? "gemma-4-26b-a4b-it" : "gemini-2.5-flash";
     const urlGen = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${key}`;
     const payloadGen = { contents: [{ parts: [{ text: "Hola" }] }] };
     const respGen = UrlFetchApp.fetch(urlGen, {
@@ -70,7 +70,7 @@ function probarLlaveGemini(key, label, log) {
       log.push(`   - [OK] File API Upload exitoso (URI: ${fileApiResult.uri.split('/').pop()}).`);
       
       // 4. Prueba de Lectura (Permission Check)
-      const readModel = label.includes("Gratuita") ? "gemma-3-27b-it" : "gemini-1.5-flash-latest";
+      const readModel = label.includes("Gratuita") ? "gemma-4-26b-a4b-it" : "gemini-2.5-flash";
       const urlRead = `https://generativelanguage.googleapis.com/v1beta/models/${readModel}:generateContent?key=${key}`;
       const payloadRead = {
         contents: [{ parts: [{ text: "Describe this image" }, { fileData: { mimeType: "image/gif", fileUri: fileApiResult.uri } }] }]

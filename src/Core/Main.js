@@ -371,7 +371,11 @@ const GLOBAL_CONFIG = {
     get END_HOUR() { return parseInt(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_END_HOUR"] || "23"); }
   },
 
-  ENABLE_BIGQUERY: true
+  BIGQUERY: {
+    get ENABLE() { return String(GLOBAL_CONFIG.SCRIPT_CONFIG["BQ_ENABLE"] || "FALSE").toUpperCase() === "TRUE"; },
+    get PROJECT_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["BQ_PROJECT_ID"] || ""; },
+    get DATASET_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["BQ_DATASET_ID"] || ""; }
+  }
 };
 
 /**

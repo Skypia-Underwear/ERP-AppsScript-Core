@@ -1349,27 +1349,18 @@ function gestionarAccionEnriquecimiento(sku) {
     // 3. Preparar Prompt y Consultar IA
     logArray.push("🧠 Consultando a la IA para generar descripción y tabla de talles...");
     const promptMaster = prepararPromptDescripcionIA(referenciaMaestra, prodObj);
-    const respuestaIA = consultarIA(promptMaster);
+    const respuestaIA = AIService.consultarGemma(promptMaster);
 
     if (!respuestaIA || respuestaIA.includes("Error")) {
       throw new Error("La IA no respondió correctamente.");
     }
 
-    // Intentar limpiar JSON si la IA agregó backticks
-    let jsonLimpio = respuestaIA.replace(/```json/g, "").replace(/```/g, "").trim();
     let dataIA;
     try {
-      dataIA = JSON.parse(jsonLimpio);
+      dataIA = JSON.parse(respuestaIA);
     } catch (e) {
-      logArray.push("⚠️ La respuesta no es un JSON válido. Reintentando limpieza...");
-      // Intento de rescate desesperado
-      const inicio = jsonLimpio.indexOf("{");
-      const fin = jsonLimpio.lastIndexOf("}");
-      if (inicio !== -1 && fin !== -1) {
-        dataIA = JSON.parse(jsonLimpio.substring(inicio, fin + 1));
-      } else {
-        throw new Error("No se pudo parsear la respuesta de la IA.");
-      }
+      logArray.push("❌ Error al procesar los datos de la IA: La respuesta no tiene un formato válido.");
+      throw new Error("No se pudo parsear la respuesta de la IA.");
     }
 
     logArray.push("✅ Contenido generado con éxito.");

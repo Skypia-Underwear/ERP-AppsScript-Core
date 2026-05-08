@@ -1,68 +1,49 @@
-# SESSION MASTER — ERP BlogShop / Castfer
+# 📓 SESSION_MASTER: Industrialización de Infraestructura ERP (3 de Mayo, 2026)
 
-> Archivo de continuidad de sesión. Actualizar al final de cada jornada de trabajo.
+## 🎯 Objetivo de la Sesión
+Migrar el Dashboard de Ventas de un modelo dependiente de archivos JSON en Drive ("Bake & Serve") a una infraestructura de **Data Warehouse profesional en BigQuery**, garantizando alto rendimiento, escalabilidad y paridad total de datos.
 
----
+## 🛠 Logros y Cambios Implementados
 
-## 📅 Sesión: 2026-05-02 (Chat ID: 27a00275-d0a2-4b37-92a2-8c097ceb8c6d)
+### 1. Arquitectura "Compositor Industrial" (`BigQueryBridge.js`)
+- Se implementó un motor de consulta que actúa como un **reemplazo directo (drop-in replacement)** del JSON de Drive.
+- La consulta ahora realiza **Lookups (cruces)** en tiempo real:
+    - Mapea `CLIENTE_ID` ➔ `nombreCliente`.
+    - Mapea `ASESOR_ID` ➔ `asesor`.
+    - Resuelve datos bancarios desde la tabla maestra de transferencias.
+- Se consolidaron las ventas de **Blogger** y **Pedidos Locales** en una única tabla industrial (`HISTORIAL_VENTAS`) diferenciadas por el campo `ORIGEN`.
 
-**Agente:** Antigravity (Gemini)  
-**Rol del Ideador:** Arquitecto de Infraestructura PWA.
+### 2. Sincronización de Ecosistema Completo
+- El archivador ahora sincroniza **6 tablas críticas** en modo espejo (`WRITE_TRUNCATE`):
+    1. `HISTORIAL_VENTAS` (Consolidado).
+    2. `HISTORIAL_DETALLES` (Consolidado con `DESCRIPCION_VENTA`).
+    3. `HISTORIAL_CLIENTES` (Basado en `SHEET_SCHEMA.CLIENTS`).
+    4. `HISTORIAL_CAJAS` (Basado en `SHEET_SCHEMA.GESTION_CAJA`).
+    5. `HISTORIAL_TRANSFERENCIAS` (Basado en `SHEET_SCHEMA.DATOS_TRANSFERENCIA`).
+    6. `HISTORIAL_USUARIOS` (Basado en `SHEET_SCHEMA.USUARIOS_SISTEMAS`).
 
----
+### 3. Optimización de Rendimiento (Lazy Loading)
+- **Dashboard Ultrarrápido**: El Dashboard ahora solo carga las cabeceras (ventas).
+- **Carga Bajo Demanda**: Los detalles de los productos se consultan a BigQuery solo cuando el usuario abre el modal de una venta, reduciendo el tiempo de carga inicial de 16s a ~1s.
 
-## ✅ Qué se completó hoy
+### 4. Correcciones Críticas
+- **Fidelidad al Esquema**: Se eliminaron "alucinaciones" de columnas y se forzó el uso de `SHEET_SCHEMA` de `Constants.js` como única fuente de verdad.
+- **Filtros**: Se reparó la lógica de filtrado en `sale_dashboard.html` para que sea compatible tanto con Drive como con BigQuery (case-insensitive).
 
-### Fase: Optimización de Navegación PWA (Deep Linking)
+### 5. Industrialización de Inventarios (Nueva)
+- Se añadieron las tablas `HISTORIAL_INVENTARIO` e `HISTORIAL_MOVIMIENTOS` al motor de sincronización de BigQuery.
+- Ahora el ecosistema sincroniza **8 tablas críticas** en modo espejo.
 
-#### 1. Forwarding de Parámetros en App Shell ✅
-- Se modificó `SaaS_Installer.js` para inyectar un script inteligente en el `index.html` del cliente.
-- El nuevo script captura `window.location.search` del navegador y lo concatena a la URL del `iframe` de Google Apps Script.
-- Esto permite acceder a vistas específicas (como el formulario de registro o detalle de pedidos) directamente desde el subdominio del cliente conservando la interfaz PWA (sin cabeceras de Google).
+## ⚠️ Estado Actual
+- **Despliegue**: Versión **603** activa.
+- **Sincronización**: Motor actualizado para incluir Inventarios.
+- **Pendiente**: Ejecutar `archivarVentasEnBigQuery()` desde el editor de Apps Script para realizar el primer volcado masivo de las 8 tablas.
 
-#### 2. Soporte para Vistas Específicas ✅
-- Se validó el funcionamiento para:
-  - `?view=client_form`: Registro de cliente.
-  - `?view=customer_order&oid=...`: Detalle de pedido para el cliente final.
-  - `?mode=print_label`: Generación de rótulos de envío.
-
----
-
-## 🔜 Próxima sesión — Pendiente
-
-### Fase: Auditoría TPV y Reportes
-
-| Tarea | Prioridad | Estado |
-|---|---|---|
-| Auditoría del módulo TPV (Terminal de Venta) | Alta | ⏳ Pendiente |
-| Refinamiento de reportes financieros | Media | ⏳ Pendiente |
-
-**Contexto técnico para la próxima sesión:**
-- El App Shell ahora soporta navegación por parámetros, lo que facilita el envío de enlaces directos a clientes por WhatsApp/Email.
-- El sistema de empaquetado SaaS ya genera versiones actualizadas con esta funcionalidad.
-
----
-
-## 📁 Estructura del repositorio relevante
-
-```
-Macros HostingShop/
-├── src/
-│   ├── Modules/
-│   │   └── SaaS_Installer.js   ← Actualizado con lógica de forwarding
-│   └── Core/
-│       └── Main.js             ← Ruteador principal (doGet_MainRouter)
-```
+## 📅 Próximos Pasos
+1.  **Validación de Datos**: Verificar visualización de nombres y stocks en el Dashboard tras el archivado.
+2.  **Pulido de UI**: Implementar Skeleton Loading para el modal de detalles de venta.
+3.  **Auditoría de Errores**: Monitorear el `Health Check` para detectar fallos en la consulta BQ.
+4.  **Optimización de Inventario**: Migrar `inventory_dashboard.html` para que use el `HISTORIAL_INVENTARIO` de BigQuery.
 
 ---
-
-## 🔗 Referencias clave
-
-| Recurso | Valor |
-|---|---|
-| URL Web App GAS | `https://script.google.com/macros/s/AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg/exec` |
-| PWA Cliente | `https://system-erp.castfer.com.ar/` |
-
----
-
-*Última actualización: 2026-05-02 ART · Agente: Antigravity*
+*Sesión retomada. Avanzando en la industrialización de inventarios.*

@@ -7,13 +7,12 @@
  * Consolida todas las ventas (Blogger + Local) en un único archivo JSON en Drive.
  * Esto permite que el Dashboard cargue instantáneamente.
  */
-function tpv_consolidarVentasJson() {
+function tpv_consolidarVentasJson(precalculatedData = null) {
     try {
         debugLog("🍳 [Bake & Serve] Iniciando consolidación de ventas...");
 
-        // 1. Obtener los datos consolidados usando la lógica existente de Dashboard.js
-        // Forzamos HEAVY para que no lea el JSON viejo que el mismo genera
-        const dashboardJsonStr = cargarDashboardVentas_HEAVY();
+        // 1. Obtener los datos consolidados. Si ya los tenemos (por carga forzada), los reusamos.
+        const dashboardJsonStr = precalculatedData || cargarDashboardVentas_HEAVY();
         const dataParsed = JSON.parse(dashboardJsonStr);
 
         if (!dataParsed.success) {
@@ -41,12 +40,27 @@ function tpv_consolidarVentasJson() {
             debugLog(`✅ Archivo '${fileName}' creado en Drive.`);
         }
 
-        // 3. Notificar éxito
+        // 3. Invalidar Caché para que el dashboard tome lo nuevo (Turbo Mode)
+        try {
+            CacheService.getScriptCache().remove("DASHBOARD_VENTAS_JSON");
+            debugLog("🧹 [Caché] El caché previo ha sido invalidado para refrescar el Dashboard.");
+        } catch (errCache) { }
+
+        // 4. Calcular conteo total desde la jerarquía para los logs
+        let totalSales = 0;
+        if (dataParsed.hierarchy) {
+            Object.keys(dataParsed.hierarchy).forEach(ori => {
+                Object.keys(dataParsed.hierarchy[ori]).forEach(boxId => {
+                    totalSales += dataParsed.hierarchy[ori][boxId].length;
+                });
+            });
+        }
+
         return {
             success: true,
-            message: "Ventas consolidadas con éxito.",
+            message: "Jerarquía de ventas consolidada con éxito.",
             fileId: file.getId(),
-            count: dataParsed.data ? dataParsed.data.length : 0
+            count: totalSales
         };
 
     } catch (e) {

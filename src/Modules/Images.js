@@ -224,7 +224,7 @@ function obtenerOCrearCarpetaProducto(sku) {
   if (!foundRange) throw new Error(`Producto ${sku} no encontrado en la base de datos.`);
 
   const rowIdx = foundRange.getRow();
-  
+
   // 2. Lectura rápida del ID actual
   let folderId = "";
   if (idxFolder !== undefined) {
@@ -1458,8 +1458,9 @@ function escanearPrenda(imagenId, forzar = false) {
       payload: JSON.stringify(payload), muteHttpExceptions: true
     });
 
+    const textResponse = response.getContentText(); // Captura el JSON de error de Google
     if (response.getResponseCode() === 200) {
-      const json = JSON.parse(response.getContentText());
+      const json = JSON.parse(textResponse);
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) {
         garantizarColumnaANALISIS(sheetImg);
@@ -1468,8 +1469,11 @@ function escanearPrenda(imagenId, forzar = false) {
         return JSON.stringify({ success: true, text: text, model: "gemma-3-27b-it" });
       }
       throw new Error("IA no devolvió texto.");
+    } else {
+      // Esto te dirá si es un 404 (Modelo no encontrado), 429 (Cuota) o 400 (Payload mal formado)
+      console.error("DETALLE DEL ERROR GOOGLE:", textResponse);
+      throw new Error(`Error API ${response.getResponseCode()}: ${textResponse}`);
     }
-    throw new Error(`Error API (${response.getResponseCode()})`);
 
   } catch (e) {
     console.error(`[escanearPrenda] ${e.message}`);

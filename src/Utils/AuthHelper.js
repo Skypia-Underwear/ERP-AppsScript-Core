@@ -23,6 +23,10 @@ function forceAuthReset() {
       console.log("BigQuery API: OK");
     }
     
+    // Forzar ScriptApp API (Triggers)
+    const triggers = ScriptApp.getProjectTriggers();
+    console.log("ScriptApp (Triggers): OK (Encontrados: " + triggers.length + ")");
+    
     console.log("✅ Autorización verificada exitosamente.");
   } catch (e) {
     console.error("❌ Error durante la autorización: " + e.message);

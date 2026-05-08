@@ -341,7 +341,7 @@
 
     <!-- Botón de Estado (Relocalizado al centro/derecha para evitar solapamientos) -->
     <div id="shell-status-container"
-      class="absolute top-4 right-4 sm:top-6 sm:right-8 z-30 flex items-center gap-4 transition-all duration-300">
+      class="absolute top-4 right-4 sm:top-6 sm:right-8 z-[60] flex items-center gap-4 transition-all duration-300">
 
       <!-- Botón Hamburguesa Móvil (Visible solo en < 768px) -->
       <button onclick="toggleSidebar()"
@@ -350,9 +350,13 @@
       </button>
 
       <div id="shell-status"
-        class="hidden px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-2 animate-fade-in shadow-sm shadow-indigo-500/5 backdrop-blur-md">
-        <div class="spinner"></div>
-        <span id="shell-status-text">Procesando...</span>
+        class="hidden px-4 py-2 rounded-xl text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 animate-fade-in shadow-2xl shadow-indigo-500/20 backdrop-blur-xl ring-1 ring-white/10">
+        <div class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+        </div>
+        <i class="ph-fill ph-cloud-arrow-down text-lg animate-bounce"></i>
+        <span id="shell-status-text">Sincronizando con Drive Cloud...</span>
       </div>
     </div>
 

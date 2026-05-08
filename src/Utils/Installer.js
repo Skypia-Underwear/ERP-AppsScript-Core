@@ -182,6 +182,9 @@ function inicializarEntorno() {
       { clave: "TELEGRAM_MODE", val: "DEV", desc: "Modo: DEV (solo salud) o CLIENT (asistente)" },
       { clave: "NOTIFICATION_PROVIDER", val: "TELEGRAM", desc: "Canal: TELEGRAM, EMAIL o NONE" },
       { clave: "NOTIFICATION_EMAIL", val: "", desc: "Email para notificaciones (si aplica)" },
+      { clave: "BQ_ENABLE", val: "TRUE", desc: "Activa el archivado industrial en BigQuery" },
+      { clave: "BQ_PROJECT_ID", val: "SkypiaUnderwearApi", desc: "ID Proyecto Google Cloud (GCP)" },
+      { clave: "BQ_DATASET_ID", val: "", desc: "ID Dataset BQ (Vacio = APP_NAME_MASTER)" },
       // --- CONFIGURACIÓN DE PUBLICACIÓN ---
       { clave: "PUBLICATION_TARGET", val: "DONWEB", desc: "Respaldo Global: DONWEB o GITHUB" },
       { clave: "BLOGGER_PUBLICATION_TARGET", val: "AMBOS", desc: "Blogger Sync: DONWEB, GITHUB, AMBOS o NONE" },
@@ -198,7 +201,6 @@ function inicializarEntorno() {
       { clave: "GM_PAID_PIN", val: "1234", desc: "PIN de seguridad para activar IA de pago (Nano Banana Pro)" },
       { clave: "SYNC_START_HOUR", val: "6", desc: "Hora de inicio de sincronización (0-23)" },
       { clave: "SYNC_END_HOUR", val: "23", desc: "Hora de fin de sincronización (0-23)" },
-      { clave: "GCP_PROJECT_ID", val: "", desc: "ID del Proyecto Google Cloud (Ej: gen-lang-client-...)" },
       { clave: "RESELLER_DESTINATION_URL", val: "", desc: "URL WebApp del ERP Personal (Para recibir productos)" },
       { clave: "RESELLER_SYNC_TOKEN", val: "RESELLER_SYNC_TOKEN_V1", desc: "Token secreto para validar la sincronización (Debe ser igual en ambos ERP)" }
     ];
@@ -530,7 +532,7 @@ function setupBigQueryStructure() {
     } catch (e) {
       const newDataset = {
         datasetReference: { datasetId: datasetId },
-        location: "US" 
+        location: "US"
       };
       BigQuery.Datasets.insert(newDataset, projectId);
       console.log(`✅ Dataset ${datasetId} creado.`);

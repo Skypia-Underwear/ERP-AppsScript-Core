@@ -7,63 +7,50 @@
  * Intenta cargar desde el JSON optimizado en Drive (Bake & Serve).
  * Si no existe, realiza la carga pesada tradicional.
  */
-function cargarDashboardVentas() {
+function cargarDashboardVentas(force = false) {
     try {
-        // 1. CASO INDUSTRIAL: BigQuery habilitado
-        if (GLOBAL_CONFIG.ENABLE_BIGQUERY) {
-            debugLog("🔍 [Dashboard] Consultando vía BigQuery (Industrial Mode)...");
-            const bqData = tpv_querySalesFromBigQuery();
-            if (bqData) {
-                // Obtenemos los assets (imágenes y filtros) de forma ligera
-                const assets = cargarDashboardAssets(); 
-                return JSON.stringify({
-                    success: true,
-                    data: bqData,
-                    filterOptions: assets.filterOptions,
-                    productImageMap: assets.productImageMap
-                });
-            }
-            debugLog("⚠️ Falló consulta BigQuery, reintentando vía Bake & Serve...");
-        }
+        // 1. Intentar recuperar desde Drive (Bake & Serve) si NO se fuerza la recarga
+        if (!force) {
+            const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
+            const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "erp";
+            const appSlug = appName.toLowerCase().replace(/\s+/g, '-');
+            const fileName = appSlug + "-ventas-dashboard.json";
 
-        // 2. CASO ESTÁNDAR: Bake & Serve (Drive JSON)
-        // NOTA: Eliminamos CacheService para evitar el error "Argumento demasiado grande" (>100KB)
-        const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
-        const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "erp";
-        const appSlug = appName.toLowerCase().replace(/\s+/g, '-');
-        const fileName = appSlug + "-ventas-dashboard.json";
-
-        if (folderId) {
-            const folder = DriveApp.getFolderById(folderId);
-            const files = folder.getFilesByName(fileName);
-            if (files.hasNext()) {
-                const file = files.next();
-                const content = file.getBlob().getDataAsString();
-                debugLog("🚀 [Dashboard] Cargado desde Drive (Bake & Serve).");
-                return content;
+            if (folderId) {
+                const folder = DriveApp.getFolderById(folderId);
+                const files = folder.getFilesByName(fileName);
+                if (files.hasNext()) {
+                    const file = files.next();
+                    const content = file.getBlob().getDataAsString();
+                    debugLog("ðŸš€ [Dashboard] Cargado desde Drive (Bake & Serve).");
+                    return content;
+                }
             }
         }
     } catch (e) {
-        debugLog("⚠️ Error en ruteo de Dashboard: " + e.message);
+        debugLog("Error cargando JSON desde Drive: " + e.message);
     }
 
-    // Fallback a carga pesada tradicional
-    debugLog("🐢 [Dashboard] Fallback a procesamiento de hojas de cálculo...");
-    return cargarDashboardVentas_HEAVY();
+    // Fallback o Forzado a carga pesada
+    debugLog(force ? "Forzando carga pesada desde hojas..." : "Fallback a carga pesada...");
+    const heavyContent = cargarDashboardVentas_HEAVY();
+
+    // Si forzamos la carga, disparamos la consolidacion en segundo plano para actualizar el JSON
+    if (force) {
+        try {
+            // Pasamos el contenido pesado para que no lo vuelva a calcular
+            tpv_consolidarVentasJson(heavyContent);
+            debugLog("ðŸ”„ [Dashboard] JSON de Drive actualizado tras carga forzada.");
+        } catch (errSync) {
+            debugLog("âš ï¸ Error al sincronizar JSON en segundo plano: " + errSync.message);
+        }
+    }
+
+    return heavyContent;
 }
 
 /**
- * Función puente para obtener detalles de una venta específica (Lazy Loading).
- */
-function getSaleDetails(saleId, origen) {
-    if (GLOBAL_CONFIG.ENABLE_BIGQUERY) {
-        return tpv_getSaleDetailsFromBigQuery(saleId);
-    }
-    return []; 
-}
-
-/**
- * Consolida y devuelve todas las ventas procesando las hojas de cálculo (Carga Pesada).
+ * Consolida y devuelve todas las ventas procesando las hojas de cÃ¡lculo (Carga Pesada).
  */
 function cargarDashboardVentas_HEAVY() {
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
@@ -71,7 +58,7 @@ function cargarDashboardVentas_HEAVY() {
 
     try {
         // --- 0. CARGAR DATOS COMO OBJETOS ---
-        // Usamos tu función nativa. Si la hoja no existe, devuelve [] automáticamente.
+        // Usamos tu funcion nativa. Si la hoja no existe, devuelve [] automaticamente.
         const ventasBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES));
         const ventasPedidos = convertirRangoAObjetos(ss.getSheetByName(SHEETS.VENTAS_PEDIDOS));
         const detalleBlogger = convertirRangoAObjetos(ss.getSheetByName(SHEETS.BLOGGER_SALES_DETAILS));
@@ -86,11 +73,11 @@ function cargarDashboardVentas_HEAVY() {
         const metodosPagoData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.METODOS_PAGO));
         const svgGalleryData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.SVG_GALLERY));
 
-        // Verificación rápida
+        // Verificacion rapida
         if (!ventasBlogger.length && !ventasPedidos.length) {
             return JSON.stringify({
                 success: true,
-                message: "⚠️ No se encontraron datos.",
+                message: "No se encontraron datos.",
                 data: [],
                 filterOptions: { cajas: [], origenes: [], metodosPago: [] },
                 productImageMap: {}
@@ -106,7 +93,7 @@ function cargarDashboardVentas_HEAVY() {
 
             if (typeof rawVal === 'string') {
                 let limpio = rawVal.trim().replace('$', '').replace(/\s/g, '');
-                // Lógica de detección de formato Argentina vs Internacional
+                // Logica de deteccion de formato Argentina vs Internacional
                 if (limpio.match(/\.\d{3},\d{2}$/)) { limpio = limpio.replace(/\./g, '').replace(',', '.'); }
                 else if (limpio.match(/\d+,\d{1,2}$/)) { limpio = limpio.replace(',', '.'); }
                 else if (limpio.match(/\d+\.\d{3}(\.\d{3})*$/)) { limpio = limpio.replace(/\./g, ''); }
@@ -151,10 +138,10 @@ function cargarDashboardVentas_HEAVY() {
             }
         });
 
-        // 1.5 Imágenes (Solo portadas)
+        // 1.5 Imagenes (Solo portadas)
         const productImageMap = {};
         imagenesData.forEach(img => {
-            // Convertimos a string y mayúsculas para asegurar comparación booleana
+            // Convertimos a string y mayusculas para asegurar comparacion booleana
             const isPortada = String(img.PORTADA).toUpperCase() === 'TRUE';
             if (img.PRODUCTO_ID && isPortada && !productImageMap[img.PRODUCTO_ID]) {
                 productImageMap[img.PRODUCTO_ID] = img.URL;
@@ -163,23 +150,23 @@ function cargarDashboardVentas_HEAVY() {
 
         // 1.6 Mapeo de Iconos de Pago (CDN Optimizado)
         const svgIdToNameMap = {};
-        svgGalleryData.forEach(s => { 
-          if (s.SVG_ID) {
-            const nombreLimpio = s.NOMBRE ? String(s.NOMBRE).trim().toLowerCase().replace(/\s+/g, "_") : String(s.SVG_ID).trim().toLowerCase();
-            svgIdToNameMap[s.SVG_ID] = nombreLimpio;
-          }
+        svgGalleryData.forEach(s => {
+            if (s.SVG_ID) {
+                const nombreLimpio = s.NOMBRE ? String(s.NOMBRE).trim().toLowerCase().replace(/\s+/g, "_") : String(s.SVG_ID).trim().toLowerCase();
+                svgIdToNameMap[s.SVG_ID] = nombreLimpio;
+            }
         });
-        
+
         const metodosPagoIcons = {};
         metodosPagoData.forEach(m => {
-          if (m.MOVIMIENTO_ID) {
-            const rawIcon = m.ICONO || m.MOVIMIENTO_ID;
-            const sid = svgIdToNameMap[rawIcon] || rawIcon;
-            metodosPagoIcons[m.MOVIMIENTO_ID] = {
-              porcentaje: parseMontoRobust(m.PORCENTAJE),
-              iconUrl: asset_getUrlParaIcono(sid)
-            };
-          }
+            if (m.MOVIMIENTO_ID) {
+                const rawIcon = m.ICONO || m.MOVIMIENTO_ID;
+                const sid = svgIdToNameMap[rawIcon] || rawIcon;
+                metodosPagoIcons[m.MOVIMIENTO_ID] = {
+                    porcentaje: parseMontoRobust(m.PORCENTAJE),
+                    iconUrl: asset_getUrlParaIcono(sid)
+                };
+            }
         });
 
         // --- 2. CONSOLIDAR DETALLES ---
@@ -194,23 +181,23 @@ function cargarDashboardVentas_HEAVY() {
                 const precio = parseMontoRobust(row.PRECIO) || 0;
                 const subtotal = parseMontoRobust(row.SUBTOTAL || row.MONTO) || 0;
 
-                // Normalización de nombres y variaciones según origen
+                // Normalizacion de nombres y variaciones segun origen
                 let descripcion, tipoPrecio, color, talle, variedadId;
-                
+
                 if (origen === 'Pedido Local') {
-                    descripcion = row.VARIACION_ID || row.PRODUCTO_ID; 
+                    descripcion = row.VARIACION_ID || row.PRODUCTO_ID;
                     tipoPrecio = row.TIPO_PRECIO || 'N/A';
                     color = row.COLOR || 'N/A';
                     talle = row.TALLE || 'N/A';
                     variedadId = row.VARIACION_ID || '';
                 } else {
-                    // Blogger: Usamos columnas específicas si existen, sino fallback del nombre
+                    // Blogger: Usamos columnas especificas si existen, sino fallback del nombre
                     descripcion = row.PRODUCTO_VARIACION || row.NOMBRE || row.CODIGO_ID || '';
-                    
+
                     color = row.COLOR || '';
                     talle = row.TALLE || '';
                     variedadId = row.VARIEDAD_ID || '';
-                    
+
                     const match = descripcion.match(/\(([^)]+)\)/);
                     if (match) {
                         const partes = match[1].split('-').map(p => p.trim());
@@ -220,7 +207,7 @@ function cargarDashboardVentas_HEAVY() {
                     } else {
                         tipoPrecio = row.TIPO_PRECIO || 'Menor';
                     }
-                    
+
                     if (!color) color = 'Surtido';
                     if (!talle) talle = 'Surtido';
                 }
@@ -246,7 +233,7 @@ function cargarDashboardVentas_HEAVY() {
         procesarDetalles(detalleBlogger, 'Blogger');
         procesarDetalles(detallePedidos, 'Pedido Local');
 
-        // --- 2.1 HELPER DE NORMALIZACIÓN JSON ---
+        // --- 2.1 HELPER DENORMALIZACION JSON ---
         const normalizarDetalleJson = (jsonString, ventaId) => {
             try {
                 if (!jsonString) return null;
@@ -259,7 +246,7 @@ function cargarDashboardVentas_HEAVY() {
                     let t = it.talle;
                     let tp = it.tipoPrecio;
                     const desc = it.nombre || it.descripcion_venta || it.descripcion || '';
-                    
+
                     if (!c || !t || !tp) {
                         const match = desc.match(/\(([^)]+)\)/);
                         if (match) {
@@ -272,7 +259,7 @@ function cargarDashboardVentas_HEAVY() {
 
                     return {
                         id: ventaId + '-j-' + idx,
-                        descripcion: desc || 'Sin descripción',
+                        descripcion: desc || 'Sin descripcion',
                         cantidad: it.cantidad || 1,
                         precioUnitario: parseMontoRobust(it.precio || it.precioUnitario),
                         subtotal: parseMontoRobust(it.subtotal || it.monto),
@@ -289,10 +276,10 @@ function cargarDashboardVentas_HEAVY() {
             }
         };
 
-        // --- 3. CONSOLIDAR VENTAS ---
-        const ventasConsolidadas = [];
-        const uniqueCajas = new Set();
-        const uniqueOrigenes = new Set();
+        // --- 3. CONSOLIDAR VENTAS CON JERARQUIA ---
+        const hierarchy = {};
+        const cajasMetadata = {};
+        const uniqueTiendas = new Set();
         const uniquePagos = new Set();
 
         const procesarVentas = (listaVentas, origen) => {
@@ -300,7 +287,7 @@ function cargarDashboardVentas_HEAVY() {
                 const ventaId = row.CODIGO || row.VENTA_ID;
                 if (!ventaId) return;
 
-                // Limpieza de Total (Mismo lógica robusta que antes)
+                // Limpieza de Total
                 let rawTotal = row.TOTAL_VENTA || row.MONTO_TOTAL_PRODUCTOS;
                 let totalLimpio = parseMontoRobust(rawTotal);
 
@@ -312,7 +299,6 @@ function cargarDashboardVentas_HEAVY() {
                 const asesorId = row.ASESOR_ID || 'N/A';
                 const infoCaja = cajaMap[cajaId] || { asesor: asesorId, fechaCaja: 'N/A' };
 
-                // Prioridad de nombre de asesor: Caja > Venta > ID
                 let nombreAsesor = infoCaja.asesor;
                 if (nombreAsesor === asesorId || !nombreAsesor) {
                     nombreAsesor = usuarioMap[asesorId] || asesorId;
@@ -321,41 +307,50 @@ function cargarDashboardVentas_HEAVY() {
                 const transferId = row.DATOS_TRANSFERENCIA;
                 const infoTransfer = transferenciaMap[transferId] || { banco: 'N/A', alias: 'N/A' };
 
-                // --- 2.2 PRIORIZACIÓN DE DATOS (Híbrido Hoja Detalles / JSON) ---
-                // Priorizamos la hoja de detalles (detalleVentasMap) ya que contiene las columnas estructuradas (Color, Talle, VariedadId)
                 let detallesVenta = detalleVentasMap[ventaId];
-
                 if (!detallesVenta || detallesVenta.length === 0) {
                     detallesVenta = normalizarDetalleJson(row.DETALLE_JSON, ventaId);
                 }
-
                 if (!detallesVenta) detallesVenta = [];
 
                 const recargoTransf = Number(row.RECARGO_TRANSFERENCIA || 0);
-
                 let montoProductos = parseMontoRobust(row.MONTO_TOTAL_PRODUCTOS);
                 let subtotal = parseMontoRobust(row.SUBTOTAL);
 
-                // --- FALLBACK LOGIC (Para ventas Blogger que no traen estos campos) ---
                 if (!montoProductos) {
                     montoProductos = detallesVenta.reduce((acc, d) => acc + (d.subtotal || 0), 0);
                 }
-
                 if (!subtotal) {
-                    // Si no hay subtotal, asumimos que es (Total - Recargos Externos "al subtotal")
-                    // En el modelo visual: Subtotal + RecargoTransf = Total (aprox, ignorando envio aqui si es separado)
-                    // Ajuste segun logica usuario: Subtotal = Total - RecargoTransf
                     subtotal = totalLimpio - recargoTransf;
                 }
 
-                ventasConsolidadas.push({
+                let fechaFinal = '';
+                if (row.FECHA) {
+                    const dateObj = new Date(row.FECHA);
+                    const dateStr = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+                    let timeStr = '00:00';
+
+                    // Si existe una columna HORA específica (común en Pedidos Locales), la usamos.
+                    if (row.HORA) {
+                        const h = String(row.HORA).trim();
+                        // Validar si es formato HH:mm o HH:mm:ss
+                        if (h.match(/^\d{2}:\d{2}/)) timeStr = h.substring(0, 5);
+                        else if (row.HORA instanceof Date) timeStr = Utilities.formatDate(row.HORA, Session.getScriptTimeZone(), 'HH:mm');
+                    } else {
+                        // Si no hay HORA separada, intentamos extraerla de la FECHA (para Blogger)
+                        timeStr = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), 'HH:mm');
+                    }
+                    fechaFinal = `${dateStr} ${timeStr}`;
+                }
+
+                const saleObj = {
                     id: ventaId,
-                    fecha: row.FECHA ? Utilities.formatDate(new Date(row.FECHA), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : '',
+                    fecha: fechaFinal,
                     origen: origen,
                     estado: row.ESTADO || 'SOLICITADO',
                     total: totalLimpio,
                     clienteId: row.CLIENTE_ID || 'CLI001',
-                    nombreCliente: clienteMap[row.CLIENTE_ID] || 'Público General',
+                    nombreCliente: clienteMap[row.CLIENTE_ID] || 'Publico General',
                     tiendaId: tiendaId,
                     metodoPago: row.METODO_PAGO || 'N/A',
                     cajaId: cajaId,
@@ -367,19 +362,31 @@ function cargarDashboardVentas_HEAVY() {
                     recargoTransferencia: recargoTransf,
                     recargoMenor: Number(row.RECARGO_MENOR || 0),
                     detalles: detallesVenta,
-
-                    // --- NUEVOS CAMPOS (Solicitud Usuario V2) ---
                     pagoEfectivo: parseMontoRobust(row.PAGO_EFECTIVO),
                     montoProductos: montoProductos,
                     subtotal: subtotal,
-                    tipoVenta: row.TIPO_VENTA || 'DIRECTA',
+                    tipoVenta: row.TIPO_VENTA || (origen === 'Blogger' ? 'PEDIDO' : 'DIRECTA'),
                     compraMinima: Number(row.COMPRA_MINIMA || 0),
                     pagoMixto: String(row.PAGO_MIXTO).toUpperCase() === 'TRUE',
                     desactivarRecargoTransferencia: String(row.DESACTIVAR_RECARGO_TRANSFERENCIA).toUpperCase() === 'TRUE'
-                });
+                };
 
-                uniqueCajas.add(cajaId);
-                uniqueOrigenes.add(origen);
+                // Asignacion Jerarquica (Tienda -> Caja -> Ventas)
+                const groupKey = (cajaId === 'N/A' || !cajaId) ? 'PENDIENTES' : cajaId;
+                if (!hierarchy[tiendaId]) hierarchy[tiendaId] = {};
+                if (!hierarchy[tiendaId][groupKey]) hierarchy[tiendaId][groupKey] = [];
+                hierarchy[tiendaId][groupKey].push(saleObj);
+                uniqueTiendas.add(tiendaId);
+
+                // Metadatos de Caja (Lookup rapido para el calendario)
+                if (groupKey !== 'PENDIENTES' && !cajasMetadata[groupKey]) {
+                    cajasMetadata[groupKey] = {
+                        fecha: infoCaja.fechaCaja,
+                        tienda: tiendaId,
+                        asesor: nombreAsesor
+                    };
+                }
+
                 uniquePagos.add(row.METODO_PAGO || 'N/A');
             });
         };
@@ -387,41 +394,39 @@ function cargarDashboardVentas_HEAVY() {
         procesarVentas(ventasBlogger, 'Blogger');
         procesarVentas(ventasPedidos, 'Pedido Local');
 
-        // Ordenar por fecha descendente
-        ventasConsolidadas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
         return JSON.stringify({
             success: true,
-            data: ventasConsolidadas,
+            hierarchy: hierarchy,
+            cajasMetadata: cajasMetadata,
             filterOptions: {
-                cajas: Array.from(uniqueCajas).filter(x => x !== 'N/A').sort(),
-                origenes: Array.from(uniqueOrigenes).sort(),
+                origenes: Array.from(uniqueTiendas).sort(),
                 metodosPago: Array.from(uniquePagos).filter(x => x !== 'N/A').sort(),
-                metodosPagoIcons: metodosPagoIcons // Mapa dinámico de iconos
+                metodosPagoIcons: metodosPagoIcons,
+                tiposVenta: ['DIRECTA', 'PEDIDO', 'WEB']
             },
             productImageMap: productImageMap
         });
 
     } catch (error) {
-        debugLog("❌ ERROR en cargarDashboardVentas_HEAVY: " + error.toString());
+        debugLog("ERROR en cargarDashboardVentas_HEAVY: " + error.toString());
         return JSON.stringify({ success: false, message: error.toString(), logs: logArray });
     }
 }
 
 /**
- * Función para actualizar el estado de una venta específica (para auditar/corregir).
+ * Funcin para actualizar el estado de una venta especfica (para auditar/corregir).
  */
 function actualizarEstadoVenta(ventaId, nuevoEstado, origen) {
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
     const hojaVentas = origen === 'Blogger' ? ss.getSheetByName(SHEETS.BLOGGER_SALES) : ss.getSheetByName(SHEETS.VENTAS_PEDIDOS);
 
     if (!hojaVentas) {
-        return { success: false, message: `❌ Hoja de ventas (${origen}) no encontrada.` };
+        return { success: false, message: `Hoja de ventas (${origen}) no encontrada.` };
     }
 
     try {
         const mapping = HeaderManager.getMapping(origen === 'Blogger' ? "BLOGGER_SALES" : "VENTAS_PEDIDOS");
-        if (!mapping) return { success: false, message: `❌ Mapeo para ${origen} no encontrado.` };
+        if (!mapping) return { success: false, message: `Mapeo para ${origen} no encontrado.` };
 
         const ventaIdHeader = origen === 'Blogger' ? "CODIGO" : "VENTA_ID";
         const ventaIdIndex = mapping[ventaIdHeader];
@@ -429,7 +434,7 @@ function actualizarEstadoVenta(ventaId, nuevoEstado, origen) {
         const cajaIndex = mapping["CAJA_ID"];
 
         if (ventaIdIndex === undefined || estadoIndex === undefined) {
-            return { success: false, message: `❌ Columnas VENTA_ID/CODIGO o ESTADO no encontradas en el mapeo de ${origen}.` };
+            return { success: false, message: `Columnas VENTA_ID/CODIGO o ESTADO no encontradas en el mapeo de ${origen}.` };
         }
 
         const dataRows = hojaVentas.getDataRange().getValues();
@@ -440,90 +445,45 @@ function actualizarEstadoVenta(ventaId, nuevoEstado, origen) {
                 const filaEncontrada = i + 2;
                 hojaVentas.getRange(filaEncontrada, estadoIndex + 1).setValue(nuevoEstado);
 
-                // --- ASIGNACIÓN AUTOMÁTICA DE CAJA (Solo Blogger) ---
+                // --- ASIGNACIÃ“N AUTOMÃTICA DE CAJA (Solo Blogger) ---
                 if (origen === 'Blogger' && (nuevoEstado === 'PAGADO' || nuevoEstado === 'ENTREGADO') && cajaIndex !== undefined) {
                     const currentCaja = dataRows[i][cajaIndex];
-                    if (!currentCaja || currentCaja === 'N/A' || currentCaja === '') {
+                    if (!currentCaja || currentCaja === 'N/A' || currentCaja === '' || currentCaja === 'WEB') {
                         try {
                             const activeBoxId = getCurrentOpenBoxId();
                             if (activeBoxId) {
                                 hojaVentas.getRange(filaEncontrada, cajaIndex + 1).setValue(activeBoxId);
-                                debugLog(`📦 [Caja Auto] Venta ${ventaId} asignada a Caja ${activeBoxId}`);
+                                debugLog(`[Caja Auto] Venta ${ventaId} asignada a Caja ${activeBoxId}`);
+                            } else {
+                                // Si no hay caja abierta, marcamos como N/A para auditoria manual
+                                hojaVentas.getRange(filaEncontrada, cajaIndex + 1).setValue('N/A');
+                                debugLog(`[Caja Auto] No hay caja abierta para la venta ${ventaId}. Seteado a N/A.`);
                             }
                         } catch (eBox) {
-                            debugLog(`⚠️ No se pudo asignar caja automáticamente: ${eBox.message}`);
+                            debugLog(`[Caja Auto] No se pudo asignar caja automaticamente: ${eBox.message}`);
                         }
                     }
                 }
 
                 SpreadsheetApp.flush();
-                return { success: true, message: `✅ Estado de venta ${ventaId} (${origen}) actualizado a "${nuevoEstado}".` };
+                return { success: true, message: `Estado de venta ${ventaId} (${origen}) actualizado a "${nuevoEstado}".` };
             }
         }
 
-        return { success: false, message: `⚠️ Venta ${ventaId} no encontrada en la hoja ${hojaVentas.getName()}.` };
+        return { success: false, message: `Venta ${ventaId} no encontrada en la hoja ${hojaVentas.getName()}.` };
 
     } catch (e) {
         Logger.log(`ERROR en actualizarEstadoVenta: ${e.message} - ${e.stack}`);
-        return { success: false, message: `❌ Error interno al actualizar el estado: ${e.message}` };
+        return { success: false, message: `Error interno al actualizar el estado: ${e.message}` };
     }
 }
 
-/**
- * Carga solo los assets necesarios para el dashboard (Filtros e Imágenes).
- * Se usa como complemento para la carga desde BigQuery.
- */
-function cargarDashboardAssets() {
-    const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
-    
-    // Cargar hojas de configuración
-    const cajaData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.GESTION_CAJA));
-    const metodosPagoData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.METODOS_PAGO));
-    const imagenesData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.PRODUCT_IMAGES));
-    const svgGalleryData = convertirRangoAObjetos(ss.getSheetByName(SHEETS.SVG_GALLERY));
-
-    // 1. Imágenes de Producto
-    const productImageMap = {};
-    imagenesData.forEach(img => {
-        if (img.PRODUCTO_ID && String(img.PORTADA).toUpperCase() === 'TRUE' && !productImageMap[img.PRODUCTO_ID]) {
-            productImageMap[img.PRODUCTO_ID] = img.URL;
-        }
-    });
-
-    // 2. Iconos de Pago
-    const svgIdToNameMap = {};
-    svgGalleryData.forEach(s => { 
-        if (s.SVG_ID) {
-            const nombreLimpio = s.NOMBRE ? String(s.NOMBRE).trim().toLowerCase().replace(/\s+/g, "_") : String(s.SVG_ID).trim().toLowerCase();
-            svgIdToNameMap[s.SVG_ID] = nombreLimpio;
-        }
-    });
-
-    const metodosPagoIcons = {};
-    const uniquePagos = new Set();
-    metodosPagoData.forEach(m => {
-        if (m.MOVIMIENTO_ID) {
-            uniquePagos.add(m.MOVIMIENTO_ID);
-            const rawIcon = m.ICONO || m.MOVIMIENTO_ID;
-            const sid = svgIdToNameMap[rawIcon] || rawIcon;
-            metodosPagoIcons[m.MOVIMIENTO_ID] = {
-                porcentaje: parseFloat(m.PORCENTAJE) || 0,
-                iconUrl: asset_getUrlParaIcono(sid)
-            };
-        }
-    });
-
-    // 3. Opciones de Filtro
-    const uniqueCajas = new Set();
-    cajaData.forEach(c => { if (c.CAJA_ID) uniqueCajas.add(c.CAJA_ID); });
-
-    return {
-        productImageMap: productImageMap,
-        filterOptions: {
-            cajas: Array.from(uniqueCajas).sort(),
-            origenes: ["Blogger", "Pedido Local"],
-            metodosPago: Array.from(uniquePagos).sort(),
-            metodosPagoIcons: metodosPagoIcons
-        }
-    };
-}
+function getGeneralId(ss) {
+    const sheet = ss.getSheetByName(SHEETS.STORES || 'BD_TIENDAS');
+    if (!sheet) return 'PRINCIPAL';
+    const data = sheet.getDataRange().getValues();
+    if (data.length > 1) {
+        return String(data[1][0]).trim();
+    }
+    return 'PRINCIPAL';
+}
