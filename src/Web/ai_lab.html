@@ -1,5 +1,5 @@
-<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
-  <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+﻿<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
+<?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 <? } ?>
 
 <!-- Estilos Experimentales para el Laboratorio -->
@@ -8,12 +8,28 @@
     background: #020617;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     border: 1px solid #1e293b;
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
   }
-  .log-kept { color: #4ade80; background: rgba(74, 222, 128, 0.05); }
-  .log-discarded { color: #64748b; opacity: 0.6; text-decoration: line-through; }
-  .ai-thought { color: #818cf8; font-style: italic; border-left: 2px solid #4338ca; padding-left: 10px; margin: 4px 0; }
-  
+
+  .log-kept {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.05);
+  }
+
+  .log-discarded {
+    color: #64748b;
+    opacity: 0.6;
+    text-decoration: line-through;
+  }
+
+  .ai-thought {
+    color: #818cf8;
+    font-style: italic;
+    border-left: 2px solid #4338ca;
+    padding-left: 10px;
+    margin: 4px 0;
+  }
+
   .glass-card {
     background: rgba(30, 41, 59, 0.7);
     backdrop-filter: blur(10px);
@@ -29,7 +45,8 @@
         <span class="material-icons text-blue-500 text-4xl">biotech</span>
         AI LAB <span class="text-blue-500/50">| Forensic School</span>
       </h1>
-      <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest font-bold">Auditoría de Transparencia para Gemma 4</p>
+      <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest font-bold">Auditoría de Transparencia para Gemma 4
+      </p>
     </div>
     <div class="flex gap-3">
       <button onclick="location.reload()" class="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition">
@@ -44,14 +61,16 @@
       <!-- Selector de Categoría -->
       <div>
         <label class="block text-xs font-black text-slate-500 uppercase mb-2">1. Filtrar Categoría</label>
-        <select id="cat-selector" onchange="updateProductList()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
+        <select id="cat-selector" onchange="updateProductList()"
+          class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
           <option value="">Cargando catálogo...</option>
         </select>
       </div>
       <!-- Selector de Producto -->
       <div>
         <label class="block text-xs font-black text-slate-500 uppercase mb-2">2. Seleccionar Producto</label>
-        <select id="prod-selector" onchange="loadProductImages()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
+        <select id="prod-selector" onchange="loadProductImages()"
+          class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
           <option value="">Primero elige categoría</option>
         </select>
       </div>
@@ -68,7 +87,7 @@
 
   <!-- Workspace del Laboratorio -->
   <div id="lab-workspace" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 hidden">
-    
+
     <!-- Sidebar: Galería de Imágenes -->
     <div class="lg:col-span-3 space-y-6">
       <div class="glass-card p-4 rounded-2xl sticky top-8">
@@ -90,15 +109,19 @@
             <img id="selected-img-view" src="" class="w-full h-full object-cover" alt="Prenda a analizar">
           </div>
           <div class="p-8 flex flex-col justify-center">
-            <div id="img-id-badge" class="inline-block bg-blue-500/20 text-blue-400 text-[10px] font-black px-2 py-1 rounded mb-4">IMG-ID: NO_SELECTED</div>
+            <div id="img-id-badge"
+              class="inline-block bg-blue-500/20 text-blue-400 text-[10px] font-black px-2 py-1 rounded mb-4">IMG-ID:
+              NO_SELECTED</div>
             <h2 id="prod-title-view" class="text-2xl font-bold text-white mb-2 uppercase">Selecciona una imagen</h2>
             <p id="prod-sku-view" class="text-slate-500 font-mono text-sm mb-6">SKU: ---</p>
-            
-            <button id="run-test-btn" onclick="confirmAndRunTest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 group">
+
+            <button id="run-test-btn" onclick="confirmAndRunTest()"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 group">
               <span class="material-icons group-hover:rotate-12 transition">biotech</span>
-              INICIAR SIMULACIÓN FORENSE
+              INICIAR SIMULACION FORENSE
             </button>
-            <p class="text-center text-[10px] text-slate-500 mt-4 uppercase font-bold tracking-widest italic">Análisis de transparencia con Gemma 4 IT</p>
+            <p class="text-center text-[10px] text-slate-500 mt-4 uppercase font-bold tracking-widest italic">Análisis
+              de transparencia con Gemma 4 IT</p>
           </div>
         </div>
       </div>
@@ -113,12 +136,14 @@
             </h4>
             <div class="flex items-center gap-3">
               <span class="text-[10px] text-slate-500 font-mono">Gemma 4 IT</span>
-              <button onclick="copyToClipboard('raw-view', 'MENTE DE LA IA (RAW)')" class="text-slate-500 hover:text-white transition flex items-center gap-1 text-[10px] uppercase font-bold">
+              <button onclick="copyToClipboard('raw-view', 'MENTE DE LA IA (RAW)')"
+                class="text-slate-500 hover:text-white transition flex items-center gap-1 text-[10px] uppercase font-bold">
                 <span class="material-icons text-xs">content_copy</span> COPIAR
               </button>
             </div>
           </div>
-          <div id="raw-view" class="raw-console p-6 rounded-2xl h-[500px] overflow-y-auto text-[11px] leading-relaxed scroll-thin">
+          <div id="raw-view"
+            class="raw-console p-6 rounded-2xl h-[500px] overflow-y-auto text-[11px] leading-relaxed scroll-thin">
             <!-- Texto RAW inyectado -->
           </div>
         </div>
@@ -131,12 +156,14 @@
             </h4>
             <div class="flex items-center gap-3">
               <span class="text-[10px] text-slate-500 font-mono">Input para ERP</span>
-              <button onclick="copyToClipboard('clean-view', 'FICHA TÉCNICA (CLEAN)')" class="text-emerald-500/50 hover:text-emerald-400 transition flex items-center gap-1 text-[10px] uppercase font-bold">
+              <button onclick="copyToClipboard('clean-view', 'FICHA TÃ‰CNICA (CLEAN)')"
+                class="text-emerald-500/50 hover:text-emerald-400 transition flex items-center gap-1 text-[10px] uppercase font-bold">
                 <span class="material-icons text-xs">content_copy</span> COPIAR
               </button>
             </div>
           </div>
-          <div id="clean-view" class="bg-slate-900 p-8 rounded-2xl h-[500px] overflow-y-auto shadow-inner border border-slate-800 scroll-thin">
+          <div id="clean-view"
+            class="bg-slate-900 p-8 rounded-2xl h-[500px] overflow-y-auto shadow-inner border border-slate-800 scroll-thin">
             <!-- Resultado filtrado -->
           </div>
         </div>
@@ -150,8 +177,8 @@
 
 <script>
   // Inyección de URLs para modo Standalone
-  const CATALOG_URL = "<?!= CATALOG_URL ?>";
-  const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
+  var CATALOG_URL = "<?!= CATALOG_URL ?>";
+  var CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
 
   let CATALOGO = [];
   let CATEGORIAS = new Set();
@@ -165,7 +192,7 @@
     await loadCatalog();
   }
 
-  // 1. CARGA DE CATÁLOGO (Dual: Shell SPA + Standalone Fallback)
+  // 1. CARGA DE CATALOGO (Dual: Shell SPA + Standalone Fallback)
   async function loadCatalog() {
     try {
       // Caso A: Estamos dentro del Shell (SPA)
@@ -176,7 +203,7 @@
           return;
         }
       }
-      
+
       // Caso B: Standalone - Intentar carga rápida desde red (Fetch)
       if (CATALOG_URL && CATALOG_URL !== "undefined") {
         try {
@@ -186,7 +213,7 @@
             processCatalogData(data);
             return;
           }
-        } catch(e) { console.warn("Fetch catalog failed, using server fallback."); }
+        } catch (e) { console.warn("Fetch catalog failed, using server fallback."); }
       }
 
       // Caso C: Fallback Total - Consultar a Google Apps Script
@@ -205,7 +232,7 @@
 
   function processCatalogData(data) {
     if (!data) return;
-    
+
     // El catálogo puede venir como objeto {products:[]} o directamente []
     const products = data.products || data;
     if (!Array.isArray(products)) return;
@@ -216,7 +243,7 @@
       categoria: p.categoryName || p.categoria || "Sin Categoría",
       thumbnail: p.image || p.thumbnail || p.URL || ""
     }));
-    
+
     document.getElementById('stats-total').innerText = `${CATALOGO.length} Productos`;
     populateCategories();
   }
@@ -224,10 +251,10 @@
   function populateCategories() {
     const selector = document.getElementById('cat-selector');
     selector.innerHTML = '<option value="">-- Elige Categoría --</option>';
-    
+
     CATEGORIAS.clear();
     CATALOGO.forEach(p => CATEGORIAS.add(p.categoria));
-    
+
     [...CATEGORIAS].sort().forEach(cat => {
       const opt = document.createElement('option');
       opt.value = cat;
@@ -240,7 +267,7 @@
     const cat = document.getElementById('cat-selector').value;
     const selector = document.getElementById('prod-selector');
     selector.innerHTML = '<option value="">-- Selecciona Producto --</option>';
-    
+
     const prods = CATALOGO.filter(p => p.categoria === cat);
     prods.forEach(p => {
       const opt = document.createElement('option');
@@ -250,14 +277,14 @@
     });
   }
 
-  // 2. CARGA DE IMÁGENES
+  // 2. CARGA DE IMAGENES
   function loadProductImages() {
     const sku = document.getElementById('prod-selector').value;
     const prod = CATALOGO.find(p => p.sku === sku);
     if (!prod) return;
 
     document.getElementById('lab-workspace').classList.remove('hidden');
-    
+
     const gallery = document.getElementById('image-gallery');
     gallery.innerHTML = '<div class="col-span-2 py-4 text-center text-slate-500 animate-pulse text-[10px]">Cargando...</div>';
 
@@ -265,7 +292,7 @@
       let imgs = [];
       try {
         imgs = typeof res === 'string' ? JSON.parse(res) : res;
-      } catch(e) {
+      } catch (e) {
         console.error("Error parseando imágenes:", e);
       }
       renderGallery(imgs, prod);
@@ -275,7 +302,7 @@
   function renderGallery(imgs, prod) {
     const gallery = document.getElementById('image-gallery');
     gallery.innerHTML = '';
-    
+
     if (imgs.length === 0) {
       gallery.innerHTML = '<div class="col-span-2 py-4 text-center text-slate-500 text-[10px]">Sin imágenes.</div>';
       return;
@@ -300,7 +327,7 @@
     document.getElementById('selected-img-view').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // 3. EJECUCIÓN CON SWAL
+  // 3. EJECUCION CON SWAL
   function confirmAndRunTest() {
     if (!selectedImageId) return Swal.fire({
       title: 'Atención',
@@ -311,8 +338,8 @@
     });
 
     Swal.fire({
-      title: '🔬 Iniciar Simulación',
-      text: "¿Deseas ejecutar el diagnóstico forense transparente? Esto consumirá cuota de Gemma 4.",
+      title: 'Iniciar Simulación',
+      text: "Â¿Deseas ejecutar el diagnóstico forense transparente? Esto consumirá cuota de Gemma 4.",
       icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#3b82f6',
@@ -331,11 +358,11 @@
     const btn = document.getElementById('run-test-btn');
     btn.disabled = true;
     btn.innerHTML = `<span class="material-icons animate-spin">sync</span> PROCESANDO...`;
-    
+
     google.script.run.withSuccessHandler(res => {
       btn.disabled = false;
-      btn.innerHTML = `<span class="material-icons">biotech</span> INICIAR SIMULACIÓN FORENSE`;
-      
+      btn.innerHTML = `<span class="material-icons">biotech</span> INICIAR SIMULACION FORENSE`;
+
       if (res.success) {
         renderResults(res);
       } else {
@@ -352,10 +379,10 @@
 
   function renderResults(res) {
     document.getElementById('results-panel').classList.remove('hidden');
-    
+
     const rawView = document.getElementById('raw-view');
     rawView.innerHTML = '';
-    
+
     res.debug.forEach(line => {
       const div = document.createElement('div');
       div.className = line.status === 'KEPT' ? 'log-kept p-1 mb-1 rounded' : 'log-discarded p-1 mb-1 opacity-40';
@@ -365,7 +392,7 @@
 
     const cleanView = document.getElementById('clean-view');
     cleanView.innerHTML = `<pre class="text-emerald-400 font-bold whitespace-pre-wrap font-mono text-[11px] leading-tight">${res.clean}</pre>`;
-    
+
     document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
 
     Swal.fire({
@@ -383,7 +410,7 @@
   function copyToClipboard(elementId, title) {
     const el = document.getElementById(elementId);
     const text = `${title}\n\n${el.innerText}`;
-    
+
     navigator.clipboard.writeText(text).then(() => {
       Swal.fire({
         toast: true,

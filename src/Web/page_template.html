@@ -35,10 +35,10 @@
           class="material-icons animate-spin">sync</span><span>Procesando datos...</span></div>
     </div>
     <div id="status-message" class="hidden p-4 rounded-lg font-medium mb-4"></div>
-    <!-- DASHBOARD DE ESTADÍSTICAS (GENÉRICO) -->
+    <!-- DASHBOARD DE ESTADÃSTICAS (GENÃ‰RICO) -->
     <div id="stats-dashboard" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-slate-900/50 border border-slate-700 p-3 rounded-lg flex flex-col items-center"><span
-          class="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">Éxitos</span>
+          class="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">Ã‰xitos</span>
         <div class="flex items-center gap-2"><span
             class="material-icons text-emerald-500 text-sm">check_circle</span><span id="stat-success"
             class="text-xl font-bold text-white">0</span></div>
@@ -68,9 +68,9 @@
         data-filter="warning"
         class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-amber-900/40">Avisos</button><button
         data-filter="success"
-        class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-emerald-900/40">Éxitos</button>
+        class="filter-chip bg-slate-700 px-3 py-1 rounded-full text-xs font-bold transition hover:bg-emerald-900/40">Ã‰xitos</button>
     </div>
-    <!-- CONTENEDOR DE EDICIÓN IA (NUEVO) -->
+    <!-- CONTENEDOR DE EDICIÃ“N IA (NUEVO) -->
     <div id="ia-editor-container" class="hidden mt-6 space-y-6">
       <div class="bg-slate-900 border border-blue-500/30 rounded-xl overflow-hidden shadow-2xl">
         <div class="bg-blue-600/20 px-4 py-3 border-b border-blue-500/30 flex justify-between items-center">
@@ -138,7 +138,7 @@
           class="material-icons text-sm">open_in_new</span>Ver Producto </a><a id="syncManualButton" href="#"
         target="_blank"
         class="hidden bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded transition items-center gap-2"><span
-          class="material-icons text-sm">sync</span>Sincronizar Galería </a>
+          class="material-icons text-sm">sync</span>Sincronizar Galeria </a>
     </div>
     <div id="prompt-container"
       class="hidden mt-6 p-6 bg-slate-900 text-slate-300 rounded-lg border border-slate-700 max-h-[400px] overflow-y-auto font-mono text-sm leading-relaxed whitespace-pre-wrap word-break-break-word">
@@ -148,11 +148,11 @@
     </div>
     <div class="mt-8 text-center"><button id="retry-btn" onclick="location.reload()"
         class="hidden text-slate-500 hover:text-slate-300 transition text-sm flex items-center gap-1 mx-auto"><span
-          class="material-icons text-sm">refresh</span>Reintentar Ejecución </button></div>
+          class="material-icons text-sm">refresh</span>Reintentar Ejecucion </button></div>
   </div>
   <script>
     const funcionParaLlamar = '<?= funcionParaLlamar ?>';
-    const rawParametros = <?!= JSON.stringify(parametros || "[]") ?>;
+    const rawParametros = <?!= (typeof parametros !== 'undefined' && parametros) ? JSON.stringify(parametros) : '[]' ?>;
     let parametrosBase = [];
     try {
       parametrosBase = typeof rawParametros === 'string' ? JSON.parse(rawParametros) : rawParametros;
@@ -163,7 +163,7 @@
       parametrosBase = parametrosBase ? [parametrosBase] : [];
     }
     const fechaInicial = '<?= fechaInicial || "" ?>';
-    const mostrarBotonPrompt = <?= mostrarBotonPrompt ? 'true' : 'false' ?>;
+    const mostrarBotonPrompt = <?= (typeof mostrarBotonPrompt !== 'undefined' && mostrarBotonPrompt) ? 'true' : 'false' ?>;
 
     const statusElement = document.getElementById('status-message');
     const spinner = document.querySelector('.spinner');
@@ -231,7 +231,7 @@
         copiarBtn.addEventListener('click', () => {
           navigator.clipboard.writeText(promptContainer.textContent).then(() => {
             const originalHTML = copiarBtn.innerHTML;
-            copiarBtn.innerHTML = '<span class="material-icons text-sm">check</span> ¡Copiado!';
+            copiarBtn.innerHTML = '<span class="material-icons text-sm">check</span> Â¡Copiado!';
             setTimeout(() => copiarBtn.innerHTML = originalHTML, 2000);
           });
         });
@@ -334,7 +334,7 @@
         if (ejecutarBtn) ejecutarBtn.disabled = false;
         retryBtn.classList.remove('hidden');
         showStatus('Error crítico: ' + error.message, 'error');
-        showLogs(['❌ ERROR FATAL: ' + error.message]);
+        showLogs(['âŒ ERROR FATAL: ' + error.message]);
       })[funcionParaLlamar].apply(null, parametros);
     }
 
@@ -425,12 +425,12 @@
         let type = 'info';
 
         // --- RENDERIZADO PROFESIONAL DE JSON Y OBJETOS ---
-        if (typeof log === 'string' && (log.trim().startsWith('{') || log.trim().startsWith('[') || log.includes('--- 🕵️‍♂️ RESPUESTA JSON COMPLETA'))) {
+        if (typeof log === 'string' && (log.trim().startsWith('{') || log.trim().startsWith('[') || log.includes('--- ðŸ•µï¸â€â™‚ï¸ RESPUESTA JSON COMPLETA'))) {
           try {
             let jsonContent = '';
 
-            if (log.includes('--- 🕵️‍♂️ RESPUESTA JSON COMPLETA')) {
-              jsonContent = log.split('--- 🕵️‍♂️ RESPUESTA JSON COMPLETA (Debug) ---')[1]?.split('--- 🕵️‍♂️ FIN RESPUESTA JSON ---')[0]?.trim();
+            if (log.includes('--- ðŸ•µï¸â€â™‚ï¸ RESPUESTA JSON COMPLETA')) {
+              jsonContent = log.split('--- ðŸ•µï¸â€â™‚ï¸ RESPUESTA JSON COMPLETA (Debug) ---')[1]?.split('--- ðŸ•µï¸â€â™‚ï¸ FIN RESPUESTA JSON ---')[0]?.trim();
             }
 
             else {
@@ -442,7 +442,7 @@
               const tableDiv = document.createElement('div');
               tableDiv.className = 'bg-slate-900/60 p-4 my-2 rounded-xl border border-blue-500/30 font-mono text-xs overflow-x-auto';
 
-              let html = `<div class="font-bold text-blue-400 mb-2 border-b border-blue-500/20 pb-1 flex justify-between" > <span>📦 DETALLES DE RESPUESTA</span> <span class="text-[10px] opacity-60" >JSON parsed</span> </div> <table class="w-full text-left border-collapse" >`;
+              let html = `<div class="font-bold text-blue-400 mb-2 border-b border-blue-500/20 pb-1 flex justify-between" > <span>ðŸ“¦ DETALLES DE RESPUESTA</span> <span class="text-[10px] opacity-60" >JSON parsed</span> </div> <table class="w-full text-left border-collapse" >`;
 
               for (const [key, value] of Object.entries(data)) {
                 if (key === 'server_logs' || key === 'variations') continue; // Se omiten o manejan aparte
@@ -464,19 +464,19 @@
           }
         }
 
-        // --- RENDERIZADO DE RESUMEN TÉCNICO ---
-        if (typeof log === 'string' && log.includes('🛠️ RESUMEN TÉCNICO:')) {
+        // --- RENDERIZADO DE RESUMEN TÃ‰CNICO ---
+        if (typeof log === 'string' && log.includes('ðŸ› ï¸ RESUMEN TÃ‰CNICO:')) {
           const lines = log.split('\n').map(l => l.trim()).filter(Boolean);
           const summaryDiv = document.createElement('div');
           summaryDiv.className = 'bg-slate-800/80 border-l-4 border-blue-500 p-4 my-2 rounded-r-xl shadow-lg font-sans';
 
-          let html = `<h4 class="text-blue-400 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wider" > <span class="text-lg" >🛠️</span> RESUMEN TÉCNICO </h4> <div class="flex flex-col gap-1 mt-2" >`;
+          let html = `<h4 class="text-blue-400 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wider" > <span class="text-lg" >ðŸ› ï¸</span> RESUMEN TÃ‰CNICO </h4> <div class="flex flex-col gap-1 mt-2" >`;
 
           lines.forEach(line => {
-            if (line.includes('RESUMEN TÉCNICO:')) return;
+            if (line.includes('RESUMEN TÃ‰CNICO:')) return;
 
             if (line.startsWith('-')) {
-              html += `<div class="pl-4 text-slate-300 text-[11px] leading-tight flex items-start gap-2 py-0.5" > <span class="text-blue-500/80 mt-1 flex-shrink-0" >●</span> <span>${line.substring(1).trim()}</span> </div>`;
+              html += `<div class="pl-4 text-slate-300 text-[11px] leading-tight flex items-start gap-2 py-0.5" > <span class="text-blue-500/80 mt-1 flex-shrink-0" >â—</span> <span>${line.substring(1).trim()}</span> </div>`;
             }
 
             else {
@@ -516,33 +516,33 @@
           }
 
           // Tipos
-          if (log.includes('❌') || log.includes('Error')) {
+          if (log.includes('âŒ') || log.includes('Error')) {
             type = 'error';
             div.classList.add('log-error');
           }
 
-          else if (log.includes('✅') || log.includes('🎉') || log.includes('Éxito')) {
+          else if (log.includes('âœ…') || log.includes('ðŸŽ‰') || log.includes('Ã‰xito')) {
             type = 'success';
             div.classList.add('log-success');
           }
 
-          else if (log.includes('ℹ️') || log.includes('🛠️')) {
+          else if (log.includes('â„¹ï¸') || log.includes('ðŸ› ï¸')) {
             type = 'info';
             div.classList.add('log-info');
 
-            if (log.includes('🛠️')) {
+            if (log.includes('ðŸ› ï¸')) {
               div.classList.add('font-sans', 'bg-slate-800/40', 'border-l-2', 'border-blue-500', 'p-3', 'my-2', 'rounded-r-lg');
               div.style.whiteSpace = 'pre-wrap';
             }
           }
 
-          else if (log.includes('⚠️')) {
+          else if (log.includes('âš ï¸')) {
             type = 'warning';
             div.classList.add('log-warning');
           }
 
           // Indentación de listas
-          if (log.trim().startsWith('-') || log.trim().startsWith('↳')) {
+          if (log.trim().startsWith('-') || log.trim().startsWith('â†³')) {
             div.classList.add('pl-6', 'opacity-80');
           }
         }

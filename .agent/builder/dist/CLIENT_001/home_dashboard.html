@@ -1,6 +1,123 @@
-<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
-<?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
-<? } ?>
+
+    <!-- PWA API Bridge -->
+    <script src="api-bridge.js"></script>
+<meta charset="UTF-8">
+
+<!-- 
+  =================================================================
+  === ARCHIVO DE ASSETS COMPARTIDOS (Tailwind, Iconos, Fonts) ===
+  =================================================================
+  Se incluye en las vistas usando: 
+  <!-- Circular Include: Web/_shared_assets -->
+
+<!-- Preconnect para reducir latencia de fuentes -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- Fuentes: Plus Jakarta Sans (con font-display swap) -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+<!-- Framework CSS: Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Iconos: Phosphor Icons & Material Icons -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<!-- Librerías de UI: SweetAlert2 & Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- jQuery & DataTables Bundle (Carga única para todo el sistema) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link
+    href="https://cdn.datatables.net/v/dt/jszip-3.10.1/dt-2.0.3/b-3.0.1/b-html5-3.0.1/b-print-3.0.1/r-3.0.1/datatables.min.css"
+    rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script
+    src="https://cdn.datatables.net/v/dt/jszip-3.10.1/dt-2.0.3/b-3.0.1/b-html5-3.0.1/b-print-3.0.1/r-3.0.1/datatables.min.js"></script>
+
+<!-- Estilos Globales de Scrollbar Dark & Config Tailwind -->
+<style>
+    :root {
+        --bg-main: #0f172a;
+        --bg-secondary: #1e293b;
+        --accent: #6366f1;
+    }
+
+    /* Scrollbar Universal Dark */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 20px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+        background-clip: content-box;
+    }
+
+    /* Utilidad para ocultar scrollbar */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Animaciones Base */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+</style>
+
+<script>
+    // Solo se aplica si Tailwind no está activado o para refrescar la config global
+    if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            950: '#020617',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    }
+</script>
+
+
 
 
 <div class="p-4 sm:p-8 h-full overflow-y-auto custom-scrollbar bg-slate-950">

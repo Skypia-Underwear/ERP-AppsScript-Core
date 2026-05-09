@@ -1020,7 +1020,7 @@
 
     <div class="header-actions">
       <div class="header-control-group" id="header-min-purchase-wrapper" style="display: none;">
-        <span class="header-label">MÃ­nima</span>
+        <span class="header-label">Minima</span>
         <div class="flex gap-1" id="tpv-header-min-purchase">
           <button class="header-btn outline btn-min-qty" onclick="setSelectedMinPurchase(1)">1</button>
           <button class="header-btn outline btn-min-qty" onclick="setSelectedMinPurchase(3)">3</button>
@@ -1029,7 +1029,7 @@
         </div>
       </div>
 
-      <button class="header-btn outline" onclick="openConfigModal()" title="ConfiguraciÃ³n de Vista">
+      <button class="header-btn outline" onclick="openConfigModal()" title="Configuracion de Vista">
         <i class="ph-bold ph-gear text-lg"></i>
       </button>
 
@@ -1081,7 +1081,7 @@
         <div id="tpv-min-purchase-container"
           style="display: none; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
           <div class="flex justify-between items-center">
-            <span class="header-label">COMPRA MÍNIMA:</span>
+            <span class="header-label">COMPRA M NIMA:</span>
             <div id="tpv-min-purchase-display" class="font-black text-warning">0 / 0</div>
           </div>
           <div class="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
@@ -1114,7 +1114,7 @@
           </div>
           <div>
             <label
-              style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">MÃ©todo
+              style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Metodo
               de Pago</label>
             <div id="qr-payment-methods-grid" class="payment-grid mt-2"></div>
             <select id="qr-tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
@@ -1221,7 +1221,7 @@
           </div>
           <button id="btn-confirm-curva" onclick="confirmCurvaSelection()"
             class="tpv-btn-success-large py-3 px-8 opacity-50 cursor-not-allowed" disabled>
-            AÑADIR AL CARRITO
+            AANADIR AL CARRITO
           </button>
         </div>
       </div>
@@ -1265,7 +1265,7 @@
             </select>
           </div>
           <div>
-            <label class="tpv-label-checkout">MÃ©todo de Pago</label>
+            <label class="tpv-label-checkout">Metodo de Pago</label>
             <div id="payment-methods-grid" class="payment-grid"></div>
             <select id="tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
             <div class="mt-4 flex items-center gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
@@ -1343,7 +1343,7 @@
 <script>
   (function () {
     try {
-      console.log("🟢 [TPV] Fragmento inicializado");
+      console.log(" [TPV] Fragmento inicializado");
       // Variables principales del contexto TPV (Dentro de la IIFE)
       var catalog = null;
       var posMetadata = null;
@@ -1352,8 +1352,8 @@
       var selectedMinPurchase = 1;
       var priceConfig = { tipoRegistroPrecio: 'PRECIO + RECARGO ESTANDAR', tipoRegistroProducto: 'PRODUCTO VARIABLE' };
 
-      const CATALOG_URL = "<?!= CATALOG_URL ?>";
-      const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
+      var CATALOG_URL = "<?!= CATALOG_URL ?>";
+      var CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
 
       const checkIsPrecioVariable = () => (priceConfig && priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
       let currentTpvFilters = {
@@ -1379,10 +1379,10 @@
         'CALZA': 'ph-pants',
         'JOGGING': 'ph-pants',
         'PANTALON': 'ph-pants',
-        'PANTALÃ“N': 'ph-pants',
+        'PANTALON': 'ph-pants',
         'SHORT': 'ph-pants',
         'SUETER': 'ph-t-shirt',
-        'SUÃ‰TER': 'ph-t-shirt',
+        'SUETER': 'ph-t-shirt',
         'CAMISETA': 'ph-t-shirt',
         'TOP': 'ph-selection-background',
         'MUSCULOSA': 'ph-user-focus',
@@ -1397,7 +1397,7 @@
         'INVIERNO': 'ph-snowflake',
         'VERANO': 'ph-sun',
         'PRIMAVERA': 'ph-flower',
-        'OTOÃ‘O': 'ph-leaf',
+        'OTONO': 'ph-leaf',
         'CONTINUO': 'ph-arrows-clockwise',
         'DEFAULT': 'ph-calendar'
       };
@@ -1431,7 +1431,7 @@
         updateTpvTotals();
       };
 
-      // EjecuciÃ³n inmediata
+      // Ejecuci ƒÂ³n inmediata
       initTPV();
 
       window.openCheckoutModal = function () {
@@ -1442,12 +1442,12 @@
 
         const isQr = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
 
-        // Renderizar mÃ©todos de pago
+        // Renderizar m ƒÂ©todos de pago
         renderPaymentMethods('payment-methods-grid');
         renderPaymentMethods('qr-payment-methods-grid');
 
         if (isQr) {
-          console.log("Modo QR: El panel de checkout ya deberÃ­a estar visible.");
+          console.log("Modo QR: El panel de checkout ya deber a estar visible.");
           updateTpvTotals();
           return;
         }
@@ -1529,8 +1529,8 @@
 
       async function initTPV() {
         try {
-          console.log("🔍 [TPV] Iniciando servicios...");
-          showTpvLoader("🚀 Sincronizando datos...");
+          console.log("[TPV] Iniciando servicios...");
+          showTpvLoader("Sincronizando datos...");
 
           const userStr = sessionStorage.getItem('loggedInUser');
           const user = userStr ? JSON.parse(userStr) : null;
@@ -1562,13 +1562,13 @@
             managedStoreId: managedStore
           };
 
-          // Enriquecer con configuración específica de la tienda si existe
+          // Enriquecer con Configuración específica de la tienda si existe
           if (managedStore && cat.stores[managedStore] && cat.stores[managedStore].config) {
             posMetadata.storeConfig = cat.stores[managedStore].config;
             posMetadata.printerIp = cat.stores[managedStore].config.printerIp;
             posMetadata.printSettings = cat.stores[managedStore].config.printSettings;
           } else {
-            // Fallback a configuración global (MODO_VENTA del CSV/Tabla General)
+            // Fallback a Configuración global (MODO_VENTA del CSV/Tabla General)
             posMetadata.storeConfig = {
               saleMode: globalCfg.MODO_VENTA || globalCfg.TIPO_MODO_VENTA || "BOTONES DE FILTRADO",
               minorSurcharge: 0,
@@ -1628,7 +1628,7 @@
       async function finalizeTpvInit(storeId) {
         posMetadata.managedStoreId = storeId;
 
-        // 1. Obtener Datos VOLÁTILES (Caja, Sesión) - Nueva función ligera
+        // 1. Obtener Datos VOL TILES (Caja, Sesión) - Nueva función ligera
         google.script.run
           .withFailureHandler(err => { console.warn("Fallo DynamicStatus:", err); })
           .withSuccessHandler(res => {
@@ -1639,7 +1639,7 @@
                 // Sincronizar IP de impresora en tiempo real
                 if (res.session.printerIp) {
                   posMetadata.printerIp = res.session.printerIp;
-                  console.log("📡 IP de Impresora actualizada dinámicamente:", posMetadata.printerIp);
+                  console.log("IP de Impresora actualizada dinamicamente:", posMetadata.printerIp);
                 }
               }
             }
@@ -1663,7 +1663,7 @@
             if (data && data.success) {
               realStockCache.map = data.stockMap;
               realStockCache.lastUpdate = new Date();
-              console.log("📦 [Stock Cache] Tienda " + storeId + ":", Object.keys(data.stockMap).length, "ítems");
+              console.log("[Stock Cache] Tienda " + storeId + ":", Object.keys(data.stockMap).length, "items");
               renderTpvUI();
             }
           })
@@ -1753,7 +1753,7 @@
           dom: 'Bfrtip',
           buttons: [
             {
-              text: '📱 WhatsApp',
+              text: 'WhatsApp',
               className: 'bg-green-500 text-white rounded px-2 py-1 text-xs',
               action: function (e, dt, node, config) {
                 copyCartToWhatsApp();
@@ -1772,7 +1772,7 @@
         if (cart.length === 0) return alert("Carrito vacío");
         var text = "*PRESUPUESTO HOSTINGSHOP*\n--------------------------\n";
         cart.forEach(function (i) {
-          text += "• " + i.model + " (" + i.color + "/" + i.size + ")" +
+          text += "â€¢ " + i.model + " (" + i.color + "/" + i.size + ")" +
             (i.tipoPrecio && i.tipoPrecio !== 'Estándar' ? " [" + i.tipoPrecio + "]" : "") +
             "\n  " + i.quantity + " x $" + i.price.toLocaleString() + " = $" + (i.price * i.quantity).toLocaleString() + "\n";
         });
@@ -1780,7 +1780,7 @@
         text += "--------------------------\n*TOTAL: " + total + "*";
 
         navigator.clipboard.writeText(text).then(function () {
-          alert("¡Copiado al portapapeles para WhatsApp!");
+          alert("Copiado al portapapeles para WhatsApp!");
         });
       }
 
@@ -1800,7 +1800,7 @@
 
       function renderTpvUI() {
         if (!catalog) {
-          console.warn("⚠️ [TPV] Intentando renderizar sin catálogo cargado.");
+          console.warn("[TPV] Intentando renderizar sin catalogo cargado.");
           return;
         }
         var catCont = document.getElementById('categories-container');
@@ -1818,7 +1818,7 @@
           var grid = document.createElement('div');
           grid.className = "filters-grid";
 
-          // BotÃ³n "Todos"
+          // Boton "Todos"
           var btnAll = document.createElement('button');
           var isAllActive = currentTpvFilters[filterKey] === 'ALL';
           btnAll.className = "filter-btn-tpv " + (isAllActive ? 'active' : '');
@@ -1868,9 +1868,9 @@
           return group;
         };
 
-        // === JERARQUÍA: COMBOS > LÍNEA (PADRE) > PRODUCTO (CATEGORIA) ===
+        // === JERARQUIA: COMBOS > LINEA (PADRE) > PRODUCTO (CATEGORIA) ===
 
-        // 0. SECCIÓN DE COMBOS (Básico por ahora, filtrando productos con variedad "Combo")
+        // 0. SECCION DE COMBOS (Básico por ahora, filtrando productos con variedad "Combo")
         var hasCombos = catalog.products.some(p => (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo')));
         if (hasCombos) {
           var comboGroup = document.createElement('div');
@@ -1902,11 +1902,11 @@
           catCont.appendChild(comboGroup);
         }
 
-        // 1. CATEGORÍA PADRE (Línea)
+        // 1. CATEGORIA PADRE (Linea)
         var parents = [...new Set(catalog.products.map(p => p.parentCategory))].filter(Boolean).sort();
-        catCont.appendChild(createFilterGroup('LÍNEA', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
+        catCont.appendChild(createFilterGroup('LINEA', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
 
-        // 2. CATEGORÍA HOJA — filtrada por el padre activo
+        // 2. CATEGORIA HOJA - filtrada por el padre activo
         var parentFilter = currentTpvFilters.parent;
         var catsSource = parentFilter !== 'ALL'
           ? catalog.products.filter(p => p.parentCategory === parentFilter)
@@ -2224,7 +2224,7 @@
           const btn = Array.from(colorCont.children).find(b => b.innerText === scan.color);
           if (btn) btn.click();
         } else if (colors.length === 1 && !curvaState.active) {
-          // AUTO-SELECCIÓN: Si hay un solo color, seleccionarlo por defecto
+          // AUTO-SELECCI “N: Si hay un solo color, seleccionarlo por defecto
           const onlyBtn = colorCont.querySelector('.color-btn');
           if (onlyBtn) onlyBtn.click();
         }
@@ -2302,7 +2302,7 @@
             container.appendChild(btnPlus);
             wrapper.appendChild(container);
           } else {
-            // MODO ESTÃNDAR: BotÃ³n simple
+            // MODO EST ƒÂNDAR: Bot ƒÂ³n simple
             const btn = document.createElement('button');
             btn.className = `size-btn ${currentStock > 0 ? 'in-stock' : 'out-of-stock'}`;
             btn.innerText = v.size;
@@ -2341,7 +2341,7 @@
         if (!sizes || !colors) return;
 
         // HEAD
-        head.innerHTML = '<tr><th>VariaciÃ³n</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
+        head.innerHTML = '<tr><th>Variaci ƒÂ³n</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
 
         // BODY
         body.innerHTML = '';
@@ -2396,12 +2396,12 @@
               hint.innerText = (stock > 100 ? '99+' : stock);
               td.appendChild(hint);
             } else {
-              td.innerHTML = '<span style="color:#cbd5e1">â€”</span>';
+              td.innerHTML = '<span style="color:#cbd5e1"> ¢â‚¬â€</span>';
             }
             tr.appendChild(td);
           });
 
-          // Celda BotÃ³n (+) Curva
+          // Celda Bot ƒÂ³n (+) Curva
           const tdCurva = document.createElement('td');
           const btn = document.createElement('button');
           btn.className = 'btn-row-curva';
@@ -2487,7 +2487,7 @@
         colTotals.forEach(total => {
           footHtml += '<td style="border:none; background:transparent;">' + total + '</td>';
         });
-        footHtml += '<td style="border:none; background:transparent;">—</td></tr>';
+        footHtml += '<td style="border:none; background:transparent;">â€”</td></tr>';
 
         // Status row below totals
         footHtml += '<tr><td style="text-align:right; font-weight:800; border:none; background:transparent;">ESTADO:</td>';
@@ -2504,7 +2504,7 @@
 
           footHtml += '<td style="border:none; background:transparent;"><span class="col-status-indicator ' + statusClass + '">' + statusText + '</span></td>';
         });
-        footHtml += '<td style="border:none; background:transparent;">—</td></tr>';
+        footHtml += '<td style="border:none; background:transparent;">â€”</td></tr>';
         foot.innerHTML = footHtml;
 
         // Update Global UI
@@ -2514,7 +2514,7 @@
             counter.style.color = 'var(--success)';
           }
           if (msg) {
-            msg.innerText = '¡Curva perfecta! Ya puedes añadir al carrito.';
+            msg.innerText = 'Â¡Curva perfecta! Ya puedes añadir al carrito.';
             msg.style.color = 'var(--success)';
           }
           btnConfirm.disabled = false;
@@ -2546,7 +2546,7 @@
 
         const uniqueTotals = [...new Set(colTotals)];
         if (uniqueTotals.length !== 1 || uniqueTotals[0] === 0) {
-          alert('La curva estÃ¡ incompleta o es desigual. Todas las columnas deben sumar lo mismo.');
+          alert('La curva esta incompleta o es desigual. Todas las columnas deben sumar lo mismo.');
           return;
         }
 
@@ -2564,7 +2564,7 @@
       window.manualRefreshStock = function () {
         const btn = document.getElementById('tpv-manual-refresh');
         const oldText = btn.innerText;
-        btn.innerText = "âŒ› ACTUALIZANDO...";
+        btn.innerText = "ACTUALIZANDO...";
         btn.disabled = true;
 
         google.script.run
@@ -2572,8 +2572,8 @@
             if (data.success) {
               realStockCache.map = data.stockMap;
               realStockCache.lastUpdate = new Date();
-              console.log("âœ… Stock actualizado manualmente.");
-              // Si el modal estÃ¡ abierto, refrescar talle
+              console.log("  Stock actualizado manualmente.");
+              // Si el modal est ƒÂ¡ abierto, refrescar talle
               const activeColorBtn = document.querySelector('.color-btn.active');
               if (activeColorBtn) {
                 const modalTitle = document.getElementById('modal-product-title').innerText;
@@ -2611,14 +2611,14 @@
         const varId = variation.variation_id;
         const available = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
 
-        // En modo PRECIO VARIABLE: precio y cantidad mÃ­nima vienen de la variedad
+        // En modo PRECIO VARIABLE: precio y cantidad m ƒÂ­nima vienen de la variedad
         const isPrecioVariable = checkIsPrecioVariable();
         const itemPrice = isPrecioVariable && variety ? variety.precio_unitario : product.price;
 
         // La cantidad inicial es qtyOverride (para Curva) o la cantidad_minima de la variedad
         const initQty = qtyOverride !== null ? qtyOverride : (isPrecioVariable && variety ? Math.max(1, variety.cantidad_minima) : 1);
 
-        const tipoPrecio = variety ? variety.nombre : (isPrecioVariable ? 'â€”' : 'EstÃ¡ndar');
+        const tipoPrecio = variety ? variety.nombre : (isPrecioVariable ? '-' : 'Estandar');
 
         const existing = cart.find(i => i.variation_id === varId && i.tipoPrecio === tipoPrecio);
         const currentInCart = existing ? existing.quantity : 0;
@@ -2649,7 +2649,7 @@
 
         renderTpvCart();
         closeTpvModal();
-        console.log('ðŸ›’ AÃ±adido:', product.model, variation.color, variation.size, tipoPrecio, '$' + itemPrice);
+        console.log('[Carrito] Anadido:', product.model, variation.color, variation.size, tipoPrecio, '$' + itemPrice);
       }
 
       function renderTpvCart() {
@@ -2659,7 +2659,7 @@
         cart.forEach(function (item, index) {
           dt.row.add([
             "<div style='font-weight:600'>" + item.model + "</div>",
-            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '—') + "</span>",
+            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || 'â€”') + "</span>",
             "<div style='font-size:0.85rem;'>" + item.color + " / " + item.size + "</div>",
             "<input type='number' class='qty-input' value='" + item.quantity + "' min='" + (item.min_qty || 1) + "' step='" + (item.min_qty || 1) + "' onchange='updateTpvQty(" + index + ", this.value)'>",
             "$" + (item.price * item.quantity).toLocaleString(),
@@ -2700,7 +2700,7 @@
         var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
         const isPrecioVariable = checkIsPrecioVariable();
 
-        // A. CÃ¡lculos Base
+        // A. C ƒÂ¡lculos Base
         const montoProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const totalUnitsSize = cart.reduce((acc, i) => acc + i.quantity, 0);
 
@@ -2724,7 +2724,7 @@
           }
         }
 
-        // C. Compra MÃ­nima (Visual)
+        // C. Compra Minima (Visual)
         const minCont = document.getElementById('tpv-min-purchase-container');
         const headerMinWrapper = document.getElementById('header-min-purchase-wrapper');
 
@@ -2826,7 +2826,7 @@
         const preModal = isQr ? 'qr-tpv-modal-' : 'tpv-modal-';
 
         const confirmMsg = document.getElementById(preModal + 'final-total')?.innerText || "esta venta";
-        if (!confirm("¿Confirmar venta por " + confirmMsg + "?")) return;
+        if (!confirm("Â¿Confirmar venta por " + confirmMsg + "?")) return;
 
         const subtotalProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const method = document.getElementById(pre + 'tpv-payment-method')?.value || 'Efectivo';
@@ -2873,7 +2873,7 @@
         // PERSISTENCIA
         saveToLocalQueue(saleData);
 
-        // IMPRESIÓN OPTIMISTA
+        // IMPRESI “N OPTIMISTA
         try {
           var printData = generateTicketLocal(saleData);
           sendToTpvPrinter(printData);
@@ -2986,7 +2986,7 @@
         if (queue.length === 0) return;
 
         isSyncing = true;
-        console.log("🔄 Tentativa de sincronización de", queue.length, "ventas...");
+        console.log(" Tentativa de sincronizacin de", queue.length, "ventas...");
 
         const currentSale = queue[0];
 
@@ -2994,7 +2994,7 @@
           .withSuccessHandler(res => {
             isSyncing = false;
             if (res.success) {
-              console.log("✅ Venta sincronizada:", currentSale.saleId);
+              console.log("Venta sincronizada:", currentSale.saleId);
               const newQueue = JSON.parse(localStorage.getItem('tpv_offline_queue') || "[]");
               newQueue.shift(); // Eliminar la procesada
               localStorage.setItem('tpv_offline_queue', JSON.stringify(newQueue));
@@ -3015,7 +3015,7 @@
           })
           .withFailureHandler(err => {
             isSyncing = false;
-            console.warn("⚠️ Fallo de red detectado, venta permanece en cola.");
+            console.warn("Fallo de red detectado, venta permanece en cola.");
           })
           .processSale(currentSale);
       }
@@ -3028,7 +3028,7 @@
       // Se eliminó handleTpvPrinting por redundancia
 
       async function sendToTpvPrinter(p) {
-        console.log("🌐 [Printer] Enviando comando a:", p.printer_ip);
+        console.log("[Printer] Enviando comando a:", p.printer_ip);
 
         const params = new URLSearchParams({
           id: p.venta_id,
@@ -3053,9 +3053,9 @@
           });
 
           clearTimeout(timeoutId);
-          console.log("✅ [Printer] Comando enviado");
+          console.log(" [Printer] Comando enviado");
         } catch (e) {
-          console.warn("❌ [Printer] Fallo al enviar ticket:", e.message);
+          console.warn("[Printer] Fallo al enviar ticket:", e.message);
           google.script.run.logErrorFromFrontend("Fallo impresion TPV: " + e.message);
         }
       }
@@ -3071,7 +3071,7 @@
       }
 
       function finishTpvSale(showAlert = true) {
-        if (showAlert) alert("¡Venta completada!");
+        if (showAlert) alert("Venta completada!");
         cart = [];
         const cashAmount = document.getElementById('tpv-cash-amount');
         if (cashAmount) cashAmount.value = "";

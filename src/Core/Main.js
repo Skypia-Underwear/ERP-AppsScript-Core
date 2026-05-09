@@ -10,6 +10,12 @@ function doGet(e) {
  * Manejador de solicitudes POST (Telegram, AppSheet, etc.)
  */
 function doPost(e) {
+  // --- STANDALONE PWA BRIDGE (Módulo Aislado) ---
+  // Solo intercepta peticiones externas de la PWA Standalone (V2).
+  // Si no es una petición del bridge, devuelve null y continúa el flujo normal.
+  var pwaResponse = StandaloneBridge.handle(e);
+  if (pwaResponse) return pwaResponse;
+
   let logId = null;
 
   // --- PROTECCIÓN TEMPRANA CONTRA BUCLES DE TELEGRAM ---
@@ -114,10 +120,10 @@ function doPost(e) {
     // --- BLOQUE BLOGGER BRIDGE (Ruteador Centralizado) - PRIORIDAD ALTA ---
     const bloggerOperations = ["p", "d", "e", "venta", "consultar_cliente", "cargar_venta", "pagar", "cancelar", "confirmar_pago_presencial", "pagar_con_comprobante", "configuracion"];
     if (bloggerOperations.indexOf(contents.op || "") !== -1 || bloggerOperations.indexOf(accion || "") !== -1) {
-        const respuestaBlogger = blogger_router(contents);
-        if (logId) actualizarResultadoWebhook(logId, "BLOGGER_OP: " + (contents.op || accion));
-        return ContentService.createTextOutput(JSON.stringify(respuestaBlogger))
-            .setMimeType(ContentService.MimeType.JSON);
+      const respuestaBlogger = blogger_router(contents);
+      if (logId) actualizarResultadoWebhook(logId, "BLOGGER_OP: " + (contents.op || accion));
+      return ContentService.createTextOutput(JSON.stringify(respuestaBlogger))
+        .setMimeType(ContentService.MimeType.JSON);
     }
 
     if (accion === "generarDescripcionIA") {
@@ -248,7 +254,7 @@ function getAppScriptConfig() {
     try {
       _cacheConfig = JSON.parse(cachedData);
       return _cacheConfig;
-    } catch(e) {
+    } catch (e) {
       console.warn("Error parseando cache config: " + e.message);
     }
   }
@@ -851,7 +857,7 @@ function doGet_MainRouter(e) {
     try {
       const vData = JSON.parse(params.venta_data);
       accion = vData.o || vData.op || vData.accion || '';
-    } catch(e) {}
+    } catch (e) { }
   }
 
   const mode = params.mode || '';

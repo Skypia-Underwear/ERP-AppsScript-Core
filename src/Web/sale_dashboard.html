@@ -734,7 +734,7 @@
     </button>
   </div>
 
-  <div class="container mx-auto max-w-7xl">
+  <div class="container mx-auto max-w-7xl opacity-0 transition-opacity duration-500" id="main-sales-container">
 
     <div class="mb-8">
       <div class="card-dashboard w-full">
@@ -999,7 +999,7 @@
       const pendingStatuses = ['SOLICITADO'];
       const completeStatuses = ['COMPLETADA', 'ENTREGADO', 'PAGADO'];
 
-      // 1. FILTRADO LÓGICO
+      // 1. FILTRADO LÃ“GICO
       const filtered = data.filter(s => {
         // Búsqueda Texto
         if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
@@ -1106,7 +1106,7 @@
           info: "Mostrando _START_ a _END_ de _TOTAL_ ventas",
           infoEmpty: "No hay ventas para mostrar",
           infoFiltered: "(filtrado de _MAX_ totales)",
-          paginate: { first: "«", last: "»", next: "Sig", previous: "Prev" },
+          paginate: { first: "Â«", last: "Â»", next: "Sig", previous: "Prev" },
           emptyTable: "No se encontraron datos en el rango seleccionado"
         },
         columns: [
@@ -1528,7 +1528,7 @@
 
     window.setTrendMode = function (mode, btn) {
       currentTrendMode = mode;
-      // Solo limpiamos fechas para el modo HISTÓRICO TOTAL
+      // Solo limpiamos fechas para el modo HISTÃ“RICO TOTAL
       if (mode === 'history') {
         filterDateStart.value = '';
         filterDateEnd.value = '';
@@ -1684,8 +1684,8 @@
     function initDashboard() {
       if (typeof Chart === 'undefined' || typeof $ === 'undefined' || !$.fn.DataTable) {
         initAttempts++;
-        if (initAttempts > 50) {
-          console.error('Error crítico: Librerías no cargadas tras 5s.');
+        if (initAttempts > 100) { // Aumentado a 10s
+          console.warn('Advertencia: Librerías demorando... forzando carga de datos.');
           loadSalesData(true);
           return;
         }
@@ -1694,8 +1694,13 @@
       }
       initDataTable();
       Chart.defaults.color = '#94a3b8';
-      // Chart.defaults.scale.grid.color = '#334155';
       loadSalesData();
+      
+      // Mostrar el contenedor con suavidad una vez inicializado
+      setTimeout(() => {
+        const container = document.getElementById('main-sales-container');
+        if (container) container.classList.remove('opacity-0');
+      }, 300);
     }
     initDashboard();
 </script>

@@ -1,6 +1,9 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- PWA API Bridge -->
+    <script src="api-bridge.js"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rótulo de Envío - HostingShop</title>
@@ -186,12 +189,12 @@
             <tr>
                 <td><span class="info-label">Teléfono Cliente</span><span class="info-value"><?= celular ?></span></td>
                 <td><span class="info-label">DNI / CUIT</span><span class="info-value"><?= cuit ?></span></td>
-                <? if (email) { ?>
+                
                     <td><span class="info-label">Correo Electrónico</span><span class="info-value" style="font-size: 13px; text-transform: lowercase;"><?= email ?></span></td>
                     <td><span class="info-label">Zona / Agencia / Sucursal</span><span class="info-value"><?= zona_sucursal ?></span></td>
                 <? } else { ?>
                     <td colspan="2"><span class="info-label">Zona / Agencia / Sucursal</span><span class="info-value"><?= zona_sucursal ?></span></td>
-                <? } ?>
+                
             </tr>
         </table>
 

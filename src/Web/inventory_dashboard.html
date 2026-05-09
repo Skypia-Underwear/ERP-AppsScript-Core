@@ -1,5 +1,5 @@
 <? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
-  <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
+<?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 <? } ?>
 
 
@@ -128,6 +128,7 @@
     background: #fff;
     border-color: #fff;
   }
+
   .category-card.active span {
     color: #1e293b;
   }
@@ -266,7 +267,7 @@
       padding: 6px 8px;
     }
 
-    /* Área de datos (Productos + Tabla): apilar verticalmente */
+    /* Ãrea de datos (Productos + Tabla): apilar verticalmente */
     .w-3\/5>.flex-grow.flex.overflow-hidden {
       flex-direction: column !important;
       overflow: visible !important;
@@ -326,7 +327,7 @@
       font-size: 6px !important;
     }
 
-    /* Área de datos (Tabla): visible y scrollable en móvil */
+    /* Ãrea de datos (Tabla): visible y scrollable en móvil */
     .flex-grow.flex.overflow-hidden>.flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 {
       min-height: 350px;
       max-height: 50vh;
@@ -496,7 +497,7 @@
     <div class="w-3/5 flex flex-col rounded-xl border border-slate-700 shadow-xl overflow-hidden relative"
       style="background-color: var(--bg-secondary);">
 
-      <!-- 2.1 HEADER DE CATEGORÍAS (Horizontal) -->
+      <!-- 2.1 HEADER DE CATEGORÃAS (Horizontal) -->
       <div class="flex flex-col border-b border-slate-700 bg-slate-900/50 z-10 flex-shrink-0">
         <div class="px-5 py-2.5 flex justify-between items-center border-b border-slate-800/50">
           <h3 class="font-bold text-white text-sm flex items-center gap-2 uppercase tracking-wide">
@@ -521,7 +522,7 @@
         </div>
       </div>
 
-      <!-- 2.2 ÁREA DE DATOS -->
+      <!-- 2.2 AREA DE DATOS -->
       <div class="flex-grow flex overflow-hidden">
 
         <!-- Grid de Productos (Vertical) -->
@@ -629,7 +630,7 @@
               <i class="ph-fill ph-storefront text-slate-400 text-lg"></i>
               <select id="filter-store" onchange="refreshMatrixFromStore()"
                 class="bg-transparent text-sm text-white outline-none cursor-pointer font-medium flex-grow">
-                <option value="ALL">🏢 Todas (Solo Lectura)</option>
+                <option value="ALL">ðŸ¢ Todas (Solo Lectura)</option>
               </select>
             </div>
 
@@ -798,17 +799,17 @@
 </div>
 
 <script>
-  /** CONSTANTES DINÁMICAS INYECTADAS DESDE EL SERVIDOR **/
+  /** CONSTANTES DINAMICAS INYECTADAS DESDE EL SERVIDOR **/
   const CATALOG_READ_URL = '<?= getCatalogJsonUrl() ?>';
   const CATALOG_FALLBACK_URL = '<?= getCatalogFallbackUrl() ?>';
 
-  let tableInstance = null;
-  let catalogData = [];
-  let currentSelectedSKU = null;
-  let originalMatrixData = {};
-  let globalJsonCache = null;
-  let currentCategoryFilter = '';
-  let bartenderHistory = [];
+  var tableInstance = null;
+  var catalogData = [];
+  var currentSelectedSKU = null;
+  var originalMatrixData = {};
+  var globalJsonCache = null;
+  var currentCategoryFilter = '';
+  var bartenderHistory = [];
 
   $(document).ready(function () {
     initApp();
@@ -839,7 +840,7 @@
   });
 
   async function initApp() {
-    log("🛰️ Sincronizando catálogo global...", "info");
+    log("ðŸ›°ï¸ Sincronizando catálogo global...", "info");
     document.getElementById('last-sync-label').innerText = "Cargando JSON...";
 
     try {
@@ -850,13 +851,13 @@
       populateSelectors(data.stores);
       buildCategoryCarousel(data.categories);
       buildProductCarousel('');
-      
+
       initDataTables(catalogData);
       updateKPIs(catalogData);
 
       const syncLabel = document.getElementById('last-sync-label');
       if (syncLabel) {
-          syncLabel.innerText = `Sincronizado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        syncLabel.innerText = `Sincronizado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       }
 
       // Fase 1: Hidratación Rápida (Caché - Fast Path)
@@ -874,13 +875,13 @@
       setupPolling();
 
     } catch (error) {
-      log("❌ Error crítico: " + error.message, "error");
+      log("âŒ Error crítico: " + error.message, "error");
       const errLabel = document.getElementById('last-sync-label');
       if (errLabel) errLabel.innerText = "ERROR SYNC";
     }
   }
 
-  let _pollingInterval = null;
+  var _pollingInterval = null;
   function setupPolling() {
     if (_pollingInterval) clearInterval(_pollingInterval);
 
@@ -892,14 +893,14 @@
 
       google.script.run.withSuccessHandler(res => {
         if (res && res.success && res.hasNew && res.products && res.products.length > 0) {
-          log(`🆕 ¡Detectado ${res.products.length} producto(s) nuevo(s)! Refrescando catálogo...`, 'success');
-          
+          log(`ðŸ†• Â¡Detectado ${res.products.length} producto(s) nuevo(s)! Refrescando catálogo...`, 'success');
+
           // En inventario, lo más seguro es reiniciar la app para reconstruir tablas y KPIs
-          initApp(); 
+          initApp();
 
           // Alerta visual discreta (Toast)
           Swal.fire({
-            title: '¡Producto Nuevo!',
+            title: 'Â¡Producto Nuevo!',
             text: `Se detectó el ingreso de ${res.products[0].sku} al sistema.`,
             icon: 'info',
             toast: true,
@@ -921,20 +922,20 @@
    * para dar una respuesta inmediata mientras se procesa la hidratación completa.
    */
   function fastHydrateFromCache() {
-    console.log("🚀 [Inventory] Iniciando Hidratación Rápida (Caché)...");
+    console.log("[Inventory] Iniciando Hidratación Rápida (Caché)...");
     const userStr = sessionStorage.getItem('loggedInUser');
     if (!userStr) return;
     const user = JSON.parse(userStr);
     const storeId = user.managedStore;
 
     if (!storeId) {
-      console.warn("⚠️ [Inventory] No se detectó tienda administrada para fast-hydration.");
+      console.warn("[Inventory] No se detectó tienda administrada para fast-hydration.");
       return;
     }
 
     // Si ya lo tenemos de la precarga del Shell/Home, lo usamos directo
     if (window.fullStockCache) {
-      console.log("✅ [Inventory] Usando stock pre-cargado por el Shell.");
+      console.log("[Inventory] Usando stock pre-cargado por el Shell.");
       applyFastStocks(window.fullStockCache);
       return;
     }
@@ -942,7 +943,7 @@
     google.script.run
       .withSuccessHandler(response => {
         if (response && response.success && response.stockMap) {
-          console.log("✅ [Inventory] Stock caché recibido.");
+          console.log("[Inventory] Stock caché recibido.");
           window.fullStockCache = response.stockMap;
           applyFastStocks(response.stockMap);
         }
@@ -952,7 +953,7 @@
 
   function applyFastStocks(stockMap) {
     if (!catalogData || !stockMap) return;
-    
+
     catalogData.forEach(item => {
       const stock = stockMap[item.variation_id];
       if (stock !== undefined) {
@@ -971,7 +972,7 @@
    * Esto evita latencias de red al cargar el catálogo pesado y permite ver movimientos vivos.
    */
   async function hydrateInventoryData() {
-    log("💧 Hidratando datos de inventario en tiempo real...", "info");
+    log("[Inventory] Hidratando datos de inventario en tiempo real...", "info");
     const label = document.getElementById('last-sync-label');
     if (!label) return; // Component unmounted during await
     const oldLabel = label.innerText;
@@ -980,7 +981,7 @@
     google.script.run
       .withSuccessHandler(function (response) {
         if (response.success && response.map) {
-          log("✅ Inventario hidratado con éxito.", "success");
+          log("Inventario hidratado con éxito.", "success");
 
           // Actualizar catalogData global con datos frescos
           catalogData.forEach(item => {
@@ -1002,12 +1003,12 @@
           updateKPIs(catalogData);
           label.innerText = `Refrescado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
         } else {
-          log("⚠️ Error en hidratación: " + (response.message || "Respuesta inválida"), "error");
+          log("Error en hidratación: " + (response.message || "Respuesta inválida"), "error");
           label.innerText = oldLabel;
         }
       })
       .withFailureHandler(function (err) {
-        log("❌ Error fatal en hidratación: " + err.message, "error");
+        log("Error fatal en hidratación: " + err.message, "error");
         label.innerText = oldLabel;
       })
       .procesarAccionInventario('getHydration'); // Acción registrada en Main.js
@@ -1069,7 +1070,7 @@
     cats.forEach(c => {
       const catIdLower = (c.id || "").toLowerCase().trim();
       const catNameLower = (c.name || "").toLowerCase().trim();
-      
+
       // Mostrar solo si existe en los productos de la tabla
       if (usedCatSet.has(catIdLower) || usedCatSet.has(catNameLower)) {
         const iconUrl = c.iconUrl || "";
@@ -1297,8 +1298,8 @@
           storeOptions.push(`<option value="${val}">${val}</option>`);
         }
       });
-      storeOptions.push(`<option value="DEPOSITO">🏢 DEPOSITO</option>`);
-      storeOptions.push(`<option value="PROVEEDOR">📦 PROVEEDOR</option>`);
+      storeOptions.push(`<option value="DEPOSITO">DEPOSITO</option>`);
+      storeOptions.push(`<option value="PROVEEDOR">PROVEEDOR</option>`);
 
       Swal.fire({
         title: 'Modo Transferencia',
@@ -1338,11 +1339,12 @@
 
   function executeSaveMatrix(payload, store, opcionesMovimiento) {
     openLogsPanel();
-    log(`💾 Guardando ajustes de stock masivos...`, "info");
+    log(`[SAVE] Guardando ajustes de stock masivos...`, "info");
     $('#btn-save-matrix').html('<i class="ph-bold ph-spinner animate-spin"></i> Guardando...').attr('disabled', true);
 
     const userStr = sessionStorage.getItem('loggedInUser');
-    const userEmail = typeof userStr === 'string' && userStr.length > 0 ? (JSON.parse(userStr).email || JSON.parse(userStr).name) : "desconocido";
+    const user = (userStr && userStr !== 'undefined') ? JSON.parse(userStr) : {};
+    const userEmail = user.email || user.name || "desconocido";
 
     google.script.run
       .withSuccessHandler(res => {
@@ -1354,7 +1356,7 @@
         }
       })
       .withFailureHandler(err => {
-        log("❌ Error fatal: " + err.message, "error");
+        log("âŒ Error fatal: " + err.message, "error");
         $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar Cambios').attr('disabled', false);
       })
       .procesarAccionInventario('guardarMatrizStock', JSON.stringify({
@@ -1368,12 +1370,12 @@
   /* --- MANTENIMIENTO --- */
   function runGlobalAudit() {
     Swal.fire({ title: '¿Auditoría Global?', text: 'Esto reestaura todo el catálogo basándose en los productos maestros. Proceso Pesado.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', background: 'var(--bg-secondary)', color: '#fff' })
-      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("🏁 Iniciando auditoría global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
+      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("Iniciando auditoría global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
   }
 
   function runProductAudit() {
     if (!currentSelectedSKU) return;
-    openLogsPanel(); log(`🏷️ Sincronizando SKU: ${currentSelectedSKU}...`, "info");
+    openLogsPanel(); log(`Sincronizando SKU: ${currentSelectedSKU}...`, "info");
     callBackend('generarInventarioProducto', currentSelectedSKU, '');
   }
 
@@ -1383,7 +1385,7 @@
         if (res.logs) res.logs.forEach(l => log(l));
         log(res.message, res.success ? "success" : "error");
       })
-      .withFailureHandler(err => log("❌ Error RPC: " + err.message, "error"))
+      .withFailureHandler(err => log("âŒ Error RPC: " + err.message, "error"))
       .procesarAccionInventario(accion, codigo, fecha);
   }
 
@@ -1435,7 +1437,7 @@
 
     if (source === 'date') {
       const fecha = $('#bartender-date').val();
-      log(`📅 Generando Bartender por Fecha: ${fecha}...`, "info");
+      log(`Generando Bartender por Fecha: ${fecha}...`, "info");
       openLogsPanel();
       google.script.run
         .withSuccessHandler(res => {
@@ -1450,7 +1452,7 @@
     }
 
     // Casos manuales (Selected, Filtered, All)
-    log(`🛠️ Extrayendo datos según modo: ${source}`, "info");
+    log(`Extrayendo datos según modo: ${source}`, "info");
     let dataToRender = [];
     if (source === 'selected') dataToRender = catalogData.filter(i => i.sku === currentSelectedSKU);
     else if (source === 'filtered') dataToRender = tableInstance.rows({ search: 'applied' }).data().toArray();
@@ -1489,7 +1491,7 @@
   }
 
   function finalizeBartenderProcess() {
-    log("📤 Finalizando exportación a Bartender...", "info");
+    log("Finalizando exportación a Bartender...", "info");
     openLogsPanel();
     closeModal();
     google.script.run
