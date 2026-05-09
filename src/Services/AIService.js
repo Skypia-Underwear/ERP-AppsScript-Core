@@ -130,7 +130,7 @@ const AIService = {
     if (!texto) return "";
     let lineas = texto.split('\n');
     let contenidoLimpio = [];
-    let vistos = new Set(); // Para prevenir duplicados exactos (Gemma loop)
+    let vistos = new Map(); // Para prevenir duplicados y aplicar "Last Value Wins"
     
     for (let linea of lineas) {
       let l = linea.trim();
@@ -139,27 +139,46 @@ const AIService = {
       // 🛡️ FILTRO 1: Whitelist Estricta (Si se define)
       if (whitelistHeaders && whitelistHeaders.length > 0) {
         let esValida = whitelistHeaders.some(header => {
-          // Soporta "Header:" o "- Header:"
+          // Soporta "Header:", "- Header:", "* Header:"
           const regex = new RegExp(`^[-*\\s]*(${header}):`, 'i');
           return regex.test(l);
         });
         if (!esValida) continue;
       }
 
-      // 🛡️ FILTRO 2: Protección Anti-Instrucción (Ignorar si tiene placeholders ej: [Type])
-      if (l.includes("[e.g.") || l.includes("[Type]") || l.includes("[Name]") || l.includes("[Hex]")) {
-        continue;
-      }
+      // 🛡️ FILTRO 2: Protección Anti-Instrucción y Monólogos
+      // Ignorar si tiene placeholders ej: [Type], [Brand], [Yes/No]
+      if (/\[[\w\s\/\-_]+\]/i.test(l)) continue;
+      
+      // Ignorar líneas de "pensamiento" o corrección (Chatter)
+      const chatterKeywords = ["wait,", "i will", "let's", "final check", "self-correction", "i should", "prompt says", "refining schema", "final polish", "one more check", "double check"];
+      if (chatterKeywords.some(word => l.toLowerCase().includes(word))) continue;
 
-      // 🛡️ FILTRO 3: Limpieza de Markdown y Duplicados
-      const cleanLine = l.replace(/[*_#]/g, '').trim();
-      if (cleanLine && !vistos.has(cleanLine.toLowerCase())) {
-        contenidoLimpio.push(cleanLine);
-        vistos.add(cleanLine.toLowerCase());
+      // 🛡️ FILTRO 3: Limpieza de Markdown (Preservando Guiones Bajos Técnicos)
+      let cleanLine = l.replace(/[*#`]/g, '').trim();
+
+      // 🛡️ FILTRO 4: Limpieza de Comentarios Parentéticos (ej: "(visible on waistband).")
+      cleanLine = cleanLine.replace(/\s*\([^)]+\)[.\s]*$/, "").trim();
+
+      // 🛡️ FILTRO 5: Limpieza de Puntuación Final (ej: "Underwear.")
+      cleanLine = cleanLine.replace(/[.;,]+$/, "").trim();
+
+      if (cleanLine) {
+        // Estrategia: Solo quedarnos con la ÚLTIMA versión de cada Header
+        // (Gemma suele auto-corregirse al final)
+        const parts = cleanLine.split(':');
+        if (parts.length >= 2) {
+          const header = parts[0].trim().toUpperCase();
+          vistos.set(header, cleanLine); // El mapa sobrescribe con el último valor
+        } else {
+          // Si no tiene header pero pasó los filtros, lo guardamos por contenido
+          vistos.set('RAW_' + cleanLine.toLowerCase(), cleanLine);
+        }
       }
     }
     
-    return contenidoLimpio.join('\n');
+    // Devolvemos los valores únicos (Last Value Wins)
+    return Array.from(vistos.values()).join('\n');
   },
 
   /**
@@ -286,3 +305,10 @@ ESTADO_VISUAL: [Condition]`;
     }).filter(Boolean);
   }
 };
+
+/**
+ * WRAPPERS GLOBALES (Exposición para google.script.run)
+ */
+function ejecutarPruebaLaboratorio(imagenId) {
+  return AIService.ejecutarPruebaLaboratorio(imagenId);
+}

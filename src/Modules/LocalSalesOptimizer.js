@@ -11,8 +11,9 @@ function tpv_consolidarVentasJson(precalculatedData = null) {
     try {
         debugLog("🍳 [Bake & Serve] Iniciando consolidación de ventas...");
 
-        // 1. Obtener los datos consolidados. Si ya los tenemos (por carga forzada), los reusamos.
-        const dashboardJsonStr = precalculatedData || cargarDashboardVentas_HEAVY();
+        // 1. Obtener los datos consolidados. Si es un string, lo usamos. 
+        // Si es un objeto (como el evento de un disparador), lo ignoramos y cargamos desde cero.
+        const dashboardJsonStr = (typeof precalculatedData === 'string') ? precalculatedData : cargarDashboardVentas_HEAVY();
         const dataParsed = JSON.parse(dashboardJsonStr);
 
         if (!dataParsed.success) {

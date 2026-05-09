@@ -111,7 +111,12 @@
             <h4 class="text-xs font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
               <span class="material-icons text-sm">psychology</span> Mente de la IA (RAW)
             </h4>
-            <span class="text-[10px] text-slate-500 font-mono">Gemma 4 IT (26B)</span>
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] text-slate-500 font-mono">Gemma 4 IT</span>
+              <button onclick="copyToClipboard('raw-view', 'MENTE DE LA IA (RAW)')" class="text-slate-500 hover:text-white transition flex items-center gap-1 text-[10px] uppercase font-bold">
+                <span class="material-icons text-xs">content_copy</span> COPIAR
+              </button>
+            </div>
           </div>
           <div id="raw-view" class="raw-console p-6 rounded-2xl h-[500px] overflow-y-auto text-[11px] leading-relaxed scroll-thin">
             <!-- Texto RAW inyectado -->
@@ -124,7 +129,12 @@
             <h4 class="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
               <span class="material-icons text-sm">assignment_turned_in</span> Ficha Técnica (CLEAN)
             </h4>
-            <span class="text-[10px] text-slate-500 font-mono">Input para ERP</span>
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] text-slate-500 font-mono">Input para ERP</span>
+              <button onclick="copyToClipboard('clean-view', 'FICHA TÉCNICA (CLEAN)')" class="text-emerald-500/50 hover:text-emerald-400 transition flex items-center gap-1 text-[10px] uppercase font-bold">
+                <span class="material-icons text-xs">content_copy</span> COPIAR
+              </button>
+            </div>
           </div>
           <div id="clean-view" class="bg-slate-900 p-8 rounded-2xl h-[500px] overflow-y-auto shadow-inner border border-slate-800 scroll-thin">
             <!-- Resultado filtrado -->
@@ -139,6 +149,10 @@
 </div>
 
 <script>
+  // Inyección de URLs para modo Standalone
+  const CATALOG_URL = "<?!= CATALOG_URL ?>";
+  const CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
+
   let CATALOGO = [];
   let CATEGORIAS = new Set();
   let selectedImageId = null;
@@ -151,37 +165,60 @@
     await loadCatalog();
   }
 
-  // 1. CARGA DE CATÁLOGO (Usa el motor global del Shell)
+  // 1. CARGA DE CATÁLOGO (Dual: Shell SPA + Standalone Fallback)
   async function loadCatalog() {
     try {
-      // Intentar obtener el catálogo desde el Shell (vía window.getGlobalCatalog)
-      const data = await window.getGlobalCatalog();
-      if (data && data.products) {
-        CATALOGO = data.products.map(p => ({
-          sku: p.id,
-          nombre: p.model || "Sin Nombre",
-          categoria: p.categoryName || "Sin Categoría",
-          thumbnail: p.image || ""
-        }));
-        
-        document.getElementById('stats-total').innerText = `${CATALOGO.length} Productos`;
-        populateCategories();
-      }
-    } catch (e) {
-      console.error("Error cargando catálogo global:", e);
-      // Fallback: Intentar carga directa si falló el shell
-      google.script.run.withSuccessHandler(data => {
+      // Caso A: Estamos dentro del Shell (SPA)
+      if (window.getGlobalCatalog && typeof window.getGlobalCatalog === 'function') {
+        const data = await window.getGlobalCatalog();
         if (data && data.products) {
-          CATALOGO = data.products.map(p => ({
-            sku: p.id,
-            nombre: p.model || "Sin Nombre",
-            categoria: p.categoryName || "Sin Categoría"
-          }));
-          document.getElementById('stats-total').innerText = `${CATALOGO.length} Productos`;
-          populateCategories();
+          processCatalogData(data);
+          return;
         }
-      }).obtenerCatalogoJSON();
+      }
+      
+      // Caso B: Standalone - Intentar carga rápida desde red (Fetch)
+      if (CATALOG_URL && CATALOG_URL !== "undefined") {
+        try {
+          const response = await fetch(CATALOG_URL);
+          if (response.ok) {
+            const data = await response.json();
+            processCatalogData(data);
+            return;
+          }
+        } catch(e) { console.warn("Fetch catalog failed, using server fallback."); }
+      }
+
+      // Caso C: Fallback Total - Consultar a Google Apps Script
+      google.script.run.withSuccessHandler(res => {
+        if (res && res.success && res.catalog) {
+          processCatalogData(res.catalog);
+        } else if (res && res.products) { // Estructura alternativa
+          processCatalogData(res);
+        }
+      }).tpv_obtenerCatalogoDesdeDrive();
+
+    } catch (e) {
+      console.error("Error crítico cargando catálogo:", e);
     }
+  }
+
+  function processCatalogData(data) {
+    if (!data) return;
+    
+    // El catálogo puede venir como objeto {products:[]} o directamente []
+    const products = data.products || data;
+    if (!Array.isArray(products)) return;
+
+    CATALOGO = products.map(p => ({
+      sku: p.id || p.sku || p.CODIGO_ID,
+      nombre: p.model || p.nombre || p.NOMBRE_PRODUCTO || "Sin Nombre",
+      categoria: p.categoryName || p.categoria || "Sin Categoría",
+      thumbnail: p.image || p.thumbnail || p.URL || ""
+    }));
+    
+    document.getElementById('stats-total').innerText = `${CATALOGO.length} Productos`;
+    populateCategories();
   }
 
   function populateCategories() {
@@ -340,6 +377,24 @@
       timer: 3000,
       background: '#1e293b',
       color: '#fff'
+    });
+  }
+
+  function copyToClipboard(elementId, title) {
+    const el = document.getElementById(elementId);
+    const text = `${title}\n\n${el.innerText}`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Copiado al portapapeles con título',
+        showConfirmButton: false,
+        timer: 1500,
+        background: '#1e293b',
+        color: '#fff'
+      });
     });
   }
 </script>
