@@ -1,43 +1,50 @@
-# 🧪 SESSION_AI_LAB: Industrialización de Forense IA (8 de Mayo, 2026)
-
-> [!IMPORTANT]
-> **ID de Conversación para continuidad:** `03544622-0fb1-4d2d-a224-acd3050e289d`
+# Sesión: Industrialización del Laboratorio Forense (AI Lab) - [2026-05-13]
 
 ## 🎯 Objetivo de la Sesión
-Construir un entorno de "Laboratorio" controlado para auditar, depurar y estabilizar el motor de análisis forense de prendas (Gemma 4), garantizando que los datos inyectados al ERP sean técnicos, únicos y libres de ruido conversacional.
-
-## 🛠 Logros y Cambios Implementados
-
-### 1. Dashboard AI Lab Forensic (`ai_lab.html`)
-- **Interfaz de Transparencia**: Se creó una vista dividida (Split View) que muestra:
-    - **Mente de la IA (RAW)**: El pensamiento bruto, auto-correcciones y razonamiento de la IA.
-    - **Ficha Técnica (CLEAN)**: El resultado final purificado listo para el ERP.
-- **Motor de Datos Híbrido**: El laboratorio puede cargar el catálogo de productos tanto dentro del Shell (SPA) como en modo Standalone (vía `fetch` o `google.script.run`).
-- **Confirmación de Seguridad**: Integración con `SweetAlert2` para confirmar cada análisis (Modo Escuela).
-
-### 2. Motor de Saneamiento Industrial (`AIService.js`)
-Se implementó una "Triple Capa de Filtrado" para estabilizar la salida de Gemma 4:
-- **Capa 1: Whitelist Estricta**: Solo se permiten campos técnicos predefinidos (Brand, Model, TIPO_PRENDA, etc.).
-- **Capa 2: Anti-Chatter & Monólogos**: Filtro por Regex y palabras clave que elimina el "ruido" (ej: *"Wait,"*, *"Self-Correction,"*, *"Let's refine"*, *"One more check"*).
-- **Capa 3: Deduplicación "Last-Value-Wins"**: Implementación de un `Map` que sobrescribe las claves con la **última versión** generada por la IA, capturando siempre el dato más refinado y eliminando repeticiones.
-
-### 3. Refinamiento de Datos Técnicos
-- **Preservación de Underscores**: Se corrigió el bug que eliminaba guiones bajos (vital para `TIPO_PRENDA`).
-- **Limpieza Parentética**: Remoción automática de comentarios explicativos (ej: `(seen on waistband)`) y puntuación final innecesaria.
-- **Normalización de Colores**: Extracción limpia del formato `Nombre | Hex | Tipo`.
-
-### 4. Herramientas de Productividad
-- **Copiado Contextual**: Función de copiado al portapapeles que incluye automáticamente el título de la sección para facilitar el registro de pruebas externas.
-
-## ⚠️ Estado Actual
-- **Modo Escuela**: El laboratorio está 100% funcional y ha validado con éxito prendas de diferentes categorías (Boxers, Chombas de Padel).
-- **Saneamiento**: El motor es robusto contra bucles de repetición y "alucinaciones de instrucción".
-- **Integración**: La lógica de limpieza ya es global; cualquier llamada a `AIService.consultarGemma` desde cualquier parte del ERP ya aplica estas reglas industriales.
-
-## 📅 Próximos Pasos (Para retomar)
-1. **Actualización de Prompt Maestro**: Migrar el esquema de 11 campos validado en el Lab a la función `escanearPrenda` en `Images.js`.
-2. **Pruebas de Estrés**: Testear con calzados y accesorios para verificar si el esquema de "Soberanía del Píxel" requiere ajustes por categoría.
-3. **Auditoría de Tokens**: Evaluar el impacto del "RAW Thought" en el consumo de tokens y ver si se puede optimizar sin perder transparencia.
+Completar la arquitectura del AI Lab como una herramienta de desarrollo de alta densidad, integrando metadatos del ERP y el Esquema Forense Maestro necesario para la IA Generativa.
 
 ---
-*Sesión concluida. El Laboratorio Forense está operativo y los datos son ahora de grado industrial.*
+
+## ✅ Hitos Alcanzados
+
+### 1. Rediseño de la Estación de Trabajo (Layout 2-3-7)
+- **Estructura Fija:** Se eliminó el scroll vertical global, implementando una arquitectura de dashboard con scrolls independientes.
+- **Triple Columna:**
+  - **Col 1 (Galería):** Navegación rápida de activos.
+  - **Col 2 (Control):** Vista previa nítida y botón de acción centralizado.
+  - **Col 3 (Inteligencia):** Visualización vertical apilada de Mente RAW y Ficha ERP para máxima legibilidad.
+
+### 2. Inyección de Metadatos (ERP Hints)
+- **Contexto Técnico:** El Laboratorio ahora extrae Marca, Modelo, Categoría y Material del catálogo TPV y los envía a la IA.
+- **Validación Forense:** La IA utiliza estos datos como "indicios" para contrastar con lo que ve en los píxeles, logrando una precisión superior y reduciendo alucinaciones.
+
+### 3. Implementación del Esquema Forense Maestro
+- **Taxonomía Estricta:** Se integraron campos complejos requeridos por el generador de imágenes:
+  - `POSICIÓN_DETECTADA` y `SOPORTE_O_CONTEXTO` con opciones cerradas.
+  - `DETALLES_CONSTRUCTIVOS` (Costuras, Cierres, Elásticos, Bolsillos).
+  - `DETALLES_VISUALES` (El "alma" del producto para el prompt de generación).
+
+### 4. Estabilidad y Sincronización
+- **Clasp Push:** Todos los cambios en `AIService.js`, `ai_lab.html` e `Images.js` han sido sincronizados con el servidor.
+
+---
+
+## 🔍 Observaciones Técnicas (Auditoría de Resultados)
+
+### El "Éxito" de Gemma 4
+- El RAW demuestra una lógica impecable: reconoce personajes (Goku) y marcas (UOMO) cruzando datos visuales con el contexto del ERP.
+- El campo `DETALLES_VISUALES` recupera la riqueza descriptiva que se perdió al migrar de Gemma 3, pero sin el ruido conversacional.
+
+### Puntos de Refinamiento (Pendientes)
+- **Redundancia en CLEAN:** La salida de la Ficha ERP muestra duplicidad en los campos anidados (se repiten al final de la lista). Esto se debe a la lógica de la `whitelist` que incluye tanto el header padre como los hijos.
+- **Unificación de Idioma:** Se observa una mezcla de inglés y español en los headers. Pendiente estandarizar a un solo idioma técnico.
+
+---
+
+## 📅 Próximos Pasos (Mañana)
+1. **Refinar Parser CLEAN:** Ajustar `AIService.js` para que la salida de campos anidados sea elegante y sin repeticiones.
+2. **Auditoría del Prompt Maestro:** Utilizar los resultados forenses validados hoy para alimentar el generador de imágenes y reducir su margen de error.
+3. **Botón Maestro:** Integrar la inyección manual de prompts en la columna central del Laboratorio.
+
+---
+**Estado del Sistema:** ESTABLE | **Modelo:** Gemma 4 (Forense)

@@ -1,4 +1,4 @@
-﻿<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
+<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
 <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 <? } ?>
 
@@ -37,142 +37,130 @@
   }
 </style>
 
-<div class="min-h-screen bg-slate-950 p-4 md:p-8">
-  <!-- Header del Laboratorio -->
-  <div class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div class="h-full flex flex-col bg-slate-950 p-4 overflow-hidden">
+  <!-- Header del Laboratorio (Compacto) -->
+  <div class="flex justify-between items-center mb-4 shrink-0">
     <div>
-      <h1 class="text-3xl font-black text-white flex items-center gap-3">
-        <span class="material-icons text-blue-500 text-4xl">biotech</span>
-        AI LAB <span class="text-blue-500/50">| Forensic School</span>
+      <h1 class="text-xl font-black text-white flex items-center gap-2">
+        <span class="material-icons text-blue-500">biotech</span>
+        AI LAB <span class="text-blue-500/50 text-sm">| Forensic School</span>
       </h1>
-      <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest font-bold">Auditoría de Transparencia para Gemma 4
-      </p>
     </div>
-    <div class="flex gap-3">
-      <button onclick="location.reload()" class="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition">
-        <span class="material-icons">refresh</span>
+    <div class="flex gap-2">
+      <button onclick="resetLab()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition text-xs font-bold flex items-center gap-2">
+        <span class="material-icons text-sm">layers_clear</span> LIMPIAR
       </button>
     </div>
   </div>
 
-  <!-- Panel de Control (Buscador TPV) -->
-  <div class="max-w-7xl mx-auto glass-card p-6 rounded-2xl mb-8 shadow-2xl">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Selector de Categoría -->
+  <!-- Panel de Control (Buscador TPV - Compacto) -->
+  <div class="glass-card p-4 rounded-xl mb-4 shadow-2xl shrink-0">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
-        <label class="block text-xs font-black text-slate-500 uppercase mb-2">1. Filtrar Categoría</label>
+        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">1. Categoría</label>
         <select id="cat-selector" onchange="updateProductList()"
-          class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
+          class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2 text-sm outline-none focus:border-blue-500 transition">
           <option value="">Cargando catálogo...</option>
         </select>
       </div>
-      <!-- Selector de Producto -->
       <div>
-        <label class="block text-xs font-black text-slate-500 uppercase mb-2">2. Seleccionar Producto</label>
+        <label class="block text-[10px] font-black text-slate-500 uppercase mb-1">2. Producto</label>
         <select id="prod-selector" onchange="loadProductImages()"
-          class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500 transition">
+          class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg p-2 text-sm outline-none focus:border-blue-500 transition">
           <option value="">Primero elige categoría</option>
         </select>
       </div>
-      <!-- Resumen -->
-      <div class="flex items-center gap-4 bg-blue-500/5 border border-blue-500/20 p-4 rounded-xl">
-        <span class="material-icons text-blue-400 text-3xl">inventory_2</span>
+      <div class="flex items-center gap-3 bg-blue-500/5 border border-blue-500/10 p-2 rounded-lg">
+        <span class="material-icons text-blue-400 text-xl">inventory_2</span>
         <div>
-          <div id="stats-total" class="text-white font-bold text-lg">0 Productos</div>
-          <div class="text-blue-400/60 text-[10px] uppercase font-black">Catálogo TPV Sincronizado</div>
+          <div id="stats-total" class="text-white font-bold text-sm leading-tight">0 Productos</div>
+          <div class="text-blue-400/60 text-[9px] uppercase font-black">Catálogo Sincronizado</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Workspace del Laboratorio -->
-  <div id="lab-workspace" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 hidden">
-
-    <!-- Sidebar: Galería de Imágenes -->
-    <div class="lg:col-span-3 space-y-6">
-      <div class="glass-card p-4 rounded-2xl sticky top-8">
-        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-          <span class="material-icons text-sm text-blue-400">photo_library</span> Galería del Producto
+  <!-- Workspace del Laboratorio (Triple Columna) -->
+  <div id="lab-workspace" class="flex-1 min-h-0 grid grid-cols-12 gap-4 hidden">
+    <!-- Col 1: Galería (2/12) -->
+    <div class="col-span-12 md:col-span-2 flex flex-col min-h-0">
+      <div class="glass-card p-3 rounded-xl flex-1 flex flex-col overflow-hidden">
+        <h3 class="text-white text-[10px] font-bold mb-3 flex items-center gap-2 uppercase tracking-wider shrink-0">
+          <span class="material-icons text-sm text-blue-400">photo_library</span> Galería
         </h3>
-        <div id="image-gallery" class="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-2 scroll-thin">
+        <div id="image-gallery" class="flex-1 overflow-y-auto pr-1 scroll-thin grid grid-cols-2 gap-2 content-start">
           <!-- Imágenes inyectadas aquí -->
         </div>
       </div>
     </div>
 
-    <!-- Main: Comparador Forense -->
-    <div class="lg:col-span-9 space-y-8">
-      <!-- Preview de Imagen Seleccionada -->
-      <div class="glass-card rounded-2xl overflow-hidden border-2 border-blue-500/20 shadow-blue-500/5 shadow-2xl">
-        <div class="grid grid-cols-1 md:grid-cols-2">
-          <div class="aspect-[3/4] bg-slate-900 flex items-center justify-center overflow-hidden">
-            <img id="selected-img-view" src="" class="w-full h-full object-cover" alt="Prenda a analizar">
+    <!-- Col 2: Selección y Acción (3/12) -->
+    <div class="col-span-12 md:col-span-3 flex flex-col gap-4 min-h-0">
+      <div class="glass-card rounded-xl overflow-hidden border border-blue-500/10 flex flex-col min-h-0">
+        <!-- Preview de Imagen -->
+        <div class="aspect-square bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 border-b border-slate-800">
+          <img id="selected-img-view" src="" class="w-full h-full object-cover" alt="">
+        </div>
+        
+        <!-- Info y Botón -->
+        <div class="p-4 flex-1 flex flex-col">
+          <div class="mb-4">
+            <div id="img-id-badge" class="inline-block bg-blue-500/20 text-blue-400 text-[9px] font-black px-2 py-0.5 rounded mb-1">ID: NO_SELECTED</div>
+            <h2 id="prod-title-view" class="text-sm font-bold text-white uppercase truncate">Selecciona una imagen</h2>
+            <p id="prod-sku-view" class="text-slate-500 font-mono text-[9px]">SKU: ---</p>
           </div>
-          <div class="p-8 flex flex-col justify-center">
-            <div id="img-id-badge"
-              class="inline-block bg-blue-500/20 text-blue-400 text-[10px] font-black px-2 py-1 rounded mb-4">IMG-ID:
-              NO_SELECTED</div>
-            <h2 id="prod-title-view" class="text-2xl font-bold text-white mb-2 uppercase">Selecciona una imagen</h2>
-            <p id="prod-sku-view" class="text-slate-500 font-mono text-sm mb-6">SKU: ---</p>
 
+          <div class="space-y-3 mt-auto">
             <button id="run-test-btn" onclick="confirmAndRunTest()"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 group">
-              <span class="material-icons group-hover:rotate-12 transition">biotech</span>
-              INICIAR SIMULACION FORENSE
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-lg transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 group text-xs">
+              <span class="material-icons text-sm group-hover:rotate-12 transition">biotech</span>
+              ANALIZAR PRENDA
             </button>
-            <p class="text-center text-[10px] text-slate-500 mt-4 uppercase font-bold tracking-widest italic">Análisis
-              de transparencia con Gemma 4 IT</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resultados (Split View) -->
-      <div id="results-panel" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
-        <!-- RAW: La mente de la IA -->
-        <div class="space-y-3">
-          <div class="flex justify-between items-center px-2">
-            <h4 class="text-xs font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
-              <span class="material-icons text-sm">psychology</span> Mente de la IA (RAW)
-            </h4>
-            <div class="flex items-center gap-3">
-              <span class="text-[10px] text-slate-500 font-mono">Gemma 4 IT</span>
-              <button onclick="copyToClipboard('raw-view', 'MENTE DE LA IA (RAW)')"
-                class="text-slate-500 hover:text-white transition flex items-center gap-1 text-[10px] uppercase font-bold">
-                <span class="material-icons text-xs">content_copy</span> COPIAR
-              </button>
+            
+            <!-- Espacio para futuras herramientas (Prompt Maestro, etc) -->
+            <div class="pt-3 border-t border-slate-800/50">
+              <p class="text-[9px] text-slate-600 font-bold uppercase tracking-tighter text-center">Herramientas de Auditoría</p>
             </div>
-          </div>
-          <div id="raw-view"
-            class="raw-console p-6 rounded-2xl h-[500px] overflow-y-auto text-[11px] leading-relaxed scroll-thin">
-            <!-- Texto RAW inyectado -->
-          </div>
-        </div>
-
-        <!-- CLEAN: Resultado ERP -->
-        <div class="space-y-3">
-          <div class="flex justify-between items-center px-2">
-            <h4 class="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-              <span class="material-icons text-sm">assignment_turned_in</span> Ficha Técnica (CLEAN)
-            </h4>
-            <div class="flex items-center gap-3">
-              <span class="text-[10px] text-slate-500 font-mono">Input para ERP</span>
-              <button onclick="copyToClipboard('clean-view', 'FICHA TÃ‰CNICA (CLEAN)')"
-                class="text-emerald-500/50 hover:text-emerald-400 transition flex items-center gap-1 text-[10px] uppercase font-bold">
-                <span class="material-icons text-xs">content_copy</span> COPIAR
-              </button>
-            </div>
-          </div>
-          <div id="clean-view"
-            class="bg-slate-900 p-8 rounded-2xl h-[500px] overflow-y-auto shadow-inner border border-slate-800 scroll-thin">
-            <!-- Resultado filtrado -->
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Footer vacío para espacio -->
-  <div class="h-20"></div>
+    <!-- Col 3: Resultados Forenses (7/12) -->
+    <div id="results-panel" class="col-span-12 md:col-span-7 hidden flex flex-col gap-4 min-h-0 animate-fadeIn">
+      <!-- RAW: La mente de la IA (Top) -->
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="flex justify-between items-center mb-2 px-1 shrink-0">
+          <h4 class="text-[10px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-1">
+            <span class="material-icons text-xs">psychology</span> Mente RAW <span class="text-slate-600 ml-1 font-mono">| Gemma 4</span>
+          </h4>
+          <button onclick="copyToClipboard('raw-view', 'MENTE DE LA IA (RAW)')"
+            class="text-slate-500 hover:text-white transition flex items-center gap-1 text-[9px] uppercase font-bold">
+            <span class="material-icons text-xs">content_copy</span> COPIAR
+          </button>
+        </div>
+        <div id="raw-view" class="raw-console flex-1 p-4 rounded-xl text-[10px] leading-relaxed overflow-y-auto scroll-thin border border-rose-500/5">
+          <!-- Texto RAW inyectado -->
+        </div>
+      </div>
+
+      <!-- CLEAN: Resultado ERP (Bottom) -->
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="flex justify-between items-center mb-2 px-1 shrink-0">
+          <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1">
+            <span class="material-icons text-xs">assignment_turned_in</span> Ficha ERP <span class="text-slate-600 ml-1 font-mono">| Output Final</span>
+          </h4>
+          <button onclick="copyToClipboard('clean-view', 'FICHA TÉCNICA (CLEAN)')"
+            class="text-emerald-500/50 hover:text-emerald-400 transition flex items-center gap-1 text-[9px] uppercase font-bold">
+            <span class="material-icons text-xs">content_copy</span> COPIAR
+          </button>
+        </div>
+        <div id="clean-view" class="bg-slate-900 border border-slate-800 flex-1 p-4 rounded-xl overflow-y-auto scroll-thin">
+          <!-- Resultado filtrado -->
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -183,12 +171,18 @@
   let CATALOGO = [];
   let CATEGORIAS = new Set();
   let selectedImageId = null;
+  let selectedProduct = null;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    init();
-  });
+  // Inicialización robusta (Compatible con Shell SPA y Standalone)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    // Si el Shell ya cargó el DOM, ejecutamos inmediatamente con un pequeño delay de seguridad
+    setTimeout(init, 100);
+  }
 
   async function init() {
+    console.log("🔬 [Lab-IA] Inicializando entorno de pruebas...");
     await loadCatalog();
   }
 
@@ -237,12 +231,14 @@
     const products = data.products || data;
     if (!Array.isArray(products)) return;
 
-    CATALOGO = products.map(p => ({
-      sku: p.id || p.sku || p.CODIGO_ID,
-      nombre: p.model || p.nombre || p.NOMBRE_PRODUCTO || "Sin Nombre",
-      categoria: p.categoryName || p.categoria || "Sin Categoría",
-      thumbnail: p.image || p.thumbnail || p.URL || ""
-    }));
+    // Guardamos los objetos COMPLETOS para no perder metadatos (Material, Marca, etc)
+    CATALOGO = products.map(p => {
+      // Normalizamos solo las claves básicas para los selectores, pero mantenemos el resto
+      p._sku = p.id || p.sku || p.CODIGO_ID;
+      p._nombre = p.model || p.nombre || p.NOMBRE_PRODUCTO || "Sin Nombre";
+      p._categoria = p.categoryName || p.categoria || "Sin Categoría";
+      return p;
+    });
 
     document.getElementById('stats-total').innerText = `${CATALOGO.length} Productos`;
     populateCategories();
@@ -253,7 +249,7 @@
     selector.innerHTML = '<option value="">-- Elige Categoría --</option>';
 
     CATEGORIAS.clear();
-    CATALOGO.forEach(p => CATEGORIAS.add(p.categoria));
+    CATALOGO.forEach(p => CATEGORIAS.add(p._categoria));
 
     [...CATEGORIAS].sort().forEach(cat => {
       const opt = document.createElement('option');
@@ -268,11 +264,11 @@
     const selector = document.getElementById('prod-selector');
     selector.innerHTML = '<option value="">-- Selecciona Producto --</option>';
 
-    const prods = CATALOGO.filter(p => p.categoria === cat);
+    const prods = CATALOGO.filter(p => p._categoria === cat);
     prods.forEach(p => {
       const opt = document.createElement('option');
-      opt.value = p.sku;
-      opt.textContent = `[${p.sku}] ${p.nombre}`;
+      opt.value = p._sku;
+      opt.textContent = `[${p._sku}] ${p._nombre}`;
       selector.appendChild(opt);
     });
   }
@@ -280,9 +276,13 @@
   // 2. CARGA DE IMAGENES
   function loadProductImages() {
     const sku = document.getElementById('prod-selector').value;
-    const prod = CATALOGO.find(p => p.sku === sku);
-    if (!prod) return;
+    const prod = CATALOGO.find(p => p._sku === sku);
+    if (!prod) {
+      selectedProduct = null;
+      return;
+    }
 
+    selectedProduct = prod; // Guardamos el objeto COMPLETO (con material, marca, etc)
     document.getElementById('lab-workspace').classList.remove('hidden');
 
     const gallery = document.getElementById('image-gallery');
@@ -359,9 +359,20 @@
     btn.disabled = true;
     btn.innerHTML = `<span class="material-icons animate-spin">sync</span> PROCESANDO...`;
 
+    const metadata = selectedProduct ? {
+      brand: selectedProduct.brand,
+      model: selectedProduct.model,
+      category: selectedProduct.categoryName,
+      parentCategory: selectedProduct.parentCategory,
+      material: selectedProduct.material,
+      gender: selectedProduct.gender,
+      style: selectedProduct.style,
+      season: selectedProduct.season
+    } : null;
+
     google.script.run.withSuccessHandler(res => {
       btn.disabled = false;
-      btn.innerHTML = `<span class="material-icons">biotech</span> INICIAR SIMULACION FORENSE`;
+      btn.innerHTML = `<span class="material-icons text-sm">biotech</span> ANALIZAR PRENDA`;
 
       if (res.success) {
         renderResults(res);
@@ -374,7 +385,7 @@
           color: '#fff'
         });
       }
-    }).ejecutarPruebaLaboratorio(selectedImageId);
+    }).ejecutarPruebaLaboratorio(selectedImageId, metadata);
   }
 
   function renderResults(res) {
@@ -392,8 +403,6 @@
 
     const cleanView = document.getElementById('clean-view');
     cleanView.innerHTML = `<pre class="text-emerald-400 font-bold whitespace-pre-wrap font-mono text-[11px] leading-tight">${res.clean}</pre>`;
-
-    document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
 
     Swal.fire({
       toast: true,
@@ -422,6 +431,29 @@
         background: '#1e293b',
         color: '#fff'
       });
+    });
+  }
+  function resetLab() {
+    document.getElementById('cat-selector').value = "";
+    document.getElementById('prod-selector').innerHTML = '<option value="">Primero elige categoría</option>';
+    document.getElementById('image-gallery').innerHTML = '';
+    document.getElementById('selected-img-view').src = "";
+    document.getElementById('img-id-badge').innerText = "IMG-ID: NO_SELECTED";
+    document.getElementById('prod-title-view').innerText = "Selecciona una imagen";
+    document.getElementById('prod-sku-view').innerText = "SKU: ---";
+    document.getElementById('results-panel').classList.add('hidden');
+    document.getElementById('lab-workspace').classList.add('hidden');
+    selectedImageId = null;
+    
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'Laboratorio reiniciado',
+      showConfirmButton: false,
+      timer: 2000,
+      background: '#1e293b',
+      color: '#fff'
     });
   }
 </script>

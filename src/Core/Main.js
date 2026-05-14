@@ -1059,6 +1059,15 @@ function getPageContent(view, accion, codigo, fecha, isEmbedded = false) {
     return template.evaluate().getContent();
   }
 
+  // --- NUEVO: AI Laboratory ---
+  if (view === 'ai_lab') {
+    const template = HtmlService.createTemplateFromFile('Web/ai_lab');
+    template.isEmbedded = isEmbedded;
+    template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    return template.evaluate().getContent();
+  }
+
   if (view === 'pos_manager') {
     const template = HtmlService.createTemplateFromFile('Web/pos_view');
     template.isEmbedded = isEmbedded;

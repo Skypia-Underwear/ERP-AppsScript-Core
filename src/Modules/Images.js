@@ -1420,8 +1420,8 @@ function escanearPrenda(imagenId, forzar = false) {
     const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `forense_${imagenId}`, 'alta', apiKey, true);
 
     const forensicWhitelist = [
-      "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
-      "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", "LOGO_O_MARCA", 
+      "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
+      "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", "LOGO_O_MARCA",
       "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL"
     ];
 
@@ -1634,8 +1634,8 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
     };
 
     const promptGenerado = AIService.consultarGemma(
-      [promptSystem, `\n\nINPUT METADATA:\n${contextoTecnico}\n${extraSpecsPrompt}`], 
-      fileDataRef, 
+      [promptSystem, `\n\nINPUT METADATA:\n${contextoTecnico}\n${extraSpecsPrompt}`],
+      fileDataRef,
       config
     );
 

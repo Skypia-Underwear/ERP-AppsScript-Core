@@ -185,7 +185,7 @@ const AIService = {
    * 🔬 LABORATORIO DE IA: Auditoría Transparente (Modo Escuela)
    * Realiza un análisis forense completo pero sin guardar resultados.
    */
-  ejecutarPruebaLaboratorio: function(imagenId) {
+  ejecutarPruebaLaboratorio: function(imagenId, metadata) {
     try {
       console.log(`🔬 [Lab-IA] Iniciando diagnóstico para imagen: ${imagenId}`);
       
@@ -206,20 +206,34 @@ const AIService = {
 Pixel Sovereignty (ignore metadata, report only what is seen).
 Plain text, one line per field, no bold, no markdown, no introductions.
 
-* Context: ${contextoProducto}
-* Analysis Request: Provide a technical breakdown of the garment.
+* Context Reference (ERP): ${metadata ? JSON.stringify(metadata) : contextoProducto}
+* Analysis Request: Technical forensic breakdown in SPANISH.
 * Schema: 
 Brand: [Brand]
 Model: [Model]
 Category: [Category]
 Material: [Material]
 Gender: [Gender]
-TIPO_PRENDA: [Type]
-POSICIÓN_DETECTADA: [Position]
-SOPORTE_O_CONTEXTO: [Context]
-COLOR_PRINCIPAL: [Name] | [Hex] | [Type]
-LOGO_VISIBLE: [Yes/No]
-ESTADO_VISUAL: [Condition]`;
+TIPO_PRENDA: [Remera, Pantalón, Bóxer, etc.]
+POSICIÓN_DETECTADA: [FRENTE / ESPALDA / LATERAL / PLANO / GHOST_MANNEQUIN / PILA_O_DOBLADO / INDETERMINADO]
+SOPORTE_O_CONTEXTO: [FOTO_ESTUDIO / COLGADA_EN_PERCHA / DOBLADA_EN_SUPERFICIE / SOBRE_MANIQUÍ / EN_PERCHERO_MULTIPLE]
+COLOR_PRINCIPAL:
+  - Nombre técnico: [e.g., Azul Marino]
+  - Código HEX: [e.g., #1A2B5C]
+  - Tipo: [LISO / ESTAMPADO / SUBLIMADO / RAYADO / JASPEADO]
+  - Patrón: [Descripción breve del estampado si existe]
+MATERIAL_ESTIMADO: [Análisis visual contrastado con metadata]
+LOGO_O_MARCA:
+  - Visible: [SÍ / NO]
+  - Detalle: [Descripción, posición y tamaño]
+DETALLES_CONSTRUCTIVOS:
+  - Costuras: [e.g., Flatlock, Overlock, Doble aguja]
+  - Cierres: [e.g., Cierre frontal, sin cierre, botones]
+  - Bolsillos: [e.g., 2 laterales, sin bolsillos]
+  - Elásticos: [e.g., Cintura elástica, con cordón]
+AVISOS_DE_LIMPIEZA_VISIBLES: [SÍ / NO]
+ESTADO_VISUAL: [LIMPIO / Con etiquetas / Con maniquí visible]
+DETALLES_VISUALES: [Descripción detallada para prompt de generación de imagen]`;
 
       // PREPARAR BLOB (Optimizado para Gemma 4)
       const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, true);
@@ -251,7 +265,10 @@ ESTADO_VISUAL: [Condition]`;
       const forensicWhitelist = [
         "Brand", "Model", "Category", "Material", "Gender",
         "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
-        "COLOR_PRINCIPAL", "LOGO_VISIBLE", "ESTADO_VISUAL"
+        "COLOR_PRINCIPAL", "Nombre técnico", "Código HEX", "Tipo", "Patrón",
+        "MATERIAL_ESTIMADO", "LOGO_O_MARCA", "Visible", "Detalle",
+        "DETALLES_CONSTRUCTIVOS", "Costuras", "Cierres", "Bolsillos", "Elásticos",
+        "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
       ];
       const cleanResponse = this.extraerContenido(rawResponse, forensicWhitelist);
 
@@ -309,6 +326,6 @@ ESTADO_VISUAL: [Condition]`;
 /**
  * WRAPPERS GLOBALES (Exposición para google.script.run)
  */
-function ejecutarPruebaLaboratorio(imagenId) {
-  return AIService.ejecutarPruebaLaboratorio(imagenId);
+function ejecutarPruebaLaboratorio(imagenId, metadata) {
+  return AIService.ejecutarPruebaLaboratorio(imagenId, metadata);
 }

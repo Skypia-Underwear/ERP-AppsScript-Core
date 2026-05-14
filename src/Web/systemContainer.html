@@ -111,11 +111,100 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Mobile Bottom Navigation (Glassmorphism & Premium Design) */
+    #mobile-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(64px + env(safe-area-inset-bottom));
+      background: rgba(15, 23, 42, 0.85); /* slate-900 with transparency */
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(51, 65, 85, 0.5); /* slate-700/50 */
+      display: none;
+      z-index: 100;
+      align-items: center;
+      justify-content: space-around;
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-item-mobile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 10px;
+      gap: 2px;
+      width: 20%;
+      height: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .nav-item-mobile i {
+      font-size: 20px;
+      transition: transform 0.2s ease;
+    }
+
+    .nav-item-mobile.active {
+      color: #818cf8;
+    }
+
+    .nav-item-mobile.active i {
+      transform: translateY(-2px);
+      color: #818cf8;
+    }
+
+    .nav-item-mobile.active::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      width: 4px;
+      height: 4px;
+      background: #818cf8;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #818cf8;
+    }
+
     @media (max-width: 768px) {
-      #mobile-bottom-nav { display: flex; }
-      #main-sidebar { display: none !important; }
-      main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
-      #main-content { margin: 0.25rem !important; height: calc(100% - 10px) !important; }
+      #mobile-bottom-nav { 
+        display: flex; 
+      }
+      
+      #main-sidebar { 
+        position: fixed;
+        height: 100vh;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        z-index: 101;
+        display: flex !important; /* Permitimos que exista pero oculto */
+      }
+
+      #main-sidebar.open {
+        transform: translateX(0);
+      }
+
+      main { 
+        padding-bottom: calc(64px + env(safe-area-inset-bottom)); 
+      }
+
+      #main-content { 
+        margin: 0.5rem !important; 
+        height: calc(100% - 1rem) !important; 
+        border-radius: 1rem;
+      }
+
+      #shell-status-container {
+        top: 1rem;
+        right: 1rem;
+      }
     }
   </style>
 </head>
@@ -123,7 +212,7 @@
 <body class="h-screen flex overflow-hidden">
 
   <aside id="main-sidebar"
-    class="w-56 bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl z-50 flex-shrink-0 transition-all duration-300">
+    class="hidden w-56 bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl z-50 flex-shrink-0 transition-all duration-300">
 
     <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900 transition-all duration-300">
       <div class="flex items-center gap-3 text-indigo-500 overflow-hidden">
@@ -183,10 +272,6 @@
 
   <main class="flex-1 flex flex-col min-w-0 bg-slate-900 relative transition-all duration-300">
     <div id="shell-status-container" class="absolute top-4 right-4 sm:top-6 sm:right-8 z-[60] flex items-center gap-4">
-      <button onclick="toggleSidebar()" class="md:hidden p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300">
-        <i class="ph-bold ph-list text-xl"></i>
-      </button>
-
       <div id="shell-status" class="hidden px-4 py-2 rounded-xl text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 animate-fade-in shadow-2xl backdrop-blur-xl">
         <div class="relative flex h-2.5 w-2.5">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
@@ -315,10 +400,31 @@
       if (isNavigating) return;
       isNavigating = true;
       showLoader();
+
+      // Control de visibilidad de Sidebar y Navegación según la vista
+      const sidebar = document.getElementById('main-sidebar');
+      const mobileNav = document.getElementById('mobile-bottom-nav');
+      if (view === 'login') {
+        sidebar.classList.add('hidden');
+        if (mobileNav) mobileNav.classList.add('hidden');
+      } else {
+        sidebar.classList.remove('hidden');
+        if (mobileNav) mobileNav.classList.remove('hidden');
+      }
       
       document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item-mobile').forEach(el => el.classList.remove('active'));
+      
       const btn = document.getElementById(activeBtnId || 'btn-' + view);
       if (btn) btn.classList.add('active');
+
+      const mobileBtn = document.getElementById('m-btn-' + view);
+      if (mobileBtn) mobileBtn.classList.add('active');
+
+      // Cerrar sidebar en movil tras navegar
+      if (window.innerWidth < 768) {
+        document.getElementById('main-sidebar').classList.remove('open');
+      }
 
       google.script.run
         .withSuccessHandler(htmlContent => {
@@ -396,5 +502,29 @@
 
     window.onload = handleInitialRoute;
   </script>
+  <!-- Mobile Bottom Navigation -->
+  <div id="mobile-bottom-nav" class="hidden">
+    <button onclick="navigate('welcome')" class="nav-item-mobile" id="m-btn-welcome">
+      <i class="ph-duotone ph-house"></i>
+      <span>Inicio</span>
+    </button>
+    <button onclick="loadView('pos_manager', '', '', '')" class="nav-item-mobile" id="m-btn-pos_manager">
+      <i class="ph-duotone ph-calculator"></i>
+      <span>POS</span>
+    </button>
+    <button onclick="navigate('inventory_dashboard')" class="nav-item-mobile" id="m-btn-inventory_dashboard">
+      <i class="ph-duotone ph-check-circle"></i>
+      <span>Inv</span>
+    </button>
+    <button onclick="loadView('imagenes_manager', '', '', '')" class="nav-item-mobile" id="m-btn-imagenes_manager">
+      <i class="ph-duotone ph-image"></i>
+      <span>Fotos</span>
+    </button>
+    <button onclick="navigate('auditoria')" class="nav-item-mobile" id="m-btn-auditoria">
+      <i class="ph-duotone ph-chart-line-up"></i>
+      <span>Stats</span>
+    </button>
+  </div>
 </body>
+
 </html>
