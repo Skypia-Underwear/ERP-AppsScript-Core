@@ -204,37 +204,25 @@ const AIService = {
       // Construir Prompt Forense (Fase Industrial: Ignora metadata, reporta lo que ve)
       const contextoProducto = prodRow ? `PRODUCT: ${prodRow.MODELO || prodRow.NOMBRE_PRODUCTO} | BRAND: ${prodRow.MARCA}` : "";
       const promptForense = `Forensic Clothing Analyst for a high-precision ERP.
-Pixel Sovereignty (ignore metadata, report only what is seen).
-Plain text, one line per field, no bold, no markdown, no introductions.
+CRITICAL: PIXEL SOVEREIGNTY MANDATE. You must ignore metadata if it contradicts reality.
+EXHAUSTIVE ANALYSIS REQUIRED. DO NOT BE BRIEF. BE TECHNICAL.
 
-* Context Reference (ERP): ${metadata ? JSON.stringify(metadata) : contextoProducto}
-* Analysis Request: Technical forensic breakdown in SPANISH.
-* Schema: 
-Brand: [Brand]
-Model: [Model]
-Category: [Category]
-Material: [Material]
-Gender: [Gender]
-TIPO_PRENDA: [Remera, Pantalón, Bóxer, etc.]
-POSICIÓN_DETECTADA: [FRENTE / ESPALDA / LATERAL / PLANO / GHOST_MANNEQUIN / PILA_O_DOBLADO / INDETERMINADO]
-SOPORTE_O_CONTEXTO: [FOTO_ESTUDIO / COLGADA_EN_PERCHA / DOBLADA_EN_SUPERFICIE / SOBRE_MANIQUÍ / EN_PERCHERO_MULTIPLE]
-COLOR_PRINCIPAL:
-  - Nombre técnico: [e.g., Azul Marino]
-  - Código HEX: [e.g., #1A2B5C]
-  - Tipo: [LISO / ESTAMPADO / SUBLIMADO / RAYADO / JASPEADO]
-  - Patrón: [Descripción breve del estampado si existe]
-MATERIAL_ESTIMADO: [Análisis visual contrastado con metadata]
-LOGO_O_MARCA:
-  - Visible: [SÍ / NO]
-  - Detalle: [Descripción, posición y tamaño]
-DETALLES_CONSTRUCTIVOS:
-  - Costuras: [e.g., Flatlock, Overlock, Doble aguja]
-  - Cierres: [e.g., Cierre frontal, sin cierre, botones]
-  - Bolsillos: [e.g., 2 laterales, sin bolsillos]
-  - Elásticos: [e.g., Cintura elástica, con cordón]
-AVISOS_DE_LIMPIEZA_VISIBLES: [SÍ / NO]
-ESTADO_VISUAL: [LIMPIO / Con etiquetas / Con maniquí visible]
-DETALLES_VISUALES: [Descripción detallada para prompt de generación de imagen]`;
+INSTRUCTION: Perform a multi-pass technical scan of the image and report EVERY detail using the following STRICT SCHEMA in SPANISH.
+
+* SCHEMA:
+- TIPO_PRENDA: Precise technical identification (e.g., Bermuda, Chupín, Remera).
+- POSICIÓN_DETECTADA: [FRENTE / ESPALDA / LATERAL / PLANO / GHOST_MANNEQUIN / PILA_O_DOBLADO / INDETERMINADO]
+- SOPORTE_O_CONTEXTO: [FOTO_ESTUDIO / COLGADA_EN_PERCHA / DOBLADA_EN_SUPERFICIE / SOBRE_MANIQUÍ / EN_PERCHERO_MULTIPLE]
+- COLOR_PRINCIPAL: Technical color name, HEX and pattern (solid, printed, etc).
+- MATERIAL_VISUAL: Describe the texture, weave, and weight of the fabric as seen.
+- LOGO_O_MARCA: Describe location, size, and application technique (print/embroidery).
+- DETALLES_CONSTRUCTIVOS: Exhaustive list of stitching type, zippers, buttons, elastics, and pockets.
+- DETALLES_VISUALES: High-density descriptive paragraph for AI image generation (lighting, framing, state).
+- ESTADO_VISUAL: [LIMPIO / Con etiquetas / Con maniquí visible]
+
+* ERP CONTEXT (For reference only): ${metadata ? JSON.stringify(metadata) : contextoProducto}
+
+IMPORTANT: Avoid conversational filler. Focus 100% on forensic evidence. Report one field per line.`;
 
       // PREPARAR BLOB (Optimizado para Gemma 4)
       const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, true);
