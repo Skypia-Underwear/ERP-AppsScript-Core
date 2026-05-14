@@ -168,8 +168,9 @@ const AIService = {
         // (Gemma suele auto-corregirse al final)
         const parts = cleanLine.split(':');
         if (parts.length >= 2) {
-          const header = parts[0].trim().toUpperCase();
-          vistos.set(header, cleanLine); // El mapa sobrescribe con el último valor
+          // Normalización Industrial de Headers (Elimina viñetas y espacios para evitar duplicados en anidados)
+          const headerKey = parts[0].replace(/^[-*\s]+/, '').trim().toUpperCase();
+          vistos.set(headerKey, cleanLine); // El mapa sobrescribe con el último valor (Last Value Wins)
         } else {
           // Si no tiene header pero pasó los filtros, lo guardamos por contenido
           vistos.set('RAW_' + cleanLine.toLowerCase(), cleanLine);
@@ -238,28 +239,48 @@ DETALLES_VISUALES: [Descripción detallada para prompt de generación de imagen]
       // PREPARAR BLOB (Optimizado para Gemma 4)
       const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, true);
 
-      // EJECUCIÓN RAW
-      const modelo = this.MODELS_FREE[0]; // Gemma 4
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-      
-      const response = UrlFetchApp.fetch(url, {
-        method: "post", contentType: "application/json",
-        payload: JSON.stringify({
-          contents: [{ parts: [{ text: promptForense }, fileDataRef] }],
-          generationConfig: { 
-            temperature: 0.1,
-            maxOutputTokens: 1024
+      // EJECUCIÓN RAW CON FALLBACK DINÁMICO (SOT: consultarGemma)
+      let rawResponse = "";
+      let modeloUsado = "";
+      let ultimoError = "";
+
+      for (const modelo of this.MODELS_FREE) {
+        try {
+          console.log(`🔬 [Lab-IA] Intentando con modelo: ${modelo}`);
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+          
+          const response = UrlFetchApp.fetch(url, {
+            method: "post", contentType: "application/json",
+            payload: JSON.stringify({
+              contents: [{ parts: [{ text: promptForense }, fileDataRef] }],
+              generationConfig: { 
+                temperature: 0.1,
+                maxOutputTokens: 1024
+              }
+            }),
+            muteHttpExceptions: true
+          });
+
+          if (response.getResponseCode() === 200) {
+            const resBody = JSON.parse(response.getContentText());
+            if (resBody.candidates && resBody.candidates[0] && resBody.candidates[0].content) {
+              rawResponse = resBody.candidates[0].content.parts[0].text;
+              modeloUsado = modelo;
+              console.log(`✅ [Lab-IA] Éxito con ${modelo}`);
+              break;
+            }
           }
-        }),
-        muteHttpExceptions: true
-      });
+          ultimoError = `Mod ${modelo} -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`;
+          console.warn(`⚠️ [Lab-IA] Fallo en ${modelo}: ${ultimoError}`);
+        } catch (e) {
+          ultimoError = `Mod ${modelo} -> ${e.message}`;
+          console.warn(`❌ [Lab-IA] Excepción en ${modelo}: ${e.message}`);
+        }
+      }
 
-      if (response.getResponseCode() !== 200) throw new Error(`API Error ${response.getResponseCode()}: ${response.getContentText()}`);
-
-      const resBody = JSON.parse(response.getContentText());
-      if (!resBody.candidates || !resBody.candidates[0]) throw new Error("La IA no devolvió candidatos.");
+      if (!rawResponse) throw new Error(`API Error ${ultimoError}`);
       
-      const rawResponse = resBody.candidates[0].content.parts[0].text;
+      const rawResponseText = rawResponse;
 
       // EJECUCIÓN CLEAN (Saneamiento Industrial)
       const forensicWhitelist = [
@@ -276,10 +297,10 @@ DETALLES_VISUALES: [Descripción detallada para prompt de generación de imagen]
         success: true,
         imagenId: imagenId,
         imageUrl: imgRow.URL || imgRow.THUMBNAIL_URL,
-        modelo: modelo,
-        raw: rawResponse,
+        modelo: modeloUsado,
+        raw: rawResponseText,
         clean: cleanResponse,
-        debug: this.generarLogDiferencial(rawResponse, cleanResponse)
+        debug: this.generarLogDiferencial(rawResponseText, cleanResponse)
       };
 
     } catch (e) {
