@@ -9,8 +9,8 @@ const AIService = {
 
   // Capa Gratuita / Infraestructura (ai_model_standard.md - Capa 1)
   MODELS_FREE: [
-    "gemma-4-26b-a4b-it",  // Principal
-    "gemini-2.5-flash"     // Fallback autorizado (NO usar 1.5)
+    "gemini-2.5-flash",    // 🚀 AGILIDAD: Análisis multimodal rápido (5-10s)
+    "gemma-4-26b-a4b-it"   // 🐢 PRECISIÓN: Peritaje forense profundo (110s)
   ],
 
   // Capa de Pago / Generación de Imagen (ai_model_standard.md - Capa 3)
