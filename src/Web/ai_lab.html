@@ -418,20 +418,39 @@
 
   function copyToClipboard(elementId, title) {
     const el = document.getElementById(elementId);
+    if (!el) return;
+    
     const text = `${title}\n\n${el.innerText}`;
 
-    navigator.clipboard.writeText(text).then(() => {
-      Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: 'Copiado al portapapeles con título',
-        showConfirmButton: false,
-        timer: 1500,
-        background: '#1e293b',
-        color: '#fff'
-      });
-    });
+    // Fallback robusto para entornos de iframe (Apps Script)
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Copiado al portapapeles',
+          showConfirmButton: false,
+          timer: 1500,
+          background: '#1e293b',
+          color: '#fff'
+        });
+      }
+    } catch (err) {
+      console.error('Error al copiar:', err);
+    }
+
+    document.body.removeChild(textArea);
   }
   function resetLab() {
     document.getElementById('cat-selector').value = "";

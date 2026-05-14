@@ -150,8 +150,14 @@ const AIService = {
       // Ignorar si tiene placeholders ej: [Type], [Brand], [Yes/No]
       if (/\[[\w\s\/\-_]+\]/i.test(l)) continue;
 
-      // Ignorar líneas de "pensamiento" o corrección (Chatter)
-      const chatterKeywords = ["wait,", "i will", "let's", "final check", "self-correction", "i should", "prompt says", "refining schema", "final polish", "one more check", "double check"];
+      // Ignorar líneas de "pensamiento" o corrección (Chatter) - LISTA AMPLIADA INDUSTRIAL
+      const chatterKeywords = [
+        "wait,", "i will", "let's", "final check", "self-correction", "i should", 
+        "prompt says", "refining schema", "final polish", "one more check", 
+        "double check", "self-correct", "during drafting", "polish:", "check:",
+        "refining", "assignment_turned_in", "psychology", "mente raw", "output final",
+        "mente de la ia", "ficha técnica"
+      ];
       if (chatterKeywords.some(word => l.toLowerCase().includes(word))) continue;
 
       // 🛡️ FILTRO 3: Limpieza de Markdown (Preservando Guiones Bajos Técnicos)
@@ -234,7 +240,10 @@ DETALLES_CONSTRUCTIVOS:
   - Elásticos: [e.g., Cintura elástica, con cordón]
 AVISOS_DE_LIMPIEZA_VISIBLES: [SÍ / NO]
 ESTADO_VISUAL: [LIMPIO / Con etiquetas / Con maniquí visible]
-DETALLES_VISUALES: [Descripción detallada para prompt de generación de imagen]`;
+DETALLES_VISUALES: [Descripción detallada para prompt de generación de imagen]
+
+IMPORTANT: NO CONVERSATIONAL FILLER. NO SELF-CORRECTION LOGS. NO BOLD. NO INTRODUCTIONS.
+Output ONLY the requested fields immediately.`;
 
       // PREPARAR BLOB (Optimizado para Gemma 4 - Usando File API para mayor velocidad)
       const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, false);
