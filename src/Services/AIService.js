@@ -147,11 +147,8 @@ const AIService = {
       }
 
       // 🛡️ FILTRO 2: Protección Anti-Instrucción y Monólogos
-      // Ignorar si tiene placeholders ej: [Type], [Brand], [Yes/No] o puntos suspensivos ...
-      if (/\[[\w\s\/\-_]+\]/i.test(l) || l.includes("...")) continue;
-
-      // Ignorar validaciones de checklist (ej: "Plain text? Yes")
-      if (l.includes("? Yes") || l.includes("? No")) continue;
+      // Ignorar si tiene placeholders ej: [Type], [Brand], [Yes/No]
+      if (/\[[\w\s\/\-_]+\]/i.test(l)) continue;
 
       // Ignorar líneas de "pensamiento" o corrección (Chatter) - LISTA AMPLIADA INDUSTRIAL
       const chatterKeywords = [
@@ -159,7 +156,7 @@ const AIService = {
         "prompt says", "refining schema", "final polish", "one more check", 
         "double check", "self-correct", "during drafting", "polish:", "check:",
         "refining", "assignment_turned_in", "psychology", "mente raw", "output final",
-        "mente de la ia", "ficha técnica", "polish checklist", "final check"
+        "mente de la ia", "ficha técnica"
       ];
       if (chatterKeywords.some(word => l.toLowerCase().includes(word))) continue;
 
@@ -173,17 +170,15 @@ const AIService = {
       cleanLine = cleanLine.replace(/[.;,]+$/, "").trim();
 
       if (cleanLine) {
+        // Estrategia: Solo quedarnos con la ÚLTIMA versión de cada Header
+        // (Gemma suele auto-corregirse al final)
         const parts = cleanLine.split(':');
         if (parts.length >= 2) {
-          const val = parts.slice(1).join(':').trim();
-          if (val !== "" && val !== "...") {
-            const headerKey = parts[0].replace(/^[-*\s]+/, '').trim().toUpperCase();
-            // LÓGICA INDUSTRIAL: First Good Value Wins (No dejar que el chatter final sobrescriba datos)
-            if (!vistos.has(headerKey)) {
-              vistos.set(headerKey, cleanLine);
-            }
-          }
+          // Normalización Industrial de Headers (Elimina viñetas y espacios para evitar duplicados en anidados)
+          const headerKey = parts[0].replace(/^[-*\s]+/, '').trim().toUpperCase();
+          vistos.set(headerKey, cleanLine); // El mapa sobrescribe con el último valor (Last Value Wins)
         } else {
+          // Si no tiene header pero pasó los filtros, lo guardamos por contenido
           vistos.set('RAW_' + cleanLine.toLowerCase(), cleanLine);
         }
       }
