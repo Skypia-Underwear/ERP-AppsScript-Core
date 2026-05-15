@@ -11,8 +11,14 @@ function tpv_consolidarVentasJson(precalculatedData = null) {
     try {
         debugLog("🍳 [Bake & Serve] Iniciando consolidación de ventas...");
 
-        // 1. Obtener los datos consolidados. Si es un string, lo usamos. 
-        // Si es un objeto (como el evento de un disparador), lo ignoramos y cargamos desde cero.
+        // 0. Protección contra Auth Deadlock (GCP Standard)
+        if (typeof checkSystemPermissions === 'function') {
+            if (!checkSystemPermissions()) {
+                throw new Error("Autorización requerida. Se ha enviado una alerta a Telegram.");
+            }
+        }
+
+        // 1. Obtener los datos consolidados. 
         const dashboardJsonStr = (typeof precalculatedData === 'string') ? precalculatedData : cargarDashboardVentas_HEAVY();
         const dataParsed = JSON.parse(dashboardJsonStr);
 
@@ -20,7 +26,7 @@ function tpv_consolidarVentasJson(precalculatedData = null) {
             throw new Error("Fallo al generar datos del dashboard: " + dataParsed.message);
         }
 
-        // 2. Guardar en Drive
+        // 2. Guardar en Drive (Usando Servicio Avanzado para evitar Auth Deadlock)
         const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
         const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "erp";
         const appSlug = appName.toLowerCase().replace(/\s+/g, '-');
@@ -28,18 +34,30 @@ function tpv_consolidarVentasJson(precalculatedData = null) {
 
         if (!folderId) throw new Error("ID de carpeta JSON (DRIVE_JSON_CONFIG_FOLDER_ID) no configurado en la BD.");
 
-        const folder = DriveApp.getFolderById(folderId);
-        const files = folder.getFilesByName(fileName);
+        // Búsqueda de archivo usando Drive API v3
+        const query = `name = '${fileName}' and '${folderId}' in parents and trashed = false`;
+        const files = Drive.Files.list({ q: query, fields: "files(id, name)" });
 
-        let file;
-        if (files.hasNext()) {
-            file = files.next();
-            file.setContent(dashboardJsonStr);
-            debugLog(`✅ Archivo '${fileName}' actualizado en Drive.`);
+        let fileId;
+        const blob = Utilities.newBlob(dashboardJsonStr, 'application/json', fileName);
+
+        if (files.files && files.files.length > 0) {
+            fileId = files.files[0].id;
+            // Actualización industrial (Servicio Avanzado)
+            Drive.Files.update({}, fileId, blob);
+            debugLog(`✅ Archivo '${fileName}' actualizado en Drive (v3 Advanced).`);
         } else {
-            file = folder.createFile(fileName, dashboardJsonStr, MimeType.PLAIN_TEXT);
-            debugLog(`✅ Archivo '${fileName}' creado en Drive.`);
+            // Creación industrial (Servicio Avanzado)
+            const resource = {
+                name: fileName,
+                parents: [folderId],
+                mimeType: 'application/json'
+            };
+            const newFile = Drive.Files.create(resource, blob);
+            fileId = newFile.id;
+            debugLog(`✅ Archivo '${fileName}' creado en Drive (v3 Advanced).`);
         }
+
 
         // 3. Invalidar Caché para que el dashboard tome lo nuevo (Turbo Mode)
         try {
@@ -60,9 +78,10 @@ function tpv_consolidarVentasJson(precalculatedData = null) {
         return {
             success: true,
             message: "Jerarquía de ventas consolidada con éxito.",
-            fileId: file.getId(),
+            fileId: fileId,
             count: totalSales
         };
+
 
     } catch (e) {
         const errorMsg = "❌ Error en tpv_consolidarVentasJson: " + e.message;

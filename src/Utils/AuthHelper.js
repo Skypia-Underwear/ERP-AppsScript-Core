@@ -1,5 +1,5 @@
 /**
- * helper para forzar el flujo de autorización de Google Apps Script.
+ * Helper para forzar el flujo de autorización de Google Apps Script.
  * Útil para resolver el "Auth Deadlock" cuando se usa un proyecto GCP estándar.
  * Ejecuta esta función desde el editor si recibes errores de permiso inexistentes.
  */
@@ -7,9 +7,14 @@ function forceAuthReset() {
   console.log("Iniciando forzado de autorización...");
   
   try {
-    // Forzar Drive API
+    // Forzar Drive API (Built-in y Avanzado)
     const rootFolders = DriveApp.getRootFolder();
     console.log("DriveApp: OK (Root: " + rootFolders.getName() + ")");
+    
+    if (typeof Drive !== 'undefined') {
+      Drive.About.get();
+      console.log("Drive Advanced Service: OK");
+    }
     
     // Forzar Spreadsheet API
     const activeSS = SpreadsheetApp.getActiveSpreadsheet();
@@ -27,9 +32,56 @@ function forceAuthReset() {
     const triggers = ScriptApp.getProjectTriggers();
     console.log("ScriptApp (Triggers): OK (Encontrados: " + triggers.length + ")");
     
+    // Forzar UrlFetchApp (External Requests)
+    UrlFetchApp.fetch("https://www.google.com", {muteHttpExceptions: true});
+    console.log("UrlFetchApp: OK");
+
     console.log("✅ Autorización verificada exitosamente.");
+    return { success: true, message: "Autorización verificada." };
   } catch (e) {
     console.error("❌ Error durante la autorización: " + e.message);
-    throw e;
+    return { success: false, message: e.message };
   }
 }
+
+/**
+ * Verifica si el script tiene los permisos necesarios en tiempo de ejecución.
+ * Si no los tiene, envía una alerta de Telegram.
+ */
+function checkSystemPermissions() {
+  const authInfo = ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL);
+  const status = authInfo.getAuthorizationStatus();
+  
+  if (status === ScriptApp.AuthorizationStatus.REQUIRED) {
+    const authUrl = authInfo.getAuthorizationUrl();
+    const msg = "🚨 <b>ALERTA DE SEGURIDAD (AUTH DEADLOCK)</b>\n" +
+                "El ERP ha perdido permisos de Google Services.\n\n" +
+                "<b>Acción Requerida:</b>\n" +
+                "1. Abre el Editor de Apps Script.\n" +
+                "2. Ejecuta manualmente la función <code>forceAuthReset</code>.\n" +
+                "3. Acepta el nuevo cuadro de diálogo de permisos.\n\n" +
+                "🔗 <a href=\"" + authUrl + "\">Enlace de Autorización</a>";
+    
+    if (typeof notificarTelegramSalud === 'function') {
+      notificarTelegramSalud(msg, "ERROR");
+    }
+    return false;
+  }
+  return true;
+}
+
+/**
+ * SCOPE ANCHORS (NO ELIMINAR)
+ * Estas líneas forzan a Google Apps Script a detectar los scopes necesarios 
+ * incluso si están en el manifiesto, evitando que el 'Auth Deadlock' sea silencioso.
+ */
+function _scopeAnchors() {
+  DriveApp.getRootFolder();
+  SpreadsheetApp.getActiveSpreadsheet();
+  UrlFetchApp.fetch("");
+  if (false) {
+    BigQuery.Projects.list();
+    Drive.Files.list();
+  }
+}
+

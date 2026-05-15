@@ -15,8 +15,11 @@ function onOpen() {
     .addItem('🔄 Resetear Webhook (Forzado)', 'resetearWebhookTelegramTotalmente')
     .addSeparator()
     .addItem('📊 Preparar BigQuery (Dataset/Tabla)', 'setupBigQueryStructure')
+    .addSeparator()
+    .addItem('🔑 Reparar Autorización (Auth Reset)', 'forceAuthReset')
     .addToUi();
 }
+
 
 /**
  * Busca subcarpeta o la crea
