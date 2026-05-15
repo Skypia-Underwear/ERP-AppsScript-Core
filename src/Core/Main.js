@@ -335,6 +335,7 @@ const GLOBAL_CONFIG = {
   TELEGRAM: {
     get BOT_TOKEN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_BOT_TOKEN"] || ""; },
     get CHAT_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || ""; },
+    get DEV_CHAT_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_DEV_CHAT_ID"] || ""; },
     get MODE() { return (GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_MODE"] || "DEV").toUpperCase(); }
   },
 
@@ -652,10 +653,16 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
   const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "ERP_CORE";
   const mode = config.MODE || "PROD";
 
-  Logger.log(`📡 [Health] Iniciando reporte: ${tipo} | Msg: ${mensaje.substring(0, 30)}...`);
+  // --- LÓGICA DE ENRUTAMIENTO INTELIGENTE (V7.0) ---
+  // Errores y Salud -> Al Desarrollador (DEV_CHAT_ID)
+  // Éxitos y Negocio -> Al Cliente (CHAT_ID)
+  const isDevMsg = ['ERROR', 'WARN', 'HEALTH'].includes(tipo);
+  const targetChatId = (isDevMsg && config.DEV_CHAT_ID) ? config.DEV_CHAT_ID : config.CHAT_ID;
 
-  if (!config.BOT_TOKEN || !config.CHAT_ID) {
-    Logger.log("❌ [Health] Faltan BOT_TOKEN o CHAT_ID en GLOBAL_CONFIG.");
+  Logger.log(`📡 [Health] Iniciando reporte: ${tipo} | Destino: ${targetChatId} | Msg: ${mensaje.substring(0, 30)}...`);
+
+  if (!config.BOT_TOKEN || !targetChatId) {
+    Logger.log("❌ [Health] Faltan BOT_TOKEN o CHAT_ID destino en GLOBAL_CONFIG.");
     return;
   }
 
@@ -714,13 +721,13 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
   }
 
   // Enviar mensaje nuevo
-  Logger.log(`📨 [Health] Enviando mensaje nuevo a ${config.CHAT_ID}...`);
+  Logger.log(`📨 [Health] Enviando mensaje nuevo a ${targetChatId}...`);
   const url = `https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`;
   const options = {
     method: "post",
     contentType: "application/json",
     payload: JSON.stringify({
-      chat_id: config.CHAT_ID,
+      chat_id: targetChatId,
       text: textoFinal,
       parse_mode: "HTML"
     }),
