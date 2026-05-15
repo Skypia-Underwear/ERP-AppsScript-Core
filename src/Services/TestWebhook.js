@@ -95,3 +95,31 @@ function test_multiplicadoresStock() {
     console.log("❌ Prueba fallida: " + resultado.message);
   }
 }
+
+/**
+ * TEST: Verificación de Enrutamiento de Telegram (V7.0)
+ * Envía un error simulado y un éxito simulado para verificar el destino de cada uno.
+ */
+function test_telegramRouting() {
+  console.log("🧪 Iniciando prueba de enrutamiento de Telegram...");
+
+  const devId = GLOBAL_CONFIG.TELEGRAM.DEV_CHAT_ID;
+  const clientId = GLOBAL_CONFIG.TELEGRAM.CHAT_ID;
+
+  console.log(`ℹ️ Configuración actual:
+- Destino Desarrollador (DEV_CHAT_ID): ${devId || "NO CONFIGURADO (Fallback a Client)"}
+- Destino Cliente (CHAT_ID): ${clientId || "NO CONFIGURADO"}`);
+
+  // 1. Simular un ERROR (Debe ir a DEV_CHAT_ID)
+  console.log("📡 Enviando alerta de ERROR simulada...");
+  notificarTelegramSalud("Esta es una PRUEBA DE ERROR TÉCNICO.\nSolo debería llegarte a ti como desarrollador.", "ERROR");
+
+  Utilities.sleep(2000);
+
+  // 2. Simular un ÉXITO (Debe ir a CHAT_ID)
+  console.log("📡 Enviando notificación de ÉXITO simulada...");
+  notificarTelegramSalud("Esta es una PRUEBA DE VENTA EXITOSA.\nDebería llegar al chat de ventas del cliente.", "EXITO");
+
+  console.log("✅ Pruebas enviadas. Por favor verifica tus chats de Telegram.");
+}
+
