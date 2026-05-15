@@ -333,10 +333,13 @@ const GLOBAL_CONFIG = {
   },
 
   TELEGRAM: {
-    get BOT_TOKEN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_BOT_TOKEN"] || ""; },
-    get CHAT_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || ""; },
-    get DEV_CHAT_ID() { return GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_DEV_CHAT_ID"] || ""; },
-    get MODE() { return (GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_MODE"] || "DEV").toUpperCase(); }
+    get BOT_TOKEN() { return String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_BOT_TOKEN"] || "").trim(); },
+    get CHAT_ID() { return String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || "").trim(); },
+    get DEV_CHAT_ID() { 
+      const val = String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_DEV_CHAT_ID"] || "").trim();
+      return (val === "true" || val === "false") ? "" : val; 
+    },
+    get MODE() { return (String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_MODE"] || "DEV")).toUpperCase().trim(); }
   },
 
   NOTIFICACIONES: {
