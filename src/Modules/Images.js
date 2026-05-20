@@ -1260,8 +1260,13 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
     case 'ghost':
       const focus = extraSpecs.focus || "";
       let focusMandate = "";
-      if (focus === 'waist') focusMandate = "- PRIORITY MANDATE: Show the inside of the waistband with a slight downward angle, highlighting the elastic.";
-      else if (focus === 'legs') focusMandate = "- PRIORITY MANDATE: Show the inside of the leg openings with a clean cut.";
+      if (focus === 'waist') {
+        focusMandate = "- PRIORITY MANDATE: Subtle, elegant 3D volume showing a natural, organic opening at the waistband with a very gentle downward angle. The waistband opening must remain shallow, realistic, and structurally integrated, avoiding any exaggerated gaping hollow funnel or black hole effect. Highlight the internal elastic with micro-depth only.";
+      } else if (focus === 'legs') {
+        focusMandate = "- PRIORITY MANDATE: Subtle 3D volume with natural, clean leg openings showing realistic, shallow inner depth. Avoid dramatic vertical perspectives, maintaining a balanced frontal silhouette with clean, non-exaggerated interior fabric showing.";
+      } else {
+        focusMandate = "- PRIORITY MANDATE: Balanced 3D volume showing a subtle representation of both waistband and leg openings. Maintain an elegant, clean frontal perspective. Keep the interior openings natural and shallow, avoiding any exaggerated gaping hollows or steep vertical angles.";
+      }
 
       promptRules = `
         GHOST MANNEQUIN EFFECT:
@@ -2166,9 +2171,10 @@ function generarVideoPrompt(imageIds, estiloSolicitado, opciones = {}) {
     switch ((estiloSolicitado || '').toLowerCase()) {
       case 'ghost':
         let focusMandateVideo = "";
-        if (extraSpecs.focus === 'waist') focusMandateVideo = " Priority Focus: Waist interior with high-angle perspective.";
-        else if (extraSpecs.focus === 'legs') focusMandateVideo = " Priority Focus: Leg interior openings.";
-        visualStyle = `Style: Ghost Mannequin / Invisible 3D. Clean, white background, hollow garment.${focusMandateVideo} (MANDATE: PERFECTLY CENTERED. REMOVE ALL mannequins, residual shadows, tags, and hangers. Ensure internal fabric at openings like sleeves and legs shows a clean perspective-correct cut, avoiding elongated back effects).`;
+        if (extraSpecs.focus === 'waist') focusMandateVideo = " Priority Focus: Waist interior with a gentle, realistic angle.";
+        else if (extraSpecs.focus === 'legs') focusMandateVideo = " Priority Focus: Natural leg interior openings.";
+        else focusMandateVideo = " Priority Focus: Balanced, natural 3D volume.";
+        visualStyle = `Style: Ghost Mannequin / Invisible 3D. Clean, white background, hollow garment.${focusMandateVideo} (MANDATE: PERFECTLY CENTERED. REMOVE ALL mannequins, residual shadows, tags, and hangers. Ensure internal fabric at openings like sleeves and legs shows a clean perspective-correct cut, avoiding elongated back effects and gaping hollow voids).`;
         break;
       case 'lifestyle': visualStyle = `Style: High-End Lifestyle. Dynamic ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} fit model, cinematic lighting, urban context. (MANDATE: REMOVE ALL retail tags/hangers).`; break;
       default: visualStyle = `Style: Professional E-commerce Studio. Vertical format, clean grey background, ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model. (MANDATE: REMOVE ALL retail tags/hangers).`; break;

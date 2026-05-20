@@ -691,9 +691,9 @@ ${directiva.exampleBlock}
           - TEXTURE FIDELITY: Maintain all technical fabric details (mesh, stitching, prints).
           - Background: Pure solid white #FFFFFF. 
           - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.`,
-        focus: extraSpecs.focus === 'waist' ? "- PRIORITY MANDATE: Show the inside of the waistband with a slight downward angle, highlighting the elastic volume." :
-          extraSpecs.focus === 'legs' ? "- PRIORITY MANDATE: Show the inside of the leg openings with a clean cut." :
-            "- PRIORITY MANDATE: Balanced 3D volume showing both waistband and leg openings depth.",
+        focus: extraSpecs.focus === 'waist' ? "- PRIORITY MANDATE: Subtle, elegant 3D volume showing a natural, organic opening at the waistband with a very gentle downward angle. The waistband opening must remain shallow, realistic, and structurally integrated, avoiding any exaggerated gaping hollow funnel or black hole effect. Highlight the internal elastic with micro-depth only." :
+          extraSpecs.focus === 'legs' ? "- PRIORITY MANDATE: Subtle 3D volume with natural, clean leg openings showing realistic, shallow inner depth. Avoid dramatic vertical perspectives, maintaining a balanced frontal silhouette with clean, non-exaggerated interior fabric showing." :
+            "- PRIORITY MANDATE: Balanced 3D volume showing a subtle representation of both waistband and leg openings. Maintain an elegant, clean frontal perspective. Keep the interior openings natural and shallow, avoiding any exaggerated gaping hollows or steep vertical angles.",
         example: `        **REASONING:** Ghost Mannequin style is applied by removing the physical support and visible mannequin. 3D volume and symmetry are highlighted.
         **VISUAL AUDIT:** [X] Brand, [X] Color, [X] No Humans, [X] White Background.
         **MASTER PROMPT:** High-end studio photography, ghost mannequin effect, 3D volumetric shape of [GARMENT] in [COLOR], centered, symmetrical, pure white background #FFFFFF, 8k.`
