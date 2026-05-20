@@ -384,6 +384,7 @@ MODELO: [Heredar de Context Reference. Exclusivo para indexación ERP]
 CATEGORÍA: [Heredar de Context Reference]
 MATERIAL: [Heredar de Context Reference, confirmando con textura visual]
 GÉNERO: [Heredar de Context Reference]
+CLASIFICACION_ESTRUCTURAL: [Analiza la prenda a partir de la imagen y los metadatos de referencia. Clasifícala estrictamente en una de las dos clasificaciones anatómicas: PRENDA_SUPERIOR (si se viste en la parte superior del cuerpo, ej. cubriendo cuello, hombros, torso, pecho o brazos) o PRENDA_INFERIOR (si se viste en la parte inferior del cuerpo, ej. cubriendo cintura, cadera, pelvis o piernas). Escribe estrictamente PRENDA_SUPERIOR o PRENDA_INFERIOR en mayúsculas sin más texto]
 TIPO_PRENDA: [Categoría de mayor jerarquía / Familia, ej: ROPA INTERIOR]
 POSICIÓN_DETECTADA: [FRENTE / ESPALDA / LATERAL / PLANO / GHOST_MANNEQUIN / PILA_O_DOBLADO / INDETERMINADO]
 SOPORTE_O_CONTEXTO: [FOTO_ESTUDIO / COLGADA_EN_PERCHA / DOBLADA_EN_SUPERFICIE / SOBRE_MANIQUÍ / EN_PERCHERO_MULTIPLE]
@@ -463,7 +464,7 @@ TIPO_PRENDA: ROPA INTERIOR
 
       // 4. Limpieza Industrial
       const forensicWhitelist = [
-        "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "TIPO_PRENDA",
+        "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
         "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
         "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
         "MATERIAL_ESTIMADO", 
@@ -550,6 +551,26 @@ TIPO_PRENDA: ROPA INTERIOR
       }
 
       // 3. Obtener Directivas de Arte según estilo
+      let clasificacion = "";
+      if (masterRow && masterRow.ANALISIS_FORENSE) {
+        const forensic = masterRow.ANALISIS_FORENSE.toUpperCase();
+        if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_SUPERIOR") || forensic.includes("PRENDA_SUPERIOR")) {
+          clasificacion = "PRENDA_SUPERIOR";
+        } else if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_INFERIOR") || forensic.includes("PRENDA_INFERIOR")) {
+          clasificacion = "PRENDA_INFERIOR";
+        }
+      }
+      if (!clasificacion && prodRow) {
+        const cat = (prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || "").toLowerCase();
+        const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
+        if (upperKeywords.some(kw => cat.includes(kw))) {
+          clasificacion = "PRENDA_SUPERIOR";
+        } else {
+          clasificacion = "PRENDA_INFERIOR";
+        }
+      }
+      extraSpecs.clasificacionEstructural = clasificacion || "PRENDA_INFERIOR";
+
       const directiva = this._getAiArtDirectionRules(estilo, extraSpecs, extraSpecs.environment, prodRow);
 
       let forensicSOT = extraSpecs.fichaForense;
@@ -691,9 +712,27 @@ ${directiva.exampleBlock}
           - TEXTURE FIDELITY: Maintain all technical fabric details (mesh, stitching, prints).
           - Background: Pure solid white #FFFFFF. 
           - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.`,
-        focus: extraSpecs.focus === 'waist' ? "- PRIORITY MANDATE: Subtle, elegant 3D volume showing a natural, organic opening at the waistband with a very gentle downward angle. The waistband opening must remain shallow, realistic, and structurally integrated, avoiding any exaggerated gaping hollow funnel or black hole effect. Highlight the internal elastic with micro-depth only." :
-          extraSpecs.focus === 'legs' ? "- PRIORITY MANDATE: Subtle 3D volume with natural, clean leg openings showing realistic, shallow inner depth. Avoid dramatic vertical perspectives, maintaining a balanced frontal silhouette with clean, non-exaggerated interior fabric showing." :
-            "- PRIORITY MANDATE: Balanced 3D volume showing a subtle representation of both waistband and leg openings. Maintain an elegant, clean frontal perspective. Keep the interior openings natural and shallow, avoiding any exaggerated gaping hollows or steep vertical angles.",
+        focus: (() => {
+          const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
+          const focus = extraSpecs.focus || "";
+          if (clasif === "PRENDA_SUPERIOR") {
+            if (focus === "waist") {
+              return "- USER FOCUS REQUEST: Upper Neck/Collar opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the top collar/neck opening. Keep it shallow and clean. The bottom hem and sleeve openings MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+            } else if (focus === "legs") {
+              return "- USER FOCUS REQUEST: Bottom Hem/Sleeve openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the sleeve openings and the bottom hem. The upper collar/neck opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+            } else {
+              return "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at all openings naturally (neck, sleeves, and bottom hem), keeping them elegant and realistic.";
+            }
+          } else { // PRENDA_INFERIOR
+            if (focus === "waist") {
+              return "- USER FOCUS REQUEST: Waistband opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the waistband. The leg openings/bottom cuffs MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+            } else if (focus === "legs") {
+              return "- USER FOCUS REQUEST: Leg openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the leg openings showing realistic depth. The waistband/top opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+            } else {
+              return "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at both openings (waistband and leg openings) naturally, keeping them elegant and realistic.";
+            }
+          }
+        })(),
         example: `        **REASONING:** Ghost Mannequin style is applied by removing the physical support and visible mannequin. 3D volume and symmetry are highlighted.
         **VISUAL AUDIT:** [X] Brand, [X] Color, [X] No Humans, [X] White Background.
         **MASTER PROMPT:** High-end studio photography, ghost mannequin effect, 3D volumetric shape of [GARMENT] in [COLOR], centered, symmetrical, pure white background #FFFFFF, 8k.`

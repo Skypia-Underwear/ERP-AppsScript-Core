@@ -1258,14 +1258,26 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
   // 1. Configuración de Reglas por Estilo
   switch (estilo) {
     case 'ghost':
+      const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
       const focus = extraSpecs.focus || "";
       let focusMandate = "";
-      if (focus === 'waist') {
-        focusMandate = "- PRIORITY MANDATE: Subtle, elegant 3D volume showing a natural, organic opening at the waistband with a very gentle downward angle. The waistband opening must remain shallow, realistic, and structurally integrated, avoiding any exaggerated gaping hollow funnel or black hole effect. Highlight the internal elastic with micro-depth only.";
-      } else if (focus === 'legs') {
-        focusMandate = "- PRIORITY MANDATE: Subtle 3D volume with natural, clean leg openings showing realistic, shallow inner depth. Avoid dramatic vertical perspectives, maintaining a balanced frontal silhouette with clean, non-exaggerated interior fabric showing.";
-      } else {
-        focusMandate = "- PRIORITY MANDATE: Balanced 3D volume showing a subtle representation of both waistband and leg openings. Maintain an elegant, clean frontal perspective. Keep the interior openings natural and shallow, avoiding any exaggerated gaping hollows or steep vertical angles.";
+      
+      if (clasif === "PRENDA_SUPERIOR") {
+        if (focus === "waist") {
+          focusMandate = "- USER FOCUS REQUEST: Upper Neck/Collar opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the top collar/neck opening. Keep it shallow and clean. The bottom hem and sleeve openings MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+        } else if (focus === "legs") {
+          focusMandate = "- USER FOCUS REQUEST: Bottom Hem/Sleeve openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the sleeve openings and the bottom hem. The upper collar/neck opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+        } else {
+          focusMandate = "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at all openings naturally (neck, sleeves, and bottom hem), keeping them elegant and realistic.";
+        }
+      } else { // PRENDA_INFERIOR
+        if (focus === "waist") {
+          focusMandate = "- USER FOCUS REQUEST: Waistband opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the waistband. The leg openings/bottom cuffs MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+        } else if (focus === "legs") {
+          focusMandate = "- USER FOCUS REQUEST: Leg openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the leg openings showing realistic depth. The waistband/top opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+        } else {
+          focusMandate = "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at both openings (waistband and leg openings) naturally, keeping them elegant and realistic.";
+        }
       }
 
       promptRules = `
@@ -1427,7 +1439,7 @@ function escanearPrenda(imagenId, forzar = false) {
     const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `forense_${imagenId}`, 'alta', apiKey, true);
 
     const forensicWhitelist = [
-      "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
+      "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
       "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", "LOGO_O_MARCA",
       "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL"
     ];
@@ -1443,6 +1455,7 @@ function escanearPrenda(imagenId, forzar = false) {
       [FEW-SHOT EXAMPLES]:
       Input: (Imagen de un boxer azul)
       Output:
+      CLASIFICACION_ESTRUCTURAL: PRENDA_INFERIOR
       TIPO_PRENDA: Boxer
       POSICIÓN_DETECTADA: FRENTE
       SOPORTE_O_CONTEXTO: FOTO_ESTUDIO
@@ -1456,7 +1469,9 @@ function escanearPrenda(imagenId, forzar = false) {
       AVISOS_DE_LIMPIEZA_VISIBLES: NO
       ESTADO_VISUAL: LIMPIO
 
-      [TAREA]: Analiza la foto adjunta y genera la ficha técnica siguiendo el esquema anterior:
+      [TAREA]: Analiza la foto adjunta y genera la ficha técnica siguiendo el esquema anterior.
+      Debes incluir siempre como primer campo:
+      CLASIFICACION_ESTRUCTURAL: [Analiza la prenda a partir de la imagen y los metadatos de referencia. Clasifícala estrictamente en una de las dos clasificaciones anatómicas: PRENDA_SUPERIOR (si se viste en la parte superior del cuerpo, ej. cubriendo cuello, hombros, torso, pecho o brazos) o PRENDA_INFERIOR (si se viste en la parte inferior del cuerpo, ej. cubriendo cintura, cadera, pelvis o piernas). Escribe estrictamente PRENDA_SUPERIOR o PRENDA_INFERIOR en mayúsculas sin más texto]
     `;
 
     const config = {
@@ -1560,6 +1575,26 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
     const forcedAngle = extraSpecs.angle || "";
     const estiloSolicitadoL = (estiloSolicitado || 'ecommerce').toLowerCase();
     const environment = extraSpecs.environment || (prodRow ? prodRow.CATEGORIA_PADRE : 'Urban');
+    let clasificacion = "";
+    if (imgRow && imgRow.ANALISIS_FORENSE) {
+      const forensic = imgRow.ANALISIS_FORENSE.toUpperCase();
+      if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_SUPERIOR") || forensic.includes("PRENDA_SUPERIOR")) {
+        clasificacion = "PRENDA_SUPERIOR";
+      } else if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_INFERIOR") || forensic.includes("PRENDA_INFERIOR")) {
+        clasificacion = "PRENDA_INFERIOR";
+      }
+    }
+    if (!clasificacion && prodRow) {
+      const cat = (prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || "").toLowerCase();
+      const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
+      if (upperKeywords.some(kw => cat.includes(kw))) {
+        clasificacion = "PRENDA_SUPERIOR";
+      } else {
+        clasificacion = "PRENDA_INFERIOR";
+      }
+    }
+    extraSpecs.clasificacionEstructural = clasificacion || "PRENDA_INFERIOR";
+
     const directiva = _getAiArtDirectionRules(estiloSolicitadoL, extraSpecs, environment, prodRow);
     const promptRules = directiva.promptRules;
     const modelAdaptation = directiva.modelAdaptation;
@@ -1762,6 +1797,27 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     // Unificamos las reglas de estilo usando el Motor de Directivas (SOT)
     const estiloSolicitadoL = (estiloSolicitado || 'ecommerce').toLowerCase();
     const environment = extraSpecs.environment || (prodRow ? prodRow.CATEGORIA_PADRE : 'Urban');
+    let clasificacion = "";
+    const masterRow = selectedRows[0];
+    if (masterRow && masterRow.ANALISIS_FORENSE) {
+      const forensic = masterRow.ANALISIS_FORENSE.toUpperCase();
+      if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_SUPERIOR") || forensic.includes("PRENDA_SUPERIOR")) {
+        clasificacion = "PRENDA_SUPERIOR";
+      } else if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_INFERIOR") || forensic.includes("PRENDA_INFERIOR")) {
+        clasificacion = "PRENDA_INFERIOR";
+      }
+    }
+    if (!clasificacion && prodRow) {
+      const cat = (prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || "").toLowerCase();
+      const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
+      if (upperKeywords.some(kw => cat.includes(kw))) {
+        clasificacion = "PRENDA_SUPERIOR";
+      } else {
+        clasificacion = "PRENDA_INFERIOR";
+      }
+    }
+    extraSpecs.clasificacionEstructural = clasificacion || "PRENDA_INFERIOR";
+
     const directiva = _getAiArtDirectionRules(estiloSolicitadoL, extraSpecs, environment, prodRow);
     const promptRules = directiva.promptRules;
     const modelAdaptation = directiva.modelAdaptation;

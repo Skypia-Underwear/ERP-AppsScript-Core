@@ -3527,7 +3527,7 @@
 
         // 1. Estilos Still Life (Hanger o Folded) o Ghost o Composiciones (Hero/Collage)
         if (estilo === 'ghost' || estilo === 'hanger' || estilo === 'folded' || estilo === 'hero' || estilo === 'collage') {
-            // Ocultar ángulos en composiciones para evitar conflictos de lógica
+            // Ocultar ángulos en composiciones para avoid conflicts
             if (estilo === 'hero' || estilo === 'collage') {
                 if (angleSection) angleSection.classList.add('hidden');
             } else if (document.querySelectorAll('.image-item.selected').length > 1) {
@@ -3564,15 +3564,43 @@
             if (document.getElementById('swal-input-structure').value === 'living_garment') {
                 document.getElementById('swal-input-structure').value = 'single_shot';
             }
+        }
 
-            // Realce visual si es prenda inferior
-            if (currentProduct) {
-                const cat = (currentProduct.parentCategory || currentProduct.category || "").toLowerCase();
-                const categoriasInferiores = ['pantalon', 'pantalón', 'short', 'bermuda', 'boxer', 'calzoncillo', 'ropa interior', 'jeans', 'calza', 'jogging', 'pantal', 'bottom'];
-                const isBottom = categoriasInferiores.some(c => cat.includes(c));
-                if (isBottom) footSection.classList.add('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
-                else footSection.classList.remove('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
+        // Determinar clasificación estructural de la prenda (superior vs inferior) de forma dinámica sin categorías en el servidor
+        let clasificacion = "PRENDA_INFERIOR"; // Default para Skypia
+        const masterImg = (selectedImages && selectedImages.size > 0) ? CURRENT_IMAGES.find(i => String(i.IMAGEN_ID) === String(Array.from(selectedImages)[0])) : currentImgObj;
+        if (masterImg && masterImg.ANALISIS_FORENSE) {
+            const forensic = masterImg.ANALISIS_FORENSE.toUpperCase();
+            if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_SUPERIOR") || forensic.includes("PRENDA_SUPERIOR")) {
+                clasificacion = "PRENDA_SUPERIOR";
             }
+        } else if (currentProduct) {
+            // Fallback local por palabras clave para cuando aún no se ha corrido la IA forense
+            const cat = (currentProduct.parentCategory || currentProduct.category || "").toLowerCase();
+            const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
+            if (upperKeywords.some(kw => cat.includes(kw))) {
+                clasificacion = "PRENDA_SUPERIOR";
+            }
+        }
+
+        const focusSelect = document.getElementById('swal-input-focus');
+        if (focusSelect && focusSelect.options.length >= 3) {
+            if (clasificacion === "PRENDA_SUPERIOR") {
+                focusSelect.options[1].text = "Cuello (Interior superior)";
+                focusSelect.options[2].text = "Mangas/Bajo (Interior inferior)";
+            } else {
+                focusSelect.options[1].text = "Cintura (Interior superior)";
+                focusSelect.options[2].text = "Piernas (Interior inferior)";
+            }
+        }
+
+        // Realce visual si es prenda inferior
+        if (currentProduct) {
+            const cat = (currentProduct.parentCategory || currentProduct.category || "").toLowerCase();
+            const categoriasInferiores = ['pantalon', 'pantalón', 'short', 'bermuda', 'boxer', 'calzoncillo', 'ropa interior', 'jeans', 'calza', 'jogging', 'pantal', 'bottom'];
+            const isBottom = categoriasInferiores.some(c => cat.includes(c));
+            if (isBottom) footSection.classList.add('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
+            else footSection.classList.remove('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
         }
     }
 

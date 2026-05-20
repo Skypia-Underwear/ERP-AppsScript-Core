@@ -1088,6 +1088,34 @@
       }
     }
 
+    // Determinar clasificación estructural de la prenda (superior vs inferior) de forma dinámica sin categorías en el servidor
+    let clasificacion = "PRENDA_INFERIOR"; // Default para Skypia
+    const masterImg = selectedImageIds.length > 0 ? currentProductImages.find(i => String(i.IMAGEN_ID || i.ID) === selectedImageIds[0]) : null;
+    if (masterImg && masterImg.ANALISIS_FORENSE) {
+      const forensic = masterImg.ANALISIS_FORENSE.toUpperCase();
+      if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_SUPERIOR") || forensic.includes("PRENDA_SUPERIOR")) {
+        clasificacion = "PRENDA_SUPERIOR";
+      }
+    } else if (selectedProduct) {
+      // Fallback local por palabras clave para cuando aún no se ha corrido la IA forense
+      const cat = (selectedProduct.parentCategory || selectedProduct.categoryName || "").toLowerCase();
+      const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
+      if (upperKeywords.some(kw => cat.includes(kw))) {
+        clasificacion = "PRENDA_SUPERIOR";
+      }
+    }
+
+    const focusSelect = document.getElementById('lab-focus');
+    if (focusSelect && focusSelect.options.length >= 3) {
+      if (clasificacion === "PRENDA_SUPERIOR") {
+        focusSelect.options[1].text = "Cuello (Interior superior)";
+        focusSelect.options[2].text = "Mangas/Bajo (Interior inferior)";
+      } else {
+        focusSelect.options[1].text = "Cintura (Interior superior)";
+        focusSelect.options[2].text = "Piernas (Interior inferior)";
+      }
+    }
+
     // Realce visual si es prenda inferior
     if (selectedProduct) {
       const cat = (selectedProduct.parentCategory || selectedProduct.categoryName || "").toLowerCase();
