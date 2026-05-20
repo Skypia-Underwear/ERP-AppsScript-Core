@@ -148,45 +148,56 @@
   <script>
     (function () {
       'use strict';
-      const loader = document.getElementById('loader');
+      const loader    = document.getElementById('loader');
+      const erpFrame  = document.getElementById('erp-frame');
+      const T0        = performance.now(); // Marca de inicio absoluta
+      let   erpReadyReceived = false;
+
+      // ─── Helpers de Timing ───────────────────────────────────────────────
+      function elapsed(label) {
+        const ms = (performance.now() - T0).toFixed(0);
+        console.info(`⏱️ [Shell][${ms}ms] ${label}`);
+        return ms;
+      }
 
       function hideLoader() {
         if (!loader) return;
         loader.classList.add('hidden');
-        loader.addEventListener('transitionend', () => loader.remove());
+        loader.addEventListener('transitionend', () => loader.remove(), { once: true });
       }
 
-      // --- PROTOCOLO DE SINCRONIZACIÓN ---
-      // Escuchamos el mensaje del ERP indicando que terminó de cargar su lógica interna
-      window.addEventListener('message', function(event) {
-        if (!event.origin.includes('script.google.com') && !event.origin.includes('googleusercontent.com')) return;
-        
-        if (event.data.type === 'ERP_READY') {
-          console.info('🚀 [Shell] ERP reporta listo. Liberando pantalla.');
-          hideLoader();
+      // ─── T1: iframe navegado (HTML de GAS recibido) ───────────────────────
+      erpFrame.addEventListener('load', function () {
+        elapsed('T1 — iframe load event (HTML de GAS entregado al navegador)');
+      });
 
-          const session = localStorage.getItem('erp_session');
-          if (session) {
-            console.info('🔑 [Shell] Restaurando sesión...');
-            document.getElementById('erp-frame').contentWindow.postMessage({ type: 'LOAD_SESSION', session: JSON.parse(session) }, '*');
-          }
+      // ─── T2: ERP listo (postMessage desde systemContainer) ────────────────
+      window.addEventListener('message', function (event) {
+        if (!event.origin.includes('script.google.com') && !event.origin.includes('googleusercontent.com')) {
+          // Origen desconocido — ignorar silenciosamente
+          return;
         }
 
-        if (event.data.type === 'SAVE_SESSION') {
-          console.info('💾 [Shell] Guardando sesión...');
-          localStorage.setItem('erp_session', JSON.stringify(event.data.session));
+        if (event.data.type === 'ERP_READY') {
+          erpReadyReceived = true;
+          elapsed('T2 — ERP_READY recibido (lógica interna inicializada)');
+          console.info('🚀 [Shell] ERP reporta listo. Liberando pantalla.');
+          hideLoader();
         }
       });
 
-      // Fallback: si en 15 segundos el ERP no responde, liberamos de todos modos
+      // ─── Fallback: 30s sin ERP_READY → liberamos de todos modos ──────────
+      // (aumentado a 30s para dar margen de diagnóstico)
       setTimeout(() => {
-        if (document.getElementById('loader')) {
-          console.warn('⚠️ [Shell] ERP tardó demasiado. Liberando por tiempo.');
+        if (!erpReadyReceived) {
+          const ms = elapsed('TIMEOUT — ERP_READY nunca llegó. Liberando por tiempo.');
+          console.warn(`⚠️ [Shell] ERP tardó más de ${ms}ms sin emitir ERP_READY.`);
+          console.warn('🔍 [Shell] Verificá que systemContainer.html dispara: window.parent.postMessage({ type: "ERP_READY" }, "*")');
           hideLoader();
         }
-      }, 15000);
+      }, 30000);
 
-      // Service Worker
+      // ─── Service Worker ───────────────────────────────────────────────────
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js', { scope: './' })

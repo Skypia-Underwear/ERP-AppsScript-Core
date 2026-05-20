@@ -1109,9 +1109,10 @@
 
     if (!filtered.length) { container.innerHTML = '<span class="text-[8px] italic text-slate-600 text-center py-4">No hay modelos</span>'; return; }
 
+    const placeholderImg = 'https://placehold.co/100x120/1e293b/94a3b8?text=X';
     container.innerHTML = filtered.map(p => `
             <div onclick="selectProduct('${p.id}', this)" class="product-card flex-shrink-0 w-full h-[110px] rounded-lg border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden relative group">
-                <div class="h-[75px] bg-slate-900 overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-cover opacity-80" onerror="this.src='https://placehold.co/100x120/1e293b/94a3b8?text=X'" loading="lazy"></div>
+                <div class="h-[75px] bg-slate-900 overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-cover opacity-80" onerror="this.src='${placeholderImg}'" loading="lazy"></div>
                 <div class="p-1 text-center bg-slate-800 border-t border-slate-700 flex flex-col items-center justify-center">
                     <span class="text-[9px] font-bold text-white truncate w-full">${p.model}</span>
                     <span class="text-[8px] text-slate-400 font-mono">${p.id}</span>

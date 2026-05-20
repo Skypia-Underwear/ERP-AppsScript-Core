@@ -38,9 +38,12 @@ function onEditTrigger(e) {
  * Instalador de los disparadores del proyecto.
  */
 function instalarTriggersIA() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // 1. Asegurar persistencia del Laboratorio
+    if (typeof AIService !== 'undefined' && AIService._obtenerHojaLab) {
+        AIService._obtenerHojaLab();
+    }
 
-    // Limpiar previos para evitar ejecuciones duplicadas
+    // 2. Limpiar previos para evitar ejecuciones duplicadas
     const triggers = ScriptApp.getProjectTriggers();
     triggers.forEach(t => ScriptApp.deleteTrigger(t));
 

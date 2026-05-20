@@ -1625,7 +1625,7 @@
     var pendingBatchForensicFileIds = []; // --- NUEVO: Rastreo de archivos para auditoría post-sync ---
     var _reloadTimeout = null; // --- NUEVO: Debounce de recarga ---
     var _reloadSkipLog = false; // --- NUEVO: Silenciar logs de recarga ---
-    var isSelectMode = false; // --- NUEVO: Modo selección activa ---
+    var isSelectMode = false; // MODO SELECCIÓN ACTIVA
 
 
 
@@ -1964,7 +1964,7 @@
 
                 const compressedSize = Math.round(dataUrl.length * 3 / 4 / 1024);
                 const originalSize = Math.round(file.size / 1024);
-                log(`âš¡ ${file.name}: ${originalMax}px â†’ ${Math.max(width, height)}px | ${originalSize}KB â†’ ${compressedSize}KB (${extension.toUpperCase()} ${Math.round(quality * 100)}%)`, 'info');
+                log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px | ${originalSize}KB → ${compressedSize}KB (${extension.toUpperCase()} ${Math.round(quality * 100)}%)`, 'info');
 
                 resolve({
                     base64: dataUrl.split(',')[1],
@@ -1994,7 +1994,7 @@
 
         const total = files.length;
         const isBatch = total > 1;
-        log(`ðŸš€ Iniciando subida de ${total} archivos para ${currentProduct.sku}...`, 'info');
+        log(`🚀 Iniciando subida de ${total} archivos para ${currentProduct.sku}...`, 'info');
         if (isBatch) log("â„¹ï¸ Modo Lote: La sincronización se ejecutará al final.", 'info');
 
         if (!isConsoleExpanded) toggleConsole();
@@ -2068,7 +2068,7 @@
                 text: 'Â¿Desde dónde quieres cargar?',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'ðŸ“· Cámara',
+                confirmButtonText: '📷 Cámara',
                 cancelButtonText: 'ðŸ–¼ï¸ Galería',
                 confirmButtonColor: '#4f46e5',
                 cancelButtonColor: '#334155',
@@ -2602,7 +2602,7 @@
     }
 
     function toggleSelection(id, card, estado) {
-        if (currentSelectionState !== null && currentSelectionState !== estado && !selectedImages.has(id)) { if (!confirm("Â¿Limpiar selección anterior?")) return; limpiarSeleccion(); }
+        if (currentSelectionState !== null && currentSelectionState !== estado && !selectedImages.has(id)) { if (!confirm("¿Limpiar selección anterior?")) return; limpiarSeleccion(); }
         currentSelectionState = estado;
         if (selectedImages.has(id)) { selectedImages.delete(id); card.classList.remove('selected'); card.querySelector('.check-icon').innerText = ''; if (selectedImages.size === 0) currentSelectionState = null; }
         else { selectedImages.add(id); card.classList.add('selected'); card.querySelector('.check-icon').innerText = 'check'; }
@@ -2639,7 +2639,7 @@
 
     function accionMasiva(accion) {
         const ids = Array.from(selectedImages); if (!ids.length) return;
-        const msg = accion === 'eliminar' ? "Â¿Borrar definitivamente?" : `Â¿${accion.toUpperCase()} ${ids.length} imágenes?`;
+        const msg = accion === 'eliminar' ? "¿Borrar definitivamente?" : `¿${accion.toUpperCase()} ${ids.length} imágenes?`;
         if (!confirm(msg)) return;
         log(`Procesando ${ids.length}...`, 'info');
         if (accion === 'eliminar') google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).eliminarImagenesDefinitivo(ids);
@@ -2780,7 +2780,7 @@
             btn.innerHTML = originalContent;
 
             log(res.message, res.success ? 'success' : 'error');
-            if (res.logs) res.logs.forEach(l => log(`   â†³ ${l}`, 'info'));
+            if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info'));
             if (res.success) recargar();
 
             // Si hubo subidas mientras corría, ejecutar sync pendiente
@@ -3073,7 +3073,7 @@
 
     function cambiarEstadoModal(nuevoEstado) { const id = currentImageId; closeModal(); optimisticMoveCard(id, nuevoEstado); google.script.run.withSuccessHandler(() => log("Estado guardado.", "success")).withFailureHandler(err => { Swal.fire('Error', 'No se pudo guardar.', 'error').then(() => recargar()); }).cambiarEstadoImagen(id, nuevoEstado); }
     function hacerPortadaModal() { closeModal(); log("Estableciendo portada...", "info"); google.script.run.withSuccessHandler(() => recargar()).establecerPortada(currentImageId, currentProduct.sku); }
-    function borrarImagenModal() { const id = currentImageId; Swal.fire({ title: 'Â¿Eliminar Definitivamente?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Borrar' }).then((result) => { if (result.isConfirmed) { closeModal(); const card = document.getElementById(`card-${id}`); if (card) card.remove(); google.script.run.withSuccessHandler(res => log(res.message, 'success')).withFailureHandler(err => { Swal.fire('Error', 'Fallo al eliminar.', 'error').then(() => recargar()); }).eliminarImagenesDefinitivo([id]); } }); }
+    function borrarImagenModal() { const id = currentImageId; Swal.fire({ title: '¿Eliminar Definitivamente?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Borrar' }).then((result) => { if (result.isConfirmed) { closeModal(); const card = document.getElementById(`card-${id}`); if (card) card.remove(); google.script.run.withSuccessHandler(res => log(res.message, 'success')).withFailureHandler(err => { Swal.fire('Error', 'Fallo al eliminar.', 'error').then(() => recargar()); }).eliminarImagenesDefinitivo([id]); } }); }
 
     // --- AI PROMPTING ---
     function ejecutarAuditoriaForense() {
@@ -3083,12 +3083,12 @@
         if (currentImgObj && currentImgObj.ANALISIS_FORENSE) {
             Swal.fire({
                 title: 'Prenda ya Auditada',
-                html: '<div class="text-xs opacity-70 mb-4">Ya existe un informe técnico para esta imagen. Â¿Qué deseas hacer?</div>',
+                html: '<div class="text-xs opacity-70 mb-4">Ya existe un informe técnico para esta imagen. ¿Qué deseas hacer?</div>',
                 icon: 'question',
                 background: '#1e293b', color: '#fff',
                 showCancelButton: true,
-                confirmButtonText: '<span class="flex items-center gap-1 font-bold">ðŸ‘€ Ver Informe</span>',
-                cancelButtonText: '<span class="flex items-center gap-1">ðŸ”„ Re-Analizar</span>',
+                confirmButtonText: '<span class="flex items-center gap-1 font-bold">👁️ Ver Informe</span>',
+                cancelButtonText: '<span class="flex items-center gap-1">🔄 Re-Analizar</span>',
                 confirmButtonColor: '#10b981', // Emerald 500
                 cancelButtonColor: '#ea580c', // Orange 600
             }).then(res => {
@@ -3199,7 +3199,7 @@
     }
 
     function generarPromptModal() {
-        // --- NUEVO: ESCANEO AGREGADO DE LA SELECCIÃ“N ---
+        // --- NUEVO: ESCANEO AGREGADO DE LA SELECCIÓN ---
         let selectionIncludesFolded = false;
         let selectionIncludesHanger = false;
 
@@ -3238,8 +3238,8 @@
                         <div>
                             <label class="text-[10px] uppercase font-bold text-slate-400">Formato</label>
                             <select id="swal-input-format" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1" onchange="toggleVideoOptions(this.value)">
-                                <option value="image">ðŸ“¸ Prompt Imagen</option>
-                                <option value="video">ðŸŽ¥ Guion Video</option>
+                                <option value="image">📷 Prompt Imagen</option>
+                                <option value="video">🎥 Guion Video</option>
                             </select>
                         </div>
                         
@@ -3337,9 +3337,9 @@
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-indigo-400">Estructura Video</label>
                                 <select id="swal-input-structure" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
-                                    <option value="single_shot">âš¡ 8 Segundos (Single Shot)</option>
-                                    <option value="multi_shot">ðŸŽ¬ 30 Segundos (Escenas)</option>
-                                    <option id="opt-living-garment" value="living_garment" class="hidden text-amber-400 font-bold">âœ¨ 3D Living Garment (Animado)</option>
+                                    <option value="single_shot">⚡ 8 Segundos (Single Shot)</option>
+                                    <option value="multi_shot">🎬 30 Segundos (Escenas)</option>
+                                    <option id="opt-living-garment" value="living_garment" class="hidden text-amber-400 font-bold">✨ 3D Living Garment (Animado)</option>
                                 </select>
                             </div>
                             <div class="flex gap-4">
@@ -3363,7 +3363,7 @@
                                     <option value="Clara / Blanca">Blanca / Clara</option>
                                     <option value="Trigueña / Latina">Trigueña / Latina</option>
                                     <option value="Morena / Bronceada">Morena / Bronceada</option>
-                                    <option value="Oscura / Ã‰bano">Oscura / Ã‰bano</option>
+                                    <option value="Oscura / Ébano">Oscura / Ébano</option>
                                 </select>
                            </div>
 
@@ -3600,14 +3600,14 @@
                 if (d.success) {
                     // SI HUBIERA COSTO, LOGUEARLO
                     const _elapsed = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
-                    log(`âœ… Generado OK (${d.modelUsed || d.model}) en ${_elapsed}s.`, 'success');
+                    log(`✅ Generado OK (${d.modelUsed || d.model}) en ${_elapsed}s.`, 'success');
 
                     if (d.renderModel) {
-                        log(`ðŸš€ Renderizado OK con ${d.renderModel}`, 'success');
+                        log(`🚀 Renderizado OK con ${d.renderModel}`, 'success');
                     }
 
                     if (d.cost !== undefined) {
-                        log(`ðŸ’° Inversión IA: $${d.cost.toFixed(5)} USD`, 'info');
+                        log(`💰 Inversión IA: $${d.cost.toFixed(5)} USD`, 'info');
                     }
 
                     const isJson = d.text && (d.text.trim().startsWith('{') || d.text.trim().startsWith('```json'));
@@ -3625,7 +3625,7 @@
                     const showVeoButton = formato === 'video' && isJson;
 
                     Swal.fire({
-                        title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">auto_awesome</span> <span>Â¡Análisis de la IA!</span></div>',
+                        title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">auto_awesome</span> <span>¡Análisis de la IA!</span></div>',
                         html: htmlContent,
                         showCancelButton: showVeoButton,
                         cancelButtonText: `<div class="flex items-center gap-2"><span class="material-icons text-sm">movie</span> <span>Renderizar MP4 con VEO</span></div>`,
@@ -3925,7 +3925,7 @@
                 out += `\nSCENES:\n`;
                 d.TOMAS.forEach(t => {
                     out += `[${t.id_toma}] (${t.duracion}): ${t.descripcion_español}\n`;
-                    out += `   ðŸ¤– Prompt: ${t.visual_prompt}\n\n`;
+                    out += `   🤖 Prompt: ${t.visual_prompt}\n\n`;
                 });
             }
 

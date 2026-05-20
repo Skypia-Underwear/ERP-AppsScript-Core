@@ -12,7 +12,7 @@ function forceAuthReset() {
     console.log("DriveApp: OK (Root: " + rootFolders.getName() + ")");
     
     if (typeof Drive !== 'undefined') {
-      Drive.About.get();
+      Drive.About.get({ fields: "user" });
       console.log("Drive Advanced Service: OK");
     }
     

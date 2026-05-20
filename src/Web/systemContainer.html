@@ -439,6 +439,21 @@
           executeScripts(container);
           hideLoader();
           isNavigating = false;
+
+          // ─── Notificar al Shell PWA que el ERP está listo ─────────────────
+          // Se dispara solo en la primera vista cargada exitosamente.
+          if (!erpReadyDispatched) {
+            erpReadyDispatched = true;
+            try {
+              // IMPORTANTE: usar window.top (no window.parent) para saltar el
+              // iframe warden de GAS (mae_html_user) que intercepta y descarta
+              // los mensajes enviados con window.parent.
+              window.top.postMessage({ type: 'ERP_READY' }, '*');
+              console.info('[Shell] ERP_READY enviado al Shell PWA via window.top.');
+            } catch (e) {
+              console.warn('[Shell] No se pudo enviar ERP_READY:', e.message);
+            }
+          }
         })
         .withFailureHandler(err => {
           hideLoader();
@@ -449,6 +464,7 @@
     }
 
     let isNavigating = false;
+    let erpReadyDispatched = false; // Solo notificamos al Shell la primera vez
 
     function executeScripts(container) {
       console.log("[Shell] Ejecutando scripts...");

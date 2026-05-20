@@ -1074,8 +1074,10 @@ function DIAGNOSTICO_IA() {
  * BLOCK_ONLY_HIGH: Permite prendas ajustadas (boxer, vedetinas) sin bloqueo.
  */
 const GEMINI_SAFETY_SETTINGS = [
-  { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH" },
-  { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH" }
+  { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
+  { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
+  { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
+  { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" }
 ];
 
 /**
@@ -1804,10 +1806,14 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     // --- NUEVO: Mandatos de Espacio Negativo según Aspect Ratio ---
     let framingMandate = "";
     const ratio = extraSpecs.aspectRatio || '3:4';
+    const isUnderwear = prodRow && prodRow.CATEGORIA && (prodRow.CATEGORIA.toLowerCase().includes('boxer') || prodRow.CATEGORIA.toLowerCase().includes('ropa interior'));
+
     if (ratio === '16:9' || ratio === '4:1') {
       framingMandate = "- FRAMING: Use extreme horizontal negative space. Place the garment slightly off-center for a cinematic look, ensuring no parts are cropped.";
     } else if (ratio === '1:4') {
       framingMandate = "- FRAMING: Vertical banner composition. Ensure the full length of the garment is visible with ample top/bottom margin.";
+    } else if (isUnderwear && estiloSolicitadoL === 'ghost') {
+      framingMandate = "- FRAMING: Focus specifically on the waistband and the upper thigh area. Do NOT exaggerate leg length. Maintain a realistic, close-up crop standard for underwear catalogs.";
     } else {
       framingMandate = "- FRAMING: Balanced commercial centering with 15% negative space margin on all sides.";
     }
@@ -2627,10 +2633,11 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
 
         const respCode = response.getResponseCode();
         const resText = response.getContentText();
-        const resJson = JSON.parse(resText);
+        let resJson;
+        try { resJson = JSON.parse(resText); } catch (e) { resJson = {}; }
 
         if (respCode === 200) {
-          if (resJson.candidates && resJson.candidates[0].content.parts) {
+          if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content && resJson.candidates[0].content.parts) {
             const part = resJson.candidates[0].content.parts.find(p => p.inlineData);
             if (part && part.inlineData && part.inlineData.data) {
               console.log(`✅ ÉXITO con ${modelo}.`);
@@ -2709,10 +2716,18 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
               }
             }
           }
-          detallesErrores.push(`${modelo}: Sin imagen en respuesta.`);
+
+          let failReason = "Sin imagen en respuesta";
+          if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].finishReason) {
+            failReason = `Bloqueado: ${resJson.candidates[0].finishReason}`;
+          }
+
+          console.warn(`${logPrefix} ${modelo} retornó 200 pero falló. Razón: ${failReason}. JSON: ${resText.substring(0, 300)}...`);
+          detallesErrores.push(`${modelo}: ${failReason}`);
         } else {
           const errMsg = resJson.error ? resJson.error.message : resText;
-          detallesErrores.push(`${modelo} (${respCode}): ${errMsg.substring(0, 50)}`);
+          console.warn(`${logPrefix} ${modelo} Error HTTP ${respCode}: ${errMsg}`);
+          detallesErrores.push(`${modelo} (${respCode}): ${errMsg.substring(0, 100)}`);
         }
       } catch (innerE) {
         detallesErrores.push(`${modelo} EX: ${innerE.message}`);

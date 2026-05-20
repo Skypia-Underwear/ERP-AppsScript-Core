@@ -58,7 +58,7 @@ function build() {
           console.log(`  🏠 Estableciendo ${file} como index.html principal.`);
         }
 
-        fs.writeFileSync(path.join(clientDistDir, outputFileName), content);
+        fs.writeFileSync(path.join(clientDistDir, outputFileName), content, 'utf8');
         console.log(`  📄 Compilando: ${outputFileName}`);
       }
     });
