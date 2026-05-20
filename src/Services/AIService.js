@@ -26,46 +26,57 @@ const AIService = {
    * Ideal para descripciones, análisis forense y auditoría.
    */
   consultarGemma(prompt, fileDataRef = null, configOverride = {}) {
-    const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
-    if (!apiKey) throw new Error("Falta API Key para IA Gratuita.");
+    const apiKeysToTry = [];
+    if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+    if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+      apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+    }
+    if (apiKeysToTry.length === 0) throw new Error("Falta API Key para IA.");
 
     let ultimoError = "";
     for (const modelo of this.MODELS_FREE) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-        const parts = [{ text: prompt }];
-        if (fileDataRef) parts.push(fileDataRef);
+      for (const keyObj of apiKeysToTry) {
+        const apiKey = keyObj.key;
+        console.log(`🧠 [AIService] Consultando con modelo ${modelo} usando API Key: ${keyObj.label}`);
 
-        const response = UrlFetchApp.fetch(url, {
-          method: "post",
-          contentType: "application/json",
-          payload: JSON.stringify({
-            contents: [{ parts: parts }],
-            generationConfig: {
-              temperature: configOverride.temperature || 0.1,
-              maxOutputTokens: configOverride.maxOutputTokens || 2048
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+          const parts = [{ text: prompt }];
+          if (fileDataRef) parts.push(fileDataRef);
+
+          const response = UrlFetchApp.fetch(url, {
+            method: "post",
+            contentType: "application/json",
+            payload: JSON.stringify({
+              contents: [{ parts: parts }],
+              generationConfig: {
+                temperature: configOverride.temperature || 0.1,
+                maxOutputTokens: configOverride.maxOutputTokens || 2048
+              }
+            }),
+            muteHttpExceptions: true,
+            timeoutInSeconds: 150
+          });
+
+          if (response.getResponseCode() === 200) {
+            const resText = response.getContentText();
+            const json = JSON.parse(resText);
+            const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (rawText) {
+              // Pasamos los headers autorizados para filtrar el monólogo de Gemma
+              return this.extraerContenido(rawText, configOverride.whitelistHeaders);
             }
-          }),
-          muteHttpExceptions: true,
-          timeoutInSeconds: 40
-        });
-
-        if (response.getResponseCode() === 200) {
-          const resText = response.getContentText();
-          const json = JSON.parse(resText);
-          const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (rawText) {
-            // Pasamos los headers autorizados para filtrar el monólogo de Gemma
-            return this.extraerContenido(rawText, configOverride.whitelistHeaders);
           }
+          ultimoError = `Mod ${modelo} (${keyObj.label}) -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`;
+          console.warn(`⚠️ [AIService] ${ultimoError}`);
+        } catch (e) {
+          ultimoError = `Mod ${modelo} (${keyObj.label}) -> ${e.message}`;
+          console.warn(`❌ [AIService] Excepción: ${ultimoError}`);
         }
-        ultimoError = `Mod ${modelo} -> HTTP ${response.getResponseCode()}`;
-      } catch (e) {
-        ultimoError = `Mod ${modelo} -> ${e.message}`;
       }
     }
-    throw new Error(`[AIService] Fallaron todos los modelos gratuitos: ${ultimoError}`);
+    throw new Error(`[AIService] Fallaron todos los modelos con las llaves disponibles: ${ultimoError}`);
   },
 
   /**
@@ -369,9 +380,7 @@ const AIService = {
       const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
       const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
 
-      const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
-
-      // Construir Prompt Forense (Fase Industrial: Ignora metadata, reporta lo que ve)
+      // Construir Prompt Forense (Fase Industrial: Ignora metadata, reporta lo que veo)
       const contextoProducto = prodRow ? `PRODUCT: ${prodRow.MODELO || prodRow.NOMBRE_PRODUCTO} | BRAND: ${prodRow.MARCA} | PARENT_CATEGORY: ${prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE}` : "";
       const promptForense = `Forensic Clothing Analyst for a high-precision ERP.
 Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).
@@ -398,7 +407,7 @@ COLOR_PRINCIPAL:
 MATERIAL_ESTIMADO: [Análisis visual contrastado con metadata]
 LOGO_O_MARCA:
   - VISIBLE: [SÍ / NO. Rigurosamente visual]
-  - DETALLE: [Descripción, posición y tamaño]
+  - DETALLE: [Descripción, position y tamaño]
 DETALLES_CONSTRUCTIVOS:
   - COSTURAS: [e.g., Flatlock, Overlock, Doble aguja]
   - CIERRES: [e.g., Cierre frontal, sin cierre, botones]
@@ -420,8 +429,13 @@ GÉNERO: Hombre
 TIPO_PRENDA: ROPA INTERIOR
 ... (resto de campos) ...`;
 
-      // PREPARAR BLOB (Optimizado para Gemma 4 - Usando File API para mayor velocidad)
-      const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, false);
+      // Definir juego de API Keys para fallback
+      const apiKeysToTry = [];
+      if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+      if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+        apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+      }
+      if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
 
       // EJECUCIÓN RAW CON FALLBACK DINÁMICO (SOT: consultarGemma)
       let rawResponse = "";
@@ -429,38 +443,47 @@ TIPO_PRENDA: ROPA INTERIOR
       let ultimoError = "";
 
       for (const modelo of this.MODELS_FREE) {
-        try {
-          console.log(`🔬 [Lab-IA] Intentando con modelo: ${modelo}`);
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+        for (const keyObj of apiKeysToTry) {
+          const apiKey = keyObj.key;
+          console.log(`🔬 [Lab-IA] Intentando Auditoría Forense con modelo ${modelo} y API Key ${keyObj.label}`);
 
-          const response = UrlFetchApp.fetch(url, {
-            method: "post", contentType: "application/json",
-            payload: JSON.stringify({
-              contents: [{ parts: [{ text: promptForense }, fileDataRef] }],
-              generationConfig: {
-                temperature: 0.1,
-                maxOutputTokens: 1024
+          try {
+            // PREPARAR BLOB (Optimizado para Gemma 4 - Usando File API para mayor velocidad)
+            // Se genera dentro del bucle de la llave para asociarse correctamente a la API Key activa.
+            const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, false);
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+
+            const response = UrlFetchApp.fetch(url, {
+              method: "post", contentType: "application/json",
+              payload: JSON.stringify({
+                contents: [{ parts: [{ text: promptForense }, fileDataRef] }],
+                generationConfig: {
+                  temperature: 0.1,
+                  maxOutputTokens: 1024
+                }
+              }),
+              muteHttpExceptions: true,
+              timeoutInSeconds: 150
+            });
+
+            if (response.getResponseCode() === 200) {
+              const resBody = JSON.parse(response.getContentText());
+              if (resBody.candidates && resBody.candidates[0] && resBody.candidates[0].content) {
+                rawResponse = resBody.candidates[0].content.parts[0].text;
+                modeloUsado = modelo;
+                console.log(`✅ [Lab-IA] Éxito con ${modelo} usando API Key ${keyObj.label}`);
+                break;
               }
-            }),
-            muteHttpExceptions: true,
-            timeoutInSeconds: 40
-          });
-
-          if (response.getResponseCode() === 200) {
-            const resBody = JSON.parse(response.getContentText());
-            if (resBody.candidates && resBody.candidates[0] && resBody.candidates[0].content) {
-              rawResponse = resBody.candidates[0].content.parts[0].text;
-              modeloUsado = modelo;
-              console.log(`✅ [Lab-IA] Éxito con ${modelo}`);
-              break;
             }
+            ultimoError = `Mod ${modelo} (${keyObj.label}) -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`;
+            console.warn(`⚠️ [Lab-IA] Fallo en ${modelo}: ${ultimoError}`);
+          } catch (e) {
+            ultimoError = `Mod ${modelo} (${keyObj.label}) -> ${e.message}`;
+            console.warn(`❌ [Lab-IA] Excepción en ${modelo}: ${e.message}`);
           }
-          ultimoError = `Mod ${modelo} -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`;
-          console.warn(`⚠️ [Lab-IA] Fallo en ${modelo}: ${ultimoError}`);
-        } catch (e) {
-          ultimoError = `Mod ${modelo} -> ${e.message}`;
-          console.warn(`❌ [Lab-IA] Excepción en ${modelo}: ${e.message}`);
         }
+        if (rawResponse) break; // Si tuvimos éxito, salimos del bucle de modelos
       }
 
       if (!rawResponse) throw new Error("La IA no devolvió un análisis válido.");
@@ -542,17 +565,6 @@ TIPO_PRENDA: ROPA INTERIOR
       const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
       const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", masterRow.PRODUCTO_ID);
 
-      const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
-
-      // 2. Preparar Blobs Multimodales (File API)
-      const imagePartsArray = [];
-      for (const row of selectedRows) {
-        if (!row.ARCHIVO_ID) continue;
-        // Se asume que prepararBlobOptimizado es global desde Images.js
-        const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `maestro_${row.IMAGEN_ID}`, 'alta', apiKey);
-        if (fileDataPart) imagePartsArray.push(fileDataPart);
-      }
-
       // 3. Obtener Directivas de Arte según estilo
       let clasificacion = "";
       if (masterRow && masterRow.ANALISIS_FORENSE) {
@@ -612,37 +624,65 @@ ${directiva.exampleBlock}
         - NO internal chatter, NO "Step 1", NO "Checklist" at the end.
       `;
 
+      // Definir juego de API Keys para fallback
+      const apiKeysToTry = [];
+      if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+      if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+        apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+      }
+      if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
+
       // 5. Ejecución RAW Multimodal
       let rawResponse = "";
       let modeloUsado = "";
 
       for (const modelo of this.MODELS_FREE) {
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-          
-          let partsData = [{ text: promptSistema }];
-          if (imagePartsArray.length > 0) {
-            partsData = partsData.concat(imagePartsArray);
+        for (const keyObj of apiKeysToTry) {
+          const apiKey = keyObj.key;
+          console.log(`🧠 [Lab-IA] Intentando Prompt Maestro con modelo ${modelo} y API Key ${keyObj.label}`);
+
+          try {
+            // 2. Preparar Blobs Multimodales (File API) para esta llave activa
+            const imagePartsArray = [];
+            for (const row of selectedRows) {
+              if (!row.ARCHIVO_ID) continue;
+              const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `maestro_${row.IMAGEN_ID}`, 'alta', apiKey);
+              if (fileDataPart) imagePartsArray.push(fileDataPart);
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+            
+            let partsData = [{ text: promptSistema }];
+            if (imagePartsArray.length > 0) {
+              partsData = partsData.concat(imagePartsArray);
+            }
+
+            const payload = {
+              contents: [{ parts: partsData }],
+              generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+            };
+
+            const response = UrlFetchApp.fetch(url, {
+              method: "post", contentType: "application/json",
+              payload: JSON.stringify(payload),
+              muteHttpExceptions: true,
+              timeoutInSeconds: 150
+            });
+
+            if (response.getResponseCode() === 200) {
+              const resJson = JSON.parse(response.getContentText());
+              if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
+                rawResponse = resJson.candidates[0].content.parts[0].text;
+                modeloUsado = modelo;
+                console.log(`✅ [Lab-IA] Éxito con ${modelo} usando API Key ${keyObj.label}`);
+                break;
+              }
+            }
+          } catch (e) {
+            console.warn(`Fallo en ${modelo} (${keyObj.label}): ${e.message}`);
           }
-
-          const payload = {
-            contents: [{ parts: partsData }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
-          };
-
-          const response = UrlFetchApp.fetch(url, {
-            method: "post", contentType: "application/json",
-            payload: JSON.stringify(payload),
-            muteHttpExceptions: true,
-            timeoutInSeconds: 45
-          });
-
-          if (response.getResponseCode() === 200) {
-            rawResponse = JSON.parse(response.getContentText()).candidates[0].content.parts[0].text;
-            modeloUsado = modelo;
-            break;
-          }
-        } catch (e) { console.warn(`Fallo en ${modelo}: ${e.message}`); }
+        }
+        if (rawResponse) break;
       }
 
       if (!rawResponse) throw new Error("No se pudo generar el prompt maestro multireferencia.");
