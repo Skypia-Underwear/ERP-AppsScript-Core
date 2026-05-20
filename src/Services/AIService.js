@@ -46,7 +46,8 @@ const AIService = {
               maxOutputTokens: configOverride.maxOutputTokens || 2048
             }
           }),
-          muteHttpExceptions: true
+          muteHttpExceptions: true,
+          timeoutInSeconds: 40
         });
 
         if (response.getResponseCode() === 200) {
@@ -99,7 +100,8 @@ const AIService = {
           method: "post",
           contentType: "application/json",
           payload: JSON.stringify(payload),
-          muteHttpExceptions: true
+          muteHttpExceptions: true,
+          timeoutInSeconds: 120
         });
 
         if (response.getResponseCode() === 200) {
@@ -440,7 +442,8 @@ TIPO_PRENDA: ROPA INTERIOR
                 maxOutputTokens: 1024
               }
             }),
-            muteHttpExceptions: true
+            muteHttpExceptions: true,
+            timeoutInSeconds: 40
           });
 
           if (response.getResponseCode() === 200) {
@@ -630,7 +633,8 @@ ${directiva.exampleBlock}
           const response = UrlFetchApp.fetch(url, {
             method: "post", contentType: "application/json",
             payload: JSON.stringify(payload),
-            muteHttpExceptions: true
+            muteHttpExceptions: true,
+            timeoutInSeconds: 45
           });
 
           if (response.getResponseCode() === 200) {
