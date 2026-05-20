@@ -39,6 +39,13 @@ const AIService = {
         const apiKey = keyObj.key;
         console.log(`🧠 [AIService] Consultando con modelo ${modelo} usando API Key: ${keyObj.label}`);
 
+        let timeoutInSeconds = 60;
+        if (modelo === "gemma-4-26b-a4b-it") {
+          timeoutInSeconds = (keyObj.label === "Gratuita") ? 120 : 60;
+        } else if (modelo === "gemini-2.5-flash") {
+          timeoutInSeconds = 30;
+        }
+
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
           const parts = [{ text: prompt }];
@@ -55,7 +62,7 @@ const AIService = {
               }
             }),
             muteHttpExceptions: true,
-            timeoutInSeconds: 150
+            timeoutInSeconds: timeoutInSeconds
           });
 
           if (response.getResponseCode() === 200) {
@@ -447,6 +454,13 @@ TIPO_PRENDA: ROPA INTERIOR
           const apiKey = keyObj.key;
           console.log(`🔬 [Lab-IA] Intentando Auditoría Forense con modelo ${modelo} y API Key ${keyObj.label}`);
 
+          let timeoutInSeconds = 60;
+          if (modelo === "gemma-4-26b-a4b-it") {
+            timeoutInSeconds = (keyObj.label === "Gratuita") ? 120 : 60;
+          } else if (modelo === "gemini-2.5-flash") {
+            timeoutInSeconds = 30;
+          }
+
           try {
             // PREPARAR BLOB (Optimizado para Gemma 4 - Usando File API para mayor velocidad)
             // Se genera dentro del bucle de la llave para asociarse correctamente a la API Key activa.
@@ -464,7 +478,7 @@ TIPO_PRENDA: ROPA INTERIOR
                 }
               }),
               muteHttpExceptions: true,
-              timeoutInSeconds: 150
+              timeoutInSeconds: timeoutInSeconds
             });
 
             if (response.getResponseCode() === 200) {
@@ -641,6 +655,13 @@ ${directiva.exampleBlock}
           const apiKey = keyObj.key;
           console.log(`🧠 [Lab-IA] Intentando Prompt Maestro con modelo ${modelo} y API Key ${keyObj.label}`);
 
+          let timeoutInSeconds = 60;
+          if (modelo === "gemma-4-26b-a4b-it") {
+            timeoutInSeconds = (keyObj.label === "Gratuita") ? 120 : 60;
+          } else if (modelo === "gemini-2.5-flash") {
+            timeoutInSeconds = 30;
+          }
+
           try {
             // 2. Preparar Blobs Multimodales (File API) para esta llave activa
             const imagePartsArray = [];
@@ -666,7 +687,7 @@ ${directiva.exampleBlock}
               method: "post", contentType: "application/json",
               payload: JSON.stringify(payload),
               muteHttpExceptions: true,
-              timeoutInSeconds: 150
+              timeoutInSeconds: timeoutInSeconds
             });
 
             if (response.getResponseCode() === 200) {
