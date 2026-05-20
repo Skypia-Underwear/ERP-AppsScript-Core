@@ -543,10 +543,10 @@
   var CATALOG_URL = "<?!= CATALOG_URL ?>";
   var CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
 
-  let CATALOGO = [];
-  let CATEGORIAS = new Set();
-  let selectedImageIds = [];
-  let selectedProduct = null;
+  var CATALOGO = CATALOGO || [];
+  var CATEGORIAS = CATEGORIAS || new Set();
+  var selectedImageIds = selectedImageIds || [];
+  var selectedProduct = selectedProduct || null;
 
   // Inicialización robusta (Compatible con Shell SPA y Standalone)
   if (document.readyState === 'loading') {
@@ -653,7 +653,7 @@
   }
 
   // 2. CARGA DE IMAGENES
-  let currentProductImages = []; // Cache temporal para el asset selector
+  var currentProductImages = currentProductImages || []; // Cache temporal para el asset selector
 
   function loadProductImages() {
     const sku = document.getElementById('prod-selector').value;
@@ -683,10 +683,47 @@
     }).obtenerImagenesDeProducto(sku);
   }
 
-  function renderAssetSelector(imgs, prod) {
+  function refreshProductImagesSilently() {
+    if (!selectedProduct) return;
+    const sku = selectedProduct._sku;
+    const previousSelection = [...selectedImageIds];
+
+    google.script.run.withSuccessHandler(res => {
+      let imgs = [];
+      try {
+        imgs = typeof res === 'string' ? JSON.parse(res) : res;
+      } catch (e) {
+        console.error("Error parseando imágenes:", e);
+      }
+
+      currentProductImages = imgs.slice(0, 10);
+      
+      // Volver a renderizar la grilla de selección de forma silenciosa
+      renderAssetSelector(currentProductImages, selectedProduct, true);
+
+      // Restaurar la selección previa filtrando solo los IDs que siguen existiendo en el nuevo set
+      selectedImageIds = previousSelection.filter(id => 
+        currentProductImages.some(img => (img.IMAGEN_ID || img.ID).toString() === id.toString())
+      );
+
+      // Si por algún motivo quedó vacío y hay imágenes, auto-seleccionar la primera
+      if (selectedImageIds.length === 0 && currentProductImages.length > 0) {
+        selectedImageIds.push((currentProductImages[0].IMAGEN_ID || currentProductImages[0].ID).toString());
+      }
+
+      updateAssetGridVisuals();
+
+      // En un refresco silencioso NO llamamos a selectImageDisplay para no ocultar el panel de análisis forense
+    }).obtenerImagenesDeProducto(sku);
+  }
+
+  function renderAssetSelector(imgs, prod, isSilent = false) {
     const grid = document.getElementById('asset-grid');
     grid.innerHTML = '';
-    selectedImageIds = [];
+    
+    if (!isSilent) {
+      selectedImageIds = [];
+    }
 
     if (imgs.length === 0) {
       grid.innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin imágenes</div>';
@@ -713,7 +750,7 @@
     });
 
     // Auto-seleccionar la primera como Master
-    if (imgs.length > 0) {
+    if (!isSilent && imgs.length > 0) {
       toggleAssetSelection(imgs[0].IMAGEN_ID || imgs[0].ID, imgs[0], prod);
     }
   }
@@ -1141,9 +1178,8 @@
       footwear: shoes,
       videoOptions: {
         structure: document.getElementById('lab-video-struct').value
-      },
-      fichaForense: forensicData
-    });
+      }
+    }, forzar);
   }
 
   function renderMaestroResults(res) {
@@ -1308,6 +1344,9 @@
           
           // Mostrar barra de acciones
           document.getElementById('render-action-bar').classList.remove('hidden');
+          
+          // Actualizar la galería de fotos en segundo plano de forma silenciosa
+          refreshProductImagesSilently();
         }
         
         Swal.fire({

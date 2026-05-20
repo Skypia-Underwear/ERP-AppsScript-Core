@@ -1785,7 +1785,7 @@
     }
 
     var _pollingInterval = null;
-    let _lastUserActivity = Date.now();
+    var _lastUserActivity = _lastUserActivity || Date.now();
 
     // Rastrear actividad del usuario (mouse, teclado, touch)
     ['mousemove', 'keydown', 'touchstart', 'click'].forEach(evt => {
