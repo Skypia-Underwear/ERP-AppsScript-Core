@@ -140,16 +140,23 @@
       </div>
 
       <!-- Selectores Integrados -->
-      <div class="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+      <div class="flex-1 grid grid-cols-2 lg:grid-cols-5 gap-3 w-full">
+        <!-- Buscador Inteligente -->
+        <div class="relative col-span-2 lg:col-span-1 group">
+          <span class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs transition-colors group-focus-within:text-blue-400">search</span>
+          <input type="text" id="search-input" oninput="filterProductsBySearch()" placeholder="Buscar por código o modelo..."
+            class="w-full bg-slate-900 border border-slate-800 text-white rounded-lg pl-8 pr-7 py-1.5 text-[10px] font-bold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all duration-300 placeholder:text-slate-600 placeholder:font-medium">
+          <span id="clear-search-btn" onclick="clearSearchInput()" class="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 text-xs cursor-pointer hidden transition-colors duration-200">close</span>
+        </div>
         <div>
           <select id="cat-selector" onchange="updateProductList()"
-            class="w-full bg-slate-900 border border-slate-800 text-white rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-blue-500 transition">
+            class="w-full bg-slate-900 border border-slate-800 text-white rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all duration-300">
             <option value="">Categoría...</option>
           </select>
         </div>
         <div>
           <select id="prod-selector" onchange="loadProductImages()"
-            class="w-full bg-slate-900 border border-slate-800 text-white rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-blue-500 transition">
+            class="w-full bg-slate-900 border border-slate-800 text-white rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all duration-300">
             <option value="">Producto...</option>
           </select>
         </div>
@@ -160,7 +167,7 @@
         </div>
         <div class="flex justify-end gap-2">
           <button onclick="resetLab()"
-            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition text-[9px] font-black flex items-center gap-2">
+            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-all duration-300 text-[9px] font-black flex items-center gap-2 border border-slate-700/50 hover:border-slate-600 shadow-md hover:shadow-lg">
             <span class="material-icons text-xs">layers_clear</span> LIMPIAR
           </button>
         </div>
@@ -648,8 +655,61 @@
       const opt = document.createElement('option');
       opt.value = p._sku;
       opt.textContent = `[${p._sku}] ${p._nombre}`;
+      if (selectedProduct && selectedProduct._sku === p._sku) {
+        opt.selected = true;
+      }
       selector.appendChild(opt);
     });
+  }
+
+  // Buscador de productos interactivo
+  function filterProductsBySearch() {
+    const query = document.getElementById('search-input').value.trim().toLowerCase();
+    const clearBtn = document.getElementById('clear-search-btn');
+    const prodSelector = document.getElementById('prod-selector');
+
+    if (query) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
+
+    prodSelector.innerHTML = '<option value="">-- Selecciona Producto --</option>';
+
+    if (!query) {
+      updateProductList();
+      return;
+    }
+
+    // Buscar coincidencias de SKU o Nombre en el catálogo
+    const matches = CATALOGO.filter(p => 
+      (p._sku && p._sku.toLowerCase().includes(query)) || 
+      (p._nombre && p._nombre.toLowerCase().includes(query))
+    );
+
+    if (matches.length === 0) {
+      prodSelector.innerHTML = '<option value="">No se encontraron resultados</option>';
+      return;
+    }
+
+    matches.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p._sku;
+      opt.textContent = `[${p._sku}] ${p._nombre} (${p._categoria})`;
+      if (selectedProduct && selectedProduct._sku === p._sku) {
+        opt.selected = true;
+      }
+      prodSelector.appendChild(opt);
+    });
+  }
+
+  function clearSearchInput() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    document.getElementById('clear-search-btn').classList.add('hidden');
+    filterProductsBySearch();
   }
 
   // 2. CARGA DE IMAGENES
@@ -665,6 +725,14 @@
 
     selectedProduct = prod;
     document.getElementById('lab-workspace').classList.remove('hidden');
+
+    // Sincronizar el selector de categorías si corresponde
+    if (prod._categoria) {
+      const catSelector = document.getElementById('cat-selector');
+      if (catSelector.value !== prod._categoria) {
+        catSelector.value = prod._categoria;
+      }
+    }
 
     const assetSelector = document.getElementById('asset-grid');
     assetSelector.innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Cargando...</div>';
@@ -739,12 +807,17 @@
       div.className = 'relative aspect-square bg-slate-950 border border-slate-800 rounded cursor-pointer overflow-hidden group hover:border-slate-600 transition';
       div.onclick = () => toggleAssetSelection(imgId, img, prod);
 
+      const hasForensic = img.ANALISIS_FORENSE && img.ANALISIS_FORENSE.trim() !== "";
+
       div.innerHTML = `
         <img src="${url}" class="w-full h-full object-contain p-1" alt="Asset ${idx + 1}">
         <div class="absolute top-0 right-0 bg-slate-900/80 px-1 py-0.5 text-[8px] font-mono text-slate-400 rounded-bl" style="backdrop-filter: blur(2px);">
           ${idx + 1}
         </div>
         <div id="badge-${imgId}" class="absolute top-0 left-0 px-1 py-0.5 text-[9px] font-black hidden"></div>
+        <div id="forensic-indicator-${imgId}" class="absolute bottom-1 left-1 bg-slate-950/90 text-emerald-400 p-0.5 rounded border border-emerald-500/30 shadow-md ${hasForensic ? '' : 'hidden'}" title="Diagnóstico Forense Listo">
+          <span class="material-icons text-xs" style="font-size: 13px;">psychology</span>
+        </div>
       `;
       grid.appendChild(div);
     });
@@ -954,7 +1027,7 @@
     const promises = selectedImageIds.map((imgId, i) => {
       const typeLabel = i === 0 ? "MASTER" : `REFERENCE ${i}`;
 
-      // [UI]� LÓGICA DE CACHÉ
+      // [UI] LÓGICA DE CACHÉ
       const imgData = currentProductImages.find(img => (img.IMAGEN_ID || img.ID).toString() === imgId.toString());
       if (!forzar && imgData && imgData.ANALISIS_FORENSE && imgData.ANALISIS_FORENSE.trim() !== "") {
         return Promise.resolve({
@@ -985,6 +1058,12 @@
       if (res.success && res.clean) {
         const targetImg = currentProductImages.find(img => String(img.IMAGEN_ID || img.ID) === String(res.imgId));
         if (targetImg) targetImg.ANALISIS_FORENSE = res.clean;
+
+        // Actualización dinámica en caliente sin reiniciar la galería
+        const indicator = document.getElementById(`forensic-indicator-${res.imgId}`);
+        if (indicator) {
+          indicator.classList.remove('hidden');
+        }
       }
 
       const headerRaw = document.createElement('div');
@@ -1339,6 +1418,7 @@
     imgView.classList.add('hidden');
     vidView.classList.add('hidden');
     placeholder.classList.remove('hidden');
+    placeholder.className = "italic opacity-30 text-amber-400/30 text-[10px] text-center px-4";
     placeholder.innerText = "Conectando con motor de renderizado (GCP)...";
 
     const extraSpecs = {
@@ -1388,10 +1468,49 @@
           color: '#fff'
         });
       } else {
-        placeholder.innerText = "Error: " + (parsedRes ? parsedRes.error : "Desconocido");
+        imgView.classList.add('hidden');
+        vidView.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        placeholder.className = "w-full p-4 rounded-xl border border-red-500/20 bg-gradient-to-br from-red-950/40 to-amber-950/30 text-slate-200 text-xs shadow-lg flex flex-col gap-2.5 text-left";
+
+        const errMsg = parsedRes ? parsedRes.error : "Desconocido";
+        const explanation = parsedRes && parsedRes.explicacionBloqueo ? parsedRes.explicacionBloqueo : "";
+
+        let html = `
+          <div class="flex items-center gap-2 text-amber-400 font-extrabold text-[11px] uppercase tracking-wider">
+            <span class="material-icons text-base">warning</span>
+            <span>DIAGNÓSTICO DE GENERACIÓN DE IMAGEN</span>
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono select-all bg-slate-950/80 p-2 rounded border border-slate-800 break-all">
+            <strong>Error Técnico:</strong> ${errMsg}
+          </div>
+        `;
+
+        if (explanation) {
+          html += `
+            <div class="text-[11px] leading-relaxed text-slate-300 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
+              <div class="font-bold text-amber-300 mb-1 flex items-center gap-1">
+                <span class="material-icons text-sm" style="font-size: 14px;">psychology</span> Análisis del Asistente:
+              </div>
+              <p class="whitespace-pre-wrap">${explanation}</p>
+            </div>
+            <div class="text-[9px] text-slate-500 italic mt-0.5">
+              * Prueba depurando el prompt maestro o modificando términos sensibles (como personajes protegidos, logotipos o prendas de ropa interior que activen los filtros de Vertex AI).
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="text-[11px] leading-relaxed text-slate-300">
+              No se pudo obtener una explicación detallada del fallo. Esto suele deberse a un corte en la conexión o a una restricción severa del API.
+            </div>
+          `;
+        }
+
+        placeholder.innerHTML = html;
+
         Swal.fire({
-          title: 'Error de Render',
-          text: (parsedRes ? parsedRes.error : "Desconocido") || "Fallo al generar el visual.",
+          title: 'Error de Renderizado',
+          text: "La generación falló. Revisa el panel de salida para ver el diagnóstico explicativo.",
           icon: 'error',
           background: '#0f172a',
           color: '#fff'
@@ -1401,6 +1520,11 @@
   }
 
   function resetLab() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = "";
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+    if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
+
     document.getElementById('cat-selector').value = "";
     document.getElementById('prod-selector').innerHTML = '<option value="">Primero elige categoría</option>';
     document.getElementById('asset-grid').innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin selección...</div>';
@@ -1412,7 +1536,12 @@
     document.getElementById('lab-workspace').classList.add('hidden');
     document.getElementById('render-action-bar').classList.add('hidden');
     document.getElementById('render-result-img').classList.add('hidden');
-    document.getElementById('render-placeholder').classList.remove('hidden');
+    
+    const placeholder = document.getElementById('render-placeholder');
+    placeholder.classList.remove('hidden');
+    placeholder.className = "italic opacity-30 text-amber-400/30 text-[10px] text-center px-4";
+    placeholder.innerHTML = "El render final aparecerá aquí...<br>(Requiere completar Fase 2)";
+    
     window._lastRenderedFileId = null;
     selectedImageIds = [];
 

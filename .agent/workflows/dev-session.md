@@ -16,7 +16,8 @@ Este workflow está diseñado para ser usado **EXCLUSIVAMENTE** durante las sesi
 ## 🛠️ Pasos de Ejecución
 
 ### 1. Sincronización con Macro Principal
-Ejecuta el comando para empujar los cambios locales al entorno de pruebas de la Macro Principal:
+1. Realiza una validación ultra-rápida local sin consumo de tokens según el estándar [encoding_syntax_standard.md](file:///c:/Users/USER/OneDrive/Documents/Proyecto_Web/Macros%20HostingShop/.agent/principles/encoding_syntax_standard.md) para verificar que no haya caracteres corruptos.
+2. Ejecuta el comando para empujar los cambios locales al entorno de pruebas de la Macro Principal:
 
 ```powershell
 clasp push

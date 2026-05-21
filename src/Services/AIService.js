@@ -947,6 +947,65 @@ ${directiva.exampleBlock}
   },
 
   /**
+   * Diagnóstico autónomo e inteligente de fallos de generación o bloqueos de políticas.
+   * Utiliza Gemini 2.5 Flash de forma rápida y concisa.
+   */
+  generarExplicacionBloqueoIA: function (promptTexto, detallesErrores) {
+    try {
+      console.log("🧠 [Lab-IA] Generando explicación inteligente de bloqueo con IA...");
+      const promptDiagnostico = `
+Eres Antigravity, un perito experto en inteligencia artificial y políticas de generación de imágenes de Google Vertex AI (Imagen 3, Imagen 4, Gemini 3.1/3-Pro).
+El sistema de generación de imágenes publicitarias ha fallado o ha sido bloqueado al intentar renderizar un producto.
+
+Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo y en español, que ayude al usuario (diseñador/operador de ERP) a entender exactamente por qué falló la generación y qué acciones puede tomar para evitarlo.
+
+[INFORMACIÓN DEL RENDERIZADO]
+- Prompt Maestro Enviado:
+"${promptTexto}"
+
+- Mensaje/Detalle del Error Capturado:
+"${detallesErrores}"
+
+[REGLAS DE RESPUESTA]
+1. Explica la causa probable del error en español de manera profesional y amable (sin jerga excesivamente técnica pero con precisión).
+2. Si el error menciona "SAFETY", "NO_IMAGE", "400" o bloqueos similares, analiza si se debe a:
+   - Presencia de marcas comerciales o personajes protegidos por derechos de autor (ej. Dragon Ball, Goku, Marvel, etc.).
+   - Clasificación sensible de la prenda (ropa interior, bóxers) que pueda ser interpretada por los filtros de seguridad/desnudez de Google como contenido no permitido.
+   - Restricciones multimodales por las referencias de entrada.
+3. Da 2 o 3 recomendaciones accionables y concisas para corregir el problema en el prompt o en las configuraciones (ej: "Evitar mencionar nombres específicos de franquicias protegidas", "Reemplazar estampados con patrones genéricos de color", "Ajustar el encuadre a estilo Ghost").
+4. Mantén la respuesta breve (máximo 3-4 párrafos bien estructurados), sin rodeos, sin monólogos ni introducciones robóticas.
+`;
+
+      const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
+      if (!apiKey) return "Error: No se pudo iniciar el análisis de diagnóstico porque no hay una API Key configurada.";
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const response = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify({
+          contents: [{ parts: [{ text: promptDiagnostico }] }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 1024
+          }
+        }),
+        muteHttpExceptions: true,
+        timeoutInSeconds: 20
+      });
+
+      if (response.getResponseCode() === 200) {
+        const json = JSON.parse(response.getContentText());
+        const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) return rawText.trim();
+      }
+      return `No se pudo obtener el diagnóstico del servidor de IA (HTTP ${response.getResponseCode()}).`;
+    } catch (e) {
+      return `Excepción durante el diagnóstico autónomo: ${e.message}`;
+    }
+  },
+
+  /**
    * FASE 3: RENDERIZADO VISUAL DESDE LABORATORIO
    * Hace de puente con el motor de pago en Images.js, manteniendo separadas las responsabilidades de la UI.
    */
@@ -958,10 +1017,17 @@ ${directiva.exampleBlock}
       // Esto reutiliza todo el sistema de Fallbacks, Upload a Drive y Registro de Costos.
       const resultado = generarImagenDesdePrompt(imagenIds, promptTexto, pin, null, null, extraSpecs);
       
+      if (resultado && !resultado.success) {
+        console.warn(`⚠️ [Lab-IA] El renderizado reportó fallo. Ejecutando diagnóstico inteligente...`);
+        const explicacion = this.generarExplicacionBloqueoIA(promptTexto, resultado.error || "Fallo de renderizado general");
+        resultado.explicacionBloqueo = explicacion;
+      }
+      
       return resultado;
     } catch (e) {
       console.error(`❌ [Lab-IA] Error Fase 3 Render: ${e.message}`);
-      return { success: false, error: e.message };
+      const explicacion = this.generarExplicacionBloqueoIA(promptTexto, e.message);
+      return { success: false, error: e.message, explicacionBloqueo: explicacion };
     }
   }
 };

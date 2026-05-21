@@ -19,7 +19,8 @@ Este documento sirve como recordatorio y guía para asegurar que todos los cambi
 
 ### 2. Sincronización con Google Apps Script
 // turbo
-1. Empujar el código al entorno de Apps Script:
+1. Validar que no se hayan introducido caracteres corruptos siguiendo el estándar [encoding_syntax_standard.md](file:///c:/Users/USER/OneDrive/Documents/Proyecto_Web/Macros%20HostingShop/.agent/principles/encoding_syntax_standard.md).
+2. Empujar el código al entorno de Apps Script:
    `clasp push`
 
 > [!TIP]
