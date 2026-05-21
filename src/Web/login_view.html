@@ -78,7 +78,7 @@
                         sessionStorage.setItem('loggedInUser', JSON.stringify(response.user));
                         sessionStorage.setItem('userPassword', password);
 
-                        // Enviar sesión a la shell (usamos window.top para atravesar sandboxes de Google)
+                        // Enviar sesi\u00f3n a la shell (usamos window.top para atravesar sandboxes de Google)
                         if (window !== window.top) {
                             window.top.postMessage({
                                 type: 'SAVE_SESSION',
@@ -94,7 +94,7 @@
                             window.location.href = window.location.origin + window.location.pathname;
                         }
                     } else {
-                        msg.innerText = response.message || 'Error de autenticación';
+                        msg.innerText = response.message || 'Error de autenticaci\u00f3n';
                         msg.className = 'text-center text-sm mt-4 text-red-400';
                         msg.classList.remove('hidden');
                         btn.disabled = false;
@@ -102,7 +102,7 @@
                     }
                 })
                 .withFailureHandler(err => {
-                    msg.innerText = 'Error de conexión: ' + err.message;
+                    msg.innerText = 'Error de conexi\u00f3n: ' + err.message;
                     msg.className = 'text-center text-sm mt-4 text-red-400';
                     msg.classList.remove('hidden');
                     btn.disabled = false;

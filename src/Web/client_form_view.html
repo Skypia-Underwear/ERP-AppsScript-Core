@@ -96,7 +96,7 @@
 </style>
 
 <script>
-    // --- PROTOCOLO DE CONEXIÓN CON APP SHELL ---
+    // --- PROTOCOLO DE CONEXI\u00d3N CON APP SHELL ---
     if (window !== window.top) {
         window.top.postMessage({ type: 'ERP_READY' }, '*');
     }
@@ -142,8 +142,8 @@
 
         // Initial choice modal
         Swal.fire({
-            title: "Gestión de Cliente",
-            text: "¿Qué desea realizar hoy?",
+            title: "Gesti\u00f3n de Cliente",
+            text: "\u00bfQu\u00e9 desea realizar hoy?",
             icon: 'question',
             showConfirmButton: false,
             footer: `
@@ -185,7 +185,7 @@
                 llenarSelectProvincias();
             } catch (error) {
                 console.error("Error cargando Ubigeo:", error);
-                selectProvincia.innerHTML = '<option value="">Error de conexión</option>';
+                selectProvincia.innerHTML = '<option value="">Error de conexi\u00f3n</option>';
             }
         }
     }
@@ -409,12 +409,12 @@
                     }
                 }
 
-                document.getElementById("form-title").textContent = "Actualización de Datos";
+                document.getElementById("form-title").textContent = "Actualizaci\u00f3n de Datos";
                 document.getElementById("CLIENTE_ID").disabled = true;
                 document.getElementById("CORREO_ELECTRONICO").disabled = true;
                 document.getElementById("submit-btn").value = "Actualizar Datos";
             } else {
-                Swal.fire("No encontrado", "Verifique su ID/PIN y correo electrónico.", "error");
+                Swal.fire("No encontrado", "Verifique su ID/PIN y correo electr\u00f3nico.", "error");
             }
         }).obtenerDatosCliente(id, email);
     }
@@ -437,17 +437,17 @@
         const web = STORE_CONFIG.web || "nuestra plataforma";
 
         Swal.fire({
-            title: 'Términos y Condiciones',
+            title: 'T\u00e9rminos y Condiciones',
             html: `
                     <div class="text-left text-xs space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar leading-relaxed">
-                        <p><strong>1. Identificación:</strong> El presente registro es gestionado por <strong>${tienda}</strong> ${cuit}, con sede en ${address}.</p>
-                        <p><strong>2. Propósito del Tratamiento:</strong> Los datos proporcionados serán utilizados exclusivamente para la gestión de su cuenta de cliente, procesamiento de compras, seguimiento de pedidos, emisión de facturas y la generación automatizada de rótulos de envío para logística.</p>
-                        <p><strong>3. Veracidad de Datos:</strong> El usuario asume la responsabilidad de que toda la información ingresada es real. Los datos de contacto y ubicación son críticos para asegurar una logística eficiente.</p>
-                        <p><strong>4. Privacidad y Seguridad:</strong> Su información personal está protegida bajo estándares de seguridad y no será compartida con terceros ajenos a la operativa comercial y logística de sus pedidos.</p>
-                        <p><strong>5. Consentimiento de Comunicación:</strong> Al completar este registro, usted acepta recibir notificaciones transaccionales vía WhatsApp (${whatsapp}), Correo Electrónico y a través de ${web} relativas a sus operaciones en el sistema.</p>
+                        <p><strong>1. Identificaci\u00f3n:</strong> El presente registro es gestionado por <strong>${tienda}</strong> ${cuit}, con sede en ${address}.</p>
+                        <p><strong>2. Prop\u00f3sito del Tratamiento:</strong> Los datos proporcionados ser\u00e1n utilizados exclusivamente para la gesti\u00f3n de su cuenta de cliente, procesamiento de compras, seguimiento de pedidos, emisi\u00f3n de facturas y la generaci\u00f3n automatizada de r\u00f3tulos de env\u00edo para log\u00edstica.</p>
+                        <p><strong>3. Veracidad de Datos:</strong> El usuario asume la responsabilidad de que toda la informaci\u00f3n ingresada es real. Los datos de contacto y ubicaci\u00f3n son cr\u00edticos para asegurar una log\u00edstica eficiente.</p>
+                        <p><strong>4. Privacidad y Seguridad:</strong> Su informaci\u00f3n personal est\u00e1 protegida bajo est\u00e1ndares de seguridad y no ser\u00e1 compartida con terceros ajenos a la operativa comercial y log\u00edstica de sus pedidos.</p>
+                        <p><strong>5. Consentimiento de Comunicaci\u00f3n:</strong> Al completar este registro, usted acepta recibir notificaciones transaccionales v\u00eda WhatsApp (${whatsapp}), Correo Electr\u00f3nico y a trav\u00e9s de ${web} relativas a sus operaciones en el sistema.</p>
                     </div>
                 `,
-            confirmButtonText: 'He leído y comprendo',
+            confirmButtonText: 'He le\u00eddo y comprendo',
             confirmButtonColor: '#6366f1'
         });
     }
@@ -456,13 +456,13 @@
         const getVal = id => document.getElementById(id).value.trim();
         const cp = getVal("CODIGO_POSTAL");
         if (cp && isNaN(cp)) {
-            Swal.fire("Código Postal Inválido", "El código postal debe ser solo números (Requerido por AppSheet).", "warning");
+            Swal.fire("C\u00f3digo Postal Inv\u00e1lido", "El c\u00f3digo postal debe ser solo n\u00fameros (Requerido por AppSheet).", "warning");
             document.getElementById("CODIGO_POSTAL").classList.add("input-alert");
             return false;
         }
 
         if (!document.getElementById("terms_check").checked && !document.getElementById("submit-btn").value.includes("Actualizar")) {
-            Swal.fire("Términos y Condiciones", "Debe aceptar los términos para registrarse.", "warning");
+            Swal.fire("T\u00e9rminos y Condiciones", "Debe aceptar los t\u00e9rminos para registrarse.", "warning");
             return false;
         }
 
@@ -504,7 +504,7 @@
         mostrarLoader("Enviando solicitud...");
         google.script.run.withSuccessHandler(response => {
             if (response) {
-                Swal.fire("¡Éxito!", data.ES_ACTUALIZACION ? "Datos actualizados correctamente." : "Su registro ha sido completado.", "success")
+                Swal.fire("\u00a1\u00c9xito!", data.ES_ACTUALIZACION ? "Datos actualizados correctamente." : "Su registro ha sido completado.", "success")
                     .then(() => location.reload());
             } else {
                 Swal.fire("Error", "No se pudo procesar la solicitud. Intente nuevamente.", "error");

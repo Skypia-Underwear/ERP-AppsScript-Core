@@ -822,7 +822,7 @@
     $('#custom-sku-search').on('keyup', function () {
       const val = this.value.toLowerCase();
       if (tableInstance) {
-        // Al buscar manualmente, limpiamos el filtro por columna de SKU para permitir búsqueda libre
+        // Al buscar manualmente, limpiamos el filtro por columna de SKU para permitir b\u00fasqueda libre
         tableInstance.column(1).search('').search(val).draw();
       }
       buildProductCarousel(currentCategoryFilter, val);
@@ -840,7 +840,7 @@
   });
 
   async function initApp() {
-    log("ðŸ›°ï¸ Sincronizando catálogo global...", "info");
+    log("\u00f0\u0178\u203a\u00b0\u00ef\u00b8\u008f Sincronizando cat\u00e1logo global...", "info");
     document.getElementById('last-sync-label').innerText = "Cargando JSON...";
 
     try {
@@ -860,11 +860,11 @@
         syncLabel.innerText = `Sincronizado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       }
 
-      // Fase 1: Hidratación Rápida (Caché - Fast Path)
-      // Reutiliza la lógica del TPV para mostrar stock casi instantáneamente.
+      // Fase 1: Hidrataci\u00f3n R\u00e1pida (Cach\u00e9 - Fast Path)
+      // Reutiliza la l\u00f3gica del TPV para mostrar stock casi instant\u00e1neamente.
       fastHydrateFromCache();
 
-      // Fase 2: Hidratación Completa (Sheet - Accurate Path)
+      // Fase 2: Hidrataci\u00f3n Completa (Sheet - Accurate Path)
       // Trae entradas, salidas y ventas en vivo.
       hydrateInventoryData();
 
@@ -875,7 +875,7 @@
       setupPolling();
 
     } catch (error) {
-      log("âŒ Error crítico: " + error.message, "error");
+      log("\u00e2\u009d\u0152 Error cr\u00edtico: " + error.message, "error");
       const errLabel = document.getElementById('last-sync-label');
       if (errLabel) errLabel.innerText = "ERROR SYNC";
     }
@@ -886,22 +886,22 @@
     if (_pollingInterval) clearInterval(_pollingInterval);
 
     _pollingInterval = setInterval(() => {
-      // 1. No hacer ping si el usuario está en otra pestaña
+      // 1. No hacer ping si el usuario est\u00e1 en otra pesta\u00f1a
       if (document.visibilityState !== 'visible' || !globalJsonCache || !globalJsonCache.products) return;
 
       const currentSkus = globalJsonCache.products.map(p => p.id);
 
       google.script.run.withSuccessHandler(res => {
         if (res && res.success && res.hasNew && res.products && res.products.length > 0) {
-          log(`ðŸ†• Â¡Detectado ${res.products.length} producto(s) nuevo(s)! Refrescando catálogo...`, 'success');
+          log(`\u00f0\u0178\u2020\u2022 \u00c2\u00a1Detectado ${res.products.length} producto(s) nuevo(s)! Refrescando cat\u00e1logo...`, 'success');
 
-          // En inventario, lo más seguro es reiniciar la app para reconstruir tablas y KPIs
+          // En inventario, lo m\u00e1s seguro es reiniciar la app para reconstruir tablas y KPIs
           initApp();
 
           // Alerta visual discreta (Toast)
           Swal.fire({
-            title: 'Â¡Producto Nuevo!',
-            text: `Se detectó el ingreso de ${res.products[0].sku} al sistema.`,
+            title: '\u00c2\u00a1Producto Nuevo!',
+            text: `Se detect\u00f3 el ingreso de ${res.products[0].sku} al sistema.`,
             icon: 'info',
             toast: true,
             position: 'top-end',
@@ -917,19 +917,19 @@
   }
 
   /**
-   * Fase 1: Hidratación Rápida (Caché - Fast Path)
-   * Obtiene el stock desde el CacheService (reutilizando la lógica del TPV)
-   * para dar una respuesta inmediata mientras se procesa la hidratación completa.
+   * Fase 1: Hidrataci\u00f3n R\u00e1pida (Cach\u00e9 - Fast Path)
+   * Obtiene el stock desde el CacheService (reutilizando la l\u00f3gica del TPV)
+   * para dar una respuesta inmediata mientras se procesa la hidrataci\u00f3n completa.
    */
   function fastHydrateFromCache() {
-    console.log("[Inventory] Iniciando Hidratación Rápida (Caché)...");
+    console.log("[Inventory] Iniciando Hidrataci\u00f3n R\u00e1pida (Cach\u00e9)...");
     const userStr = sessionStorage.getItem('loggedInUser');
     if (!userStr) return;
     const user = JSON.parse(userStr);
     const storeId = user.managedStore;
 
     if (!storeId) {
-      console.warn("[Inventory] No se detectó tienda administrada para fast-hydration.");
+      console.warn("[Inventory] No se detect\u00f3 tienda administrada para fast-hydration.");
       return;
     }
 
@@ -943,7 +943,7 @@
     google.script.run
       .withSuccessHandler(response => {
         if (response && response.success && response.stockMap) {
-          console.log("[Inventory] Stock caché recibido.");
+          console.log("[Inventory] Stock cach\u00e9 recibido.");
           window.fullStockCache = response.stockMap;
           applyFastStocks(response.stockMap);
         }
@@ -968,8 +968,8 @@
   }
 
   /**
-   * Obtiene datos en tiempo real del servidor para enriquecer el catálogo estático.
-   * Esto evita latencias de red al cargar el catálogo pesado y permite ver movimientos vivos.
+   * Obtiene datos en tiempo real del servidor para enriquecer el cat\u00e1logo est\u00e1tico.
+   * Esto evita latencias de red al cargar el cat\u00e1logo pesado y permite ver movimientos vivos.
    */
   async function hydrateInventoryData() {
     log("[Inventory] Hidratando datos de inventario en tiempo real...", "info");
@@ -981,7 +981,7 @@
     google.script.run
       .withSuccessHandler(function (response) {
         if (response.success && response.map) {
-          log("Inventario hidratado con éxito.", "success");
+          log("Inventario hidratado con \u00e9xito.", "success");
 
           // Actualizar catalogData global con datos frescos
           catalogData.forEach(item => {
@@ -995,7 +995,7 @@
             }
           });
 
-          // Refrescar el Grid de DataTables sin resetear paginación
+          // Refrescar el Grid de DataTables sin resetear paginaci\u00f3n
           if (tableInstance) {
             tableInstance.clear().rows.add(catalogData).draw(false);
           }
@@ -1003,15 +1003,15 @@
           updateKPIs(catalogData);
           label.innerText = `Refrescado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
         } else {
-          log("Error en hidratación: " + (response.message || "Respuesta inválida"), "error");
+          log("Error en hidrataci\u00f3n: " + (response.message || "Respuesta inv\u00e1lida"), "error");
           label.innerText = oldLabel;
         }
       })
       .withFailureHandler(function (err) {
-        log("Error fatal en hidratación: " + err.message, "error");
+        log("Error fatal en hidrataci\u00f3n: " + err.message, "error");
         label.innerText = oldLabel;
       })
-      .procesarAccionInventario('getHydration'); // Acción registrada en Main.js
+      .procesarAccionInventario('getHydration'); // Acci\u00f3n registrada en Main.js
   }
 
   function flattenCatalog(products) {
@@ -1059,14 +1059,14 @@
     const container = document.getElementById('category-carousel');
     if (!container || !cats) return;
 
-    // 1. Identificar categorías que REALMENTE tienen productos en la tabla (case-insensitive)
+    // 1. Identificar categor\u00edas que REALMENTE tienen productos en la tabla (case-insensitive)
     const usedCatSet = new Set(catalogData.map(p => (p.category || "").toLowerCase().trim()));
 
-    // 2. Botón "Todas" (Siempre presente)
+    // 2. Bot\u00f3n "Todas" (Siempre presente)
     let html = `<div onclick="filterCategory('', this)" data-category="" class="category-card active snap-start flex-shrink-0 flex flex-col items-center justify-center w-[70px] h-[70px] rounded-xl border border-accent bg-slate-800 cursor-pointer overflow-hidden p-1 shadow-sm">
             <i class="ph-bold ph-squares-four text-xl text-slate-400 mb-1"></i><span class="text-[8px] font-bold text-white uppercase truncate w-full text-center">Todas</span></div>`;
 
-    // 3. Iterar sobre las categorías del JSON (Fuente de Verdad de SVGs y Nombres)
+    // 3. Iterar sobre las categor\u00edas del JSON (Fuente de Verdad de SVGs y Nombres)
     cats.forEach(c => {
       const catIdLower = (c.id || "").toLowerCase().trim();
       const catNameLower = (c.name || "").toLowerCase().trim();
@@ -1091,7 +1091,7 @@
     if (el) { $(el).addClass('active border-accent').removeClass('border-slate-700').find('span').addClass('text-white'); }
 
     if (tableInstance) {
-      // Al filtrar por categoría, limpiamos cualquier selección previa de producto (Deep Dive)
+      // Al filtrar por categor\u00eda, limpiamos cualquier selecci\u00f3n previa de producto (Deep Dive)
       tableInstance.column(1).search('');
       $('.product-card').removeClass('active border-accent');
       currentSelectedSKU = null;
@@ -1126,15 +1126,15 @@
     if (el) $(el).addClass('active border-accent');
 
     if (tableInstance) {
-      // 1. Limpiamos la búsqueda global
+      // 1. Limpiamos la b\u00fasqueda global
       $('#custom-sku-search').val('');
       tableInstance.search('');
 
-      // 2. Reseteamos el visual de categorías a "Todas" para evitar conflictos
+      // 2. Reseteamos el visual de categor\u00edas a "Todas" para evitar conflictos
       $('.category-card').removeClass('active border-accent').addClass('border-slate-700').find('span').removeClass('text-white').addClass('text-slate-400');
       $('.category-card[data-category=""]').addClass('active border-accent').removeClass('border-slate-700').find('span').addClass('text-white');
 
-      // 3. Limpiamos el filtro por columna de categoría
+      // 3. Limpiamos el filtro por columna de categor\u00eda
       tableInstance.column(0).search('');
 
       // 4. Aplicamos el filtro por SKU
@@ -1242,7 +1242,7 @@
 
     originalMatrixData = {};
     let html = `<div class="rounded-xl border border-slate-700 overflow-hidden bg-slate-900 shadow-inner"><table class="w-full text-[11px]">
-            <thead class="bg-black/20"><tr><th class="p-3 border-r border-slate-700 text-slate-500 uppercase font-bold text-[9px]">Variación</th>`;
+            <thead class="bg-black/20"><tr><th class="p-3 border-r border-slate-700 text-slate-500 uppercase font-bold text-[9px]">Variaci\u00f3n</th>`;
     talles.forEach(t => { html += `<th class="p-3 text-center text-slate-400 font-bold uppercase">${t}</th>`; });
     html += `</tr></thead><tbody class="divide-y divide-slate-800">`;
 
@@ -1323,7 +1323,7 @@
         preConfirm: () => {
           const target = document.getElementById('swal-transfer-target').value;
           if (!target) {
-            Swal.showValidationMessage('Debes seleccionar un origen/destino válido');
+            Swal.showValidationMessage('Debes seleccionar un origen/destino v\u00e1lido');
           }
           return target;
         }
@@ -1333,7 +1333,7 @@
         }
       });
     } else {
-      // Modo rápido (Directo, sin preguntar)
+      // Modo r\u00e1pido (Directo, sin preguntar)
       executeSaveMatrix(payload, store, { isTransfer: false });
     }
   }
@@ -1357,7 +1357,7 @@
         }
       })
       .withFailureHandler(err => {
-        log("âŒ Error fatal: " + err.message, "error");
+        log("\u00e2\u009d\u0152 Error fatal: " + err.message, "error");
         $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar Cambios').attr('disabled', false);
       })
       .procesarAccionInventario('guardarMatrizStock', JSON.stringify({
@@ -1370,8 +1370,8 @@
 
   /* --- MANTENIMIENTO --- */
   function runGlobalAudit() {
-    Swal.fire({ title: '¿Auditoría Global?', text: 'Esto reestaura todo el catálogo basándose en los productos maestros. Proceso Pesado.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', background: 'var(--bg-secondary)', color: '#fff' })
-      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("Iniciando auditoría global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
+    Swal.fire({ title: '\u00bfAuditor\u00eda Global?', text: 'Esto reestaura todo el cat\u00e1logo bas\u00e1ndose en los productos maestros. Proceso Pesado.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', background: 'var(--bg-secondary)', color: '#fff' })
+      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("Iniciando auditor\u00eda global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
   }
 
   function runProductAudit() {
@@ -1386,7 +1386,7 @@
         if (res.logs) res.logs.forEach(l => log(l));
         log(res.message, res.success ? "success" : "error");
       })
-      .withFailureHandler(err => log("âŒ Error RPC: " + err.message, "error"))
+      .withFailureHandler(err => log("\u00e2\u009d\u0152 Error RPC: " + err.message, "error"))
       .procesarAccionInventario(accion, codigo, fecha);
   }
 
@@ -1395,7 +1395,7 @@
     $('#bartender-modal').removeClass('hidden').addClass('flex');
     $('#bartender-setup-container').removeClass('hidden');
     $('#bartender-table-container, #bartender-footer').addClass('hidden');
-    $('#bartender-modal-subtitle').text('Paso 1: Configura los parámetros de extracción.');
+    $('#bartender-modal-subtitle').text('Paso 1: Configura los par\u00e1metros de extracci\u00f3n.');
 
     if (currentSelectedSKU) { $('#bt-selected-sku-label').text(currentSelectedSKU); $('#bt_source_selected').attr('disabled', false).prop('checked', true); }
     else { $('#bt-selected-sku-label').text('Ninguno'); $('#bt_source_selected').attr('disabled', true); $('#bt_source_filtered').prop('checked', true); }
@@ -1453,7 +1453,7 @@
     }
 
     // Casos manuales (Selected, Filtered, All)
-    log(`Extrayendo datos según modo: ${source}`, "info");
+    log(`Extrayendo datos seg\u00fan modo: ${source}`, "info");
     let dataToRender = [];
     if (source === 'selected') dataToRender = catalogData.filter(i => i.sku === currentSelectedSKU);
     else if (source === 'filtered') dataToRender = tableInstance.rows({ search: 'applied' }).data().toArray();
@@ -1492,7 +1492,7 @@
   }
 
   function finalizeBartenderProcess() {
-    log("Finalizando exportación a Bartender...", "info");
+    log("Finalizando exportaci\u00f3n a Bartender...", "info");
     openLogsPanel();
     closeModal();
     google.script.run

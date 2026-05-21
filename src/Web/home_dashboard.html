@@ -203,7 +203,7 @@
             const user = JSON.parse(userRaw);
             document.getElementById('home-user-name').innerText = user.name || "Usuario";
 
-            // Mostrar Empaquetador SaaS solo a Administradores (insensible a mayúsculas y flexible con la propiedad)
+            // Mostrar Empaquetador SaaS solo a Administradores (insensible a may\u00fasculas y flexible con la propiedad)
             const userRole = String(user.role || user.rol || user.rolTienda || user.ROL_TIENDA || '').toUpperCase();
             if (userRole === 'ADMIN' || userRole === 'ADMINISTRADOR' || user.email === 'administrador') {
                 const saasSection = document.getElementById('saas-admin-section');
@@ -211,11 +211,11 @@
             }
         }
 
-        // Carga de Telemetría desde servidor
-        setGlobalStatus(true, "Obteniendo telemetría...");
+        // Carga de Telemetr\u00eda desde servidor
+        setGlobalStatus(true, "Obteniendo telemetr\u00eda...");
 
         // --- PRECARGA DEL CATALOGO (V5.3) ---
-        // Al ejecutarlo aquí, aprovechamos la latencia de la telemetría para ir bajando los datos pesados.
+        // Al ejecutarlo aqu\u00ed, aprovechamos la latencia de la telemetr\u00eda para ir bajando los datos pesados.
         if (typeof window.getGlobalCatalog === 'function') {
             console.log("[Home] Solicitando pre-carga de catalogo...");
             window.getGlobalCatalog();
@@ -242,7 +242,7 @@
 
                 if (data.ventas) {
                     if (elTotal) elTotal.innerText = '$' + data.ventas.total.toLocaleString("es-AR");
-                    if (elCantidad) elCantidad.innerText = data.ventas.cantidad + (data.ventas.cantidad === 1 ? ' operación' : ' operaciones');
+                    if (elCantidad) elCantidad.innerText = data.ventas.cantidad + (data.ventas.cantidad === 1 ? ' operaci\u00f3n' : ' operaciones');
                 }
                 if (data.stock) {
                     if (elStock) elStock.innerText = data.stock.bajo;
@@ -251,13 +251,13 @@
             })
             .withFailureHandler(err => {
                 setGlobalStatus(false);
-                console.error("Fallo al cargar telemetría:", err);
+                console.error("Fallo al cargar telemetr\u00eda:", err);
             })
             .getHomeDashboardData();
     })();
 
     function limpiarCacheGlobal() {
-        setGlobalStatus(true, "Limpiando caché del sistema...");
+        setGlobalStatus(true, "Limpiando cach\u00e9 del sistema...");
         google.script.run
             .withSuccessHandler(res => {
                 setGlobalStatus(false);
@@ -288,7 +288,7 @@
             text: "Esto regenerara el archivo JSON en Drive y actualizara el TPV con los datos mas recientes.",
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Sí, sincronizar',
+            confirmButtonText: 'S\u00ed, sincronizar',
             cancelButtonText: 'Cancelar',
             background: '#1e293b',
             color: '#fff',
@@ -296,7 +296,7 @@
             cancelButtonColor: '#334155'
         }).then((result) => {
             if (result.isConfirmed) {
-                setGlobalStatus(true, "Generando catálogo aumentado...");
+                setGlobalStatus(true, "Generando cat\u00e1logo aumentado...");
                 google.script.run
                     .withSuccessHandler(res => {
                         setGlobalStatus(false);
@@ -337,7 +337,7 @@
     function ejecutarEmpaquetadorSaaS() {
         Swal.fire({
             title: 'Generar Instalador PWA?',
-            text: "Se extraerán los datos y se creara un archivo .zip en Drive listo para descargar.",
+            text: "Se extraer\u00e1n los datos y se creara un archivo .zip en Drive listo para descargar.",
             icon: 'info',
             showCancelButton: true,
             confirmButtonText: 'Generar .zip',
@@ -413,7 +413,7 @@
                         });
                     } else {
                         Swal.fire({
-                            title: 'Error de Importación',
+                            title: 'Error de Importaci\u00f3n',
                             text: res.error,
                             icon: 'error',
                             background: '#1e293b', color: '#fff'
@@ -422,7 +422,7 @@
                 })
                 .withFailureHandler(err => {
                     setGlobalStatus(false);
-                    Swal.fire({ title: 'Error Crítico', text: err.message, icon: 'error', background: '#1e293b', color: '#fff' });
+                    Swal.fire({ title: 'Error Cr\u00edtico', text: err.message, icon: 'error', background: '#1e293b', color: '#fff' });
                 })
                 .importarTarifarioGCP(content);
         };

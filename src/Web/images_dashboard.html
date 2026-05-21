@@ -1245,7 +1245,7 @@
             </div>
 
             <script>
-                // Pequeño hack para compatibilidad con el ID productList existente
+                // Peque\u00f1o hack para compatibilidad con el ID productList existente
                 if (window.innerWidth > 1024) {
                     document.getElementById('productList').id = 'productListMobile';
                     document.getElementById('productListDesktop').id = 'productList';
@@ -1601,7 +1601,7 @@
     var showPremium = false; // --- CORRECCION: Definir variable al inicio ---
     var refinePanel = null; // --- CORRECCION: Definir variable al inicio ---
     var anglePanel = null; // --- CORRECCION: Definir variable al inicio ---
-    var CURRENT_IMAGES = []; // --- NUEVO: Almacena las imágenes cargadas ---
+    var CURRENT_IMAGES = []; // --- NUEVO: Almacena las im\u00e1genes cargadas ---
     var currentImageIndex = -1; // --- NUEVO: ndice actual en el modal ---
     var currentImageId = null;
     var currentImgObj = null;
@@ -1612,20 +1612,20 @@
     var isReorderMode = false;
     var hasUnsavedChanges = false;
     var gridSnapshot = null; // Para revertir orden
-    var currentCategoryFilter = ""; // --- NUEVO: Filtro por categoría ---
-    var CATEGORY_LIST = []; // --- NUEVO: Lista de categorías ---
-    var CATEGORY_SVGS = {}; // --- NUEVO: SVGs del catálogo ---
+    var currentCategoryFilter = ""; // --- NUEVO: Filtro por categor\u00eda ---
+    var CATEGORY_LIST = []; // --- NUEVO: Lista de categor\u00edas ---
+    var CATEGORY_SVGS = {}; // --- NUEVO: SVGs del cat\u00e1logo ---
 
-    // Catálogo para búsqueda rápida
+    // Cat\u00e1logo para b\u00fasqueda r\u00e1pida
     var PRODUCT_CATALOG = [];
     var CATALOG_LOADING = false;
     var autoOpenId = null; // --- NUEVO: Corregir ReferenceError ---
     var isConsoleExpanded = false; // --- NUEVO: Corregir ReferenceError ---
     var currentTabState = true; // true = Activas tab, false = Ocultas tab
-    var pendingBatchForensicFileIds = []; // --- NUEVO: Rastreo de archivos para auditoría post-sync ---
+    var pendingBatchForensicFileIds = []; // --- NUEVO: Rastreo de archivos para auditor\u00eda post-sync ---
     var _reloadTimeout = null; // --- NUEVO: Debounce de recarga ---
     var _reloadSkipLog = false; // --- NUEVO: Silenciar logs de recarga ---
-    var isSelectMode = false; // MODO SELECCIÓN ACTIVA
+    var isSelectMode = false; // MODO SELECCI\u00d3N ACTIVA
 
 
 
@@ -1732,7 +1732,7 @@
 
     // --- INIT REFACTORIZADO PARA SYSTEM CONTAINER ---
     function initImagesDashboard() {
-        log("Módulo Imágenes (Dark Native) v10.0 Listo.", 'info');
+        log("M\u00f3dulo Im\u00e1genes (Dark Native) v10.0 Listo.", 'info');
         cargarCatalogoLocal(); // Cargar JSON en segundo plano
         debounceSearch('');
         setupUpload();
@@ -1748,7 +1748,7 @@
     async function cargarCatalogoLocal() {
         if (CATALOG_LOADING) return;
         CATALOG_LOADING = true;
-        log("Cargando catálogo dinámico...", "info");
+        log("Cargando cat\u00e1logo din\u00e1mico...", "info");
 
         try {
             const data = await window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
@@ -1764,12 +1764,12 @@
                     woo_id: p.woo_id || ""
                 }));
 
-                // --- NUEVO: Extraer Categorías y SVGs ---
+                // --- NUEVO: Extraer Categor\u00edas y SVGs ---
                 CATEGORY_LIST = data.categories || [];
                 CATEGORY_SVGS = data.categorySvgs || {};
                 renderizarCategorias();
 
-                log(`Catálogo global cargado: ${PRODUCT_CATALOG.length} productos.`, "success");
+                log(`Cat\u00e1logo global cargado: ${PRODUCT_CATALOG.length} productos.`, "success");
                 const val = document.getElementById('searchInput').value;
                 if (val) debounceSearch(val);
 
@@ -1778,8 +1778,8 @@
             }
             CATALOG_LOADING = false;
         } catch (e) {
-            log("Error crítico: No se pudo cargar el catálogo.", "error");
-            console.error("Error cargando catálogo:", e);
+            log("Error cr\u00edtico: No se pudo cargar el cat\u00e1logo.", "error");
+            console.error("Error cargando cat\u00e1logo:", e);
             CATALOG_LOADING = false;
         }
     }
@@ -1800,8 +1800,8 @@
             const now = Date.now();
             const timeSinceLastActivity = now - _lastUserActivity;
 
-            // 1. No hacer ping si el usuario está en otra pestaña
-            // 2. No hacer ping si estuvo inactivo más de 5 minutos (300,000 ms)
+            // 1. No hacer ping si el usuario est\u00e1 en otra pesta\u00f1a
+            // 2. No hacer ping si estuvo inactivo m\u00e1s de 5 minutos (300,000 ms)
             // 3. No interrumpir carga inicial
             if (CATALOG_LOADING || document.visibilityState !== 'visible' || timeSinceLastActivity > 300000) {
                 return;
@@ -1814,7 +1814,7 @@
 
                     log(`[NUEVO] Detectados ${res.products.length} productos nuevos en tiempo real!`, 'success');
 
-                    // Notificación Visual Superior (Swal)
+                    // Notificaci\u00f3n Visual Superior (Swal)
                     const Toast = Swal.mixin({
                         toast: true,
                         position: 'top-end',
@@ -1831,7 +1831,7 @@
                     Toast.fire({
                         icon: 'success',
                         title: res.products.length === 1 ? 'Nuevo producto detectado!' : 'Nuevos productos detectados!',
-                        text: res.products.length === 1 ? `Se ha añadido ${res.products[0].sku} al catálogo.` : `Se han añadido ${res.products.length} productos nuevos.`,
+                        text: res.products.length === 1 ? `Se ha a\u00f1adido ${res.products[0].sku} al cat\u00e1logo.` : `Se han a\u00f1adido ${res.products.length} productos nuevos.`,
                         background: '#1e293b',
                         color: '#fff'
                     }).then((result) => {
@@ -1839,7 +1839,7 @@
                             if (res.products.length === 1) {
                                 seleccionarProducto(res.products[0]);
                             } else {
-                                // Limpiar búsqueda para ver los nuevos arriba
+                                // Limpiar b\u00fasqueda para ver los nuevos arriba
                                 document.getElementById('searchInput').value = '';
                                 debounceSearch("");
                             }
@@ -1852,12 +1852,12 @@
                     // Asegurar que category_ids coincidan para que renderizarCategorias() funcione
                     res.products.forEach(p => {
                         if (p.category && !CATEGORY_LIST.some(c => c.id === p.category)) {
-                            // Agregar categoría provisional si no existe en el JSON aún
+                            // Agregar categor\u00eda provisional si no existe en el JSON a\u00fan
                             CATEGORY_LIST.push({ id: p.category, name: p.category, svg: "" });
                         }
                     });
 
-                    // Merge al principio del catálogo (Evitar duplicados si el ping se solapa)
+                    // Merge al principio del cat\u00e1logo (Evitar duplicados si el ping se solapa)
                     const filteredNew = res.products.filter(pNew => !PRODUCT_CATALOG.some(pOld => pOld.sku === pNew.sku));
                     if (filteredNew.length > 0) {
                         PRODUCT_CATALOG = [...filteredNew, ...PRODUCT_CATALOG];
@@ -1866,10 +1866,10 @@
                         renderizarCategorias();
                         const val = document.getElementById('searchInput').value;
                         if (!val) {
-                            // Si no hay búsqueda, mostramos todo para que se vean los nuevos arriba
+                            // Si no hay b\u00fasqueda, mostramos todo para que se vean los nuevos arriba
                             debounceSearch("");
                         } else {
-                            // Si hay búsqueda, mantenemos el filtro pero el log ya avisó
+                            // Si hay b\u00fasqueda, mantenemos el filtro pero el log ya avis\u00f3
                             debounceSearch(val);
                         }
                     }
@@ -1903,9 +1903,9 @@
 
     /**
      * Comprime una imagen usando Canvas HTML5.
-     * Redimensiona a maxPx en su lado más largo y convierte a JPEG quality%.
+     * Redimensiona a maxPx en su lado m\u00e1s largo y convierte a JPEG quality%.
      * @param {File} file Archivo de imagen del input.
-     * @param {number} maxPx Máximo de píxeles en lado largo (default: 1536).
+     * @param {number} maxPx M\u00e1ximo de p\u00edxeles en lado largo (default: 1536).
      * @param {number} quality Calidad JPEG 0-1 (default: 0.9).
      * @returns {Promise<{base64: string, mimeType: string, name: string}>}
      */
@@ -1964,7 +1964,7 @@
 
                 const compressedSize = Math.round(dataUrl.length * 3 / 4 / 1024);
                 const originalSize = Math.round(file.size / 1024);
-                log(`⚡ ${file.name}: ${originalMax}px → ${Math.max(width, height)}px | ${originalSize}KB → ${compressedSize}KB (${extension.toUpperCase()} ${Math.round(quality * 100)}%)`, 'info');
+                log(`\u26a1 ${file.name}: ${originalMax}px \u2192 ${Math.max(width, height)}px | ${originalSize}KB \u2192 ${compressedSize}KB (${extension.toUpperCase()} ${Math.round(quality * 100)}%)`, 'info');
 
                 resolve({
                     base64: dataUrl.split(',')[1],
@@ -1994,8 +1994,8 @@
 
         const total = files.length;
         const isBatch = total > 1;
-        log(`🚀 Iniciando subida de ${total} archivos para ${currentProduct.sku}...`, 'info');
-        if (isBatch) log("â„¹ï¸ Modo Lote: La sincronización se ejecutará al final.", 'info');
+        log(`\ud83d\ude80 Iniciando subida de ${total} archivos para ${currentProduct.sku}...`, 'info');
+        if (isBatch) log("\u00e2\u201e\u00b9\u00ef\u00b8\u008f Modo Lote: La sincronizaci\u00f3n se ejecutar\u00e1 al final.", 'info');
 
         if (!isConsoleExpanded) toggleConsole();
 
@@ -2014,12 +2014,12 @@
                     if (res.success) {
                         log(`[OK] ${compressed.name}: Subida OK.`, 'success');
 
-                        // AUTO-FORENSE: Si es imagen y tenemos el ID, disparar auditoría en 2do plano
+                        // AUTO-FORENSE: Si es imagen y tenemos el ID, disparar auditor\u00eda en 2do plano
                         if (compressed.mimeType.includes('image')) {
                             if (res.imagenId) {
                                 lanzarAuditoriaIA(false, true, res.imagenId);
                             } else if (res.fileId) {
-                                // MODO BATCH: No hay ID de base de datos aún, registrar para post-sync
+                                // MODO BATCH: No hay ID de base de datos a\u00fan, registrar para post-sync
                                 pendingBatchForensicFileIds.push(res.fileId);
                             }
                         }
@@ -2061,15 +2061,15 @@
     function abrirSelectorArchivos() {
         if (!currentProduct) return alert("Selecciona un producto primero.");
 
-        // En móvil, preguntamos si cámara o galería
+        // En m\u00f3vil, preguntamos si c\u00e1mara o galer\u00eda
         if (window.innerWidth <= 768) {
             Swal.fire({
                 title: 'Subir Imagen',
-                text: 'Â¿Desde dónde quieres cargar?',
+                text: '\u00c2\u00bfDesde d\u00f3nde quieres cargar?',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: '📷 Cámara',
-                cancelButtonText: 'ðŸ–¼ï¸ Galería',
+                confirmButtonText: '\ud83d\udcf7 C\u00e1mara',
+                cancelButtonText: '\u00f0\u0178\u2013\u00bc\u00ef\u00b8\u008f Galer\u00eda',
                 confirmButtonColor: '#4f46e5',
                 cancelButtonColor: '#334155',
                 reverseButtons: true
@@ -2092,7 +2092,7 @@
             const query = val.toLowerCase();
             const cat = currentCategoryFilter.toLowerCase();
 
-            // Si tenemos catálogo local, buscar localmente
+            // Si tenemos cat\u00e1logo local, buscar localmente
             if (PRODUCT_CATALOG.length > 0) {
                 const hits = PRODUCT_CATALOG.filter(p => {
                     const matchesText = p.sku.toLowerCase().includes(query) || p.nombre.toLowerCase().includes(query);
@@ -2101,7 +2101,7 @@
                 }).slice(0, 50);
                 mostrarResultados(hits);
             } else {
-                // Fallback a servidor (aquí el servidor no soporta filtro de categoría aún, pero es fallback)
+                // Fallback a servidor (aqu\u00ed el servidor no soporta filtro de categor\u00eda a\u00fan, pero es fallback)
                 google.script.run.withSuccessHandler(mostrarResultados).buscarProductosParaSidebar(val);
             }
         }, 300);
@@ -2113,13 +2113,13 @@
         if (!container) return;
         container.innerHTML = '';
 
-        // 1. Identificar categorías en uso (solo productos con identificación básica)
+        // 1. Identificar categor\u00edas en uso (solo productos con identificaci\u00f3n b\u00e1sica)
         const usedCats = new Set(PRODUCT_CATALOG
             .filter(p => (p.sku && p.sku.trim() !== "") || (p.nombre && p.nombre !== "Sin Nombre"))
             .map(p => (p.category || "").toLowerCase().trim())
         );
 
-        // 2. Botón "Todas"
+        // 2. Bot\u00f3n "Todas"
         const allBtn = document.createElement('div');
         allBtn.className = `category-chip ${currentCategoryFilter === "" ? 'active' : ''}`;
         allBtn.onclick = () => filtrarPorCategoria("");
@@ -2154,7 +2154,7 @@
     }
 
     function scrollProducts(px) {
-        // En móvil/tablet el ID puede cambiar por el hack de desktop
+        // En m\u00f3vil/tablet el ID puede cambiar por el hack de desktop
         const container = document.getElementById('productList') || document.getElementById('productListMobile');
         if (container) container.scrollBy({ left: px, behavior: 'smooth' });
     }
@@ -2163,7 +2163,7 @@
         const prompt = document.getElementById('aiPromptText').value;
         if (!prompt) return;
 
-        // Procesar el prompt para añadir colores por secciones
+        // Procesar el prompt para a\u00f1adir colores por secciones
         let styledHtml = prompt
             .replace(/\*\*(RAZONAMIENTO:?)\*\*/gi, '<b class="text-sky-400 border-b border-sky-400/30 pb-1 mb-2 block uppercase tracking-wider">$1</b>')
             .replace(/\*\*(AUDITORIA VISUAL:?)\*\*/gi, '<b class="text-amber-400 border-b border-amber-400/30 pb-1 mb-2 mt-6 block uppercase tracking-wider">$1</b>')
@@ -2171,7 +2171,7 @@
             .replace(/##\s+DIRECTIVA DE ARTE/gi, '<h2 class="text-indigo-300 text-center font-bold mb-6 underline decoration-indigo-500/50">DIRECTIVA DE ARTE</h2>');
 
         Swal.fire({
-            title: 'Análisis Estratégico de Imagen',
+            title: 'An\u00e1lisis Estrat\u00e9gico de Imagen',
             html: `
                 <div class="text-left bg-slate-900/80 p-6 rounded-xl border border-slate-700 max-h-[70vh] overflow-y-auto custom-scrollbar font-sans leading-relaxed text-slate-300 text-sm shadow-inner">
                     ${styledHtml}
@@ -2194,11 +2194,11 @@
         });
     }
 
-    // Función auxiliar para el modal
+    // Funci\u00f3n auxiliar para el modal
     window.copiarPromptDesdeModal = function () {
         const prompt = document.getElementById('aiPromptText').value;
         navigator.clipboard.writeText(prompt).then(() => {
-            Swal.showValidationMessage('Â¡Copiado al portapapeles!');
+            Swal.showValidationMessage('\u00c2\u00a1Copiado al portapapeles!');
             setTimeout(() => Swal.resetValidationMessage(), 2000);
         });
     }
@@ -2211,7 +2211,7 @@
 
     // --- NUEVO: Forzar Recarga Real ---
     function forzarRecargaCatalogo() {
-        log("Fuerzo regeneración de catálogo en servidor...", "warning");
+        log("Fuerzo regeneraci\u00f3n de cat\u00e1logo en servidor...", "warning");
         const btn = document.querySelector('button[title="Recargar"]');
         if (btn) {
             btn.disabled = true;
@@ -2220,7 +2220,7 @@
         }
 
         google.script.run.withSuccessHandler(() => {
-            log("Servidor regeneró JSON. Recargando local...", "success");
+            log("Servidor regener\u00f3 JSON. Recargando local...", "success");
             CATALOG_LOADING = false;
             cargarCatalogoLocal();
             if (btn) {
@@ -2263,11 +2263,11 @@
     }
 
     async function seleccionarProducto(p, el) {
-        console.log("ðŸ” Seleccionando producto:", p); // Debug
+        console.log("\u00f0\u0178\u201d\u008d Seleccionando producto:", p); // Debug
         if (hasUnsavedChanges) {
             const result = await Swal.fire({
                 title: 'Cambios sin guardar',
-                text: 'Has cambiado el orden de las imágenes. Â¿Quieres guardar los cambios antes de cambiar de producto?',
+                text: 'Has cambiado el orden de las im\u00e1genes. \u00c2\u00bfQuieres guardar los cambios antes de cambiar de producto?',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Guardar y Cambiar',
@@ -2292,7 +2292,7 @@
 
         currentProduct = { sku: p.sku, carpeta_id: p.carpeta_id, woo_id: p.woo_id };
 
-        // Mostrar FABs móviles cuando hay producto seleccionado
+        // Mostrar FABs m\u00f3viles cuando hay producto seleccionado
         const fabs = document.getElementById('mobileFabs');
         if (fabs) fabs.classList.remove('hidden');
 
@@ -2306,18 +2306,18 @@
         document.getElementById('currentProductTitle').innerText = p.nombre;
         document.getElementById('currentProductSku').innerText = p.sku;
 
-        // Actualizar UI inicial con los datos del catálogo
+        // Actualizar UI inicial con los datos del cat\u00e1logo
         actualizarUiTienda(p);
 
         // --- NUEVO: Refrescar metadata (WOO_ID) desde el servidor en segundo plano ---
         google.script.run.withSuccessHandler(res => {
             if (res.success) {
-                // Si el ID cambió, actualizar el producto actual y el catálogo local
+                // Si el ID cambi\u00f3, actualizar el producto actual y el cat\u00e1logo local
                 if (res.woo_id !== p.woo_id) {
                     console.log(`WOO_ID actualizado para ${p.sku}: ${p.woo_id} -> ${res.woo_id}`);
                     currentProduct.woo_id = res.woo_id;
 
-                    // Actualizar en el catálogo local para evitar futuras consultas
+                    // Actualizar en el cat\u00e1logo local para evitar futuras consultas
                     const catIndex = PRODUCT_CATALOG.findIndex(item => item.sku === p.sku);
                     if (catIndex !== -1) PRODUCT_CATALOG[catIndex].woo_id = res.woo_id;
 
@@ -2328,7 +2328,7 @@
         }).obtenerMetadataProductoActualizada(p.sku);
         document.getElementById('btnHeaderUpload').classList.remove('hidden');
 
-        // --- MOSTRAR BOTÃ“N DRIVE ---
+        // --- MOSTRAR BOT\u00c3\u201cN DRIVE ---
         const btnOpenDrive = document.getElementById('btnOpenDrive');
         const iconBoxDefault = document.getElementById('iconBoxDefault');
         if (btnOpenDrive && iconBoxDefault) {
@@ -2385,7 +2385,7 @@
         if (hasWooId) {
             btnSyncWC.disabled = false;
             btnSyncWC.classList.remove('opacity-50', 'cursor-not-allowed');
-            btnSyncWC.title = "Sincronizar imágenes con WooCommerce";
+            btnSyncWC.title = "Sincronizar im\u00e1genes con WooCommerce";
             if (btnWooStore) {
                 btnWooStore.href = `https://castfer.com.ar/?p=${wooId}`;
                 btnWooStore.classList.remove('hidden');
@@ -2413,7 +2413,7 @@
         gridActive.innerHTML = '<div class="p-4 text-center text-xs text-slate-500 w-full">Cargando...</div>';
         gridHidden.innerHTML = '<div class="p-4 text-center text-xs text-slate-500 w-full">...</div>';
 
-        log(`Solicitando imágenes para [SKU: ${sku}]...`, 'info');
+        log(`Solicitando im\u00e1genes para [SKU: ${sku}]...`, 'info');
 
         google.script.run.withSuccessHandler(renderizarGaleria).withFailureHandler(err => { log(err.message, 'error'); gridActive.innerHTML = '<div class="text-red-400 text-xs p-4">Error de red</div>'; }).obtenerImagenesDeProducto(sku, carpetaId);
     }
@@ -2436,13 +2436,13 @@
         let imgs = [];
         try { if (typeof response === 'string') { imgs = JSON.parse(response); } else { imgs = response; } } catch (e) { log("Error procesando respuesta", "error"); return; }
 
-        CURRENT_IMAGES = imgs; // --- NUEVO: Cachear para navegación ---
+        CURRENT_IMAGES = imgs; // --- NUEVO: Cachear para navegaci\u00f3n ---
         const ga = document.getElementById('imageGridActive'); const gh = document.getElementById('imageGridHidden');
         ga.innerHTML = ''; gh.innerHTML = '';
 
         const noImg = (text) => `<div class="flex-shrink-0 w-full flex flex-col items-center justify-center py-8 text-slate-600 italic text-xs"><span class="material-icons text-lg mb-1 opacity-50">image_not_supported</span>${text}</div>`;
 
-        if (!imgs || !imgs.length) { ga.innerHTML = noImg("Sin imágenes visibles"); gh.innerHTML = noImg("Papelera vacía"); return; }
+        if (!imgs || !imgs.length) { ga.innerHTML = noImg("Sin im\u00e1genes visibles"); gh.innerHTML = noImg("Papelera vac\u00eda"); return; }
 
         let cA = 0, cH = 0;
         imgs.forEach((img, idx) => {
@@ -2452,8 +2452,8 @@
             } catch (e) { console.error("Error carta:", e); }
         });
 
-        if (cA === 0) ga.innerHTML = noImg("Sin imágenes visibles");
-        if (cH === 0) gh.innerHTML = noImg("Papelera vacía");
+        if (cA === 0) ga.innerHTML = noImg("Sin im\u00e1genes visibles");
+        if (cH === 0) gh.innerHTML = noImg("Papelera vac\u00eda");
 
         // --- NUEVO: Actualizar contadores de tabs ---
         const elCountA = document.getElementById('countActivas');
@@ -2462,13 +2462,13 @@
         if (elCountH) elCountH.innerText = cH;
         switchTab('activas');
 
-        // --- NUEVO: Inicializar Sortable SOLO si está en modo reordenar ---
+        // --- NUEVO: Inicializar Sortable SOLO si est\u00e1 en modo reordenar ---
         if (cA > 1 && isReorderMode) {
             initSortable();
         }
 
         if (!skipLog) {
-            log(`Galería actualizada. (V:${cA}, O:${cH})`, 'success');
+            log(`Galer\u00eda actualizada. (V:${cA}, O:${cH})`, 'success');
         }
 
         // --- AUTO OPEN AFTER GEN ---
@@ -2480,7 +2480,7 @@
             autoOpenId = null;
         }
 
-        // --- NUEVO: Disparo de Auditoría Post-Sync (Modo Batch Inteligente) ---
+        // --- NUEVO: Disparo de Auditor\u00eda Post-Sync (Modo Batch Inteligente) ---
         if (pendingBatchForensicFileIds.length > 0) {
             const idsParaAuditar = [];
 
@@ -2492,7 +2492,7 @@
             });
 
             if (idsParaAuditar.length > 0) {
-                log(`Detectadas ${idsParaAuditar.length} imágenes nuevas. Iniciando análisis forense secuencial...`, 'info');
+                log(`Detectadas ${idsParaAuditar.length} im\u00e1genes nuevas. Iniciando an\u00e1lisis forense secuencial...`, 'info');
 
                 // Procesamiento secuencial para evitar 429 (Too Many Requests)
                 const procesarSiguienteIA = async (lista) => {
@@ -2517,7 +2517,7 @@
         const isVideo = img.TIPO_ARCHIVO === 'video' || (img.IMAGEN_RUTA && (img.IMAGEN_RUTA.endsWith('.mp4') || img.IMAGEN_RUTA.endsWith('.mov')));
 
         if (isVideo) {
-            // Si es video y el thumbnail es igual a la URL o no existe (no hay thumb generado todavía), mostrar icono
+            // Si es video y el thumbnail es igual a la URL o no existe (no hay thumb generado todav\u00eda), mostrar icono
             if (!thumbUrl || thumbUrl === img.URL) {
                 imgHTML = `<div class="w-full h-full flex items-center justify-center bg-slate-900 text-slate-600 relative border-b border-slate-700">
                                 <span class="material-icons text-4xl text-indigo-500 opacity-80">play_circle_filled</span>
@@ -2582,11 +2582,11 @@
         if (isSelectMode) {
             btn.classList.add('active');
             root.classList.add('is-select-mode');
-            log("Modo Selección Activado. Haz click en las fotos para seleccionarlas.", "info");
+            log("Modo Selecci\u00f3n Activado. Haz click en las fotos para seleccionarlas.", "info");
         } else {
             btn.classList.remove('active');
             root.classList.remove('is-select-mode');
-            log("Modo Selección Desactivado.", "info");
+            log("Modo Selecci\u00f3n Desactivado.", "info");
         }
     }
 
@@ -2602,7 +2602,7 @@
     }
 
     function toggleSelection(id, card, estado) {
-        if (currentSelectionState !== null && currentSelectionState !== estado && !selectedImages.has(id)) { if (!confirm("¿Limpiar selección anterior?")) return; limpiarSeleccion(); }
+        if (currentSelectionState !== null && currentSelectionState !== estado && !selectedImages.has(id)) { if (!confirm("\u00bfLimpiar selecci\u00f3n anterior?")) return; limpiarSeleccion(); }
         currentSelectionState = estado;
         if (selectedImages.has(id)) { selectedImages.delete(id); card.classList.remove('selected'); card.querySelector('.check-icon').innerText = ''; if (selectedImages.size === 0) currentSelectionState = null; }
         else { selectedImages.add(id); card.classList.add('selected'); card.querySelector('.check-icon').innerText = 'check'; }
@@ -2626,7 +2626,7 @@
             if (currentSelectionState === true) {
                 const btnLabel = currentPaidPin ? 'RENDER AI' : 'AI PROMPT';
                 html += `<div class="h-3 w-px bg-slate-700 mx-2"></div>
-                              <button onclick="auditarSeleccionMasiva()" class="hover:bg-slate-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition mr-1" title="Análisis Forense Masivo"><span class="material-icons text-sm text-amber-500">biotech</span> Auditar</button>
+                              <button onclick="auditarSeleccionMasiva()" class="hover:bg-slate-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition mr-1" title="An\u00e1lisis Forense Masivo"><span class="material-icons text-sm text-amber-500">biotech</span> Auditar</button>
                               <button onclick="generarPromptMasivo()" class="hover:bg-indigo-600 bg-indigo-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm mr-1"><span class="material-icons text-sm">auto_awesome</span> ${btnLabel}</button>
                               <button onclick="descargarSeleccionMasiva()" class="hover:bg-cyan-600 bg-cyan-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm" title="Descargar como ZIP"><span class="material-icons text-sm">cloud_download</span> Descargar</button>`;
             }
@@ -2639,7 +2639,7 @@
 
     function accionMasiva(accion) {
         const ids = Array.from(selectedImages); if (!ids.length) return;
-        const msg = accion === 'eliminar' ? "¿Borrar definitivamente?" : `¿${accion.toUpperCase()} ${ids.length} imágenes?`;
+        const msg = accion === 'eliminar' ? "\u00bfBorrar definitivamente?" : `\u00bf${accion.toUpperCase()} ${ids.length} im\u00e1genes?`;
         if (!confirm(msg)) return;
         log(`Procesando ${ids.length}...`, 'info');
         if (accion === 'eliminar') google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).eliminarImagenesDefinitivo(ids);
@@ -2657,8 +2657,8 @@
         }).filter(id => id);
 
         if (driveIds.length === 0) {
-            log(`âŒ No se encontraron referencias válidas de Drive.`, 'error');
-            Swal.fire('Error', 'Las imágenes seleccionadas no tienen un archivo físico en Drive vinculado.', 'error');
+            log(`\u00e2\u009d\u0152 No se encontraron referencias v\u00e1lidas de Drive.`, 'error');
+            Swal.fire('Error', 'Las im\u00e1genes seleccionadas no tienen un archivo f\u00edsico en Drive vinculado.', 'error');
             return;
         }
 
@@ -2666,7 +2666,7 @@
         const btn = document.querySelector('#toolbar-actions button[onclick="descargarSeleccionMasiva()"]');
         if (btn) { btn.innerHTML = `<span class="material-icons text-sm animate-spin">sync</span> Empaquetando...`; btn.disabled = true; }
 
-        log(`Empaquetando ${driveIds.length} imágenes desde Drive, generando ZIP...`, 'info');
+        log(`Empaquetando ${driveIds.length} im\u00e1genes desde Drive, generando ZIP...`, 'info');
         google.script.run.withSuccessHandler(res => {
             if (btn) { btn.innerHTML = `<span class="material-icons text-sm">cloud_download</span> Descargar`; btn.disabled = false; }
             if (res.success) {
@@ -2683,7 +2683,7 @@
             }
         }).withFailureHandler(err => {
             if (btn) { btn.innerHTML = `<span class="material-icons text-sm">cloud_download</span> Descargar`; btn.disabled = false; }
-            log(`Fallo de comunicación: ${err.message}`, 'error');
+            log(`Fallo de comunicaci\u00f3n: ${err.message}`, 'error');
         }).descargarImagenesBatch(currentProduct.sku, driveIds);
     }
 
@@ -2721,28 +2721,28 @@
         const ids = Array.from(selectedImages);
         if (!ids.length) return;
 
-        // Filtrar imágenes que no sean video (según preferencia del usuario)
+        // Filtrar im\u00e1genes que no sean video (seg\u00fan preferencia del usuario)
         const idsParaAuditar = ids.filter(id => {
             const img = CURRENT_IMAGES.find(i => i.IMAGEN_ID === id);
             return img && img.TIPO_ARCHIVO === 'imagen';
         });
 
         if (idsParaAuditar.length === 0) {
-            Swal.fire('Atención', 'Selecciona imágenes para auditar (los videos se omiten por ahora).', 'info');
+            Swal.fire('Atenci\u00f3n', 'Selecciona im\u00e1genes para auditar (los videos se omiten por ahora).', 'info');
             return;
         }
 
         Swal.fire({
-            title: 'Auditoría Forense Masiva',
-            text: `Se iniciará el análisis técnico de ${idsParaAuditar.length} imágenes en segundo plano. Se forzará el re-análisis para aplicar las nuevas reglas de blindaje de marca.`,
+            title: 'Auditor\u00eda Forense Masiva',
+            text: `Se iniciar\u00e1 el an\u00e1lisis t\u00e9cnico de ${idsParaAuditar.length} im\u00e1genes en segundo plano. Se forzar\u00e1 el re-an\u00e1lisis para aplicar las nuevas reglas de blindaje de marca.`,
             icon: 'info',
             showCancelButton: true,
-            confirmButtonText: 'Iniciar Ráfaga',
+            confirmButtonText: 'Iniciar R\u00e1faga',
             background: '#1e293b', color: '#fff'
         }).then(res => {
             if (res.isConfirmed) {
-                log(`Iniciando auditoría masiva de ${idsParaAuditar.length} imágenes (Modo Forzado)...`, 'info');
-                // Forzamos el análisis (primer parámetro true) para que ignore el caché viejo
+                log(`Iniciando auditor\u00eda masiva de ${idsParaAuditar.length} im\u00e1genes (Modo Forzado)...`, 'info');
+                // Forzamos el an\u00e1lisis (primer par\u00e1metro true) para que ignore el cach\u00e9 viejo
                 idsParaAuditar.forEach(id => lanzarAuditoriaIA(true, true, id));
                 limpiarSeleccion();
             }
@@ -2760,7 +2760,7 @@
         // Si ya hay un sync corriendo, marcar pendiente y esperar
         if (_syncRunning) {
             _syncPending = true;
-            log(`Sync encolado (anterior aún en progreso)...`, 'info');
+            log(`Sync encolado (anterior a\u00fan en progreso)...`, 'info');
             return;
         }
 
@@ -2780,10 +2780,10 @@
             btn.innerHTML = originalContent;
 
             log(res.message, res.success ? 'success' : 'error');
-            if (res.logs) res.logs.forEach(l => log(`   ↳ ${l}`, 'info'));
+            if (res.logs) res.logs.forEach(l => log(`   \u21b3 ${l}`, 'info'));
             if (res.success) recargar();
 
-            // Si hubo subidas mientras corría, ejecutar sync pendiente
+            // Si hubo subidas mientras corr\u00eda, ejecutar sync pendiente
             if (_syncPending) {
                 log(`Ejecutando sync pendiente...`, 'info');
                 sincronizarProductoActual();
@@ -2803,7 +2803,7 @@
     function sincronizarConWC() {
         if (!currentProduct) return;
         if (!currentProduct.woo_id) {
-            Swal.fire('Atención', 'Este producto aún no tiene un ID de WooCommerce asignado. Por favor, sincroniza el producto primero.', 'warning');
+            Swal.fire('Atenci\u00f3n', 'Este producto a\u00fan no tiene un ID de WooCommerce asignado. Por favor, sincroniza el producto primero.', 'warning');
             return;
         }
         log(`Sync WordPress ${currentProduct.sku}...`, 'info');
@@ -2814,13 +2814,13 @@
             btn.disabled = false;
             btn.innerHTML = '<span class="material-icons text-sm">cloud_upload</span>WP Sync';
             log(res.message, res.success ? 'success' : 'error');
-            if (res.logs) res.logs.forEach(l => log(`   â†³ ${l}`, 'info'));
+            if (res.logs) res.logs.forEach(l => log(`   \u00e2\u2020\u00b3 ${l}`, 'info'));
             if (res.success) recargar();
 
             if (res.success && currentProduct.woo_id && res.baseUrl) {
                 const clearBase = res.baseUrl.endsWith('/') ? res.baseUrl.slice(0, -1) : res.baseUrl;
                 const wooUrlFront = `${clearBase}/?p=${currentProduct.woo_id}`;
-                log(`<a href="${wooUrlFront}" target="_blank" class="text-fuchsia-400 hover:text-fuchsia-300 underline font-bold mt-1 inline-block">ðŸ”— Verificar producto en la Tienda (Frontend)</a>`, 'success');
+                log(`<a href="${wooUrlFront}" target="_blank" class="text-fuchsia-400 hover:text-fuchsia-300 underline font-bold mt-1 inline-block">\u00f0\u0178\u201d\u2014 Verificar producto en la Tienda (Frontend)</a>`, 'success');
             }
         }).withFailureHandler(err => {
             btn.disabled = false;
@@ -2828,14 +2828,14 @@
             log(err.message, 'error');
         }).subirImagenesProductoWP(currentProduct.sku);
     }
-    function sincronizarGlobalManual() { if (!confirm("Sync Global demora varios minutos. ¿Continuar?")) return; log("Iniciando Sync Global...", 'info'); if (!isConsoleExpanded) toggleConsole(); google.script.run.withSuccessHandler(res => { log(res.message, res.success ? 'success' : 'error'); if (res.logs) res.logs.forEach(l => log(`   â†³ ${l}`, 'info')); }).ejecutarSincronizacionGlobal(); }
+    function sincronizarGlobalManual() { if (!confirm("Sync Global demora varios minutos. \u00bfContinuar?")) return; log("Iniciando Sync Global...", 'info'); if (!isConsoleExpanded) toggleConsole(); google.script.run.withSuccessHandler(res => { log(res.message, res.success ? 'success' : 'error'); if (res.logs) res.logs.forEach(l => log(`   \u00e2\u2020\u00b3 ${l}`, 'info')); }).ejecutarSincronizacionGlobal(); }
 
     // --- MODAL ---
     function abrirModal(img) {
         currentImageId = img.IMAGEN_ID;
         currentImgObj = img;
 
-        // --- NUEVO: Calcular índice para navegación ---
+        // --- NUEVO: Calcular \u00edndice para navegaci\u00f3n ---
         currentImageIndex = CURRENT_IMAGES.findIndex(i => i.IMAGEN_ID === img.IMAGEN_ID);
         actualizarNavegacionModal();
 
@@ -2860,23 +2860,23 @@
             let retryCount = 0;
             const maxRetries = 5;
             mediaEl.onerror = () => {
-                if (!mediaEl.isConnected) return; // Módulo cerrado, abortar reintento
+                if (!mediaEl.isConnected) return; // M\u00f3dulo cerrado, abortar reintento
                 if (retryCount < maxRetries) {
                     retryCount++;
                     const delay = retryCount * 2000; // 2s, 4s, 6s...
-                    log(`Imagen no disponible aún. Reintentando en ${delay / 1000}s... (Intento ${retryCount}/${maxRetries})`, 'warning');
+                    log(`Imagen no disponible a\u00fan. Reintentando en ${delay / 1000}s... (Intento ${retryCount}/${maxRetries})`, 'warning');
                     setTimeout(() => {
-                        // Añadimos timestamp para romper caché en cada reintento
+                        // A\u00f1adimos timestamp para romper cach\u00e9 en cada reintento
                         const separator = img.URL.includes('?') ? '&' : '?';
                         mediaEl.src = img.URL + separator + 'retry=' + Date.now();
                     }, delay);
                 } else {
-                    log("Error persistente al cargar la imagen. AppSheet podría tardar unos minutos en indexarla.", 'error');
+                    log("Error persistente al cargar la imagen. AppSheet podr\u00eda tardar unos minutos en indexarla.", 'error');
                     container.innerHTML = `
                             <div class="flex flex-col items-center justify-center p-10 text-slate-500">
                                 <span class="material-icons text-6xl mb-4 opacity-20">broken_image</span>
                                 <p class="text-xs font-bold uppercase tracking-widest">Imagen no disponible</p>
-                                <p class="text-[10px] mt-2 opacity-60 text-center max-w-[200px]">La ruta existe en Drive pero la URL de AppSheet aún está en proceso de indexación.</p>
+                                <p class="text-[10px] mt-2 opacity-60 text-center max-w-[200px]">La ruta existe en Drive pero la URL de AppSheet a\u00fan est\u00e1 en proceso de indexaci\u00f3n.</p>
                                 <button onclick="recargar(); closeModal();" class="mt-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-[10px] rounded uppercase font-bold transition">Reintentar Todo</button>
                             </div>`;
                 }
@@ -2945,20 +2945,20 @@
         document.getElementById('imageModal').classList.remove('hidden');
         updateAiButtonLabels();
 
-        // MOSTRAR PANEL DE REFINAR Y ÃNGULOS SI ES GENERADA POR IA O TIENE PROMPT Y PIN ACTIVO
+        // MOSTRAR PANEL DE REFINAR Y \u00c3\u0081NGULOS SI ES GENERADA POR IA O TIENE PROMPT Y PIN ACTIVO
         if (refinePanel) refinePanel.classList.toggle('hidden', !showPremium);
         if (anglePanel) anglePanel.classList.toggle('hidden', !showPremium);
         if (showPremium) document.getElementById('refineFeedback').value = "";
 
-        // --- NUEVO: Estado Botón Forense ---
+        // --- NUEVO: Estado Bot\u00f3n Forense ---
         const btnForensic = document.getElementById('btnForensicModal');
         if (btnForensic) {
             btnForensic.classList.remove('bg-amber-600/20', 'text-amber-500', 'border-amber-600/30', 'bg-emerald-600/20', 'text-emerald-500', 'border-emerald-600/30');
             if (img.ANALISIS_FORENSE) {
-                btnForensic.innerHTML = '<span class="material-icons text-sm">visibility</span> Ver Auditoría';
+                btnForensic.innerHTML = '<span class="material-icons text-sm">visibility</span> Ver Auditor\u00eda';
                 btnForensic.classList.add('bg-emerald-600/20', 'text-emerald-500', 'border-emerald-600/30');
             } else {
-                btnForensic.innerHTML = '<span class="material-icons text-sm">biotech</span> Análisis Forense';
+                btnForensic.innerHTML = '<span class="material-icons text-sm">biotech</span> An\u00e1lisis Forense';
                 btnForensic.classList.add('bg-amber-600/20', 'text-amber-500', 'border-amber-600/30');
             }
         }
@@ -3021,7 +3021,7 @@
     }
 
 
-    // --- NUEVO: Funciones de Navegación ---
+    // --- NUEVO: Funciones de Navegaci\u00f3n ---
     function actualizarNavegacionModal() {
         const btnPrev = document.getElementById('btnPrevImage');
         const btnNext = document.getElementById('btnNextImage');
@@ -3073,22 +3073,22 @@
 
     function cambiarEstadoModal(nuevoEstado) { const id = currentImageId; closeModal(); optimisticMoveCard(id, nuevoEstado); google.script.run.withSuccessHandler(() => log("Estado guardado.", "success")).withFailureHandler(err => { Swal.fire('Error', 'No se pudo guardar.', 'error').then(() => recargar()); }).cambiarEstadoImagen(id, nuevoEstado); }
     function hacerPortadaModal() { closeModal(); log("Estableciendo portada...", "info"); google.script.run.withSuccessHandler(() => recargar()).establecerPortada(currentImageId, currentProduct.sku); }
-    function borrarImagenModal() { const id = currentImageId; Swal.fire({ title: '¿Eliminar Definitivamente?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Borrar' }).then((result) => { if (result.isConfirmed) { closeModal(); const card = document.getElementById(`card-${id}`); if (card) card.remove(); google.script.run.withSuccessHandler(res => log(res.message, 'success')).withFailureHandler(err => { Swal.fire('Error', 'Fallo al eliminar.', 'error').then(() => recargar()); }).eliminarImagenesDefinitivo([id]); } }); }
+    function borrarImagenModal() { const id = currentImageId; Swal.fire({ title: '\u00bfEliminar Definitivamente?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Borrar' }).then((result) => { if (result.isConfirmed) { closeModal(); const card = document.getElementById(`card-${id}`); if (card) card.remove(); google.script.run.withSuccessHandler(res => log(res.message, 'success')).withFailureHandler(err => { Swal.fire('Error', 'Fallo al eliminar.', 'error').then(() => recargar()); }).eliminarImagenesDefinitivo([id]); } }); }
 
     // --- AI PROMPTING ---
     function ejecutarAuditoriaForense() {
         if (!currentImageId) return;
 
-        // Si ya tiene análisis, preguntar si quiere verlo o regenerar
+        // Si ya tiene an\u00e1lisis, preguntar si quiere verlo o regenerar
         if (currentImgObj && currentImgObj.ANALISIS_FORENSE) {
             Swal.fire({
                 title: 'Prenda ya Auditada',
-                html: '<div class="text-xs opacity-70 mb-4">Ya existe un informe técnico para esta imagen. ¿Qué deseas hacer?</div>',
+                html: '<div class="text-xs opacity-70 mb-4">Ya existe un informe t\u00e9cnico para esta imagen. \u00bfQu\u00e9 deseas hacer?</div>',
                 icon: 'question',
                 background: '#1e293b', color: '#fff',
                 showCancelButton: true,
-                confirmButtonText: '<span class="flex items-center gap-1 font-bold">👁️ Ver Informe</span>',
-                cancelButtonText: '<span class="flex items-center gap-1">🔄 Re-Analizar</span>',
+                confirmButtonText: '<span class="flex items-center gap-1 font-bold">\ud83d\udc41\ufe0f Ver Informe</span>',
+                cancelButtonText: '<span class="flex items-center gap-1">\ud83d\udd04 Re-Analizar</span>',
                 confirmButtonColor: '#10b981', // Emerald 500
                 cancelButtonColor: '#ea580c', // Orange 600
             }).then(res => {
@@ -3105,8 +3105,8 @@
 
     function confirmarAnalisisForense(forzar) {
         Swal.fire({
-            title: 'Auditoría Forense (Gemma 3)',
-            text: '¿Cómo prefieres realizar el análisis técnico?',
+            title: 'Auditor\u00eda Forense (Gemma 3)',
+            text: '\u00bfC\u00f3mo prefieres realizar el an\u00e1lisis t\u00e9cnico?',
             icon: 'info',
             background: '#1e293b', color: '#fff',
             showCancelButton: true,
@@ -3130,12 +3130,12 @@
         if (background) {
             if (!targetId) closeModal(); // Solo cerrar si no viene de un proceso externo (como upload)
             const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-            Toast.fire({ icon: 'info', title: 'Análisis iniciado', text: `Imagen: ${idParaAnalizar}`, background: '#1e293b', color: '#fff' });
+            Toast.fire({ icon: 'info', title: 'An\u00e1lisis iniciado', text: `Imagen: ${idParaAnalizar}`, background: '#1e293b', color: '#fff' });
             log(`Analizando prenda ${idParaAnalizar} en segundo plano...`, 'info');
         } else {
             Swal.fire({
                 title: 'Analizando Prenda...',
-                html: 'La IA está auditando los atributos físicos usando el motor <b>Gemma 3</b>.',
+                html: 'La IA est\u00e1 auditando los atributos f\u00edsicos usando el motor <b>Gemma 3</b>.',
                 background: '#1e293b', color: '#fff',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
@@ -3146,20 +3146,20 @@
             if (!background) Swal.close();
             const d = JSON.parse(res);
             if (d.success) {
-                log(`Auditoría forense completa: ${idParaAnalizar}`, "success");
+                log(`Auditor\u00eda forense completa: ${idParaAnalizar}`, "success");
 
-                // Actualizar caché local
+                // Actualizar cach\u00e9 local
                 const imgObj = CURRENT_IMAGES.find(i => i.IMAGEN_ID === idParaAnalizar);
                 if (imgObj) imgObj.ANALISIS_FORENSE = d.text;
                 if (currentImgObj && currentImgObj.IMAGEN_ID === idParaAnalizar) currentImgObj.ANALISIS_FORENSE = d.text;
 
                 if (background) {
                     const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 5000, timerProgressBar: true });
-                    Toast.fire({ icon: 'success', title: 'Auditoría Finalizada', text: `La imagen ${idParaAnalizar} ya tiene ficha técnica.`, background: '#1e293b', color: '#fff' });
+                    Toast.fire({ icon: 'success', title: 'Auditor\u00eda Finalizada', text: `La imagen ${idParaAnalizar} ya tiene ficha t\u00e9cnica.`, background: '#1e293b', color: '#fff' });
                     recargarGaleriaSilenciosa(true); // Recarga silenciosa (sin log)
                 } else {
                     verAuditoriaForense(d.text);
-                    setTimeout(() => recargarGaleriaSilenciosa(false), 1000); // Recarga con log (acción manual)
+                    setTimeout(() => recargarGaleriaSilenciosa(false), 1000); // Recarga con log (acci\u00f3n manual)
                 }
             } else {
                 if (background) log(`Error forense en ${idParaAnalizar}: ${d.error}`, 'error');
@@ -3167,7 +3167,7 @@
             }
         }).withFailureHandler(err => {
             if (!background) Swal.close();
-            log(`Error crítico forense (${idParaAnalizar}): ${err.message}`, 'error');
+            log(`Error cr\u00edtico forense (${idParaAnalizar}): ${err.message}`, 'error');
         }).escanearPrenda(idParaAnalizar, forzar);
     }
 
@@ -3185,7 +3185,7 @@
             .replace(/ESTADO_VISUAL:/g, '<br><b class="text-indigo-400">ESTADO:</b>');
 
         Swal.fire({
-            title: '<div class="flex items-center gap-2"><span class="material-icons text-amber-500">biotech</span> <span>Ficha Técnica Forense</span></div>',
+            title: '<div class="flex items-center gap-2"><span class="material-icons text-amber-500">biotech</span> <span>Ficha T\u00e9cnica Forense</span></div>',
             html: `
                 <div class="text-left bg-slate-900 border border-slate-700 p-5 rounded-xl text-xs leading-loose font-mono text-slate-300 max-h-[60vh] overflow-y-auto">
                     ${styled}
@@ -3199,7 +3199,7 @@
     }
 
     function generarPromptModal() {
-        // --- NUEVO: ESCANEO AGREGADO DE LA SELECCIÓN ---
+        // --- NUEVO: ESCANEO AGREGADO DE LA SELECCI\u00d3N ---
         let selectionIncludesFolded = false;
         let selectionIncludesHanger = false;
 
@@ -3220,7 +3220,7 @@
         const isMulti = selectedImages && selectedImages.size > 1;
         const count = selectedImages ? selectedImages.size : 0;
 
-        // El modo HERO es idealmente Master (1) + Variantes (1) = 2 imágenes
+        // El modo HERO es idealmente Master (1) + Variantes (1) = 2 im\u00e1genes
         const canShowHero = count === 2 && (selectionIncludesFolded || selectionIncludesHanger);
         const canShowCollage = isMulti; // Collage abierto para cualquier grupo
 
@@ -3238,8 +3238,8 @@
                         <div>
                             <label class="text-[10px] uppercase font-bold text-slate-400">Formato</label>
                             <select id="swal-input-format" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1" onchange="toggleVideoOptions(this.value)">
-                                <option value="image">📷 Prompt Imagen</option>
-                                <option value="video">🎥 Guion Video</option>
+                                <option value="image">\ud83d\udcf7 Prompt Imagen</option>
+                                <option value="video">\ud83c\udfa5 Guion Video</option>
                             </select>
                         </div>
                         
@@ -3251,7 +3251,7 @@
                                 <option value="ghost">Ghost Mannequin (3D)</option>
                                 ${isCurrentHanger ? '<option value="hanger">Profesional En Percha</option>' : ''}
                                 ${isCurrentFolded ? '<option value="folded">Pila / Producto Doblado</option>' : ''}
-                                ${canShowCollage ? `<option value="collage" ${!selectionIncludesFolded ? 'selected' : ''}>Collage / Catálogo Completo</option>` : ''}
+                                ${canShowCollage ? `<option value="collage" ${!selectionIncludesFolded ? 'selected' : ''}>Collage / Cat\u00e1logo Completo</option>` : ''}
                                 ${canShowHero ? `<option value="hero" selected>Hero + Colores (Master+Variants)</option>` : ''}
                             </select>
                         </div>
@@ -3261,17 +3261,17 @@
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-slate-400">Modelo IA</label>
                                 <select id="swal-input-model" class="w-full text-[11px] bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
-                                <option value="gemini-3.1-flash-image-preview">Flash 3.1 (Rápido / Banners)</option>
-                                <option value="gemini-3-pro-image-preview">Auto / Pro (Fotografía)</option>
+                                <option value="gemini-3.1-flash-image-preview">Flash 3.1 (R\u00e1pido / Banners)</option>
+                                <option value="gemini-3-pro-image-preview">Auto / Pro (Fotograf\u00eda)</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="text-[10px] uppercase font-bold text-slate-400">Relación de Aspecto</label>
+                                <label class="text-[10px] uppercase font-bold text-slate-400">Relaci\u00f3n de Aspecto</label>
                                 <select id="swal-input-aspect" class="w-full text-[11px] bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
-                                    <option value="3:4">3:4 (Vertical Estándar)</option>
+                                    <option value="3:4">3:4 (Vertical Est\u00e1ndar)</option>
                                     <option value="1:1">1:1 (Cuadrado / Feed)</option>
                                     <option value="4:3">4:3 (Horizontal)</option>
-                                    <option value="16:9">16:9 (Panorámico Web)</option>
+                                    <option value="16:9">16:9 (Panor\u00e1mico Web)</option>
                                     <option value="4:1">4:1 (Banner Header)</option>
                                     <option value="1:4">1:4 (Banner Lateral)</option>
                                 </select>
@@ -3281,7 +3281,7 @@
                         <!-- ANGLE SELECTION (Visible for multi-selection or special trigger) -->
                         <div id="angle-selection-modal" class="${isMulti ? '' : 'hidden'} animate-fade-in bg-indigo-500/5 p-2 rounded border border-indigo-500/20">
                             <label class="text-[10px] uppercase font-bold text-indigo-400 flex items-center gap-1">
-                                <span class="material-icons text-[12px]">straighten</span> Posición / Angulo a Generar
+                                <span class="material-icons text-[12px]">straighten</span> Posici\u00f3n / Angulo a Generar
                             </label>
                             <select id="swal-input-angle" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
                                 <option value="" ${defaultAngleValue === "" ? 'selected' : ''}>Auto (Deducir del Master)</option>
@@ -3291,13 +3291,13 @@
                                 <option value="Close-up / Detalle">Vista de Detalle (Macro)</option>
                                 <option value="Split View / Front and Back">Vista Combinada (Frente y Espalda)</option>
                             </select>
-                            <p class="text-[9px] text-slate-500 mt-1 italic">Si selecciones un ángulo específico, se generará una sola vista ignorando las otras poses.</p>
+                            <p class="text-[9px] text-slate-500 mt-1 italic">Si selecciones un \u00e1ngulo espec\u00edfico, se generar\u00e1 una sola vista ignorando las otras poses.</p>
                         </div>
 
                         <div id="env-selection" class="hidden animate-fade-in">
                             <label class="text-[10px] uppercase font-bold text-indigo-400">Entorno / Ambiente (Lifestyle)</label>
                             <select id="swal-input-env" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
-                                <option value="">Auto (Por Categoría)</option>
+                                <option value="">Auto (Por Categor\u00eda)</option>
                                 <option value="Shopping / Centro Comercial">Shopping / Centro Comercial</option>
                                 <option value="Urban / Calle Ciudad">Urban / Calle</option>
                                 <option value="Park / Naturaleza">Park / Exterior</option>
@@ -3311,10 +3311,10 @@
                             <label class="text-[10px] uppercase font-bold text-amber-400">Superficie / Fondo (Still Life)</label>
                             <select id="swal-input-still-life-env" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
                                 <option value="studio_minimalist">Estudio Blanco (Minimalista)</option>
-                                <option value="luxury_marble">Mármol Blanco (Lujoso)</option>
-                                <option value="dark_oak">Madera de Roble (Cálido)</option>
+                                <option value="luxury_marble">M\u00e1rmol Blanco (Lujoso)</option>
+                                <option value="dark_oak">Madera de Roble (C\u00e1lido)</option>
                                 <option value="industrial_concrete">Cemento Industrial (Moderno)</option>
-                                <option value="soft_linen">Tela de Lino (Suave/Orgánico)</option>
+                                <option value="soft_linen">Tela de Lino (Suave/Org\u00e1nico)</option>
                             </select>
                         </div>
 
@@ -3328,7 +3328,7 @@
                                 <option value="waist">Cintura (Interior superior)</option>
                                 <option value="legs">Piernas (Interior inferior)</option>
                             </select>
-                            <p class="text-[9px] text-slate-500 mt-1 italic">Dará prioridad visual a la abertura seleccionada para mostrar el efecto hueco.</p>
+                            <p class="text-[9px] text-slate-500 mt-1 italic">Dar\u00e1 prioridad visual a la abertura seleccionada para mostrar el efecto hueco.</p>
                         </div>
 
 
@@ -3337,9 +3337,9 @@
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-indigo-400">Estructura Video</label>
                                 <select id="swal-input-structure" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
-                                    <option value="single_shot">⚡ 8 Segundos (Single Shot)</option>
-                                    <option value="multi_shot">🎬 30 Segundos (Escenas)</option>
-                                    <option id="opt-living-garment" value="living_garment" class="hidden text-amber-400 font-bold">✨ 3D Living Garment (Animado)</option>
+                                    <option value="single_shot">\u26a1 8 Segundos (Single Shot)</option>
+                                    <option value="multi_shot">\ud83c\udfac 30 Segundos (Escenas)</option>
+                                    <option id="opt-living-garment" value="living_garment" class="hidden text-amber-400 font-bold">\u2728 3D Living Garment (Animado)</option>
                                 </select>
                             </div>
                             <div class="flex gap-4">
@@ -3361,9 +3361,9 @@
                                 <select id="swal-input-skin" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
                                     <option value="">IA Decide (Natural)</option>
                                     <option value="Clara / Blanca">Blanca / Clara</option>
-                                    <option value="Trigueña / Latina">Trigueña / Latina</option>
+                                    <option value="Trigue\u00f1a / Latina">Trigue\u00f1a / Latina</option>
                                     <option value="Morena / Bronceada">Morena / Bronceada</option>
-                                    <option value="Oscura / Ébano">Oscura / Ébano</option>
+                                    <option value="Oscura / \u00c9bano">Oscura / \u00c9bano</option>
                                 </select>
                            </div>
 
@@ -3376,7 +3376,7 @@
                                     <option value="Reloj de Lujo">Reloj de Lujo</option>
                                     <option value="Bolso / Cartera">Bolso / Cartera</option>
                                     <option value="Gorra / Sombrero">Gorra / Sombrero</option>
-                                    <option value="Cinturon / Correa">Cinturón / Correa</option>
+                                    <option value="Cinturon / Correa">Cintur\u00f3n / Correa</option>
                                 </select>
                            </div>
 
@@ -3511,7 +3511,7 @@
         if (val === 'video') el.classList.remove('hidden'); else el.classList.add('hidden');
     }
 
-    // --- LÃ“GICA INTELIGENTE DE CALZADO Y ESTILOS ---
+    // --- L\u00c3\u201cGICA INTELIGENTE DE CALZADO Y ESTILOS ---
     function checkCategorySpecs(estilo) {
         const footSection = document.getElementById('footwear-section');
         const skinSection = document.getElementById('skin-tone-section');
@@ -3527,11 +3527,11 @@
 
         // 1. Estilos Still Life (Hanger o Folded) o Ghost o Composiciones (Hero/Collage)
         if (estilo === 'ghost' || estilo === 'hanger' || estilo === 'folded' || estilo === 'hero' || estilo === 'collage') {
-            // Ocultar ángulos en composiciones para avoid conflicts
+            // Ocultar \u00e1ngulos en composiciones para avoid conflicts
             if (estilo === 'hero' || estilo === 'collage') {
                 if (angleSection) angleSection.classList.add('hidden');
             } else if (document.querySelectorAll('.image-item.selected').length > 1) {
-                // Si es multi-selección pero estilo normal, mostrar ángulos
+                // Si es multi-selecci\u00f3n pero estilo normal, mostrar \u00e1ngulos
                 if (angleSection) angleSection.classList.remove('hidden');
             }
 
@@ -3543,7 +3543,7 @@
                 stillLifeEnv.classList.remove('hidden');
             }
         } else {
-            // Mostrar ángulos si es multi-selección para estilos con modelo
+            // Mostrar \u00e1ngulos si es multi-selecci\u00f3n para estilos con modelo
             if (document.querySelectorAll('.image-item.selected').length > 1) {
                 if (angleSection) angleSection.classList.remove('hidden');
             }
@@ -3566,7 +3566,7 @@
             }
         }
 
-        // Determinar clasificación estructural de la prenda (superior vs inferior) de forma dinámica sin categorías en el servidor
+        // Determinar clasificaci\u00f3n estructural de la prenda (superior vs inferior) de forma din\u00e1mica sin categor\u00edas en el servidor
         let clasificacion = "PRENDA_INFERIOR"; // Default para Skypia
         const masterImg = (selectedImages && selectedImages.size > 0) ? CURRENT_IMAGES.find(i => String(i.IMAGEN_ID) === String(Array.from(selectedImages)[0])) : currentImgObj;
         if (masterImg && masterImg.ANALISIS_FORENSE) {
@@ -3575,9 +3575,9 @@
                 clasificacion = "PRENDA_SUPERIOR";
             }
         } else if (currentProduct) {
-            // Fallback local por palabras clave para cuando aún no se ha corrido la IA forense
+            // Fallback local por palabras clave para cuando a\u00fan no se ha corrido la IA forense
             const cat = (currentProduct.parentCategory || currentProduct.category || "").toLowerCase();
-            const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
+            const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpi\u00f1o', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
             if (upperKeywords.some(kw => cat.includes(kw))) {
                 clasificacion = "PRENDA_SUPERIOR";
             }
@@ -3597,7 +3597,7 @@
         // Realce visual si es prenda inferior
         if (currentProduct) {
             const cat = (currentProduct.parentCategory || currentProduct.category || "").toLowerCase();
-            const categoriasInferiores = ['pantalon', 'pantalón', 'short', 'bermuda', 'boxer', 'calzoncillo', 'ropa interior', 'jeans', 'calza', 'jogging', 'pantal', 'bottom'];
+            const categoriasInferiores = ['pantalon', 'pantal\u00f3n', 'short', 'bermuda', 'boxer', 'calzoncillo', 'ropa interior', 'jeans', 'calza', 'jogging', 'pantal', 'bottom'];
             const isBottom = categoriasInferiores.some(c => cat.includes(c));
             if (isBottom) footSection.classList.add('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
             else footSection.classList.remove('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
@@ -3610,7 +3610,7 @@
         // MOSTRAR CARGADOR
         Swal.fire({
             title: 'IA Generando...',
-            html: 'Estamos analizando tus imágenes para crear el mejor prompt. Por favor espera.',
+            html: 'Estamos analizando tus im\u00e1genes para crear el mejor prompt. Por favor espera.',
             background: '#1e293b',
             color: '#f1f5f9',
             allowOutsideClick: false,
@@ -3628,14 +3628,14 @@
                 if (d.success) {
                     // SI HUBIERA COSTO, LOGUEARLO
                     const _elapsed = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
-                    log(`✅ Generado OK (${d.modelUsed || d.model}) en ${_elapsed}s.`, 'success');
+                    log(`\u2705 Generado OK (${d.modelUsed || d.model}) en ${_elapsed}s.`, 'success');
 
                     if (d.renderModel) {
-                        log(`🚀 Renderizado OK con ${d.renderModel}`, 'success');
+                        log(`\ud83d\ude80 Renderizado OK con ${d.renderModel}`, 'success');
                     }
 
                     if (d.cost !== undefined) {
-                        log(`💰 Inversión IA: $${d.cost.toFixed(5)} USD`, 'info');
+                        log(`\ud83d\udcb0 Inversi\u00f3n IA: $${d.cost.toFixed(5)} USD`, 'info');
                     }
 
                     const isJson = d.text && (d.text.trim().startsWith('{') || d.text.trim().startsWith('```json'));
@@ -3643,7 +3643,7 @@
                     txt.value = finalContent;
 
                     // MOSTRAR ALERTA CON RESULTADO
-                    let htmlContent = `<div class="text-left mb-2 text-xs text-slate-400 font-bold uppercase text-indigo-400">Análisis y Directiva IA (Auditable):</div>`;
+                    let htmlContent = `<div class="text-left mb-2 text-xs text-slate-400 font-bold uppercase text-indigo-400">An\u00e1lisis y Directiva IA (Auditable):</div>`;
                     htmlContent += `<textarea id="swalPromptText" class="w-full h-60 p-3 text-[11px] bg-slate-950 text-emerald-400 border border-slate-800 rounded font-mono focus:ring-1 focus:ring-indigo-500 outline-none scroll-thin" readonly>${finalContent}</textarea>`;
 
                     const btnText = d.imageSuccess ? 'Cerrar' : 'Copiar y Cerrar';
@@ -3653,7 +3653,7 @@
                     const showVeoButton = formato === 'video' && isJson;
 
                     Swal.fire({
-                        title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">auto_awesome</span> <span>¡Análisis de la IA!</span></div>',
+                        title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">auto_awesome</span> <span>\u00a1An\u00e1lisis de la IA!</span></div>',
                         html: htmlContent,
                         showCancelButton: showVeoButton,
                         cancelButtonText: `<div class="flex items-center gap-2"><span class="material-icons text-sm">movie</span> <span>Renderizar MP4 con VEO</span></div>`,
@@ -3687,7 +3687,7 @@
                                 const jsonScript = JSON.parse(cleanJson);
                                 const promptVeo = jsonScript.PROMPT_FOR_VIDEO_AI || (jsonScript.TOMAS && jsonScript.TOMAS[0].visual_prompt);
                                 if (promptVeo) {
-                                    // Prioridad: Selección actual -> Contexto preservado del servidor -> Nueva imagen
+                                    // Prioridad: Selecci\u00f3n actual -> Contexto preservado del servidor -> Nueva imagen
                                     let idsContext = Array.from(selectedImages);
                                     if (idsContext.length === 0 && d.imageIds) idsContext = d.imageIds;
 
@@ -3696,7 +3696,7 @@
 
                                     iniciarRenderVEO(idsContext, promptVeo);
                                 } else {
-                                    log("No se encontró un prompt técnico de video en el guion.", "error");
+                                    log("No se encontr\u00f3 un prompt t\u00e9cnico de video en el guion.", "error");
                                 }
                             } catch (e) {
                                 log("Error al procesar guion para VEO: " + e.message, "error");
@@ -3705,13 +3705,13 @@
                         }
                     });
 
-                    // Prioridad: Abrir la imagen recién generada
+                    // Prioridad: Abrir la imagen reci\u00e9n generada
                     if (d.imagenId) {
                         autoOpenId = d.imagenId;
                         if (currentImageId) closeModal(); // Cerramos el modal de la referencia
                         recargar();
                     } else {
-                        // Recargar para capturar el nuevo prompt en el caché local
+                        // Recargar para capturar el nuevo prompt en el cach\u00e9 local
                         if (selectedImages.size === 1) autoOpenId = Array.from(selectedImages)[0];
                         else if (currentImageId) autoOpenId = currentImageId;
                         recargar();
@@ -3720,17 +3720,17 @@
                     const _elapsedErr = ((Date.now() - _aiStartTime) / 1000).toFixed(1);
                     Swal.fire({ icon: 'error', title: 'Error de IA', text: d.error, background: '#1e293b', color: '#f1f5f9' });
                     txt.value = "Error: " + d.error;
-                    log(`âŒ Error IA (${_elapsedErr}s): ${d.error}`, 'error');
+                    log(`\u00e2\u009d\u0152 Error IA (${_elapsedErr}s): ${d.error}`, 'error');
                 }
             } catch (e) {
-                Swal.fire({ icon: 'error', title: 'Error de Respuesta', text: 'La IA devolvió un formato inesperado.', background: '#1e293b', color: '#f1f5f9' });
+                Swal.fire({ icon: 'error', title: 'Error de Respuesta', text: 'La IA devolvi\u00f3 un formato inesperado.', background: '#1e293b', color: '#f1f5f9' });
                 txt.value = res;
             }
         };
 
         if (formato === 'video') {
             log("Generando Prompt de Video...", "info");
-            // Lógica para elegir el selector de entorno correcto
+            // L\u00f3gica para elegir el selector de entorno correcto
             const stillLifeEnvEl = document.getElementById('swal-input-still-life-env');
             const envEl = document.getElementById('env-selection');
             const isStillLife = ['folded', 'hanger', 'hero', 'collage'].includes(estilo);
@@ -3741,13 +3741,13 @@
             google.script.run.withSuccessHandler(onSuccess).generarVideoPrompt(ids, estilo, opciones);
         } else {
             log("Generando Prompt de Imagen...", "info");
-            // Lógica para elegir el selector de entorno correcto
+            // L\u00f3gica para elegir el selector de entorno correcto
             const stillLifeEnvEl = document.getElementById('swal-input-still-life-env');
             const envEl = document.getElementById('swal-input-env');
             const isStillLife = ['folded', 'hanger', 'hero', 'collage'].includes(estilo);
             const envVal = isStillLife ? (stillLifeEnvEl ? stillLifeEnvEl.value : "") : (envEl ? envEl.value : "");
 
-            // INYECTAMOS ÃNGULO, FOCUS Y ENTORNO EN EXTRASPECS PARA LOS ENGINES DE IMAGEN
+            // INYECTAMOS \u00c3\u0081NGULO, FOCUS Y ENTORNO EN EXTRASPECS PARA LOS ENGINES DE IMAGEN
             const finalExtraSpecs = {
                 ...extraSpecs,
                 angle: opciones.angle,
@@ -3769,7 +3769,7 @@
     function ejecutarRefinamiento() {
         const feedback = document.getElementById('refineFeedback').value.trim();
         if (!feedback) {
-            log("Escribe algún feedback para corregir.", "warning");
+            log("Escribe alg\u00fan feedback para corregir.", "warning");
             return;
         }
 
@@ -3791,7 +3791,7 @@
             Swal.close();
             const d = JSON.parse(res);
             if (d.success) {
-                log(`Imagen refinada con éxito. Costo: $${d.cost.toFixed(4)}`, "success");
+                log(`Imagen refinada con \u00e9xito. Costo: $${d.cost.toFixed(4)}`, "success");
                 autoOpenId = d.imagenId;
                 closeModal();
                 recargar();
@@ -3799,7 +3799,7 @@
                 // Mostrar resultado final sin imagen (evitar broken image/lentitud)
                 Swal.fire({
                     title: '<div class="flex items-center gap-2"><span class="material-icons text-emerald-400">check_circle</span> <span>Refinamiento Listo</span></div>',
-                    html: `<p class="text-xs text-slate-400">La corrección ha sido procesada y registrada en la galería como una nueva versión.</p>`,
+                    html: `<p class="text-xs text-slate-400">La correcci\u00f3n ha sido procesada y registrada en la galer\u00eda como una nueva versi\u00f3n.</p>`,
                     confirmButtonText: 'Entendido',
                     background: '#1e293b',
                     color: '#fff'
@@ -3809,23 +3809,23 @@
             }
         }).withFailureHandler(err => {
             Swal.close();
-            Swal.fire('Error Crítico', err.message, 'error');
+            Swal.fire('Error Cr\u00edtico', err.message, 'error');
         }).ejecutarRefinamientoDesdeDashboard(currentImageId, feedback, currentPaidPin);
     }
 
     function ejecutarGeneracionAngulo() {
         const angulo = document.getElementById('angleSelect').value;
         if (!angulo) {
-            log("Por favor, selecciona un ángulo de la lista.", "warning");
+            log("Por favor, selecciona un \u00e1ngulo de la lista.", "warning");
             return;
         }
         if (!currentPaidPin) {
-            log("PIN de pago requerido para generar ángulos.", "error");
+            log("PIN de pago requerido para generar \u00e1ngulos.", "error");
             return;
         }
 
         Swal.fire({
-            title: 'Generando Ãngulo...',
+            title: 'Generando \u00c3\u0081ngulo...',
             html: `Procesando <b>${angulo}</b> manteniendo consistencia. Por favor espera.`,
             background: '#1e293b',
             color: '#fff',
@@ -3844,21 +3844,21 @@
 
                 Swal.fire({
                     title: 'IA: Angulo Listo',
-                    html: `<p class="text-xs text-slate-400">La nueva vista <b>${angulo}</b> ha sido agregada a la galería.</p>`,
+                    html: `<p class="text-xs text-slate-400">La nueva vista <b>${angulo}</b> ha sido agregada a la galer\u00eda.</p>`,
                     confirmButtonText: 'Genial',
                     background: '#1e293b',
                     color: '#fff'
                 });
             } else {
-                Swal.fire('Error de Generación', d.error, 'error');
+                Swal.fire('Error de Generaci\u00f3n', d.error, 'error');
             }
         }).withFailureHandler(err => {
             Swal.close();
-            Swal.fire('Error Crítico', err.message, 'error');
+            Swal.fire('Error Cr\u00edtico', err.message, 'error');
         }).generarVarianteAnguloDesdeDashboard(currentImageId, angulo, currentPaidPin);
     }
 
-    // --- LÃ“GICA DE AUTOMATIZACIÃ“N VEO (PHASE 6) ---
+    // --- L\u00c3\u201cGICA DE AUTOMATIZACI\u00c3\u201cN VEO (PHASE 6) ---
     function iniciarRenderVEO(masterId, prompt) {
         Swal.fire({
             title: 'Iniciando VEO...',
@@ -3895,7 +3895,7 @@
                     const linkText = d.driveUrl ? "Ver en Google Drive" : "Ver / Descargar (Link Temporal)";
 
                     Swal.fire({
-                        title: '¡Video Listo!',
+                        title: '\u00a1Video Listo!',
                         html: `<p class="text-xs text-slate-400">El video ha sido procesado y guardado en tu Drive.</p>
                                    <div class="mt-4">
                                        <a href="${finalLink}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
@@ -3905,11 +3905,11 @@
                         icon: 'success', background: '#1e293b', color: '#fff'
                     });
                     log("Renderizado de video completado.", "success");
-                    recargar(); // Refrescar galería automáticamente
+                    recargar(); // Refrescar galer\u00eda autom\u00e1ticamente
                 } else {
                     // Reintentar en 30 segundos
                     setTimeout(() => monitorizarVideoVEO(opId, sku, carpetaId), 30000);
-                    log("VEO: El video sigue cocinándose...", "info");
+                    log("VEO: El video sigue cocin\u00e1ndose...", "info");
                 }
             } else {
                 log("Fallo al verificar video: " + d.error, "error");
@@ -3920,7 +3920,7 @@
     function formatVideoScript(raw) {
         if (!raw) return "";
         try {
-            // Limpiar posibles bloques de código markdown de la IA o texto antes del JSON
+            // Limpiar posibles bloques de c\u00f3digo markdown de la IA o texto antes del JSON
             let cleanJson = raw.trim();
             if (cleanJson.includes('```json')) {
                 cleanJson = cleanJson.split('```json')[1].split('```')[0].trim();
@@ -3928,7 +3928,7 @@
                 cleanJson = cleanJson.split('```')[1].split('```')[0].trim();
             }
 
-            // Si aún no es un JSON puro (ej. tiene texto antes del {), buscar el primer {
+            // Si a\u00fan no es un JSON puro (ej. tiene texto antes del {), buscar el primer {
             const firstBrace = cleanJson.indexOf('{');
             const lastBrace = cleanJson.lastIndexOf('}');
             if (firstBrace !== -1 && lastBrace !== -1) {
@@ -3940,7 +3940,7 @@
             if (d.TEMA_DETECTADO) out += `TEMA: ${d.TEMA_DETECTADO}\n`;
             // 2. Prefix Mandate (To anchor the IA's intention)
             // These are in Spanish because they are part of the bilingual prompt structure
-            let prefix = '[Descripción narrativa fotográfica definitiva en ESPAÃ‘OL, enfocada puramente en lo visual].';
+            let prefix = '[Descripci\u00f3n narrativa fotogr\u00e1fica definitiva en ESPA\u00c3\u2018OL, enfocada puramente en lo visual].';
             if (estilo === 'folded') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment perfectly folded on a professional surface, focusing entirely on texture and material, with NO human presence."';
             else if (estilo === 'hanger') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment professionally hanging on a luxury hanger, with NO human presence."';
 
@@ -3952,8 +3952,8 @@
             if (d.TOMAS && Array.isArray(d.TOMAS) && d.TOMAS.length > 0) {
                 out += `\nSCENES:\n`;
                 d.TOMAS.forEach(t => {
-                    out += `[${t.id_toma}] (${t.duracion}): ${t.descripcion_español}\n`;
-                    out += `   🤖 Prompt: ${t.visual_prompt}\n\n`;
+                    out += `[${t.id_toma}] (${t.duracion}): ${t.descripcion_espa\u00f1ol}\n`;
+                    out += `   \ud83e\udd16 Prompt: ${t.visual_prompt}\n\n`;
                 });
             }
 
@@ -3977,11 +3977,11 @@
         if (isReorderMode) {
             // SALIENDO del modo reordenar
             if (hasUnsavedChanges) {
-                if (confirm("Tienes cambios en el orden sin guardar. Â¿Deseas descartar los cambios y volver al orden original?")) {
+                if (confirm("Tienes cambios en el orden sin guardar. \u00c2\u00bfDeseas descartar los cambios y volver al orden original?")) {
                     revertirOrden();
                     isReorderMode = false;
                     hasUnsavedChanges = false;
-                    log("Cambios descartados. Se restauró el orden original.", 'info');
+                    log("Cambios descartados. Se restaur\u00f3 el orden original.", 'info');
                 } else {
                     return; // Se queda en modo reordenar
                 }
@@ -3992,7 +3992,7 @@
             // ENTRANDO al modo reordenar
             capturarSnapshot();
             isReorderMode = true;
-            log("Modo Reordenar: Drag and Drop activado. La subida está pausada.", 'warning');
+            log("Modo Reordenar: Drag and Drop activado. La subida est\u00e1 pausada.", 'warning');
         }
 
         actualizarUIModoOrden();
@@ -4072,11 +4072,11 @@
 
 
 
-    // --- AUDITORÃA DE GASTOS IA ---
+    // --- AUDITOR\u00c3\u008dA DE GASTOS IA ---
     function mostrarAuditoriaGastosIA() {
         Swal.fire({
-            title: 'Cargando Auditoría...',
-            html: '<div class="text-slate-400">Consultando base de datos de producción...</div>',
+            title: 'Cargando Auditor\u00eda...',
+            html: '<div class="text-slate-400">Consultando base de datos de producci\u00f3n...</div>',
             allowOutsideClick: false,
             didOpen: () => { Swal.showLoading(); }
         });
@@ -4088,17 +4088,17 @@
 
                 Swal.fire({
                     width: '500px',
-                    title: '<span class="text-slate-100 font-bold text-2xl">Auditoría de Producción IA</span>',
+                    title: '<span class="text-slate-100 font-bold text-2xl">Auditor\u00eda de Producci\u00f3n IA</span>',
                     html: `
                         <div class="space-y-4 pt-4">
-                            <!-- Sección Cuentas -->
+                            <!-- Secci\u00f3n Cuentas -->
                             <div class="bg-slate-900/80 border border-slate-700/50 p-6 rounded-2xl space-y-4">
                                 <div class="flex items-center justify-between group">
                                     <div class="flex items-center gap-3">
                                         <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
                                             <i class="material-icons text-sm">image</i>
                                         </div>
-                                        <span class="text-slate-300 font-medium">Imágenes Generadas</span>
+                                        <span class="text-slate-300 font-medium">Im\u00e1genes Generadas</span>
                                     </div>
                                     <span class="text-white font-mono font-bold text-lg">$ ${fmt(d.imagen)}</span>
                                 </div>
@@ -4107,7 +4107,7 @@
                                         <div class="p-2 bg-rose-500/10 rounded-lg text-rose-400">
                                             <i class="material-icons text-sm">movie</i>
                                         </div>
-                                        <span class="text-slate-300 font-medium">Vídeos (VEO)</span>
+                                        <span class="text-slate-300 font-medium">V\u00eddeos (VEO)</span>
                                     </div>
                                     <span class="text-white font-mono font-bold text-lg">$ ${fmt(d.video)}</span>
                                 </div>
@@ -4120,7 +4120,7 @@
                             </div>
 
                             <p class="text-[10px] text-slate-500 italic text-center mt-6">
-                                * Auditoría basada en ${d.count} registros históricos.
+                                * Auditor\u00eda basada en ${d.count} registros hist\u00f3ricos.
                             </p>
                         </div>
                     `,

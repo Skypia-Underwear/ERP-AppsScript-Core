@@ -839,7 +839,7 @@
   // Botones de Estado
   var btnStatComplete = document.getElementById('btn-stat-complete'), btnStatPending = document.getElementById('btn-stat-pending'), btnStatCanceled = document.getElementById('btn-stat-canceled');
 
-  // Botón Limpiar (FAB)
+  // Bot\u00f3n Limpiar (FAB)
   var fabClearBtn = document.getElementById('fab-clear');
 
   var formatMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }), parseMonto = (val) => (typeof val === 'number' && !isNaN(val)) ? val : 0;
@@ -924,7 +924,7 @@
               <div class="space-y-1 text-sm mb-3 relative z-10">
                 <div class="flex justify-between text-slate-400"><span>Monto Productos:</span> <span>${formatMoneda.format(s.montoProductos || 0)}</span></div>
                 ${s.recargoMenor > 0 ? `<div class="flex justify-between text-orange-400"><span>Recargo Menor:</span><span>+${formatMoneda.format(s.recargoMenor)}</span></div>` : ''}
-                ${s.costoEnvio > 0 ? `<div class="flex justify-between text-blue-400"><span>Envío:</span><span>+${formatMoneda.format(s.costoEnvio)}</span></div>` : ''}
+                ${s.costoEnvio > 0 ? `<div class="flex justify-between text-blue-400"><span>Env\u00edo:</span><span>+${formatMoneda.format(s.costoEnvio)}</span></div>` : ''}
                 ${s.pagoEfectivo > 0 ? `<div class="flex justify-between text-emerald-400"><span>Pago Efectivo:</span><span>-${formatMoneda.format(s.pagoEfectivo)}</span></div>` : ''}
                 <div class="border-b border-slate-700 my-1"></div>
                 <div class="flex justify-between text-slate-200 font-bold"><span>Subtotal:</span> <span>${formatMoneda.format(s.subtotal || 0)}</span></div>
@@ -999,12 +999,12 @@
       const pendingStatuses = ['SOLICITADO'];
       const completeStatuses = ['COMPLETADA', 'ENTREGADO', 'PAGADO'];
 
-      // 1. FILTRADO LÃ“GICO
+      // 1. FILTRADO L\u00c3\u201cGICO
       const filtered = data.filter(s => {
-        // Búsqueda Texto
+        // B\u00fasqueda Texto
         if (!(s.id.toLowerCase().includes(search) || s.nombreCliente.toLowerCase().includes(search) || s.asesor.toLowerCase().includes(search))) return false;
 
-        // Filtros Select / Jerarquía
+        // Filtros Select / Jerarqu\u00eda
         if (fOri && s.tiendaId !== fOri) return false;
         if (fTipo && s.tipoVenta !== fTipo) return false;
 
@@ -1017,7 +1017,7 @@
 
         if (fStat && s.estado !== fStat) return false;
 
-        // Multi-selección de Pagos
+        // Multi-selecci\u00f3n de Pagos
         if (activePaymentFilters.size > 0 && !activePaymentFilters.has(s.metodoPago)) return false;
 
         // Fechas
@@ -1059,14 +1059,14 @@
     } catch (e) {
       console.error("Error en renderTable:", e);
     } finally {
-      // Desbloqueamos el semáforo SIEMPRE al terminar, haya error o no
+      // Desbloqueamos el sem\u00e1foro SIEMPRE al terminar, haya error o no
       isRendering = false;
     }
   }
 
   function initDataTable() {
     try {
-      // Destruir si ya existe para evitar errores de re-inicialización
+      // Destruir si ya existe para evitar errores de re-inicializaci\u00f3n
       if ($.fn.DataTable.isDataTable('#salesTable')) {
         $('#salesTable').DataTable().destroy();
       }
@@ -1106,7 +1106,7 @@
           info: "Mostrando _START_ a _END_ de _TOTAL_ ventas",
           infoEmpty: "No hay ventas para mostrar",
           infoFiltered: "(filtrado de _MAX_ totales)",
-          paginate: { first: "Â«", last: "Â»", next: "Sig", previous: "Prev" },
+          paginate: { first: "\u00c2\u00ab", last: "\u00c2\u00bb", next: "Sig", previous: "Prev" },
           emptyTable: "No se encontraron datos en el rango seleccionado"
         },
         columns: [
@@ -1174,7 +1174,7 @@
       });
 
       dtInstance.on('search.dt', function () {
-        // Solo re-renderizamos analíticas si NO estamos en medio de un proceso de redibujo
+        // Solo re-renderizamos anal\u00edticas si NO estamos en medio de un proceso de redibujo
         if (!isRendering) renderTable(allSalesData);
       });
     } catch (e) {
@@ -1186,7 +1186,7 @@
   function loadSalesData(force) {
     if (allSalesData.length && !force) { renderTable(allSalesData); return; }
 
-    // Si estamos en el Shell, usamos el estado global para una carga más limpia
+    // Si estamos en el Shell, usamos el estado global para una carga m\u00e1s limpia
     if (typeof setGlobalStatus === 'function') {
       setGlobalStatus(true, "Cloud Drive Sync...");
     } else {
@@ -1196,7 +1196,7 @@
     google.script.run.withSuccessHandler(resRaw => {
       if (typeof setGlobalStatus === 'function') setGlobalStatus(false);
       loadingSpinner.classList.add('hidden');
-      if (!resRaw) { showStatus('Error: Payload vacío o corrupto enviado por el servidor.', 'error'); return; }
+      if (!resRaw) { showStatus('Error: Payload vac\u00edo o corrupto enviado por el servidor.', 'error'); return; }
 
       let res = resRaw;
       if (typeof resRaw === 'string') {
@@ -1209,7 +1209,7 @@
         cajasMetadata = res.cajasMetadata || {};
         productImageMap = res.productImageMap || {};
 
-        // Aplanar Jerarquía para la tabla inicial
+        // Aplanar Jerarqu\u00eda para la tabla inicial
         allSalesData = [];
         Object.keys(fullHierarchy).forEach(ori => {
           Object.keys(fullHierarchy[ori]).forEach(boxId => {
@@ -1402,7 +1402,7 @@
     const T = new Map(), O = new Map(), P = new Map();
     const now = new Date();
 
-    // Configuración de límites de tiempo según modo
+    // Configuraci\u00f3n de l\u00edmites de tiempo seg\u00fan modo
     let startTime, endTime;
     if (currentTrendMode === 'today') {
       startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1435,25 +1435,25 @@
 
     const completeStatuses = ['COMPLETADA', 'ENTREGADO', 'PAGADO'];
 
-      // 1. Filtrado y Agrupación
+      // 1. Filtrado y Agrupaci\u00f3n
       d.filter(s => completeStatuses.includes(s.estado)).forEach(s => {
-        // Normalización robusta de la fecha (manejo de guiones y espacios)
+        // Normalizaci\u00f3n robusta de la fecha (manejo de guiones y espacios)
         const datePart = s.fecha.split(' ')[0].replace(/-/g, '/');
         const timePart = s.fecha.split(' ')[1] || '00:00';
         const sDate = new Date(`${datePart} ${timePart}`);
 
         const grossTotal = s.total + (s.pagoEfectivo || 0);
 
-        // Filtro de rango de tiempo (Solo si hay límites definidos)
+        // Filtro de rango de tiempo (Solo si hay l\u00edmites definidos)
         if (startTime && sDate < startTime) return;
         if (endTime && sDate > endTime) return;
 
-        // 1. Lógica de Agrupación para Tendencia (X-Axis)
+        // 1. L\u00f3gica de Agrupaci\u00f3n para Tendencia (X-Axis)
         let key;
         if (currentTrendMode === 'today' || currentTrendMode === 'yesterday' || isSingleDay) {
           key = sDate.getHours().toString().padStart(2, '0') + ':00';
         } else if (currentTrendMode === 'week') {
-          const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+          const days = ['Dom', 'Lun', 'Mar', 'Mi\u00e9', 'Jue', 'Vie', 'S\u00e1b'];
           key = days[sDate.getDay()];
         } else if (currentTrendMode === 'month') {
           key = sDate.getDate().toString();
@@ -1461,7 +1461,7 @@
           const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
           key = months[sDate.getMonth()];
         } else if (currentTrendMode === 'history') {
-          // Histórico siempre agrupa por Mes Año para visión de largo plazo
+          // Hist\u00f3rico siempre agrupa por Mes A\u00f1o para visi\u00f3n de largo plazo
           const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
           key = `${months[sDate.getMonth()]} ${sDate.getFullYear().toString().slice(-2)}`;
         } else {
@@ -1494,8 +1494,8 @@
           trendData.push([h, T.get(h) || 0]);
         }
       } else if (currentTrendMode === 'week') {
-        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        // Reordenar para que empiece desde hace 7 días
+        const days = ['Dom', 'Lun', 'Mar', 'Mi\u00e9', 'Jue', 'Vie', 'S\u00e1b'];
+        // Reordenar para que empiece desde hace 7 d\u00edas
         for (let i = 6; i >= 0; i--) {
           const d = new Date(); d.setDate(d.getDate() - i);
           const dayLabel = days[d.getDay()];
@@ -1507,7 +1507,7 @@
           trendData.push([i.toString(), T.get(i.toString()) || 0]);
         }
       } else {
-        // Ordenamiento Cronológico Robusto
+        // Ordenamiento Cronol\u00f3gico Robusto
         const monthMap = { 'Ene': 0, 'Feb': 1, 'Mar': 2, 'Abr': 3, 'May': 4, 'Jun': 5, 'Jul': 6, 'Ago': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dic': 11 };
         trendData = Array.from(T.entries()).sort((a, b) => {
           const partsA = a[0].split(' '), partsB = b[0].split(' ');
@@ -1528,7 +1528,7 @@
 
     window.setTrendMode = function (mode, btn) {
       currentTrendMode = mode;
-      // Solo limpiamos fechas para el modo HISTÃ“RICO TOTAL
+      // Solo limpiamos fechas para el modo HIST\u00c3\u201cRICO TOTAL
       if (mode === 'history') {
         filterDateStart.value = '';
         filterDateEnd.value = '';
@@ -1539,7 +1539,7 @@
     function renderCharts(c) {
       if (typeof Chart === 'undefined') return;
 
-      // Método ultra-seguro para destruir gráficos previos por ID de Canvas
+      // M\u00e9todo ultra-seguro para destruir gr\u00e1ficos previos por ID de Canvas
       ['dailySalesChart', 'salesByOriginChart', 'paymentMethodChart'].forEach(id => {
         const existingChart = Chart.getChart(id);
         if (existingChart) existingChart.destroy();
@@ -1547,7 +1547,7 @@
 
       const dailyEl = document.getElementById('dailySalesChart');
       if (dailyEl) {
-        // Configuración dinámica de colores para el modo Mes y Año
+        // Configuraci\u00f3n din\u00e1mica de colores para el modo Mes y A\u00f1o
         let bgColors = 'rgba(99,102,241,0.1)';
         let borderColors = '#6366f1';
         let pointColors = '#6366f1';
@@ -1569,7 +1569,7 @@
             return '#ec4899';
           });
         } else if (currentTrendMode === 'manual' || currentTrendMode === 'year' || currentTrendMode === 'history') {
-          // Colores por Año: 23 (Esmeralda), 24 (Indigo), 25 (Ambar)
+          // Colores por A\u00f1o: 23 (Esmeralda), 24 (Indigo), 25 (Ambar)
           borderColors = c.trend.map(t => {
             const yr = t[0].split(' ').pop();
             return yr === '23' ? '#10b981' : (yr === '25' ? '#f59e0b' : '#6366f1');
@@ -1685,7 +1685,7 @@
       if (typeof Chart === 'undefined' || typeof $ === 'undefined' || !$.fn.DataTable) {
         initAttempts++;
         if (initAttempts > 100) { // Aumentado a 10s
-          console.warn('Advertencia: Librerías demorando... forzando carga de datos.');
+          console.warn('Advertencia: Librer\u00edas demorando... forzando carga de datos.');
           loadSalesData(true);
           return;
         }

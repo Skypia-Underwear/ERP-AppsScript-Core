@@ -1431,18 +1431,18 @@
         updateTpvTotals();
       };
 
-      // Ejecuci ƒÂ³n inmediata
+      // Ejecuci \u0192\u00c2\u00b3n inmediata
       initTPV();
 
       window.openCheckoutModal = function () {
         if (cart.length === 0) {
-          alert("El carrito está vacío");
+          alert("El carrito est\u00e1 vac\u00edo");
           return;
         }
 
         const isQr = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
 
-        // Renderizar m ƒÂ©todos de pago
+        // Renderizar m \u0192\u00c2\u00a9todos de pago
         renderPaymentMethods('payment-methods-grid');
         renderPaymentMethods('qr-payment-methods-grid');
 
@@ -1539,15 +1539,15 @@
           const userRole = (user ? user.role : '').toUpperCase();
           const sellerId = sessionStorage.getItem('userPassword');
 
-          // 1. Obtener Catálogo (Aumentado con Metadatos Estáticos)
+          // 1. Obtener Cat\u00e1logo (Aumentado con Metadatos Est\u00e1ticos)
           const cat = await window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
-          if (!cat) throw new Error("No se pudo cargar el catálogo de productos.");
+          if (!cat) throw new Error("No se pudo cargar el cat\u00e1logo de productos.");
 
-          // Sincronizar variables (local y global para depuración)
+          // Sincronizar variables (local y global para depuraci\u00f3n)
           catalog = cat;
           window.catalog = cat;
 
-          // 2. Rehidratar posMetadata desde el Catálogo (Cero latencia de servidor)
+          // 2. Rehidratar posMetadata desde el Cat\u00e1logo (Cero latencia de servidor)
           const globalCfg = cat.generalConfig || {};
           posMetadata = {
             success: true,
@@ -1562,13 +1562,13 @@
             managedStoreId: managedStore
           };
 
-          // Enriquecer con Configuración específica de la tienda si existe
+          // Enriquecer con Configuraci\u00f3n espec\u00edfica de la tienda si existe
           if (managedStore && cat.stores[managedStore] && cat.stores[managedStore].config) {
             posMetadata.storeConfig = cat.stores[managedStore].config;
             posMetadata.printerIp = cat.stores[managedStore].config.printerIp;
             posMetadata.printSettings = cat.stores[managedStore].config.printSettings;
           } else {
-            // Fallback a Configuración global (MODO_VENTA del CSV/Tabla General)
+            // Fallback a Configuraci\u00f3n global (MODO_VENTA del CSV/Tabla General)
             posMetadata.storeConfig = {
               saleMode: globalCfg.MODO_VENTA || globalCfg.TIPO_MODO_VENTA || "BOTONES DE FILTRADO",
               minorSurcharge: 0,
@@ -1579,7 +1579,7 @@
           window.posMetadata = posMetadata;
           if (posMetadata.priceConfig) priceConfig = posMetadata.priceConfig;
 
-          // 3. Lógica de Selección de Tienda para ADMIN
+          // 3. L\u00f3gica de Selecci\u00f3n de Tienda para ADMIN
           if (userRole === 'ADMIN' && managedStore === "TODAS") {
             const allStores = Object.keys(cat.stores).map(id => ({ id: id, name: cat.stores[id].name }));
             if (allStores.length > 1) {
@@ -1628,7 +1628,7 @@
       async function finalizeTpvInit(storeId) {
         posMetadata.managedStoreId = storeId;
 
-        // 1. Obtener Datos VOL TILES (Caja, Sesión) - Nueva función ligera
+        // 1. Obtener Datos VOL \u0081TILES (Caja, Sesi\u00f3n) - Nueva funci\u00f3n ligera
         google.script.run
           .withFailureHandler(err => { console.warn("Fallo DynamicStatus:", err); })
           .withSuccessHandler(res => {
@@ -1646,17 +1646,17 @@
           })
           .getStoreDynamicStatus(storeId, posMetadata.sellerId);
 
-        // 2. Aplicar Modo de Venta (desde Catálogo)
+        // 2. Aplicar Modo de Venta (desde Cat\u00e1logo)
         var rawMode = (posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
         setTpvMode(rawMode);
 
-        // 3. Popular UI con Metadatos del Catálogo
+        // 3. Popular UI con Metadatos del Cat\u00e1logo
         const transSel = document.getElementById('tpv-transfer-account');
         if (posMetadata.transferAccounts && transSel) {
           transSel.innerHTML = posMetadata.transferAccounts.map(a => `<option value="${a.id}">${a.alias} - ${a.name}</option>`).join('');
         }
 
-        // 4. Stock Específico de Tienda (Carga rápida desde Caché)
+        // 4. Stock Espec\u00edfico de Tienda (Carga r\u00e1pida desde Cach\u00e9)
         google.script.run
           .withFailureHandler(err => { console.warn("Fallo StockCache:", err); })
           .withSuccessHandler(data => {
@@ -1670,7 +1670,7 @@
           .withUserObject(storeId)
           .getAllStockFromCache(storeId);
 
-        // 5. Procesar Catálogo de Productos (Local)
+        // 5. Procesar Cat\u00e1logo de Productos (Local)
         if (catalog) {
           // Filtrado estricto por tienda y enriquecimiento de variedades
           catalog.products = catalog.products.map(p => {
@@ -1700,9 +1700,9 @@
 
         const btnStandard = document.getElementById('btn-process-checkout');
         const btnQr = document.getElementById('btn-qr-process-sale');
-        const btnRegVenta = document.querySelector('.tpv-btn-primary-large'); // Botón de la barra lateral
+        const btnRegVenta = document.querySelector('.tpv-btn-primary-large'); // Bot\u00f3n de la barra lateral
 
-        // Determinar estado basado en sesión y horario
+        // Determinar estado basado en sesi\u00f3n y horario
         if (!session.isWithinSchedule) {
           color = "bg-red-500 animate-pulse";
           statusText = "Fuera de Horario (" + session.horario.apertura + " - " + session.horario.cierre + ")";
@@ -1731,7 +1731,7 @@
           if (btnQr) btnQr.innerText = "REGISTRAR VENTA";
         } else {
           color = "bg-amber-500";
-          statusText = "Caja Pendiente (Sesión: " + session.storeId + ")";
+          statusText = "Caja Pendiente (Sesi\u00f3n: " + session.storeId + ")";
 
           [btnStandard, btnQr, btnRegVenta].forEach(b => {
             if (b) {
@@ -1769,11 +1769,11 @@
       }
 
       function copyCartToWhatsApp() {
-        if (cart.length === 0) return alert("Carrito vacío");
+        if (cart.length === 0) return alert("Carrito vac\u00edo");
         var text = "*PRESUPUESTO HOSTINGSHOP*\n--------------------------\n";
         cart.forEach(function (i) {
-          text += "â€¢ " + i.model + " (" + i.color + "/" + i.size + ")" +
-            (i.tipoPrecio && i.tipoPrecio !== 'Estándar' ? " [" + i.tipoPrecio + "]" : "") +
+          text += "\u00e2\u20ac\u00a2 " + i.model + " (" + i.color + "/" + i.size + ")" +
+            (i.tipoPrecio && i.tipoPrecio !== 'Est\u00e1ndar' ? " [" + i.tipoPrecio + "]" : "") +
             "\n  " + i.quantity + " x $" + i.price.toLocaleString() + " = $" + (i.price * i.quantity).toLocaleString() + "\n";
         });
         var total = document.getElementById('total-amount').innerText;
@@ -1870,7 +1870,7 @@
 
         // === JERARQUIA: COMBOS > LINEA (PADRE) > PRODUCTO (CATEGORIA) ===
 
-        // 0. SECCION DE COMBOS (Básico por ahora, filtrando productos con variedad "Combo")
+        // 0. SECCION DE COMBOS (B\u00e1sico por ahora, filtrando productos con variedad "Combo")
         var hasCombos = catalog.products.some(p => (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo')));
         if (hasCombos) {
           var comboGroup = document.createElement('div');
@@ -1888,7 +1888,7 @@
               currentTpvFilters.isCombo = false;
             } else {
               // Limpiar otros filtros para ver solo combos? O combinarlos?
-              // El usuario dijo "filtrado anidado a categorías", pero también "botón destacado".
+              // El usuario dijo "filtrado anidado a categor\u00edas", pero tambi\u00e9n "bot\u00f3n destacado".
               // Por ahora, actuamos como toggle.
               currentTpvFilters.parent = 'ALL';
               currentTpvFilters.cat = 'ALL';
@@ -2019,7 +2019,7 @@
           var imgHtml = "<div class='product-img-container'>" +
             (p.image
               ? "<img src='" + p.image + "' style='width:100%;height:100%;object-fit:cover;' alt='" + p.model + "' loading='lazy'>"
-              : "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg-main);opacity:0.3;'>👕</div>"
+              : "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg-main);opacity:0.3;'>\ud83d\udc55</div>"
             ) + badgesHtml + "</div>";
 
           var priceHtml = checkIsPrecioVariable() ? '' : "<div class='product-price'>$" + (p.price || 0).toLocaleString() + "</div>";
@@ -2171,7 +2171,7 @@
             vBtn.innerHTML =
               '<span>' + v.nombre + '</span>' +
               '<span class="variety-price-tag">$' + (v.precio_unitario || 0).toLocaleString() + '</span>' +
-              '<span class="variety-qty-tag">Mín: ' + (v.cantidad_minima || 1) + ' u.</span>';
+              '<span class="variety-qty-tag">M\u00edn: ' + (v.cantidad_minima || 1) + ' u.</span>';
 
             vBtn.onclick = function () {
               document.querySelectorAll('.variety-modal-btn').forEach(b => b.classList.remove('active'));
@@ -2224,7 +2224,7 @@
           const btn = Array.from(colorCont.children).find(b => b.innerText === scan.color);
           if (btn) btn.click();
         } else if (colors.length === 1 && !curvaState.active) {
-          // AUTO-SELECCI “N: Si hay un solo color, seleccionarlo por defecto
+          // AUTO-SELECCI \u201cN: Si hay un solo color, seleccionarlo por defecto
           const onlyBtn = colorCont.querySelector('.color-btn');
           if (onlyBtn) onlyBtn.click();
         }
@@ -2302,7 +2302,7 @@
             container.appendChild(btnPlus);
             wrapper.appendChild(container);
           } else {
-            // MODO EST ƒÂNDAR: Bot ƒÂ³n simple
+            // MODO EST \u0192\u00c2\u0081NDAR: Bot \u0192\u00c2\u00b3n simple
             const btn = document.createElement('button');
             btn.className = `size-btn ${currentStock > 0 ? 'in-stock' : 'out-of-stock'}`;
             btn.innerText = v.size;
@@ -2341,7 +2341,7 @@
         if (!sizes || !colors) return;
 
         // HEAD
-        head.innerHTML = '<tr><th>Variaci ƒÂ³n</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
+        head.innerHTML = '<tr><th>Variaci \u0192\u00c2\u00b3n</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
 
         // BODY
         body.innerHTML = '';
@@ -2396,12 +2396,12 @@
               hint.innerText = (stock > 100 ? '99+' : stock);
               td.appendChild(hint);
             } else {
-              td.innerHTML = '<span style="color:#cbd5e1"> ¢â‚¬â€</span>';
+              td.innerHTML = '<span style="color:#cbd5e1"> \u00a2\u00e2\u201a\u00ac\u00e2\u20ac\u009d</span>';
             }
             tr.appendChild(td);
           });
 
-          // Celda Bot ƒÂ³n (+) Curva
+          // Celda Bot \u0192\u00c2\u00b3n (+) Curva
           const tdCurva = document.createElement('td');
           const btn = document.createElement('button');
           btn.className = 'btn-row-curva';
@@ -2487,7 +2487,7 @@
         colTotals.forEach(total => {
           footHtml += '<td style="border:none; background:transparent;">' + total + '</td>';
         });
-        footHtml += '<td style="border:none; background:transparent;">â€”</td></tr>';
+        footHtml += '<td style="border:none; background:transparent;">\u00e2\u20ac\u201d</td></tr>';
 
         // Status row below totals
         footHtml += '<tr><td style="text-align:right; font-weight:800; border:none; background:transparent;">ESTADO:</td>';
@@ -2504,7 +2504,7 @@
 
           footHtml += '<td style="border:none; background:transparent;"><span class="col-status-indicator ' + statusClass + '">' + statusText + '</span></td>';
         });
-        footHtml += '<td style="border:none; background:transparent;">â€”</td></tr>';
+        footHtml += '<td style="border:none; background:transparent;">\u00e2\u20ac\u201d</td></tr>';
         foot.innerHTML = footHtml;
 
         // Update Global UI
@@ -2514,7 +2514,7 @@
             counter.style.color = 'var(--success)';
           }
           if (msg) {
-            msg.innerText = 'Â¡Curva perfecta! Ya puedes añadir al carrito.';
+            msg.innerText = '\u00c2\u00a1Curva perfecta! Ya puedes a\u00f1adir al carrito.';
             msg.style.color = 'var(--success)';
           }
           btnConfirm.disabled = false;
@@ -2573,7 +2573,7 @@
               realStockCache.map = data.stockMap;
               realStockCache.lastUpdate = new Date();
               console.log("  Stock actualizado manualmente.");
-              // Si el modal est ƒÂ¡ abierto, refrescar talle
+              // Si el modal est \u0192\u00c2\u00a1 abierto, refrescar talle
               const activeColorBtn = document.querySelector('.color-btn.active');
               if (activeColorBtn) {
                 const modalTitle = document.getElementById('modal-product-title').innerText;
@@ -2611,7 +2611,7 @@
         const varId = variation.variation_id;
         const available = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
 
-        // En modo PRECIO VARIABLE: precio y cantidad m ƒÂ­nima vienen de la variedad
+        // En modo PRECIO VARIABLE: precio y cantidad m \u0192\u00c2\u00adnima vienen de la variedad
         const isPrecioVariable = checkIsPrecioVariable();
         const itemPrice = isPrecioVariable && variety ? variety.precio_unitario : product.price;
 
@@ -2659,7 +2659,7 @@
         cart.forEach(function (item, index) {
           dt.row.add([
             "<div style='font-weight:600'>" + item.model + "</div>",
-            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || 'â€”') + "</span>",
+            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '\u00e2\u20ac\u201d') + "</span>",
             "<div style='font-size:0.85rem;'>" + item.color + " / " + item.size + "</div>",
             "<input type='number' class='qty-input' value='" + item.quantity + "' min='" + (item.min_qty || 1) + "' step='" + (item.min_qty || 1) + "' onchange='updateTpvQty(" + index + ", this.value)'>",
             "$" + (item.price * item.quantity).toLocaleString(),
@@ -2676,7 +2676,7 @@
         let newQty = parseInt(val) || (item.min_qty || 1);
         const minQty = item.min_qty || 1;
 
-        // Asegurar que sea múltiplo del mínimo
+        // Asegurar que sea m\u00faltiplo del m\u00ednimo
         if (newQty % minQty !== 0) {
           newQty = Math.round(newQty / minQty) * minQty;
         }
@@ -2685,8 +2685,8 @@
         const available = (realStockCache.map && realStockCache.map[item.variation_id] !== undefined) ? realStockCache.map[item.variation_id] : 0;
 
         if (newQty > available) {
-          alert("Stock insuficiente. Máximo disponible: " + available);
-          // Ajustar al máximo múltiplo posible
+          alert("Stock insuficiente. M\u00e1ximo disponible: " + available);
+          // Ajustar al m\u00e1ximo m\u00faltiplo posible
           item.quantity = Math.floor(available / minQty) * minQty;
         } else {
           item.quantity = newQty;
@@ -2700,7 +2700,7 @@
         var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
         const isPrecioVariable = checkIsPrecioVariable();
 
-        // A. C ƒÂ¡lculos Base
+        // A. C \u0192\u00c2\u00a1lculos Base
         const montoProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const totalUnitsSize = cart.reduce((acc, i) => acc + i.quantity, 0);
 
@@ -2762,11 +2762,11 @@
 
         let paymentSurcharge = 0;
 
-        // La validación cruzada recae sobre el botón de desactivar operado por el TPV
+        // La validaci\u00f3n cruzada recae sobre el bot\u00f3n de desactivar operado por el TPV
         const m = posMetadata.paymentMethods.find(pm => pm.id === method);
         const percent = m ? m.percent : 0;
 
-        // Ocultar/Mostrar checkbox de recargo según proceda
+        // Ocultar/Mostrar checkbox de recargo seg\u00fan proceda
         const surchargeContId = isQr ? 'qr-tpv-surcharge-container' : 'tpv-surcharge-container';
         const surchargeCont = document.getElementById(surchargeContId);
         if (surchargeCont) surchargeCont.style.display = (percent > 0) ? 'flex' : 'none';
@@ -2777,7 +2777,7 @@
 
         const totalFinal = subtotalNeto + paymentSurcharge;
 
-        // F. Sincronización UI
+        // F. Sincronizaci\u00f3n UI
         const sidebarSubtotal = document.getElementById('tpv-sidebar-subtotal');
         if (sidebarSubtotal) sidebarSubtotal.innerText = '$' + montoProductos.toLocaleString();
 
@@ -2826,7 +2826,7 @@
         const preModal = isQr ? 'qr-tpv-modal-' : 'tpv-modal-';
 
         const confirmMsg = document.getElementById(preModal + 'final-total')?.innerText || "esta venta";
-        if (!confirm("Â¿Confirmar venta por " + confirmMsg + "?")) return;
+        if (!confirm("\u00c2\u00bfConfirmar venta por " + confirmMsg + "?")) return;
 
         const subtotalProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const method = document.getElementById(pre + 'tpv-payment-method')?.value || 'Efectivo';
@@ -2834,7 +2834,7 @@
         const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount')?.value) || 0;
         const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account')?.value : '';
 
-        // Función auxiliar para extraer números de texto con formato (moneda)
+        // Funci\u00f3n auxiliar para extraer n\u00fameros de texto con formato (moneda)
         const parseCurrency = (id) => {
           const el = document.getElementById(id);
           if (!el) return 0;
@@ -2873,7 +2873,7 @@
         // PERSISTENCIA
         saveToLocalQueue(saleData);
 
-        // IMPRESI “N OPTIMISTA
+        // IMPRESI \u201cN OPTIMISTA
         try {
           var printData = generateTicketLocal(saleData);
           sendToTpvPrinter(printData);
@@ -2888,7 +2888,7 @@
       };
 
       function generateTicketLocal(sale) {
-        if (!catalog || !catalog.stores) throw new Error("Catálogo no disponible para impresión");
+        if (!catalog || !catalog.stores) throw new Error("Cat\u00e1logo no disponible para impresi\u00f3n");
         const store = catalog.stores[sale.storeId] || { name: "SHOP", address: "", phone: "" };
         const settings = posMetadata.printSettings || { copias: 1, sonido: "0", marketing: "" };
 
@@ -3025,7 +3025,7 @@
         setInterval(syncLocalQueue, 30000); // Cada 30 seg
       }
 
-      // Se eliminó handleTpvPrinting por redundancia
+      // Se elimin\u00f3 handleTpvPrinting por redundancia
 
       async function sendToTpvPrinter(p) {
         console.log("[Printer] Enviando comando a:", p.printer_ip);

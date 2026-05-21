@@ -552,7 +552,7 @@
                         if (res.aiReason) {
                             const borderColor = res.verified ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5';
                             const iconColor = res.verified ? 'text-emerald-400' : 'text-amber-400';
-                            feedbackHtml = ` <div class="mt-4 text-left p-3 rounded-lg border ${borderColor}" > <div class="flex items-center gap-2 mb-1" > <span class="material-icons text-sm ${iconColor}" >smart_toy</span> <span class="text-xs font-bold text-slate-400 uppercase tracking-wider" >Análisis de Agente IA</span> </div> <p class="text-xs text-slate-300 leading-relaxed italic" >"${res.aiReason}" </p> </div> `;
+                            feedbackHtml = ` <div class="mt-4 text-left p-3 rounded-lg border ${borderColor}" > <div class="flex items-center gap-2 mb-1" > <span class="material-icons text-sm ${iconColor}" >smart_toy</span> <span class="text-xs font-bold text-slate-400 uppercase tracking-wider" >An\u00e1lisis de Agente IA</span> </div> <p class="text-xs text-slate-300 leading-relaxed italic" >"${res.aiReason}" </p> </div> `;
                         }
 
                         if (res.verified) {
@@ -562,7 +562,7 @@
                         }
 
                         else {
-                            resultDiv.innerHTML = ` <div class="max-w-md mx-auto bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl shadow-2xl" > <span class="material-icons text-4xl text-amber-500 mb-2" >fact_check</span> <h3 class="text-xl font-bold text-white mb-2" >Revisión Requerida</h3> <p class="text-slate-300 text-sm mb-4" >${res.message}</p>${feedbackHtml}
+                            resultDiv.innerHTML = ` <div class="max-w-md mx-auto bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl shadow-2xl" > <span class="material-icons text-4xl text-amber-500 mb-2" >fact_check</span> <h3 class="text-xl font-bold text-white mb-2" >Revisi\u00f3n Requerida</h3> <p class="text-slate-300 text-sm mb-4" >${res.message}</p>${feedbackHtml}
 
                         <div class="mt-6" > <button onclick="location.reload()" class="w-full bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-bold transition" > Continuar </button> </div> </div> `;
                         }

@@ -546,7 +546,7 @@
 </div>
 
 <script>
-  // Inyección de URLs para modo Standalone
+  // Inyecci\u00f3n de URLs para modo Standalone
   var CATALOG_URL = "<?!= CATALOG_URL ?>";
   var CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
 
@@ -555,11 +555,11 @@
   var selectedImageIds = selectedImageIds || [];
   var selectedProduct = selectedProduct || null;
 
-  // Inicialización robusta (Compatible con Shell SPA y Standalone)
+  // Inicializaci\u00f3n robusta (Compatible con Shell SPA y Standalone)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    // Si el Shell ya cargó el DOM, ejecutamos inmediatamente con un pequeño delay de seguridad
+    // Si el Shell ya carg\u00f3 el DOM, ejecutamos inmediatamente con un peque\u00f1o delay de seguridad
     setTimeout(init, 100);
   }
 
@@ -584,7 +584,7 @@
         }
       }
 
-      // Caso B: Standalone - Intentar carga rápida desde red (Fetch)
+      // Caso B: Standalone - Intentar carga r\u00e1pida desde red (Fetch)
       if (CATALOG_URL && CATALOG_URL !== "undefined") {
         try {
           const response = await fetch(CATALOG_URL);
@@ -606,23 +606,23 @@
       }).tpv_obtenerCatalogoDesdeDrive();
 
     } catch (e) {
-      console.error("Error crítico cargando catálogo:", e);
+      console.error("Error cr\u00edtico cargando cat\u00e1logo:", e);
     }
   }
 
   function processCatalogData(data) {
     if (!data) return;
 
-    // El catálogo puede venir como objeto {products:[]} o directamente []
+    // El cat\u00e1logo puede venir como objeto {products:[]} o directamente []
     const products = data.products || data;
     if (!Array.isArray(products)) return;
 
     // Guardamos los objetos COMPLETOS para no perder metadatos (Material, Marca, etc)
     CATALOGO = products.map(p => {
-      // Normalizamos solo las claves básicas para los selectores, pero mantenemos el resto
+      // Normalizamos solo las claves b\u00e1sicas para los selectores, pero mantenemos el resto
       p._sku = p.id || p.sku || p.CODIGO_ID;
       p._nombre = p.model || p.nombre || p.NOMBRE_PRODUCTO || "Sin Nombre";
-      p._categoria = p.categoryName || p.categoria || "Sin Categoría";
+      p._categoria = p.categoryName || p.categoria || "Sin Categor\u00eda";
       return p;
     });
 
@@ -632,7 +632,7 @@
 
   function populateCategories() {
     const selector = document.getElementById('cat-selector');
-    selector.innerHTML = '<option value="">-- Elige Categoría --</option>';
+    selector.innerHTML = '<option value="">-- Elige Categor\u00eda --</option>';
 
     CATEGORIAS.clear();
     CATALOGO.forEach(p => CATEGORIAS.add(p._categoria));
@@ -681,7 +681,7 @@
       return;
     }
 
-    // Buscar coincidencias de SKU o Nombre en el catálogo
+    // Buscar coincidencias de SKU o Nombre en el cat\u00e1logo
     const matches = CATALOGO.filter(p => 
       (p._sku && p._sku.toLowerCase().includes(query)) || 
       (p._nombre && p._nombre.toLowerCase().includes(query))
@@ -726,7 +726,7 @@
     selectedProduct = prod;
     document.getElementById('lab-workspace').classList.remove('hidden');
 
-    // Sincronizar el selector de categorías si corresponde
+    // Sincronizar el selector de categor\u00edas si corresponde
     if (prod._categoria) {
       const catSelector = document.getElementById('cat-selector');
       if (catSelector.value !== prod._categoria) {
@@ -742,10 +742,10 @@
       try {
         imgs = typeof res === 'string' ? JSON.parse(res) : res;
       } catch (e) {
-        console.error("Error parseando imágenes:", e);
+        console.error("Error parseando im\u00e1genes:", e);
       }
 
-      // Limitamos a 10 imágenes como pidió el usuario
+      // Limitamos a 10 im\u00e1genes como pidi\u00f3 el usuario
       currentProductImages = imgs.slice(0, 10);
       renderAssetSelector(currentProductImages, prod);
     }).obtenerImagenesDeProducto(sku);
@@ -761,27 +761,27 @@
       try {
         imgs = typeof res === 'string' ? JSON.parse(res) : res;
       } catch (e) {
-        console.error("Error parseando imágenes:", e);
+        console.error("Error parseando im\u00e1genes:", e);
       }
 
       currentProductImages = imgs.slice(0, 10);
       
-      // Volver a renderizar la grilla de selección de forma silenciosa
+      // Volver a renderizar la grilla de selecci\u00f3n de forma silenciosa
       renderAssetSelector(currentProductImages, selectedProduct, true);
 
-      // Restaurar la selección previa filtrando solo los IDs que siguen existiendo en el nuevo set
+      // Restaurar la selecci\u00f3n previa filtrando solo los IDs que siguen existiendo en el nuevo set
       selectedImageIds = previousSelection.filter(id => 
         currentProductImages.some(img => (img.IMAGEN_ID || img.ID).toString() === id.toString())
       );
 
-      // Si por algún motivo quedó vacío y hay imágenes, auto-seleccionar la primera
+      // Si por alg\u00fan motivo qued\u00f3 vac\u00edo y hay im\u00e1genes, auto-seleccionar la primera
       if (selectedImageIds.length === 0 && currentProductImages.length > 0) {
         selectedImageIds.push((currentProductImages[0].IMAGEN_ID || currentProductImages[0].ID).toString());
       }
 
       updateAssetGridVisuals();
 
-      // En un refresco silencioso NO llamamos a selectImageDisplay para no ocultar el panel de análisis forense
+      // En un refresco silencioso NO llamamos a selectImageDisplay para no ocultar el panel de an\u00e1lisis forense
     }).obtenerImagenesDeProducto(sku);
   }
 
@@ -794,7 +794,7 @@
     }
 
     if (imgs.length === 0) {
-      grid.innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin imágenes</div>';
+      grid.innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin im\u00e1genes</div>';
       return;
     }
 
@@ -815,7 +815,7 @@
           ${idx + 1}
         </div>
         <div id="badge-${imgId}" class="absolute top-0 left-0 px-1 py-0.5 text-[9px] font-black hidden"></div>
-        <div id="forensic-indicator-${imgId}" class="absolute bottom-1 left-1 bg-slate-950/90 text-emerald-400 p-0.5 rounded border border-emerald-500/30 shadow-md ${hasForensic ? '' : 'hidden'}" title="Diagnóstico Forense Listo">
+        <div id="forensic-indicator-${imgId}" class="absolute bottom-1 left-1 bg-slate-950/90 text-emerald-400 p-0.5 rounded border border-emerald-500/30 shadow-md ${hasForensic ? '' : 'hidden'}" title="Diagn\u00f3stico Forense Listo">
           <span class="material-icons text-xs" style="font-size: 13px;">psychology</span>
         </div>
       `;
@@ -834,25 +834,25 @@
     const idx = selectedImageIds.indexOf(strId);
 
     if (idx > -1) {
-      // Si ya está seleccionado y hay otros, permitir deseleccionar
+      // Si ya est\u00e1 seleccionado y hay otros, permitir deseleccionar
       if (selectedImageIds.length > 1) {
         selectedImageIds.splice(idx, 1);
         updateAssetGridVisuals();
       } else {
-        return; // No dejar vacía la selección
+        return; // No dejar vac\u00eda la selecci\u00f3n
       }
     } else {
       if (selectedImageIds.length >= 5) {
         Swal.fire({
-          title: 'Límite alcanzado',
-          text: 'Para no superar los límites de tiempo, puedes seleccionar un máximo de 5 referencias (1 Master + 4 Refs).',
+          title: 'L\u00edmite alcanzado',
+          text: 'Para no superar los l\u00edmites de tiempo, puedes seleccionar un m\u00e1ximo de 5 referencias (1 Master + 4 Refs).',
           icon: 'warning',
           background: '#0f172a',
           color: '#fff'
         });
         return;
       }
-      // Añadir a selección
+      // A\u00f1adir a selecci\u00f3n
       selectedImageIds.push(strId);
       updateAssetGridVisuals();
     }
@@ -862,7 +862,7 @@
     const masterImg = currentProductImages.find(i => (i.IMAGEN_ID || i.ID).toString() === masterId);
     if (masterImg) selectImageDisplay(masterImg, prod);
 
-    // Re-evaluar visibilidad de controles según cantidad de imágenes (ej. Modal de Ángulo)
+    // Re-evaluar visibilidad de controles seg\u00fan cantidad de im\u00e1genes (ej. Modal de \u00c1ngulo)
     updateStyleOptions();
     const currentStyle = document.getElementById('lab-style').value;
     checkCategorySpecs(currentStyle);
@@ -887,7 +887,7 @@
     const isMulti = selectedImageIds.length > 1;
     const count = selectedImageIds.length;
     
-    // El modo HERO es idealmente Master (1) + Variantes (1) = 2 imágenes
+    // El modo HERO es idealmente Master (1) + Variantes (1) = 2 im\u00e1genes
     const canShowHero = count === 2 && (selectionIncludesFolded || selectionIncludesHanger);
     const canShowCollage = isMulti;
     
@@ -913,12 +913,12 @@
     
     if (isCurrentHanger) html += `<option value="hanger">Profesional En Percha</option>`;
     if (isCurrentFolded) html += `<option value="folded">Pila / Doblado</option>`;
-    if (canShowCollage) html += `<option value="collage" ${!selectionIncludesFolded ? 'selected' : ''}>Collage / Catálogo Completo</option>`;
+    if (canShowCollage) html += `<option value="collage" ${!selectionIncludesFolded ? 'selected' : ''}>Collage / Cat\u00e1logo Completo</option>`;
     if (canShowHero) html += `<option value="hero" selected>Hero + Colores (Master+Variants)</option>`;
     
     select.innerHTML = html;
     
-    // Restaurar valor previo si aún es válido, sino usar el default
+    // Restaurar valor previo si a\u00fan es v\u00e1lido, sino usar el default
     if (Array.from(select.options).some(o => o.value === currentValue)) {
       select.value = currentValue;
     } else {
@@ -963,7 +963,7 @@
     document.getElementById('prod-sku-view').innerText = `SKU: ${prod._sku}`; // Usar SKU normalizado
     document.getElementById('results-panel').classList.add('hidden');
 
-    // Actualizar visibilidad según categoría del producto
+    // Actualizar visibilidad seg\u00fan categor\u00eda del producto
     const currentStyle = document.getElementById('lab-style').value;
     checkCategorySpecs(currentStyle);
   }
@@ -971,21 +971,21 @@
   // 3. EJECUCION CON SWAL
   function confirmAndRunTest() {
     if (selectedImageIds.length === 0) return Swal.fire({
-      title: 'Atención',
-      text: 'Primero elige una o más imágenes de la galería.',
+      title: 'Atenci\u00f3n',
+      text: 'Primero elige una o m\u00e1s im\u00e1genes de la galer\u00eda.',
       icon: 'warning',
       background: '#0f172a',
       color: '#fff'
     });
 
     Swal.fire({
-      title: 'Iniciar Simulación',
-      text: "¿Deseas ejecutar el diagnóstico forense transparente? Esto consumirá cuota de Gemma 4.",
+      title: 'Iniciar Simulaci\u00f3n',
+      text: "\u00bfDeseas ejecutar el diagn\u00f3stico forense transparente? Esto consumir\u00e1 cuota de Gemma 4.",
       icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#3b82f6',
       cancelButtonColor: '#1e293b',
-      confirmButtonText: 'Sí, analizar ahora',
+      confirmButtonText: 'S\u00ed, analizar ahora',
       background: '#0f172a',
       color: '#fff'
     }).then((result) => {
@@ -1020,14 +1020,14 @@
 
     let accumulatedClean = "";
 
-    btn.innerHTML = `<span class="material-icons animate-spin text-sm">sync</span> INICIANDO ANÁLISIS PARALELO...`;
+    btn.innerHTML = `<span class="material-icons animate-spin text-sm">sync</span> INICIANDO AN\u00c1LISIS PARALELO...`;
 
     const forzar = document.getElementById('lab-force-cache') ? document.getElementById('lab-force-cache').checked : false;
 
     const promises = selectedImageIds.map((imgId, i) => {
       const typeLabel = i === 0 ? "MASTER" : `REFERENCE ${i}`;
 
-      // [UI] LÓGICA DE CACHÉ
+      // [UI] L\u00d3GICA DE CACH\u00c9
       const imgData = currentProductImages.find(img => (img.IMAGEN_ID || img.ID).toString() === imgId.toString());
       if (!forzar && imgData && imgData.ANALISIS_FORENSE && imgData.ANALISIS_FORENSE.trim() !== "") {
         return Promise.resolve({
@@ -1036,7 +1036,7 @@
         });
       }
 
-      // Si no hay caché, enviamos la petición (correrán en paralelo en servidores distintos)
+      // Si no hay cach\u00e9, enviamos la petici\u00f3n (correr\u00e1n en paralelo en servidores distintos)
       return new Promise((resolve) => {
         google.script.run
           .withSuccessHandler(res => {
@@ -1052,14 +1052,14 @@
 
     const results = await Promise.all(promises);
 
-    // Ordenamos por índice para asegurar que el MASTER quede primero en el texto
+    // Ordenamos por \u00edndice para asegurar que el MASTER quede primero en el texto
     results.sort((a, b) => a.i - b.i).forEach(res => {
-      // ACTUALIZAR MEMORIA UI (Requerido para el dropdown de estilos dinámicos)
+      // ACTUALIZAR MEMORIA UI (Requerido para el dropdown de estilos din\u00e1micos)
       if (res.success && res.clean) {
         const targetImg = currentProductImages.find(img => String(img.IMAGEN_ID || img.ID) === String(res.imgId));
         if (targetImg) targetImg.ANALISIS_FORENSE = res.clean;
 
-        // Actualización dinámica en caliente sin reiniciar la galería
+        // Actualizaci\u00f3n din\u00e1mica en caliente sin reiniciar la galer\u00eda
         const indicator = document.getElementById(`forensic-indicator-${res.imgId}`);
         if (indicator) {
           indicator.classList.remove('hidden');
@@ -1074,7 +1074,7 @@
       if (res.cached) {
         const div = document.createElement('div');
         div.className = 'log-raw-kept p-1 mb-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20';
-        div.innerText = "[FAST] ANÁLISIS RECUPERADO DE BD_PRODUCTO_IMAGENES (Paso omitido para ahorrar cuota/tiempo).";
+        div.innerText = "[FAST] AN\u00c1LISIS RECUPERADO DE BD_PRODUCTO_IMAGENES (Paso omitido para ahorrar cuota/tiempo).";
         rawView.appendChild(div);
         accumulatedClean += `[FORENSIC AUDIT FOR IMAGE ${res.imgId} (${res.typeLabel})]:\n${res.clean}\n\n`;
       } else if (res.success) {
@@ -1088,7 +1088,7 @@
         } else {
           const div = document.createElement('div');
           div.className = 'log-raw-kept p-1 mb-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20';
-          div.innerText = `[FAST] ANÁLISIS RECUPERADO DE BD_LABORATORIO_IA (Caché del Servidor).`;
+          div.innerText = `[FAST] AN\u00c1LISIS RECUPERADO DE BD_LABORATORIO_IA (Cach\u00e9 del Servidor).`;
           rawView.appendChild(div);
         }
         accumulatedClean += `[FORENSIC AUDIT FOR IMAGE ${res.imgId} (${res.typeLabel})]:\n${res.clean}\n\n`;
@@ -1105,7 +1105,7 @@
     btn.disabled = false;
     btn.innerHTML = `<span class="material-icons text-sm">biotech</span> ANALIZAR PRENDA`;
 
-    // Reevaluar estilos disponibles ahora que tenemos la auditoría en memoria
+    // Reevaluar estilos disponibles ahora que tenemos la auditor\u00eda en memoria
     updateStyleOptions();
     checkCategorySpecs(document.getElementById('lab-style').value);
 
@@ -1113,7 +1113,7 @@
       toast: true,
       position: 'top-end',
       icon: 'success',
-      title: 'Análisis multi-referencia completado',
+      title: 'An\u00e1lisis multi-referencia completado',
       showConfirmButton: false,
       timer: 3000,
       background: '#1e293b',
@@ -1143,7 +1143,7 @@
     const optLiving = document.getElementById('opt-living-garment');
     if (optLiving) optLiving.classList.add('hidden');
 
-    // Lógica para mostrar Ángulo (cuando hay múltiples imágenes y no es Hero/Collage)
+    // L\u00f3gica para mostrar \u00c1ngulo (cuando hay m\u00faltiples im\u00e1genes y no es Hero/Collage)
     if (selectedImageIds.length > 1 && estilo !== 'hero' && estilo !== 'collage') {
       angleSection.classList.remove('hidden');
     }
@@ -1167,7 +1167,7 @@
       }
     }
 
-    // Determinar clasificación estructural de la prenda (superior vs inferior) de forma dinámica sin categorías en el servidor
+    // Determinar clasificaci\u00f3n estructural de la prenda (superior vs inferior) de forma din\u00e1mica sin categor\u00edas en el servidor
     let clasificacion = "PRENDA_INFERIOR"; // Default para Skypia
     const masterImg = selectedImageIds.length > 0 ? currentProductImages.find(i => String(i.IMAGEN_ID || i.ID) === selectedImageIds[0]) : null;
     if (masterImg && masterImg.ANALISIS_FORENSE) {
@@ -1176,9 +1176,9 @@
         clasificacion = "PRENDA_SUPERIOR";
       }
     } else if (selectedProduct) {
-      // Fallback local por palabras clave para cuando aún no se ha corrido la IA forense
+      // Fallback local por palabras clave para cuando a\u00fan no se ha corrido la IA forense
       const cat = (selectedProduct.parentCategory || selectedProduct.categoryName || "").toLowerCase();
-      const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
+      const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpi\u00f1o', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
       if (upperKeywords.some(kw => cat.includes(kw))) {
         clasificacion = "PRENDA_SUPERIOR";
       }
@@ -1207,8 +1207,8 @@
 
   function confirmAndRunMaestro() {
     if (selectedImageIds.length === 0) return Swal.fire({
-      title: 'Atención',
-      text: 'Primero elige una o más imágenes de la galería.',
+      title: 'Atenci\u00f3n',
+      text: 'Primero elige una o m\u00e1s im\u00e1genes de la galer\u00eda.',
       icon: 'warning',
       background: '#0f172a',
       color: '#fff'
@@ -1216,12 +1216,12 @@
 
     Swal.fire({
       title: 'Generar Prompt Maestro',
-      text: "¿Deseas transformar el análisis forense en una directiva de arte de alta fidelidad?",
+      text: "\u00bfDeseas transformar el an\u00e1lisis forense en una directiva de arte de alta fidelidad?",
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#7e22ce',
       cancelButtonColor: '#1e293b',
-      confirmButtonText: 'Sí, generar maestro',
+      confirmButtonText: 'S\u00ed, generar maestro',
       background: '#0f172a',
       color: '#fff'
     }).then((result) => {
@@ -1242,7 +1242,7 @@
     const angle = document.getElementById('lab-angle').value;
     const focus = document.getElementById('lab-focus').value;
 
-    // Entorno según estilo
+    // Entorno seg\u00fan estilo
     const isStill = ['hanger', 'folded', 'hero', 'collage'].includes(estilo);
     const environment = isStill ? document.getElementById('lab-still-env').value : document.getElementById('lab-env').value;
 
@@ -1306,7 +1306,7 @@
     } else {
       const div = document.createElement('div');
       div.className = 'log-maestro-kept p-1 mb-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
-      div.innerText = `[FAST] PROMPT MAESTRO RECUPERADO DE CACHÉ.`;
+      div.innerText = `[FAST] PROMPT MAESTRO RECUPERADO DE CACH\u00c9.`;
       rawView.appendChild(div);
     }
 
@@ -1364,11 +1364,11 @@
 
   // --- FASE 3: RENDERIZADO VISUAL ---
   function confirmAndRunRender() {
-    if (selectedImageIds.length === 0) return Swal.fire({ title: 'Atención', text: 'No hay referencias seleccionadas.', icon: 'warning', background: '#0f172a', color: '#fff' });
+    if (selectedImageIds.length === 0) return Swal.fire({ title: 'Atenci\u00f3n', text: 'No hay referencias seleccionadas.', icon: 'warning', background: '#0f172a', color: '#fff' });
     
     const pin = document.getElementById('lab-paid-pin').value;
     if (!pin) {
-      return Swal.fire({ title: 'Atención', text: 'Debes ingresar tu PIN de seguridad para autorizar el pago.', icon: 'warning', background: '#0f172a', color: '#fff' });
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Debes ingresar tu PIN de seguridad para autorizar el pago.', icon: 'warning', background: '#0f172a', color: '#fff' });
     }
 
     const source = document.getElementById('lab-prompt-source').value;
@@ -1383,17 +1383,17 @@
     }
 
     if (!promptToSend || promptToSend.trim() === "") {
-      return Swal.fire({ title: 'Atención', text: 'No hay un prompt generado válido. Completa la Fase 2 primero.', icon: 'warning', background: '#0f172a', color: '#fff' });
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'No hay un prompt generado v\u00e1lido. Completa la Fase 2 primero.', icon: 'warning', background: '#0f172a', color: '#fff' });
     }
 
     Swal.fire({
       title: 'Generar Visual de Pago',
-      text: `¿Deseas lanzar el renderizado usando la fuente "${source.toUpperCase()}"? Esto consumirá saldo de tu facturación de GCP.`,
+      text: `\u00bfDeseas lanzar el renderizado usando la fuente "${source.toUpperCase()}"? Esto consumir\u00e1 saldo de tu facturaci\u00f3n de GCP.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d97706',
       cancelButtonColor: '#1e293b',
-      confirmButtonText: 'Sí, Renderizar (Pago)',
+      confirmButtonText: 'S\u00ed, Renderizar (Pago)',
       background: '#0f172a',
       color: '#fff'
     }).then((result) => {
@@ -1434,7 +1434,7 @@
       try {
         parsedRes = typeof res === 'string' ? JSON.parse(res) : res;
       } catch(e) {
-        parsedRes = { success: false, error: "Respuesta inválida del servidor" };
+        parsedRes = { success: false, error: "Respuesta inv\u00e1lida del servidor" };
       }
 
       if (parsedRes && parsedRes.success) {
@@ -1444,16 +1444,16 @@
           window._lastRenderedFileId = parsedRes.fileId;
           
           // Miniatura para el panel inline
-          imgView.src = "https://drive.google.com/thumbnail?id=" + parsedRes.fileId + "&sz=w800";
+          imgView.src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w800";
           imgView.classList.remove('hidden');
           
           // Imagen completa en el lightbox
-          document.getElementById('lightbox-img').src = "https://drive.google.com/thumbnail?id=" + parsedRes.fileId + "&sz=w2000";
+          document.getElementById('lightbox-img').src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w2000";
           
           // Mostrar barra de acciones
           document.getElementById('render-action-bar').classList.remove('hidden');
           
-          // Actualizar la galería de fotos en segundo plano de forma silenciosa
+          // Actualizar la galer\u00eda de fotos en segundo plano de forma silenciosa
           refreshProductImagesSilently();
         }
         
@@ -1479,10 +1479,10 @@
         let html = `
           <div class="flex items-center gap-2 text-amber-400 font-extrabold text-[11px] uppercase tracking-wider">
             <span class="material-icons text-base">warning</span>
-            <span>DIAGNÓSTICO DE GENERACIÓN DE IMAGEN</span>
+            <span>DIAGN\u00d3STICO DE GENERACI\u00d3N DE IMAGEN</span>
           </div>
           <div class="text-[10px] text-slate-400 font-mono select-all bg-slate-950/80 p-2 rounded border border-slate-800 break-all">
-            <strong>Error Técnico:</strong> ${errMsg}
+            <strong>Error T\u00e9cnico:</strong> ${errMsg}
           </div>
         `;
 
@@ -1490,18 +1490,18 @@
           html += `
             <div class="text-[11px] leading-relaxed text-slate-300 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
               <div class="font-bold text-amber-300 mb-1 flex items-center gap-1">
-                <span class="material-icons text-sm" style="font-size: 14px;">psychology</span> Análisis del Asistente:
+                <span class="material-icons text-sm" style="font-size: 14px;">psychology</span> An\u00e1lisis del Asistente:
               </div>
               <p class="whitespace-pre-wrap">${explanation}</p>
             </div>
             <div class="text-[9px] text-slate-500 italic mt-0.5">
-              * Prueba depurando el prompt maestro o modificando términos sensibles (como personajes protegidos, logotipos o prendas de ropa interior que activen los filtros de Vertex AI).
+              * Prueba depurando el prompt maestro o modificando t\u00e9rminos sensibles (como personajes protegidos, logotipos o prendas de ropa interior que activen los filtros de Vertex AI).
             </div>
           `;
         } else {
           html += `
             <div class="text-[11px] leading-relaxed text-slate-300">
-              No se pudo obtener una explicación detallada del fallo. Esto suele deberse a un corte en la conexión o a una restricción severa del API.
+              No se pudo obtener una explicaci\u00f3n detallada del fallo. Esto suele deberse a un corte en la conexi\u00f3n o a una restricci\u00f3n severa del API.
             </div>
           `;
         }
@@ -1510,7 +1510,7 @@
 
         Swal.fire({
           title: 'Error de Renderizado',
-          text: "La generación falló. Revisa el panel de salida para ver el diagnóstico explicativo.",
+          text: "La generaci\u00f3n fall\u00f3. Revisa el panel de salida para ver el diagn\u00f3stico explicativo.",
           icon: 'error',
           background: '#0f172a',
           color: '#fff'
@@ -1526,8 +1526,8 @@
     if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
 
     document.getElementById('cat-selector').value = "";
-    document.getElementById('prod-selector').innerHTML = '<option value="">Primero elige categoría</option>';
-    document.getElementById('asset-grid').innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin selección...</div>';
+    document.getElementById('prod-selector').innerHTML = '<option value="">Primero elige categor\u00eda</option>';
+    document.getElementById('asset-grid').innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin selecci\u00f3n...</div>';
     document.getElementById('selected-img-view').src = "";
     document.getElementById('img-id-badge').innerText = "IMG-ID: NO_SELECTED";
     document.getElementById('prod-title-view').innerText = "Selecciona una imagen";
@@ -1540,7 +1540,7 @@
     const placeholder = document.getElementById('render-placeholder');
     placeholder.classList.remove('hidden');
     placeholder.className = "italic opacity-30 text-amber-400/30 text-[10px] text-center px-4";
-    placeholder.innerHTML = "El render final aparecerá aquí...<br>(Requiere completar Fase 2)";
+    placeholder.innerHTML = "El render final aparecer\u00e1 aqu\u00ed...<br>(Requiere completar Fase 2)";
     
     window._lastRenderedFileId = null;
     selectedImageIds = [];
@@ -1557,7 +1557,7 @@
     });
   }
 
-  // --- LIGHTBOX: Previsualización de Imagen Generada ---
+  // --- LIGHTBOX: Previsualizaci\u00f3n de Imagen Generada ---
   function openRenderLightbox() {
     const lb = document.getElementById('render-lightbox');
     if (!lb) return;

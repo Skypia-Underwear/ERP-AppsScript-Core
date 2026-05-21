@@ -231,7 +231,7 @@
         copiarBtn.addEventListener('click', () => {
           navigator.clipboard.writeText(promptContainer.textContent).then(() => {
             const originalHTML = copiarBtn.innerHTML;
-            copiarBtn.innerHTML = '<span class="material-icons text-sm">check</span> Â¡Copiado!';
+            copiarBtn.innerHTML = '<span class="material-icons text-sm">check</span> \u00c2\u00a1Copiado!';
             setTimeout(() => copiarBtn.innerHTML = originalHTML, 2000);
           });
         });
@@ -239,7 +239,7 @@
 
       if (saveIaBtn) {
         saveIaBtn.addEventListener('click', () => {
-          const sku = parametrosBase[0]; // El primer parámetro es el SKU
+          const sku = parametrosBase[0]; // El primer par\u00e1metro es el SKU
           const data = {
             corta: iaCorta.innerText,
             fichatecnica: iaFicha.innerHTML,
@@ -333,8 +333,8 @@
         spinner.classList.add('hidden');
         if (ejecutarBtn) ejecutarBtn.disabled = false;
         retryBtn.classList.remove('hidden');
-        showStatus('Error crítico: ' + error.message, 'error');
-        showLogs(['âŒ ERROR FATAL: ' + error.message]);
+        showStatus('Error cr\u00edtico: ' + error.message, 'error');
+        showLogs(['\u00e2\u009d\u0152 ERROR FATAL: ' + error.message]);
       })[funcionParaLlamar].apply(null, parametros);
     }
 
@@ -425,12 +425,12 @@
         let type = 'info';
 
         // --- RENDERIZADO PROFESIONAL DE JSON Y OBJETOS ---
-        if (typeof log === 'string' && (log.trim().startsWith('{') || log.trim().startsWith('[') || log.includes('--- ðŸ•µï¸â€â™‚ï¸ RESPUESTA JSON COMPLETA'))) {
+        if (typeof log === 'string' && (log.trim().startsWith('{') || log.trim().startsWith('[') || log.includes('--- \u00f0\u0178\u2022\u00b5\u00ef\u00b8\u008f\u00e2\u20ac\u008d\u00e2\u2122\u201a\u00ef\u00b8\u008f RESPUESTA JSON COMPLETA'))) {
           try {
             let jsonContent = '';
 
-            if (log.includes('--- ðŸ•µï¸â€â™‚ï¸ RESPUESTA JSON COMPLETA')) {
-              jsonContent = log.split('--- ðŸ•µï¸â€â™‚ï¸ RESPUESTA JSON COMPLETA (Debug) ---')[1]?.split('--- ðŸ•µï¸â€â™‚ï¸ FIN RESPUESTA JSON ---')[0]?.trim();
+            if (log.includes('--- \u00f0\u0178\u2022\u00b5\u00ef\u00b8\u008f\u00e2\u20ac\u008d\u00e2\u2122\u201a\u00ef\u00b8\u008f RESPUESTA JSON COMPLETA')) {
+              jsonContent = log.split('--- \u00f0\u0178\u2022\u00b5\u00ef\u00b8\u008f\u00e2\u20ac\u008d\u00e2\u2122\u201a\u00ef\u00b8\u008f RESPUESTA JSON COMPLETA (Debug) ---')[1]?.split('--- \u00f0\u0178\u2022\u00b5\u00ef\u00b8\u008f\u00e2\u20ac\u008d\u00e2\u2122\u201a\u00ef\u00b8\u008f FIN RESPUESTA JSON ---')[0]?.trim();
             }
 
             else {
@@ -442,7 +442,7 @@
               const tableDiv = document.createElement('div');
               tableDiv.className = 'bg-slate-900/60 p-4 my-2 rounded-xl border border-blue-500/30 font-mono text-xs overflow-x-auto';
 
-              let html = `<div class="font-bold text-blue-400 mb-2 border-b border-blue-500/20 pb-1 flex justify-between" > <span>ðŸ“¦ DETALLES DE RESPUESTA</span> <span class="text-[10px] opacity-60" >JSON parsed</span> </div> <table class="w-full text-left border-collapse" >`;
+              let html = `<div class="font-bold text-blue-400 mb-2 border-b border-blue-500/20 pb-1 flex justify-between" > <span>\u00f0\u0178\u201c\u00a6 DETALLES DE RESPUESTA</span> <span class="text-[10px] opacity-60" >JSON parsed</span> </div> <table class="w-full text-left border-collapse" >`;
 
               for (const [key, value] of Object.entries(data)) {
                 if (key === 'server_logs' || key === 'variations') continue; // Se omiten o manejan aparte
@@ -464,19 +464,19 @@
           }
         }
 
-        // --- RENDERIZADO DE RESUMEN TÃ‰CNICO ---
-        if (typeof log === 'string' && log.includes('ðŸ› ï¸ RESUMEN TÃ‰CNICO:')) {
+        // --- RENDERIZADO DE RESUMEN T\u00c3\u2030CNICO ---
+        if (typeof log === 'string' && log.includes('\u00f0\u0178\u203a\u00a0\u00ef\u00b8\u008f RESUMEN T\u00c3\u2030CNICO:')) {
           const lines = log.split('\n').map(l => l.trim()).filter(Boolean);
           const summaryDiv = document.createElement('div');
           summaryDiv.className = 'bg-slate-800/80 border-l-4 border-blue-500 p-4 my-2 rounded-r-xl shadow-lg font-sans';
 
-          let html = `<h4 class="text-blue-400 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wider" > <span class="text-lg" >ðŸ› ï¸</span> RESUMEN TÃ‰CNICO </h4> <div class="flex flex-col gap-1 mt-2" >`;
+          let html = `<h4 class="text-blue-400 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wider" > <span class="text-lg" >\u00f0\u0178\u203a\u00a0\u00ef\u00b8\u008f</span> RESUMEN T\u00c3\u2030CNICO </h4> <div class="flex flex-col gap-1 mt-2" >`;
 
           lines.forEach(line => {
-            if (line.includes('RESUMEN TÃ‰CNICO:')) return;
+            if (line.includes('RESUMEN T\u00c3\u2030CNICO:')) return;
 
             if (line.startsWith('-')) {
-              html += `<div class="pl-4 text-slate-300 text-[11px] leading-tight flex items-start gap-2 py-0.5" > <span class="text-blue-500/80 mt-1 flex-shrink-0" >â—</span> <span>${line.substring(1).trim()}</span> </div>`;
+              html += `<div class="pl-4 text-slate-300 text-[11px] leading-tight flex items-start gap-2 py-0.5" > <span class="text-blue-500/80 mt-1 flex-shrink-0" >\u00e2\u2014\u008f</span> <span>${line.substring(1).trim()}</span> </div>`;
             }
 
             else {
@@ -491,7 +491,7 @@
           return;
         }
 
-        // Lógica de botones URL & Detección de Tipo (Resto del log)
+        // L\u00f3gica de botones URL & Detecci\u00f3n de Tipo (Resto del log)
         if (typeof log === 'string') {
 
           // URLs
@@ -516,33 +516,33 @@
           }
 
           // Tipos
-          if (log.includes('âŒ') || log.includes('Error')) {
+          if (log.includes('\u00e2\u009d\u0152') || log.includes('Error')) {
             type = 'error';
             div.classList.add('log-error');
           }
 
-          else if (log.includes('âœ…') || log.includes('ðŸŽ‰') || log.includes('Ã‰xito')) {
+          else if (log.includes('\u00e2\u0153\u2026') || log.includes('\u00f0\u0178\u017d\u2030') || log.includes('\u00c3\u2030xito')) {
             type = 'success';
             div.classList.add('log-success');
           }
 
-          else if (log.includes('â„¹ï¸') || log.includes('ðŸ› ï¸')) {
+          else if (log.includes('\u00e2\u201e\u00b9\u00ef\u00b8\u008f') || log.includes('\u00f0\u0178\u203a\u00a0\u00ef\u00b8\u008f')) {
             type = 'info';
             div.classList.add('log-info');
 
-            if (log.includes('ðŸ› ï¸')) {
+            if (log.includes('\u00f0\u0178\u203a\u00a0\u00ef\u00b8\u008f')) {
               div.classList.add('font-sans', 'bg-slate-800/40', 'border-l-2', 'border-blue-500', 'p-3', 'my-2', 'rounded-r-lg');
               div.style.whiteSpace = 'pre-wrap';
             }
           }
 
-          else if (log.includes('âš ï¸')) {
+          else if (log.includes('\u00e2\u0161\u00a0\u00ef\u00b8\u008f')) {
             type = 'warning';
             div.classList.add('log-warning');
           }
 
-          // Indentación de listas
-          if (log.trim().startsWith('-') || log.trim().startsWith('â†³')) {
+          // Indentaci\u00f3n de listas
+          if (log.trim().startsWith('-') || log.trim().startsWith('\u00e2\u2020\u00b3')) {
             div.classList.add('pl-6', 'opacity-80');
           }
         }
