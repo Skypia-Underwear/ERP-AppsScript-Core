@@ -544,7 +544,13 @@ let _cacheLogSheet = null;
  */
 function isSystemInWorkingHours() {
   const now = new Date();
-  const hour = now.getHours();
+  let timezone = "America/Argentina/Buenos_Aires";
+  try {
+    timezone = Session.getScriptTimeZone() || timezone;
+  } catch (e) {
+    console.warn("Error obteniendo ScriptTimeZone: " + e.message);
+  }
+  const hour = parseInt(Utilities.formatDate(now, timezone, "H"), 10);
   const start = GLOBAL_CONFIG.SYNC_WINDOW.START_HOUR;
   const end = GLOBAL_CONFIG.SYNC_WINDOW.END_HOUR;
 
