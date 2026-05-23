@@ -57,7 +57,7 @@
     }
 
     /* --- SIDEBAR CARD --- */
-    aside {
+    #img-manager-root aside {
         width: 300px;
         flex-shrink: 0;
         display: flex;
@@ -81,7 +81,7 @@
     }
 
     /* --- MAIN CONTENT CARD --- */
-    main {
+    #img-manager-root main {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -94,7 +94,7 @@
     }
 
     /* Header Interno Dark */
-    header {
+    #img-manager-root header {
         height: 56px;
         background: #1e293b;
         border-bottom: 1px solid #334155;
@@ -428,7 +428,7 @@
         }
 
         /* Sidebar: inline horizontal strips, not a drawer */
-        aside {
+        #img-manager-root aside {
             width: 100% !important;
             min-width: 100% !important;
             flex-shrink: 0;
@@ -454,18 +454,18 @@
         }
 
         /* Hide sidebar header (CATEGORIAS) on mobile save space */
-        aside>.px-5.py-2\.5:first-child {
+        #img-manager-root aside>.px-5.py-2\.5:first-child {
             display: none;
         }
 
         /* Categories strip: compact */
-        aside>.p-3 {
+        #img-manager-root aside>.p-3 {
             padding: 6px 8px;
             border-bottom: 1px solid rgba(51, 65, 85, 0.5);
         }
 
         /* Hide "Modelos" title on mobile */
-        aside>.p-2.border-b {
+        #img-manager-root aside>.p-2.border-b {
             display: none;
         }
 
