@@ -585,8 +585,8 @@ COLOR_PRINCIPAL:
   - PATRÓN: [Descripción breve del estampado si existe]
 MATERIAL_ESTIMADO: [Análisis visual contrastado con metadata]
 LOGO_O_MARCA:
-  - VISIBLE: [SÍ / NO. Rigurosamente visual]
-  - DETALLE: [Descripción, position y tamaño]
+  - VISIBLE: [SÍ / NO. Rigurosamente visual en la tela. IMPORTANTE: Las etiquetas de cartón colgantes (hangtags) o perchas NO cuentan como logo visible en la prenda. Si solo hay una etiqueta de cartón colgante, escribe NO]
+  - DETALLE: [Descripción, posición y tamaño en la tela del producto. Excluir rigurosamente las etiquetas de cartón colgantes y adjuntos de tienda]
 DETALLES_CONSTRUCTIVOS:
   - COSTURAS: [e.g., Flatlock, Overlock, Doble aguja]
   - CIERRES: [e.g., Cierre frontal, sin cierre, botones]
@@ -795,7 +795,9 @@ TIPO_PRENDA: ROPA INTERIOR
         3. ORIENTATION PROTOCOL: Ensure the garment strictly maintains the detected orientation.
         4. NOISE REMOVAL: Clean up hangers, tags, or mannequins if the selected style requires it.
         5. MULTI-REFERENCE HANDLING: The FIRST image is the MASTER (Hero). Use it for shape, fit, and primary identity. The other images are REFERENCES for texture, logos, and hidden details.
-        6. BRAND HALLUCINATION PREVENTION: If the Forensic Audit states LOGO_O_MARCA is "NO" or "No visible", you MUST NOT include the brand name or model name in the final narrative description. Describe only the garment's pure visual geometry and colors to prevent the image engine from generating text.
+        6. BRAND HALLUCINATION PREVENTION & HANGTAG CLEANUP: 
+           - Cardboard hangtags, price tags, and plastic retail attachments visible in the references MUST be completely ignored and NEVER described as logos, prints, or text on the fabric.
+           - If the Forensic Audit states LOGO_O_MARCA is "NO" or "No visible", or if the logo is only present on a temporary cardboard hangtag, you MUST NOT include the brand name, model name, or any text in the final narrative description. Describe only the garment's pure visual geometry, construction, and solid colors to prevent the image generator from hallucinating text on the fabric.
 
         ${directiva.prefix}
         ${directiva.promptRules}
