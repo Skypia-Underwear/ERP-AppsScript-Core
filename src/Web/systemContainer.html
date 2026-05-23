@@ -174,7 +174,7 @@
 
     @media (max-width: 768px) {
       #mobile-bottom-nav { 
-        display: flex; 
+        display: flex !important; 
       }
       
       #main-sidebar { 
@@ -183,8 +183,10 @@
         left: 0;
         top: 0;
         transform: translateX(-100%);
-        z-index: 101;
-        display: flex !important; /* Permitimos que exista pero oculto */
+        z-index: 110 !important;
+        display: flex !important; 
+        width: 16rem !important;
+        box-shadow: 20px 0 50px -12px rgba(0, 0, 0, 0.6);
       }
 
       #main-sidebar.open {
@@ -320,8 +322,12 @@
 
     function toggleSidebar() {
       const sidebar = document.getElementById('main-sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
       if (window.innerWidth < 768) {
-        sidebar.classList.toggle('open');
+        const isOpen = sidebar.classList.toggle('open');
+        if (backdrop) {
+          backdrop.classList.toggle('hidden', !isOpen);
+        }
       } else {
         sidebar.classList.toggle('collapsed');
       }
@@ -424,6 +430,8 @@
       // Cerrar sidebar en movil tras navegar
       if (window.innerWidth < 768) {
         document.getElementById('main-sidebar').classList.remove('open');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (backdrop) backdrop.classList.add('hidden');
       }
 
       google.script.run
@@ -536,11 +544,14 @@
       <i class="ph-duotone ph-image"></i>
       <span>Fotos</span>
     </button>
-    <button onclick="navigate('auditoria')" class="nav-item-mobile" id="m-btn-auditoria">
-      <i class="ph-duotone ph-chart-line-up"></i>
-      <span>Stats</span>
+    <button onclick="toggleSidebar()" class="nav-item-mobile" id="m-btn-menu">
+      <i class="ph-duotone ph-list"></i>
+      <span>Menú</span>
     </button>
   </div>
+
+  <!-- Sidebar Backdrop overlay for mobile drawer -->
+  <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[105] hidden transition-all duration-300"></div>
 </body>
 
 </html>
