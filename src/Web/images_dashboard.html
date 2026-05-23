@@ -3174,39 +3174,47 @@
     function verAuditoriaForense(texto) {
         if (!texto) return;
 
-        // Limpiar saltos de línea iniciales/finales y convertirlos a <br>
-        let styled = texto.trim().replace(/\n/g, '<br>');
+        let styled = texto.trim();
 
         // Formatear los headers de Gemma 3 y Gemma 4 con estilos elegantes y divisores visuales
+        // Usamos anclajes multilinea (^ ... :) para evitar colisión de substrings (ej: MARCA vs LOGO_O_MARCA)
         const replacements = [
-            { regex: /MARCA:/gi, style: 'text-indigo-400', label: 'MARCA', divider: false },
-            { regex: /MODELO:/gi, style: 'text-sky-400', label: 'MODELO', divider: false },
-            { regex: /CATEGORÍA:/gi, style: 'text-indigo-400', label: 'CATEGORÍA', divider: false },
-            { regex: /CATEGORIA:/gi, style: 'text-indigo-400', label: 'CATEGORÍA', divider: false },
-            { regex: /MATERIAL:/gi, style: 'text-emerald-400', label: 'MATERIAL', divider: false },
-            { regex: /GÉNERO:/gi, style: 'text-sky-400', label: 'GÉNERO', divider: false },
-            { regex: /GENERO:/gi, style: 'text-sky-400', label: 'GÉNERO', divider: false },
+            { regex: /^[-*\s]*MARCA:/gim, style: 'text-indigo-400', label: 'MARCA', divider: false },
+            { regex: /^[-*\s]*MODELO:/gim, style: 'text-sky-400', label: 'MODELO', divider: false },
+            { regex: /^[-*\s]*CATEGORÍA:/gim, style: 'text-indigo-400', label: 'CATEGORÍA', divider: false },
+            { regex: /^[-*\s]*CATEGORIA:/gim, style: 'text-indigo-400', label: 'CATEGORÍA', divider: false },
+            { regex: /^[-*\s]*MATERIAL:/gim, style: 'text-emerald-400', label: 'MATERIAL', divider: false },
+            { regex: /^[-*\s]*GÉNERO:/gim, style: 'text-sky-400', label: 'GÉNERO', divider: false },
+            { regex: /^[-*\s]*GENERO:/gim, style: 'text-sky-400', label: 'GÉNERO', divider: false },
             
-            { regex: /CLASIFICACION_ESTRUCTURAL:/gi, style: 'text-pink-400', label: 'CLASIFICACIÓN ESTRUCTURAL', divider: true },
-            { regex: /TIPO_PRENDA:/gi, style: 'text-indigo-400', label: 'TIPO PRENDA', divider: false },
-            { regex: /TIPO:/gi, style: 'text-indigo-400', label: 'TIPO', divider: false },
-            { regex: /POSICIÓN_DETECTADA:/gi, style: 'text-sky-400', label: 'POSICIÓN DETECTADA', divider: false },
-            { regex: /POSICION_DETECTADA:/gi, style: 'text-sky-400', label: 'POSICIÓN DETECTADA', divider: false },
-            { regex: /SOPORTE_O_CONTEXTO:/gi, style: 'text-slate-400', label: 'SOPORTE / CONTEXTO', divider: false },
+            { regex: /^[-*\s]*CLASIFICACION_ESTRUCTURAL:/gim, style: 'text-pink-400', label: 'CLASIFICACIÓN ESTRUCTURAL', divider: true },
+            { regex: /^[-*\s]*TIPO_PRENDA:/gim, style: 'text-indigo-400', label: 'TIPO PRENDA', divider: false },
+            { regex: /^[-*\s]*POSICIÓN_DETECTADA:/gim, style: 'text-sky-400', label: 'POSICIÓN DETECTADA', divider: false },
+            { regex: /^[-*\s]*POSICION_DETECTADA:/gim, style: 'text-sky-400', label: 'POSICIÓN DETECTADA', divider: false },
+            { regex: /^[-*\s]*SOPORTE_O_CONTEXTO:/gim, style: 'text-slate-400', label: 'SOPORTE / CONTEXTO', divider: false },
             
-            { regex: /COLOR_PRINCIPAL:/gi, style: 'text-amber-400', label: 'COLOR PRINCIPAL', divider: true },
-            { regex: /COLOR\/ESTILO:/gi, style: 'text-amber-400', label: 'COLOR / ESTILO', divider: true },
-            { regex: /MATERIAL_ESTIMADO:/gi, style: 'text-emerald-400', label: 'MATERIAL ESTIMADO', divider: false },
-            { regex: /LOGO_O_MARCA:/gi, style: 'text-rose-400', label: 'LOGO / MARCA', divider: false },
-            { regex: /MARCA\/LOGO:/gi, style: 'text-rose-400', label: 'MARCA / LOGO', divider: false },
+            { regex: /^[-*\s]*COLOR_PRINCIPAL:/gim, style: 'text-amber-400 font-bold block mb-1', label: 'COLOR PRINCIPAL', divider: true },
+            { regex: /^[-*\s]*COLOR\/ESTILO:/gim, style: 'text-amber-400 font-bold block mb-1', label: 'COLOR / ESTILO', divider: true },
+            // Sub-campos de COLOR
+            { regex: /^[-*\s]*NOMBRE TÉCNICO:/gim, style: 'text-slate-300', label: '&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> NOMBRE TÉCNICO', divider: false },
+            { regex: /^[-*\s]*NOMBRE_TECNICO:/gim, style: 'text-slate-300', label: '&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> NOMBRE TÉCNICO', divider: false },
+            { regex: /^[-*\s]*CÓDIGO HEX:/gim, style: 'text-slate-300', label: '&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> CÓDIGO HEX', divider: false },
+            { regex: /^[-*\s]*CODIGO_HEX:/gim, style: 'text-slate-300', label: '&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> CÓDIGO HEX', divider: false },
+            { regex: /^[-*\s]*TIPO:/gim, style: 'text-slate-300', label: '&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> TIPO', divider: false },
+            { regex: /^[-*\s]*PATRÓN:/gim, style: 'text-slate-300', label: '&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> PATRÓN', divider: false },
+            { regex: /^[-*\s]*PATRON:/gim, style: 'text-slate-300', label: '&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> PATRÓN', divider: false },
+
+            { regex: /^[-*\s]*MATERIAL_ESTIMADO:/gim, style: 'text-emerald-400', label: 'MATERIAL ESTIMADO', divider: false },
+            { regex: /^[-*\s]*LOGO_O_MARCA:/gim, style: 'text-rose-400 font-bold block mb-1', label: 'LOGO / MARCA', divider: false },
+            { regex: /^[-*\s]*MARCA\/LOGO:/gim, style: 'text-rose-400 font-bold block mb-1', label: 'MARCA / LOGO', divider: false },
             
-            { regex: /DETALLES_CONSTRUCTIVOS:/gi, style: 'text-slate-400', label: 'DETALLES CONSTRUCTIVOS', divider: true },
-            { regex: /DETALLES:/gi, style: 'text-slate-400', label: 'DETALLES', divider: true },
-            { regex: /AVISOS_DE_LIMPIEZA_VISIBLES:/gi, style: 'text-amber-400', label: 'AVISOS LIMPIEZA', divider: false },
-            { regex: /ESTADO_VISUAL:/gi, style: 'text-emerald-400', label: 'ESTADO VISUAL', divider: false },
-            { regex: /ESTADO:/gi, style: 'text-emerald-400', label: 'ESTADO', divider: false },
+            { regex: /^[-*\s]*DETALLES_CONSTRUCTIVOS:/gim, style: 'text-slate-400 font-bold block mb-1', label: 'DETALLES CONSTRUCTIVOS', divider: true },
+            { regex: /^[-*\s]*DETALLES:/gim, style: 'text-slate-400 font-bold block mb-1', label: 'DETALLES', divider: true },
+            { regex: /^[-*\s]*AVISOS_DE_LIMPIEZA_VISIBLES:/gim, style: 'text-amber-400', label: 'AVISOS LIMPIEZA', divider: false },
+            { regex: /^[-*\s]*ESTADO_VISUAL:/gim, style: 'text-emerald-400', label: 'ESTADO VISUAL', divider: false },
+            { regex: /^[-*\s]*ESTADO:/gim, style: 'text-emerald-400', label: 'ESTADO', divider: false },
             
-            { regex: /DETALLES_VISUALES:/gi, style: 'text-fuchsia-400', label: 'DESCRIPCIÓN VISUAL DE GENERACIÓN', divider: true }
+            { regex: /^[-*\s]*DETALLES_VISUALES:/gim, style: 'text-fuchsia-400', label: 'DESCRIPCIÓN VISUAL DE GENERACIÓN', divider: true }
         ];
 
         replacements.forEach(item => {
@@ -3214,16 +3222,15 @@
             styled = styled.replace(item.regex, `${divHtml}<b class="${item.style}">${item.label}:</b>`);
         });
 
+        // Convertir saltos de línea a <br>
+        styled = styled.replace(/\n/g, '<br>');
+
         // Estilizar los sub-campos con guión para crear un árbol visual estructurado
         styled = styled.replace(/<br>\s*-\s*/g, '<br>&nbsp;&nbsp;<span class="text-indigo-400/80 mr-1">↳</span> ');
 
         Swal.fire({
             title: '<div class="flex items-center gap-2"><span class="material-icons text-amber-500">biotech</span> <span>Ficha Técnica Forense</span></div>',
-            html: `
-                <div class="text-left bg-slate-900 border border-slate-700 p-5 rounded-xl text-xs leading-loose font-mono text-slate-300 max-h-[60vh] overflow-y-auto whitespace-pre-wrap">
-                    ${styled}
-                </div>
-            `,
+            html: `<div class="text-left bg-slate-900 border border-slate-700 p-5 rounded-xl text-xs leading-loose font-mono text-slate-300 max-h-[60vh] overflow-y-auto whitespace-pre-wrap">${styled}</div>`,
             background: '#0f172a',
             color: '#fff',
             confirmButtonText: 'Entendido',

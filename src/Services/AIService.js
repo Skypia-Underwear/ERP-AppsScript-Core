@@ -211,18 +211,188 @@ const AIService = {
   },
 
   /**
+   * 🧠 GENERADOR DE MENTE RAW CON MARCAS
+   * Procesa la respuesta original de Gemma 4 línea por línea y marca con "* "
+   * aquellas líneas que fueron descartadas o filtradas por el limpiador industrial.
+   */
+  generarMenteRawConMarcas: function (texto, whitelistHeaders, isNarrativo) {
+    if (!texto) return "";
+    const lineasOriginales = texto.split('\n');
+    
+    if (!isNarrativo) {
+      // MODO FORENSE: Simular la extracción de vistos para identificar cuál fue la ganadora de cada header
+      const ganadorIndice = new Map();
+      const whitelistUpper = whitelistHeaders ? whitelistHeaders.map(h => h.toUpperCase()) : null;
+      
+      const chatterKeywords = [
+        "wait,", "i will", "let's", "final check", "self-correction", "i should",
+        "prompt says", "refining schema", "final polish", "one more check",
+        "double check", "self-correct", "during drafting", "polish:", "check:",
+        "refining", "assignment_turned_in", "psychology", "mente raw", "output final",
+        "mente de la ia", "ficha técnica", "schema check", "final check of the image",
+        "refined output", "sandbox", "drafting", "let's go"
+      ];
+
+      for (let idx = 0; idx < lineasOriginales.length; idx++) {
+        let linea = lineasOriginales[idx];
+        let l = linea.trim();
+        if (!l) continue;
+
+        if (chatterKeywords.some(word => l.toLowerCase().includes(word))) continue;
+        if (/^[*#\s-]*$/.test(l)) continue;
+        if (/^[*#\s-]*[a-z\s]+[?][\s]*(yes|no)/i.test(l)) continue;
+
+        let cleanLine = l.replace(/[*#`]/g, '').trim();
+        const parts = cleanLine.split(':');
+
+        if (parts.length >= 2) {
+          const rawHeader = parts[0].replace(/^[-*\s]+/, '').trim();
+          const headerKey = rawHeader.toUpperCase();
+
+          if (whitelistUpper) {
+            if (!whitelistUpper.includes(headerKey)) continue;
+          }
+          // Esta línea es candidata y potencialmente la ganadora
+          ganadorIndice.set(headerKey, idx);
+        }
+      }
+
+      const ganadorSet = new Set(ganadorIndice.values());
+      const resultado = [];
+
+      for (let idx = 0; idx < lineasOriginales.length; idx++) {
+        const linea = lineasOriginales[idx];
+        const trimmed = linea.trim();
+        if (!trimmed) {
+          resultado.push(linea);
+          continue;
+        }
+
+        if (ganadorSet.has(idx)) {
+          resultado.push(linea);
+        } else {
+          // Si ya empieza con '*' o similar, le añadimos el '* '
+          if (linea.startsWith('* ')) {
+            resultado.push(linea);
+          } else {
+            resultado.push(`* ${linea}`);
+          }
+        }
+      }
+      return resultado.join('\n');
+
+    } else {
+      // MODO NARRATIVO (Prompt Maestro)
+      const chatterKeywords = [
+        "art director", "high-end", "convert a forensic", "wait,", "i will",
+        "self-correction", "sandbox", "refining", "revised prompt", "correction:",
+        "drafting", "polish:", "final check", "assignment_turned_in",
+        "concept:", "subject:", "step 1", "step 2", "step 3", "sandbox", "thinking",
+        "revised prompt", "correction:", "debate"
+      ];
+      const whitelistUpper = whitelistHeaders ? whitelistHeaders.map(h => h.toUpperCase()) : null;
+
+      const conservadosIndices = new Set();
+      let currentHeader = null;
+      const indicesPorHeader = new Map();
+
+      for (let idx = 0; idx < lineasOriginales.length; idx++) {
+        let linea = lineasOriginales[idx];
+        let l = linea.trim();
+        if (!l) continue;
+
+        if (chatterKeywords.some(word => l.toLowerCase().includes(word))) continue;
+
+        let foundHeader = null;
+        if (whitelistHeaders) {
+          foundHeader = whitelistHeaders.find(h => {
+            const regex = new RegExp(`(${h})[^a-z0-9]*:`, 'i');
+            return regex.test(l);
+          });
+        }
+
+        if (foundHeader) {
+          currentHeader = foundHeader.toUpperCase();
+          
+          if (indicesPorHeader.has(currentHeader)) {
+            const antiguosIndices = indicesPorHeader.get(currentHeader);
+            antiguosIndices.forEach(i => conservadosIndices.delete(i));
+          }
+          indicesPorHeader.set(currentHeader, [idx]);
+          conservadosIndices.add(idx);
+
+          let parts = l.split(':');
+          let val = parts.slice(-1)[0].replace(/[*#`]/g, '').trim();
+          // La línea del header se considera conservada
+        } else if (currentHeader) {
+          let cleanVal = l.replace(/[*#`]/g, '').trim();
+          if (cleanVal) {
+            conservadosIndices.add(idx);
+            indicesPorHeader.get(currentHeader).push(idx);
+          }
+        }
+      }
+
+      const resultado = [];
+      for (let idx = 0; idx < lineasOriginales.length; idx++) {
+        const linea = lineasOriginales[idx];
+        const trimmed = linea.trim();
+        if (!trimmed) {
+          resultado.push(linea);
+          continue;
+        }
+
+        if (conservadosIndices.has(idx)) {
+          resultado.push(linea);
+        } else {
+          if (linea.startsWith('* ')) {
+            resultado.push(linea);
+          } else {
+            resultado.push(`* ${linea}`);
+          }
+        }
+      }
+      return resultado.join('\n');
+    }
+  },
+
+  /**
    * 💾 PERSISTENCIA DE LABORATORIO (BD_LABORATORIO_IA)
    * Gestiona el guardado y recuperación de pruebas para ahorrar tokens.
    */
   _obtenerHojaLab: function () {
     const ss = getActiveSS();
     let sheet = ss.getSheetByName(SHEETS.LAB_IA);
+    const expectedHeaders = [
+      "TIMESTAMP", "IMAGEN_ID", "SKU", "CATEGORIA", "ESTILO", 
+      "ANALISIS_FORENSE", "FORENSE_RAW", "PROMPT_MAESTRO", "PROMPT_RAW", 
+      "MODELO", "VERSION_REGLAS"
+    ];
+    
     if (!sheet) {
       sheet = ss.insertSheet(SHEETS.LAB_IA);
-      const headers = ["TIMESTAMP", "IMAGEN_ID", "SKU", "CATEGORIA", "ESTILO", "ANALISIS_FORENSE", "PROMPT_MAESTRO", "MODELO", "VERSION_REGLAS"];
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders])
         .setBackground("#4B0082").setFontColor("white").setFontWeight("bold");
       sheet.setFrozenRows(1);
+    } else {
+      // Validar si la hoja ya existe y si faltan columnas de forma segura
+      const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
+      const missingHeaders = expectedHeaders.filter(h => !currentHeaders.includes(h));
+      
+      if (missingHeaders.length > 0) {
+        console.log(`🔧 [Lab-IA] Columnas faltantes detectadas en ${SHEETS.LAB_IA}: ${missingHeaders.join(', ')}. Actualizando...`);
+        let updatedHeaders = [...currentHeaders];
+        missingHeaders.forEach(h => {
+          updatedHeaders.push(h);
+        });
+        
+        // Escribir los nuevos encabezados
+        sheet.getRange(1, 1, 1, updatedHeaders.length).setValues([updatedHeaders]);
+        
+        // Aplicar el estilo al encabezado completo
+        sheet.getRange(1, 1, 1, updatedHeaders.length)
+          .setBackground("#4B0082").setFontColor("white").setFontWeight("bold");
+      }
     }
     return sheet;
   },
@@ -252,7 +422,9 @@ const AIService = {
       if (data.categoria) newRow[colMap.CATEGORIA] = data.categoria;
       if (data.estilo && data.estilo !== "FORENSIC_ONLY") newRow[colMap.ESTILO] = data.estilo;
       if (data.analisisForense) newRow[colMap.ANALISIS_FORENSE] = data.analisisForense;
+      if (data.analisisForenseRaw !== undefined && colMap.FORENSE_RAW !== undefined) newRow[colMap.FORENSE_RAW] = data.analisisForenseRaw;
       if (data.promptMaestro) newRow[colMap.PROMPT_MAESTRO] = data.promptMaestro;
+      if (data.promptMaestroRaw !== undefined && colMap.PROMPT_RAW !== undefined) newRow[colMap.PROMPT_RAW] = data.promptMaestroRaw;
       if (data.modelo) newRow[colMap.MODELO] = data.modelo;
       newRow[colMap.VERSION_REGLAS] = "v4.2 (Consolidado)";
 
@@ -515,12 +687,14 @@ TIPO_PRENDA: ROPA INTERIOR
       const cleanResponse = this.extraerContenido(rawResponse, forensicWhitelist);
 
       // 5. GUARDAR EN CACHÉ
+      const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, forensicWhitelist, false);
       this.guardarResultadoLab({
         imagenId: imagenId,
         estilo: "FORENSIC_ONLY",
         sku: metadata.sku,
         categoria: metadata.categoria,
         analisisForense: cleanResponse,
+        analisisForenseRaw: rawConMarcas,
         modelo: modeloUsado
       });
 
@@ -529,7 +703,7 @@ TIPO_PRENDA: ROPA INTERIOR
         imagenId: imagenId,
         imageUrl: imgRow.URL || imgRow.THUMBNAIL_URL,
         modelo: modeloUsado,
-        raw: rawResponse,
+        raw: rawConMarcas,
         clean: cleanResponse,
         debug: this.generarLogDiferencial(rawResponse, cleanResponse)
       };
@@ -715,17 +889,19 @@ ${directiva.exampleBlock}
       const cleanResponse = this.extraerContenidoNarrativo(rawResponse, whitelist);
 
       // 7. GUARDAR EN CACHÉ (Solo guardamos con el ID del Master para consolidación)
+      const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, whitelist, true);
       this.guardarResultadoLab({
         imagenId: masterId,
         estilo: estilo,
         promptMaestro: cleanResponse,
+        promptMaestroRaw: rawConMarcas,
         modelo: modeloUsado
       });
 
       return {
         success: true,
         modelo: modeloUsado,
-        raw: rawResponse,
+        raw: rawConMarcas,
         clean: cleanResponse,
         debug: this.generarLogDiferencial(rawResponse, cleanResponse)
       };
