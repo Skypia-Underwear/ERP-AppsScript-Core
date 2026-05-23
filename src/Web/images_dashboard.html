@@ -2752,8 +2752,8 @@
     function recargar() { limpiarSeleccion(); if (currentProduct) cargarGaleria(currentProduct.sku, currentProduct.carpeta_id); }
 
     // --- ACTIONS ---
-    let _syncRunning = false;
-    let _syncPending = false;
+    var _syncRunning = false;
+    var _syncPending = false;
     function sincronizarProductoActual() {
         if (!currentProduct) return;
 
@@ -3105,7 +3105,7 @@
 
     function confirmarAnalisisForense(forzar) {
         Swal.fire({
-            title: 'Auditor\u00eda Forense (Gemma 3)',
+            title: 'Auditor\u00eda Forense (Gemma 4)',
             text: '\u00bfC\u00f3mo prefieres realizar el an\u00e1lisis t\u00e9cnico?',
             icon: 'info',
             background: '#1e293b', color: '#fff',
@@ -3135,7 +3135,7 @@
         } else {
             Swal.fire({
                 title: 'Analizando Prenda...',
-                html: 'La IA est\u00e1 auditando los atributos f\u00edsicos usando el motor <b>Gemma 3</b>.',
+                html: 'La IA est\u00e1 auditando los atributos f\u00edsicos usando el motor <b>Gemma 4</b> (o Gemini de respaldo).',
                 background: '#1e293b', color: '#fff',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
@@ -3441,7 +3441,7 @@
         });
     }
 
-    let currentPaidPin = null;
+    var currentPaidPin = null;
     function handlePaidToggle(checked) {
         if (checked && !currentPaidPin) {
             Swal.fire({
@@ -3969,7 +3969,7 @@
     }
 
     // --- MANEJO DE ORDENAMIENTO (DRAG & DROP) ---
-    let sortableInstance = null;
+    var sortableInstance = null;
 
     function toggleReorderMode() {
         if (!currentProduct) return alert("Selecciona un producto primero.");
