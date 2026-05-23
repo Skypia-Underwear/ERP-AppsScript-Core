@@ -1397,7 +1397,7 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
 // =================================================================
 /**
  * Inspecciona UNA foto con la cuenta gratuita y guarda sus atributos físicos
- * en la columna ANALISIS_FORENSE de BD_IMAGENES.
+ * en la columna ANALISIS_FORENSE de BD_IMAGENES delegando al AIService.
  */
 function escanearPrenda(imagenId, forzar = false) {
   try {
@@ -1408,14 +1408,10 @@ function escanearPrenda(imagenId, forzar = false) {
 
     if (!imgRow) throw new Error(`Imagen no encontrada: ${imagenId}`);
 
-    // Si ya tiene análisis forense y no se fuerza, retornar el existente
+    // Si ya tiene análisis forense en BD_PRODUCTO_IMAGENES y no se fuerza, retornar el existente
     if (imgRow.ANALISIS_FORENSE && !forzar) {
       return JSON.stringify({ success: true, text: imgRow.ANALISIS_FORENSE, model: "cached", skipped: true });
     }
-
-    const freeKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
-    const apiKey = freeKey || GLOBAL_CONFIG.GEMINI.API_KEY;
-    if (!apiKey) throw new Error("Falta API Key (Free o Paid).");
 
     // --- NUEVO: Inyectar Metadata de BD_PRODUCTOS ---
     const sku = imgRow.PRODUCTO_ID;
@@ -1423,73 +1419,26 @@ function escanearPrenda(imagenId, forzar = false) {
     const dataProd = convertirRangoAObjetos_IMAGENES(sheetProd);
     const prodRow = dataProd.find(p => String(p.CODIGO_ID || p.SKU).trim() === String(sku).trim());
 
-    let contextoProducto = "";
-    if (prodRow) {
-      contextoProducto = `
-      REFERENCE PRODUCT DATA (TRUTH):
-      - Brand: ${prodRow.MARCA || "Unknown"}
-      - Model: ${prodRow.PRODUCTO || prodRow.MODELO || "Unknown"}
-      - Category: ${prodRow.CATEGORIA || "Clothing"}
-      - Material: ${prodRow.MATERIAL || "Textile"}
-      - Gender: ${prodRow.GENERO || "Unisex"}
-      `;
-    }
-
-    // Subir imagen vía Base64 para evitar errores 403 en File API
-    const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `forense_${imagenId}`, 'alta', apiKey, true);
-
-    const forensicWhitelist = [
-      "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
-      "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", "LOGO_O_MARCA",
-      "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL"
-    ];
-
-    const promptForense = `
-      [SISTEMA]: Eres un Analista Forense de Indumentaria para un ERP de alta precisión.
-      
-      [REGLA DE ORO]: SOBERANÍA DEL PÍXEL. Ignora metadatos externos. Reporta solo lo que ves.
-      [FORMATO]: TEXTO PLANO. Una línea por campo. Sin negritas, sin markdown, sin introducciones.
-
-      ${contextoProducto}
-
-      [FEW-SHOT EXAMPLES]:
-      Input: (Imagen de un boxer azul)
-      Output:
-      CLASIFICACION_ESTRUCTURAL: PRENDA_INFERIOR
-      TIPO_PRENDA: Boxer
-      POSICIÓN_DETECTADA: FRENTE
-      SOPORTE_O_CONTEXTO: FOTO_ESTUDIO
-      COLOR_PRINCIPAL:
-        - Nombre técnico: Azul Marino
-        - Código HEX: #1A2B5C
-        - Tipo: LISO
-      MATERIAL_ESTIMADO: Algodón
-      LOGO_O_MARCA: Visible: SÍ. Logo UOMO en cintura.
-      DETALLES_CONSTRUCTIVOS: Costuras reforzadas.
-      AVISOS_DE_LIMPIEZA_VISIBLES: NO
-      ESTADO_VISUAL: LIMPIO
-
-      [TAREA]: Analiza la foto adjunta y genera la ficha técnica siguiendo el esquema anterior.
-      Debes incluir siempre como primer campo:
-      CLASIFICACION_ESTRUCTURAL: [Analiza la prenda a partir de la imagen y los metadatos de referencia. Clasifícala estrictamente en una de las dos clasificaciones anatómicas: PRENDA_SUPERIOR (si se viste en la parte superior del cuerpo, ej. cubriendo cuello, hombros, torso, pecho o brazos) o PRENDA_INFERIOR (si se viste en la parte inferior del cuerpo, ej. cubriendo cintura, cadera, pelvis o piernas). Escribe estrictamente PRENDA_SUPERIOR o PRENDA_INFERIOR en mayúsculas sin más texto]
-    `;
-
-    const config = {
-      temperature: 0.1,
-      whitelistHeaders: forensicWhitelist,
-      stopSequences: ["Input:", "[TAREA]"]
+    const metadata = {
+      sku: prodRow ? (prodRow.CODIGO_ID || prodRow.SKU) : sku,
+      categoria: prodRow ? prodRow.CATEGORIA : "Clothing",
+      marca: prodRow ? prodRow.MARCA : "Unknown",
+      modelo: prodRow ? (prodRow.MODELO || prodRow.PRODUCTO) : "Unknown",
+      material: prodRow ? prodRow.MATERIAL : "Textile",
+      genero: prodRow ? prodRow.GENERO : "Unisex"
     };
 
-    // Ejecución centralizada vía AIService (Motor de limpieza)
-    const text = AIService.consultarGemma(promptForense, fileDataRef, config);
+    // Ejecución centralizada vía AIService (Motor de persistencia y fallback dual-key)
+    const resLab = AIService.ejecutarPruebaLaboratorio(imagenId, metadata, forzar);
 
-    if (text) {
+    if (resLab && resLab.success) {
       garantizarColumnaANALISIS(sheetImg);
-      actualizarCeldaPorHeader(imagenId, 'ANALISIS_FORENSE', text);
-      console.log(`✅ [Forense|OK] ${imagenId} procesada con Gemma 4 (Limpieza activa).`);
-      return JSON.stringify({ success: true, text: text, model: "gemma-4-26b-a4b-it" });
+      actualizarCeldaPorHeader(imagenId, 'ANALISIS_FORENSE', resLab.clean);
+      console.log(`✅ [Forense|OK-Lab] ${imagenId} procesada con el motor del Laboratorio.`);
+      return JSON.stringify({ success: true, text: resLab.clean, model: resLab.modelo });
+    } else {
+      throw new Error(resLab ? resLab.error : "Error en ejecución de laboratorio.");
     }
-    throw new Error("IA no devolvió texto.");
 
   } catch (e) {
     console.error(`[escanearPrenda] ${e.message}`);
@@ -1510,6 +1459,62 @@ function garantizarColumnaANALISIS(sheet) {
 }
 
 function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpecs = {}, pin = null) {
+  // --- PUENTE HACIA VIDEO ---
+  if (modo === 'video') {
+    return generarVideoPrompt([imagenId], estiloSolicitado, { extraSpecs: extraSpecs });
+  }
+
+  try {
+    console.log(`🧠 [Core-Flow] Delegando generación de Prompt Maestro a AIService para imagen: ${imagenId}`);
+    
+    // Invocamos el servicio maestro de AIService
+    // Forzamos la regeneración (true) al ser solicitado desde el dashboard
+    const result = AIService.ejecutarGeneracionPromptMaestro([imagenId], estiloSolicitado, extraSpecs, true);
+    
+    if (!result.success) throw new Error(result.error || "Error indeterminado de IA.");
+
+    const promptGenerado = result.clean;
+
+    // Persistimos en la columna de la hoja comercial BD_PRODUCTO_IMAGENES
+    actualizarCeldaPorHeader(imagenId, 'PROMPT', promptGenerado);
+
+    let resObj = { 
+      success: true, 
+      text: promptGenerado, 
+      raw: result.raw, 
+      modelUsed: result.modelo 
+    };
+
+    // INTEGRACIÓN CORE: Renderizamos usando la imagen actual como referencia
+    if (modo === 'image' && pin) {
+      try {
+        console.log(`🎨 [Core-Flow] Renderizando imagen para ${imagenId}...`);
+        const resImg = generarImagenDesdePrompt([imagenId], promptGenerado, pin, null, null, extraSpecs);
+
+        if (resImg.success) {
+          resObj.imageSuccess = true;
+          resObj.imageFileId = resImg.fileId;
+          resObj.imagenId = resImg.imagenId;
+          resObj.renderModel = resImg.modelUsed;
+          resObj.text += `\n\n✅ IMAGEN GENERADA EXITOSAMENTE CON ${resImg.modelUsed}.`;
+        } else {
+          throw new Error(resImg.message || resImg.error);
+        }
+      } catch (e) {
+        resObj.imageSuccess = false;
+        resObj.text += `\n\n❌ ERROR EN RENDERIZADO: ${e.message}`;
+      }
+    }
+
+    return JSON.stringify(resObj);
+
+  } catch (e) {
+    console.error(`❌ [Core-Flow] Error en generarSuperPrompt: ${e.message}`);
+    return JSON.stringify({ success: false, error: e.message });
+  }
+}
+
+function generarSuperPrompt_LEGACY(imagenId, estiloSolicitado, modo = 'image', extraSpecs = {}, pin = null) {
   // --- PUENTE HACIA VIDEO ---
   if (modo === 'video') {
     return generarVideoPrompt([imagenId], estiloSolicitado, { extraSpecs: extraSpecs });
@@ -1718,6 +1723,63 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
 
 // 🔍¥ NUEVA FUNCIÓN: GENERACIÓN MULTIMODAL (VARIAS IMÁGENES)
 function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', extraSpecs = {}, pin = null) {
+  // --- PUENTE HACIA VIDEO ---
+  if (modo === 'video') {
+    return generarVideoPrompt(imageIds, estiloSolicitado, { extraSpecs: extraSpecs });
+  }
+
+  try {
+    console.log(`🧠 [Core-Flow] Delegando generación de Prompt Maestro Masivo a AIService para: ${imageIds.join(', ')}`);
+    
+    // Invocamos el servicio maestro de AIService
+    // Forzamos la regeneración (true) al ser solicitado desde el dashboard
+    const result = AIService.ejecutarGeneracionPromptMaestro(imageIds, estiloSolicitado, extraSpecs, true);
+    
+    if (!result.success) throw new Error(result.error || "Error indeterminado de IA.");
+
+    const promptGenerado = result.clean;
+    const masterId = imageIds[0];
+
+    // Persistimos en la columna de la hoja comercial BD_PRODUCTO_IMAGENES (sobre la imagen Master)
+    actualizarCeldaPorHeader(masterId, 'PROMPT', promptGenerado);
+
+    let resObj = { 
+      success: true, 
+      text: promptGenerado, 
+      raw: result.raw, 
+      modelUsed: result.modelo 
+    };
+
+    // INTEGRACIÓN CORE: Renderizamos usando el grupo de imágenes de referencia
+    if (modo === 'image' && pin) {
+      try {
+        console.log(`🎨 [Core-Flow] Renderizando imagen masiva para ${masterId}...`);
+        const resImg = generarImagenDesdePrompt(imageIds, promptGenerado, pin, null, null, extraSpecs);
+
+        if (resImg.success) {
+          resObj.imageSuccess = true;
+          resObj.imageFileId = resImg.fileId;
+          resObj.imagenId = resImg.imagenId;
+          resObj.renderModel = resImg.modelUsed;
+          resObj.text += `\n\n✅ IMAGEN GENERADA EXITOSAMENTE CON ${resImg.modelUsed}.`;
+        } else {
+          throw new Error(resImg.message || resImg.error);
+        }
+      } catch (e) {
+        resObj.imageSuccess = false;
+        resObj.text += `\n\n❌ ERROR EN RENDERIZADO: ${e.message}`;
+      }
+    }
+
+    return JSON.stringify(resObj);
+
+  } catch (e) {
+    console.error(`❌ [Core-Flow] Error en generarSuperPromptMasivo: ${e.message}`);
+    return JSON.stringify({ success: false, error: e.message });
+  }
+}
+
+function generarSuperPromptMasivo_LEGACY(imageIds, estiloSolicitado, modo = 'image', extraSpecs = {}, pin = null) {
   // --- PUENTE HACIA VIDEO ---
   if (modo === 'video') {
     // Reutilizamos la función de video existente
