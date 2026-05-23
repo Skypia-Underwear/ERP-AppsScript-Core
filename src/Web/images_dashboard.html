@@ -3174,20 +3174,45 @@
     function verAuditoriaForense(texto) {
         if (!texto) return;
 
-        // Formatear el texto forense para mejor legibilidad
-        const styled = texto
-            .replace(/TIPO_PRENDA:/g, '<b class="text-indigo-400">TIPO:</b>')
-            .replace(/POSICION_DETECTADA:/g, '<br><b class="text-sky-400">POSICION:</b>')
-            .replace(/COLOR_PRINCIPAL:/g, '<br><b class="text-amber-400">COLOR/ESTILO:</b>')
-            .replace(/MATERIAL_ESTIMADO:/g, '<br><b class="text-emerald-400">MATERIAL:</b>')
-            .replace(/LOGO_O_MARCA:/g, '<br><b class="text-rose-400">MARCA/LOGO:</b>')
-            .replace(/DETALLES_CONSTRUCTIVOS:/g, '<br><b class="text-slate-400">DETALLES:</b>')
-            .replace(/ESTADO_VISUAL:/g, '<br><b class="text-indigo-400">ESTADO:</b>');
+        // Reemplazar saltos de línea con <br> para evitar colapso de espacio en HTML
+        let styled = texto.replace(/\n/g, '<br>');
+
+        // Formatear los headers de Gemma 3 y Gemma 4 con estilos elegantes
+        const replacements = [
+            { regex: /MARCA:/gi, style: 'text-indigo-400', label: 'MARCA' },
+            { regex: /MODELO:/gi, style: 'text-sky-400', label: 'MODELO' },
+            { regex: /CATEGORÍA:/gi, style: 'text-indigo-400', label: 'CATEGORÍA' },
+            { regex: /CATEGORIA:/gi, style: 'text-indigo-400', label: 'CATEGORÍA' },
+            { regex: /MATERIAL:/gi, style: 'text-emerald-400', label: 'MATERIAL' },
+            { regex: /GÉNERO:/gi, style: 'text-sky-400', label: 'GÉNERO' },
+            { regex: /GENERO:/gi, style: 'text-sky-400', label: 'GÉNERO' },
+            { regex: /CLASIFICACION_ESTRUCTURAL:/gi, style: 'text-pink-400', label: 'CLASIFICACIÓN ESTRUCTURAL' },
+            { regex: /TIPO_PRENDA:/gi, style: 'text-indigo-400', label: 'TIPO PRENDA' },
+            { regex: /TIPO:/gi, style: 'text-indigo-400', label: 'TIPO' },
+            { regex: /POSICIÓN_DETECTADA:/gi, style: 'text-sky-400', label: 'POSICIÓN DETECTADA' },
+            { regex: /POSICION_DETECTADA:/gi, style: 'text-sky-400', label: 'POSICIÓN DETECTADA' },
+            { regex: /SOPORTE_O_CONTEXTO:/gi, style: 'text-slate-400', label: 'SOPORTE / CONTEXTO' },
+            { regex: /COLOR_PRINCIPAL:/gi, style: 'text-amber-400', label: 'COLOR PRINCIPAL' },
+            { regex: /COLOR\/ESTILO:/gi, style: 'text-amber-400', label: 'COLOR / ESTILO' },
+            { regex: /MATERIAL_ESTIMADO:/gi, style: 'text-emerald-400', label: 'MATERIAL ESTIMADO' },
+            { regex: /LOGO_O_MARCA:/gi, style: 'text-rose-400', label: 'LOGO / MARCA' },
+            { regex: /MARCA\/LOGO:/gi, style: 'text-rose-400', label: 'MARCA / LOGO' },
+            { regex: /DETALLES_CONSTRUCTIVOS:/gi, style: 'text-slate-400', label: 'DETALLES CONSTRUCTIVOS' },
+            { regex: /DETALLES:/gi, style: 'text-slate-400', label: 'DETALLES' },
+            { regex: /AVISOS_DE_LIMPIEZA_VISIBLES:/gi, style: 'text-amber-400', label: 'AVISOS LIMPIEZA' },
+            { regex: /ESTADO_VISUAL:/gi, style: 'text-emerald-400', label: 'ESTADO VISUAL' },
+            { regex: /ESTADO:/gi, style: 'text-emerald-400', label: 'ESTADO' },
+            { regex: /DETALLES_VISUALES:/gi, style: 'text-fuchsia-400', label: 'DESCRIPCIÓN VISUAL DE GENERACIÓN' }
+        ];
+
+        replacements.forEach(item => {
+            styled = styled.replace(item.regex, `<b class="${item.style}">${item.label}:</b>`);
+        });
 
         Swal.fire({
-            title: '<div class="flex items-center gap-2"><span class="material-icons text-amber-500">biotech</span> <span>Ficha T\u00e9cnica Forense</span></div>',
+            title: '<div class="flex items-center gap-2"><span class="material-icons text-amber-500">biotech</span> <span>Ficha Técnica Forense</span></div>',
             html: `
-                <div class="text-left bg-slate-900 border border-slate-700 p-5 rounded-xl text-xs leading-loose font-mono text-slate-300 max-h-[60vh] overflow-y-auto">
+                <div class="text-left bg-slate-900 border border-slate-700 p-5 rounded-xl text-xs leading-loose font-mono text-slate-300 max-h-[60vh] overflow-y-auto whitespace-pre-wrap">
                     ${styled}
                 </div>
             `,
