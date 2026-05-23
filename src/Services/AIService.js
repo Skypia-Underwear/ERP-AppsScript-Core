@@ -284,11 +284,10 @@ const AIService = {
     } else {
       // MODO NARRATIVO (Prompt Maestro)
       const chatterKeywords = [
-        "art director", "high-end", "convert a forensic", "wait,", "i will",
+        "convert a forensic", "wait,", "i will",
         "self-correction", "sandbox", "refining", "revised prompt", "correction:",
         "drafting", "polish:", "final check", "assignment_turned_in",
-        "concept:", "subject:", "step 1", "step 2", "step 3", "sandbox", "thinking",
-        "revised prompt", "correction:", "debate"
+        "step 1", "step 2", "step 3", "thinking", "debate"
       ];
       const whitelistUpper = whitelistHeaders ? whitelistHeaders.map(h => h.toUpperCase()) : null;
 
@@ -475,11 +474,10 @@ const AIService = {
     let currentHeader = null;
 
     const chatterKeywords = [
-      "art director", "high-end", "convert a forensic", "wait,", "i will",
+      "convert a forensic", "wait,", "i will",
       "self-correction", "sandbox", "refining", "revised prompt", "correction:",
       "drafting", "polish:", "final check", "assignment_turned_in",
-      "concept:", "subject:", "step 1", "step 2", "step 3", "sandbox", "thinking",
-      "revised prompt", "correction:", "debate"
+      "step 1", "step 2", "step 3", "thinking", "debate"
     ];
 
     for (let linea of lineas) {
