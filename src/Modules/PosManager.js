@@ -740,6 +740,7 @@ function tpv_procesarSubidasRemotas() {
  * @returns {string} Hash MD5 en hexadecimal.
  */
 function _computeJsonHash(jsonData) {
+    if (!jsonData) return "";
     // Para que la comparación sea estable, clonamos y eliminamos timestamp_ms si existe
     // Así solo detectamos cambios en el contenido real de los productos.
     const cleanData = JSON.parse(JSON.stringify(jsonData));
@@ -763,6 +764,10 @@ function subirArchivoAGitHub(jsonData, filePath) {
     const RETRYABLE_CODES = [409, 500, 502, 503, 504];
 
     try {
+        if (!jsonData) {
+            throw new Error("El contenido a subir a GitHub (jsonData) es nulo o indefinido.");
+        }
+
         const cache = CacheService.getScriptCache();
         const breakerKey = "GITHUB_CIRCUIT_BREAKER_" + filePath.replace(/[^a-zA-Z0-9]/g, "_");
 

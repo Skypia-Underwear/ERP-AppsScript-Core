@@ -258,6 +258,11 @@ function subirArchivoAGitHub(jsonData, fileName) {
     if (!user || !repo || !token) return;
 
     try {
+        if (!jsonData) {
+            console.error(`❌ GITHUB: Error al subir '${fileName}', jsonData es nulo o indefinido.`);
+            return;
+        }
+
         const url = `https://api.github.com/repos/${user}/${repo}/contents/${fileName}`;
         let sha = null;
         const existing = UrlFetchApp.fetch(url, { headers: { "Authorization": "token " + token }, muteHttpExceptions: true });
@@ -291,6 +296,7 @@ function manualForceModularPublication() {
 }
 
 function _computeJsonHash(obj) {
+    if (!obj) return "";
     const raw = JSON.stringify(obj);
     const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, raw, Utilities.Charset.UTF_8);
     return digest.map(b => ('0' + ((b + 256) % 256).toString(16)).slice(-2)).join('');

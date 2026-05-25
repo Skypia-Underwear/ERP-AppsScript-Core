@@ -170,6 +170,15 @@ function blogger_procesarSubidasRemotas() {
  */
 function blogger_subirCacheADonweb(jsonData) {
     try {
+        if (!jsonData) {
+            console.log("ℹ️ [Blogger Cache] blogger_subirCacheADonweb ejecutado sin argumentos. Intentando cargar desde Drive...");
+            const cachedData = blogger_obtenerConfiguracionDesdeDrive();
+            if (cachedData) {
+                jsonData = JSON.parse(cachedData);
+            } else {
+                return { success: false, message: "No hay datos para subir (jsonData es nulo y no se encontró caché en Drive)." };
+            }
+        }
         const fileName = GLOBAL_CONFIG.BLOGGER.GITHUB_FILE_PATH; // misma conv. de nombres para ambos destinos
         if (!fileName) return { success: false, message: "Falta BLOGGER_GITHUB_FILE_PATH en BD_APP_SCRIPT." };
         return subirArchivoADonweb(jsonData, fileName);
@@ -186,6 +195,15 @@ function blogger_subirCacheADonweb(jsonData) {
  */
 function blogger_subirCacheAGitHub(jsonData) {
     try {
+        if (!jsonData) {
+            console.log("ℹ️ [Blogger Cache] blogger_subirCacheAGitHub ejecutado sin argumentos. Intentando cargar desde Drive...");
+            const cachedData = blogger_obtenerConfiguracionDesdeDrive();
+            if (cachedData) {
+                jsonData = JSON.parse(cachedData);
+            } else {
+                return { success: false, message: "No hay datos para subir (jsonData es nulo y no se encontró caché en Drive)." };
+            }
+        }
         const path = GLOBAL_CONFIG.BLOGGER.GITHUB_FILE_PATH;
         if (!path) return { success: false, message: "Falta BLOGGER_GITHUB_FILE_PATH en BD_APP_SCRIPT." };
         return subirArchivoAGitHub(jsonData, path);
