@@ -16,6 +16,14 @@ function testWooCommerceConnection() {
     const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
     const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
     let siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
+
+    // Blindaje de seguridad contra credenciales vacías o de plantilla
+    if (!key || !secret || !siteUrl || siteUrl.includes("tudominio.com") || key.trim() === "" || secret.trim() === "" || key.includes('XX')) {
+      const skipMsg = "⚠️ WooCommerce no configurado (Credenciales vacías o de plantilla). Omitiendo diagnóstico.";
+      log(skipMsg);
+      return skipMsg;
+    }
+
     if (!siteUrl.endsWith('/')) siteUrl += '/';
     
     const authHeader = 'Basic ' + Utilities.base64Encode(`${key}:${secret}`);
@@ -66,7 +74,12 @@ function importarOrdenesDesdeWC() {
     const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
     const siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
 
-    if (!key || !secret || key.includes('XX')) throw new Error("Faltan credenciales en Main.gs");
+    // Blindaje de seguridad contra credenciales vacías o de plantilla
+    if (!key || !secret || !siteUrl || siteUrl.includes("tudominio.com") || key.trim() === "" || secret.trim() === "" || key.includes('XX')) {
+      const skipMsg = "⚠️ WooCommerce no está configurado (Credenciales vacías o de plantilla). Importación omitida silenciosamente.";
+      log(skipMsg);
+      return { success: true, message: skipMsg, logs: logArray };
+    }
 
     const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
 
@@ -152,12 +165,20 @@ function handleAppSheetStatusUpdate(contents) {
   log(`🛠️ AppSheet Sync: Iniciando proceso para Orden #${orderId} -> ${nuevoEstado}`);
 
   try {
-    const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
-    
-    // 1. CONFIGURACIÓN API
     const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
     const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
     let siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
+
+    // Blindaje de seguridad contra credenciales vacías o de plantilla
+    if (!key || !secret || !siteUrl || siteUrl.includes("tudominio.com") || key.trim() === "" || secret.trim() === "" || key.includes('XX')) {
+      const skipMsg = "⚠️ WooCommerce no está configurado (Credenciales vacías o de plantilla). Actualización de estado en WooCommerce omitida.";
+      log(skipMsg);
+      return { success: true, message: skipMsg, logs: logArray };
+    }
+
+    const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    
+    // 1. CONFIGURACIÓN API
     if (!siteUrl.endsWith('/')) siteUrl += '/';
     
     // 2. OBTENER ORDEN DE WOOCOMMERCE
@@ -552,6 +573,17 @@ function handleWooCommerceWebhook(order) {
   };
 
   if (!order || !order.id) return { success: false, message: "Datos de orden no válidos" };
+
+  const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
+  const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
+  const siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
+
+  // Blindaje de seguridad contra credenciales vacías o de plantilla
+  if (!key || !secret || !siteUrl || siteUrl.includes("tudominio.com") || key.trim() === "" || secret.trim() === "" || key.includes('XX')) {
+    const skipMsg = "⚠️ WooCommerce no está configurado (Credenciales vacías o de plantilla). Omitiendo procesamiento de Webhook.";
+    log(skipMsg);
+    return { success: true, message: skipMsg, logs: logArray };
+  }
 
   log(`🚀 Webhook Recibido: Orden #${order.id}`);
 

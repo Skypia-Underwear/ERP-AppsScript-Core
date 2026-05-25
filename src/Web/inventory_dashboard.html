@@ -267,7 +267,7 @@
       padding: 6px 8px;
     }
 
-    /* Ãrea de datos (Productos + Tabla): apilar verticalmente */
+    /* Área de datos (Productos + Tabla): apilar verticalmente */
     .w-3\/5>.flex-grow.flex.overflow-hidden {
       flex-direction: column !important;
       overflow: visible !important;
@@ -327,7 +327,7 @@
       font-size: 6px !important;
     }
 
-    /* Ãrea de datos (Tabla): visible y scrollable en móvil */
+    /* Área de datos (Tabla): visible y scrollable en móvil */
     .flex-grow.flex.overflow-hidden>.flex-grow.flex.flex-col.overflow-hidden.bg-slate-800\/10 {
       min-height: 350px;
       max-height: 50vh;
@@ -497,7 +497,7 @@
     <div class="w-3/5 flex flex-col rounded-xl border border-slate-700 shadow-xl overflow-hidden relative"
       style="background-color: var(--bg-secondary);">
 
-      <!-- 2.1 HEADER DE CATEGORÃAS (Horizontal) -->
+      <!-- 2.1 HEADER DE CATEGORÍAS (Horizontal) -->
       <div class="flex flex-col border-b border-slate-700 bg-slate-900/50 z-10 flex-shrink-0">
         <div class="px-5 py-2.5 flex justify-between items-center border-b border-slate-800/50">
           <h3 class="font-bold text-white text-sm flex items-center gap-2 uppercase tracking-wide">
@@ -800,8 +800,8 @@
 
 <script>
   /** CONSTANTES DINAMICAS INYECTADAS DESDE EL SERVIDOR **/
-  const CATALOG_READ_URL = '<?= getCatalogJsonUrl() ?>';
-  const CATALOG_FALLBACK_URL = '<?= getCatalogFallbackUrl() ?>';
+  var CATALOG_READ_URL = '<?= getCatalogJsonUrl() ?>';
+  var CATALOG_FALLBACK_URL = '<?= getCatalogFallbackUrl() ?>';
 
   var tableInstance = null;
   var catalogData = [];
@@ -840,7 +840,7 @@
   });
 
   async function initApp() {
-    log("\u00f0\u0178\u203a\u00b0\u00ef\u00b8\u008f Sincronizando cat\u00e1logo global...", "info");
+    log("Sincronizando catalogo global...", "info");
     document.getElementById('last-sync-label').innerText = "Cargando JSON...";
 
     try {
@@ -860,11 +860,11 @@
         syncLabel.innerText = `Sincronizado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       }
 
-      // Fase 1: Hidrataci\u00f3n R\u00e1pida (Cach\u00e9 - Fast Path)
-      // Reutiliza la l\u00f3gica del TPV para mostrar stock casi instant\u00e1neamente.
+      // Fase 1: Hidratación Rápida (Caché - Fast Path)
+      // Reutiliza la lógica del TPV para mostrar stock casi instantáneamente.
       fastHydrateFromCache();
 
-      // Fase 2: Hidrataci\u00f3n Completa (Sheet - Accurate Path)
+      // Fase 2: Hidratación Completa (Sheet - Accurate Path)
       // Trae entradas, salidas y ventas en vivo.
       hydrateInventoryData();
 
@@ -875,7 +875,7 @@
       setupPolling();
 
     } catch (error) {
-      log("\u00e2\u009d\u0152 Error cr\u00edtico: " + error.message, "error");
+      log("\u00e2\u009d\u0152 Error critico: " + error.message, "error");
       const errLabel = document.getElementById('last-sync-label');
       if (errLabel) errLabel.innerText = "ERROR SYNC";
     }
@@ -893,15 +893,15 @@
 
       google.script.run.withSuccessHandler(res => {
         if (res && res.success && res.hasNew && res.products && res.products.length > 0) {
-          log(`\u00f0\u0178\u2020\u2022 \u00c2\u00a1Detectado ${res.products.length} producto(s) nuevo(s)! Refrescando cat\u00e1logo...`, 'success');
+          log(`Detectado ${res.products.length} producto(s) nuevo(s)! Refrescando catalogo...`, 'success');
 
           // En inventario, lo m\u00e1s seguro es reiniciar la app para reconstruir tablas y KPIs
           initApp();
 
           // Alerta visual discreta (Toast)
           Swal.fire({
-            title: '\u00c2\u00a1Producto Nuevo!',
-            text: `Se detect\u00f3 el ingreso de ${res.products[0].sku} al sistema.`,
+            title: '¡Producto Nuevo!',
+            text: `Se detecto el ingreso de ${res.products[0].sku} al sistema.`,
             icon: 'info',
             toast: true,
             position: 'top-end',
@@ -917,19 +917,19 @@
   }
 
   /**
-   * Fase 1: Hidrataci\u00f3n R\u00e1pida (Cach\u00e9 - Fast Path)
-   * Obtiene el stock desde el CacheService (reutilizando la l\u00f3gica del TPV)
-   * para dar una respuesta inmediata mientras se procesa la hidrataci\u00f3n completa.
+   * Fase 1: Hidratacion Rápida (Caché - Fast Path)
+   * Obtiene el stock desde el CacheService (reutilizando la lógica del TPV)
+   * para dar una respuesta inmediata mientras se procesa la hidratación completa.
    */
   function fastHydrateFromCache() {
-    console.log("[Inventory] Iniciando Hidrataci\u00f3n R\u00e1pida (Cach\u00e9)...");
+    console.log("[Inventory] Iniciando Hidratacion Rápida (Caché)...");
     const userStr = sessionStorage.getItem('loggedInUser');
     if (!userStr) return;
     const user = JSON.parse(userStr);
     const storeId = user.managedStore;
 
     if (!storeId) {
-      console.warn("[Inventory] No se detect\u00f3 tienda administrada para fast-hydration.");
+      console.warn("[Inventory] No se detectó tienda administrada para fast-hydration.");
       return;
     }
 
@@ -943,7 +943,7 @@
     google.script.run
       .withSuccessHandler(response => {
         if (response && response.success && response.stockMap) {
-          console.log("[Inventory] Stock cach\u00e9 recibido.");
+          console.log("[Inventory] Stock cache recibido.");
           window.fullStockCache = response.stockMap;
           applyFastStocks(response.stockMap);
         }
@@ -968,8 +968,8 @@
   }
 
   /**
-   * Obtiene datos en tiempo real del servidor para enriquecer el cat\u00e1logo est\u00e1tico.
-   * Esto evita latencias de red al cargar el cat\u00e1logo pesado y permite ver movimientos vivos.
+   * Obtiene datos en tiempo real del servidor para enriquecer el catálogo estático.
+   * Esto evita latencias de red al cargar el catálogo pesado y permite ver movimientos vivos.
    */
   async function hydrateInventoryData() {
     log("[Inventory] Hidratando datos de inventario en tiempo real...", "info");
@@ -981,7 +981,7 @@
     google.script.run
       .withSuccessHandler(function (response) {
         if (response.success && response.map) {
-          log("Inventario hidratado con \u00e9xito.", "success");
+          log("Inventario hidratado con éxito.", "success");
 
           // Actualizar catalogData global con datos frescos
           catalogData.forEach(item => {
@@ -1003,15 +1003,15 @@
           updateKPIs(catalogData);
           label.innerText = `Refrescado: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
         } else {
-          log("Error en hidrataci\u00f3n: " + (response.message || "Respuesta inv\u00e1lida"), "error");
+          log("Error en hidratacion: " + (response.message || "Respuesta invalida"), "error");
           label.innerText = oldLabel;
         }
       })
       .withFailureHandler(function (err) {
-        log("Error fatal en hidrataci\u00f3n: " + err.message, "error");
+        log("Error fatal en hidratacion: " + err.message, "error");
         label.innerText = oldLabel;
       })
-      .procesarAccionInventario('getHydration'); // Acci\u00f3n registrada en Main.js
+      .procesarAccionInventario('getHydration'); // Accion registrada en Main.js
   }
 
   function flattenCatalog(products) {
@@ -1126,15 +1126,15 @@
     if (el) $(el).addClass('active border-accent');
 
     if (tableInstance) {
-      // 1. Limpiamos la b\u00fasqueda global
+      // 1. Limpiamos la búsqueda global
       $('#custom-sku-search').val('');
       tableInstance.search('');
 
-      // 2. Reseteamos el visual de categor\u00edas a "Todas" para evitar conflictos
+      // 2. Reseteamos el visual de categorías a "Todas" para evitar conflictos
       $('.category-card').removeClass('active border-accent').addClass('border-slate-700').find('span').removeClass('text-white').addClass('text-slate-400');
       $('.category-card[data-category=""]').addClass('active border-accent').removeClass('border-slate-700').find('span').addClass('text-white');
 
-      // 3. Limpiamos el filtro por columna de categor\u00eda
+      // 3. Limpiamos el filtro por columna de categoría
       tableInstance.column(0).search('');
 
       // 4. Aplicamos el filtro por SKU
@@ -1323,7 +1323,7 @@
         preConfirm: () => {
           const target = document.getElementById('swal-transfer-target').value;
           if (!target) {
-            Swal.showValidationMessage('Debes seleccionar un origen/destino v\u00e1lido');
+            Swal.showValidationMessage('Debes seleccionar un origen/destino válido');
           }
           return target;
         }
@@ -1357,7 +1357,7 @@
         }
       })
       .withFailureHandler(err => {
-        log("\u00e2\u009d\u0152 Error fatal: " + err.message, "error");
+        log("Error fatal: " + err.message, "error");
         $('#btn-save-matrix').html('<i class="ph-bold ph-floppy-disk"></i> Guardar Cambios').attr('disabled', false);
       })
       .procesarAccionInventario('guardarMatrizStock', JSON.stringify({
@@ -1370,8 +1370,8 @@
 
   /* --- MANTENIMIENTO --- */
   function runGlobalAudit() {
-    Swal.fire({ title: '\u00bfAuditor\u00eda Global?', text: 'Esto reestaura todo el cat\u00e1logo bas\u00e1ndose en los productos maestros. Proceso Pesado.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', background: 'var(--bg-secondary)', color: '#fff' })
-      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("Iniciando auditor\u00eda global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
+    Swal.fire({ title: '¿Auditoría Global?', text: 'Esto reestaura todo el catálogo basándose en los productos maestros. Proceso Pesado.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', background: 'var(--bg-secondary)', color: '#fff' })
+      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("Iniciando auditoría global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
   }
 
   function runProductAudit() {
@@ -1386,7 +1386,7 @@
         if (res.logs) res.logs.forEach(l => log(l));
         log(res.message, res.success ? "success" : "error");
       })
-      .withFailureHandler(err => log("\u00e2\u009d\u0152 Error RPC: " + err.message, "error"))
+      .withFailureHandler(err => log("Error RPC: " + err.message, "error"))
       .procesarAccionInventario(accion, codigo, fecha);
   }
 
@@ -1395,7 +1395,7 @@
     $('#bartender-modal').removeClass('hidden').addClass('flex');
     $('#bartender-setup-container').removeClass('hidden');
     $('#bartender-table-container, #bartender-footer').addClass('hidden');
-    $('#bartender-modal-subtitle').text('Paso 1: Configura los par\u00e1metros de extracci\u00f3n.');
+    $('#bartender-modal-subtitle').text('Paso 1: Configura los parámetros de extracción.');
 
     if (currentSelectedSKU) { $('#bt-selected-sku-label').text(currentSelectedSKU); $('#bt_source_selected').attr('disabled', false).prop('checked', true); }
     else { $('#bt-selected-sku-label').text('Ninguno'); $('#bt_source_selected').attr('disabled', true); $('#bt_source_filtered').prop('checked', true); }
@@ -1453,7 +1453,7 @@
     }
 
     // Casos manuales (Selected, Filtered, All)
-    log(`Extrayendo datos seg\u00fan modo: ${source}`, "info");
+    log(`Extrayendo datos según modo: ${source}`, "info");
     let dataToRender = [];
     if (source === 'selected') dataToRender = catalogData.filter(i => i.sku === currentSelectedSKU);
     else if (source === 'filtered') dataToRender = tableInstance.rows({ search: 'applied' }).data().toArray();

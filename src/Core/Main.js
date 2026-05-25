@@ -265,11 +265,33 @@ function getAppScriptConfig() {
       if (!sheetSS) return {};
       const sheet = sheetSS.getSheetByName("BD_APP_SCRIPT");
       if (!sheet) return {};
+      
+      const lastCol = sheet.getLastColumn();
+      if (lastCol === 0) return {};
+      
+      // Leer cabeceras y encontrar los índices de CLAVE y VALOR de forma dinámica
+      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toUpperCase());
+      let claveIdx = -1;
+      let valorIdx = -1;
+      
+      for (let i = 0; i < headers.length; i++) {
+        const headerFuzzy = headers[i].replace(/[\s_-]/g, "");
+        if (headerFuzzy.includes("CLAVE") || headerFuzzy.includes("TIPOCLAVE")) {
+          claveIdx = i;
+        } else if (headerFuzzy.includes("VALOR")) {
+          valorIdx = i;
+        }
+      }
+      
+      // Fallback a los índices históricos si no se detectan cabeceras
+      if (claveIdx === -1) claveIdx = 1;
+      if (valorIdx === -1) valorIdx = 2;
+      
       const data = sheet.getDataRange().getValues();
       const cfg = {};
       for (let i = 1; i < data.length; i++) {
-        const clave = String(data[i][1]).trim();
-        const valor = String(data[i][2]).trim();
+        const clave = String(data[i][claveIdx]).trim();
+        const valor = String(data[i][valorIdx]).trim();
         if (clave) cfg[clave] = valor;
       }
       return cfg;
@@ -335,9 +357,9 @@ const GLOBAL_CONFIG = {
   TELEGRAM: {
     get BOT_TOKEN() { return String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_BOT_TOKEN"] || "").trim(); },
     get CHAT_ID() { return String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_CHAT_ID"] || "").trim(); },
-    get DEV_CHAT_ID() { 
+    get DEV_CHAT_ID() {
       const val = String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_DEV_CHAT_ID"] || "").trim();
-      return (val === "true" || val === "false") ? "" : val; 
+      return (val === "true" || val === "false") ? "" : val;
     },
     get MODE() { return (String(GLOBAL_CONFIG.SCRIPT_CONFIG["TELEGRAM_MODE"] || "DEV")).toUpperCase().trim(); }
   },
@@ -363,7 +385,8 @@ const GLOBAL_CONFIG = {
     USER: "SystemBlogShop",
     REPO: "erp-shared-assets",
     get TOKEN() { return GLOBAL_CONFIG.SCRIPT_CONFIG["ASSETS_GITHUB_TOKEN"] || ""; },
-    get BRANCH() { return GLOBAL_CONFIG.SCRIPT_CONFIG["ASSETS_GITHUB_BRANCH"] || "main"; }
+    get BRANCH() { return GLOBAL_CONFIG.SCRIPT_CONFIG["ASSETS_GITHUB_BRANCH"] || "main"; },
+    get ENABLE_SYNC() { return GLOBAL_CONFIG.SCRIPT_CONFIG["ASSETS_ENABLE_GITHUB_SYNC"] !== "FALSE"; }
   },
 
   BLOGGER: {
@@ -670,8 +693,8 @@ function notificarTelegramSalud(mensaje, tipo = 'INFO') {
 
   Logger.log(`📡 [Health] Iniciando reporte: ${tipo} | Destino: ${targetChatId} | Msg: ${mensaje.substring(0, 30)}...`);
 
-  if (!config.BOT_TOKEN || !targetChatId) {
-    Logger.log("❌ [Health] Faltan BOT_TOKEN o CHAT_ID destino en GLOBAL_CONFIG.");
+  if (!config.BOT_TOKEN || config.BOT_TOKEN.trim() === "" || config.BOT_TOKEN.includes("AQUÍ") || config.BOT_TOKEN.includes("BOT_TOKEN") || !targetChatId || targetChatId.trim() === "") {
+    Logger.log("⚠️ [Health] Telegram no está configurado (Token o ChatID vacíos o de plantilla). Reporte omitido silenciosamente.");
     return;
   }
 
@@ -1086,6 +1109,15 @@ function getPageContent(view, accion, codigo, fecha, isEmbedded = false) {
 
   if (view === 'pos_manager') {
     const template = HtmlService.createTemplateFromFile('Web/pos_view');
+    template.isEmbedded = isEmbedded;
+    template.CATALOG_URL = getCatalogJsonUrl();
+    template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    return template.evaluate().getContent();
+  }
+
+  // --- NUEVA: Vista de Importación Inteligente de WhatsApp ---
+  if (view === 'whatsapp_import') {
+    const template = HtmlService.createTemplateFromFile('Web/whatsapp_import');
     template.isEmbedded = isEmbedded;
     template.CATALOG_URL = getCatalogJsonUrl();
     template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
@@ -1592,5 +1624,85 @@ function actualizarResultadoWebhook(row, status) {
     }
   } catch (err) {
     console.error("Error en actualizarResultadoWebhook: " + err.message);
+  }
+}
+
+/**
+ * Retorna las categorías disponibles y los CODIGO_ID ya registrados en el sistema.
+ * Sirve para el selector dinámico de categorías y para validar códigos únicos.
+ */
+function whatsapp_obtenerCategoriasYCodigos() {
+  try {
+    const ss = getActiveSS();
+    if (!ss) throw new Error("No se pudo obtener la hoja de cálculo activa.");
+
+    // 1. Obtener Categorías
+    const sheetCats = ss.getSheetByName(SHEETS.CATEGORIES || "BD_CATEGORIAS");
+    const categories = [];
+    if (sheetCats) {
+      const dataCats = sheetCats.getDataRange().getValues();
+      const mapping = HeaderManager.getMapping("CATEGORIES") || { CATEGORIA_GENERAL: 0, CATEGORIA_ID: 1, RECARGO_MENOR: 5 };
+      const colG = mapping.CATEGORIA_GENERAL !== undefined ? mapping.CATEGORIA_GENERAL : 0;
+      const colID = mapping.CATEGORIA_ID !== undefined ? mapping.CATEGORIA_ID : 1;
+      const colRecargo = mapping.RECARGO_MENOR !== undefined ? mapping.RECARGO_MENOR : 5;
+
+      for (let i = 1; i < dataCats.length; i++) {
+        const catGeneral = String(dataCats[i][colG] || "").trim();
+        const catId = String(dataCats[i][colID] || "").trim();
+        const recargo = parseFloat(dataCats[i][colRecargo]) || 0;
+        if (catId) {
+          categories.push({
+            categoriaGeneral: catGeneral,
+            categoriaId: catId,
+            recargoMenor: recargo
+          });
+        }
+      }
+    }
+
+    // 2. Obtener Códigos y Productos Existentes por SKU
+    const sheetProds = ss.getSheetByName(SHEETS.PRODUCTS || "BD_PRODUCTOS");
+    const existingCodes = [];
+    const existingProducts = [];
+    if (sheetProds) {
+      const dataProds = sheetProds.getDataRange().getValues();
+      const mapping = HeaderManager.getMapping("PRODUCTS") || { CODIGO_ID: 0, SKU: 3, CATEGORIA: 2, MODELO: 9 };
+      const colCode = mapping.CODIGO_ID !== undefined ? mapping.CODIGO_ID : 0;
+      const colSku = mapping.SKU !== undefined ? mapping.SKU : 3;
+      const colCat = mapping.CATEGORIA !== undefined ? mapping.CATEGORIA : 2;
+      const colModelo = mapping.MODELO !== undefined ? mapping.MODELO : 9;
+      
+      for (let i = 1; i < dataProds.length; i++) {
+        const code = String(dataProds[i][colCode] || "").trim().toUpperCase();
+        let skuVal = String(dataProds[i][colSku] || "").trim();
+        const catVal = String(dataProds[i][colCat] || "").trim();
+        const modeloVal = String(dataProds[i][colModelo] || "").trim();
+        
+        // Limpieza de comilla simple inicial en el SKU si estuviera presente
+        if (skuVal.startsWith("'")) {
+          skuVal = skuVal.substring(1);
+        }
+        
+        if (code) {
+          existingCodes.push(code);
+          existingProducts.push({
+            codigoId: code,
+            sku: skuVal,
+            categoriaId: catVal,
+            modelo: modeloVal
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      categories: categories,
+      existingCodes: existingCodes,
+      existingProducts: existingProducts
+    };
+  } catch (e) {
+    console.error("Error en whatsapp_obtenerCategoriasYCodigos: " + e.message);
+    return { success: false, error: e.message };
   }
 }

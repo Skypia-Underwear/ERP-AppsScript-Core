@@ -328,3 +328,217 @@ function appsheet_findRecord_PhysicalFallback(tableName, keyColumn, keyValue) {
         return null;
     }
 }
+
+/**
+ * Crea un producto en AppSheet a través de la API REST.
+ * Opcionalmente también inserta la imagen asociada en BD_PRODUCTO_IMAGENES.
+ */
+function appsheet_crearProducto(productData) {
+  try {
+    const appId = GLOBAL_CONFIG.APPSHEET.APP_ID;
+    const accessKey = GLOBAL_CONFIG.APPSHEET.ACCESS_KEY;
+    
+    if (!appId || !accessKey) {
+      throw new Error("Credenciales de AppSheet no configuradas.");
+    }
+
+    const fechaSync = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || "GMT-3", "yyyy-MM-dd HH:mm:ss");
+
+    // Normalización de género para cumplir estrictamente con los Enums de AppSheet (Hombre, Mujer, Unisex)
+    let generoNormalizado = String(productData.GENERO || "").trim();
+    const generoUpper = generoNormalizado.toUpperCase();
+    if (generoUpper === "FEMENINO" || generoUpper === "MUJER") {
+      generoNormalizado = "Mujer";
+    } else if (generoUpper === "MASCULINO" || generoUpper === "HOMBRE") {
+      generoNormalizado = "Hombre";
+    } else if (generoUpper === "UNISEX") {
+      generoNormalizado = "Unisex";
+    } else {
+      generoNormalizado = "Unisex"; // Default seguro
+    }
+
+    const ss = getActiveSS();
+    const sheetProducts = ss.getSheetByName(SHEETS.PRODUCTS || "BD_PRODUCTOS");
+    const mappingProd = HeaderManager.getMapping("PRODUCTS");
+    
+    let existingRowIdx = -1;
+    let finalCodigoId = String(productData.CODIGO_ID).trim().toUpperCase();
+    
+    if (sheetProducts && mappingProd) {
+      const dataProds = sheetProducts.getDataRange().getValues();
+      const colCode = mappingProd.CODIGO_ID !== undefined ? mappingProd.CODIGO_ID : 0;
+      const colSku = mappingProd.SKU !== undefined ? mappingProd.SKU : 3;
+      const colModelo = mappingProd.MODELO !== undefined ? mappingProd.MODELO : 9;
+      
+      const skuBuscado = normalizeSku(productData.SKU);
+      const codeBuscado = String(productData.CODIGO_ID || "").trim().toUpperCase();
+      const modeloBuscado = normalizeModelName(productData.MODELO);
+      
+      let fuzzyMatchRow = -1;
+      let fuzzyMatchCode = "";
+      
+      for (let r = 1; r < dataProds.length; r++) {
+        const currentCode = String(dataProds[r][colCode]).trim().toUpperCase();
+        const currentSku = normalizeSku(dataProds[r][colSku]);
+        const currentModelo = normalizeModelName(dataProds[r][colModelo]);
+        
+        // Búsqueda robusta por SKU de WhatsApp o por Código ID
+        if ((skuBuscado && currentSku === skuBuscado) || (codeBuscado && currentCode === codeBuscado)) {
+          existingRowIdx = r + 1;
+          finalCodigoId = currentCode;
+          break;
+        }
+        
+        // Coincidencia fuzzy como fallback por modelo normalizado
+        if (modeloBuscado && currentModelo === modeloBuscado) {
+          fuzzyMatchRow = r + 1;
+          fuzzyMatchCode = currentCode;
+        }
+      }
+      
+      if (existingRowIdx === -1 && fuzzyMatchRow !== -1) {
+        existingRowIdx = fuzzyMatchRow;
+        finalCodigoId = fuzzyMatchCode;
+        debugLog(`[AppSheetApi] Coincidencia fuzzy encontrada por modelo para "${productData.MODELO}" en fila ${existingRowIdx}. Asignando código existente ${finalCodigoId}.`);
+      }
+    }
+
+    if (existingRowIdx === -1) {
+      // 1. Insertar en BD_PRODUCTOS (Omitiendo WOO_ID, CARPETA_ID, DESCRIPCION_IA y otros no insertables/calculados)
+      const urlProd = `https://api.appsheet.com/api/v2/apps/${appId}/tables/BD_PRODUCTOS/Action`;
+      
+      // Preservar precisión de SKU prependeando comilla simple para que Google Sheets lo guarde como Texto Plano
+      let finalSku = String(productData.SKU || "").trim();
+      if (finalSku && !finalSku.startsWith("'")) {
+        finalSku = "'" + finalSku;
+      }
+      
+      const prodRow = {
+        "CODIGO_ID": finalCodigoId,
+        "CATEGORIA_PADRE": productData.CATEGORIA_PADRE || "",
+        "CATEGORIA": productData.CATEGORIA || "",
+        "SKU": finalSku,
+        "TEMPORADA": productData.TEMPORADA || "",
+        "GENERO": generoNormalizado,
+        "MARCA": productData.MARCA || "",
+        "MODELO": productData.MODELO || "",
+        "ESTILO": productData.ESTILO || "",
+        "MATERIAL": productData.MATERIAL || "",
+        "TALLES": productData.TALLES || "Surtido",
+        "COLORES": productData.COLORES || "Surtido",
+        "DESCRIPCION_IA": productData.DESCRIPCION_IA || "", // Novedad: Enviado de forma síncrona en el payload gracias a que el usuario habilitó su edición en AppSheet
+        "PRECIO_COSTO": parseFloat(productData.PRECIO_COSTO) || 0,
+        "RECARGO_MENOR": parseFloat(productData.RECARGO_MENOR) || 0,
+        "ESTADO_SINCRONIZACION": "PENDIENTE",
+        "ULTIMA_ACTUALIZACION": fechaSync
+      };
+
+      const payloadProd = {
+        "Action": "Add",
+        "Properties": { "Locale": "es-AR", "Timezone": "SA Western Standard Time" },
+        "Rows": [prodRow]
+      };
+
+      const optionsProd = {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'ApplicationAccessKey': accessKey },
+        payload: JSON.stringify(payloadProd),
+        muteHttpExceptions: true
+      };
+
+      const responseProd = UrlFetchApp.fetch(urlProd, optionsProd);
+      if (responseProd.getResponseCode() !== 200) {
+        throw new Error("Error de API de AppSheet en BD_PRODUCTOS: " + responseProd.getContentText());
+      }
+      
+      debugLog(`[AppSheetApi] Producto ${finalCodigoId} creado con éxito a través de la API.`);
+    } else {
+      debugLog(`[AppSheetApi] Producto existente encontrado en fila ${existingRowIdx} con código ${finalCodigoId}. Omitiendo creación y ejecutando actualizaciones.`);
+    }
+    // 1.5 Si es un producto EXISTENTE (ya registrado) y viene una descripción, escribirla directamente en la Sheet.
+    // Para los nuevos, ya se envió e insertó de forma limpia y síncrona a través del payload de la API de AppSheet de arriba!
+    if (productData.DESCRIPCION_IA && existingRowIdx !== -1) {
+      try {
+        if (sheetProducts && mappingProd) {
+          const colDesc = mappingProd.DESCRIPCION_IA !== undefined ? mappingProd.DESCRIPCION_IA : mappingProd.DESCRIPCION;
+          if (colDesc !== undefined) {
+            sheetProducts.getRange(existingRowIdx, colDesc + 1).setValue(productData.DESCRIPCION_IA);
+            debugLog(`[AppSheetApi] Descripción de producto existente guardada directamente en Sheet en fila ${existingRowIdx} para ${finalCodigoId}`);
+          }
+        }
+      } catch (sheetErr) {
+        console.error("Error al escribir descripción en Sheet: " + sheetErr.message);
+      }
+    }
+
+    // 2. Si tiene URL de imagen de WhatsApp, descargarla directamente en Drive y sincronizar mediante la lógica nativa de Images.js
+    if (productData.imageUrl && productData.imageUrl.startsWith("http")) {
+      try {
+        // A. Obtener o crear la carpeta física del producto (guarda CARPETA_ID en la Sheet)
+        const folder = obtenerOCrearCarpetaProducto(finalCodigoId);
+        if (folder) {
+          // Si la carpeta ya contiene algún archivo (imagen o vídeo), evitamos volver a descargar desde WhatsApp para prevenir duplicados.
+          const hasFiles = folder.getFiles().hasNext();
+          
+          if (!hasFiles) {
+            const fileName = `${finalCodigoId}_01.jpg`;
+            const imgResponse = UrlFetchApp.fetch(productData.imageUrl, { muteHttpExceptions: true });
+            if (imgResponse.getResponseCode() === 200) {
+              const blob = imgResponse.getBlob().setName(fileName);
+              folder.createFile(blob);
+              debugLog(`[AppSheetApi] Imagen de WhatsApp guardada en carpeta de Drive para ${finalCodigoId}`);
+              
+              // B. Ejecutar la sincronización de imágenes nativa para este producto
+              // Esto se encarga de renombrar la imagen al formato estable de AppSheet y de registrarla en la base BD_PRODUCTO_IMAGENES
+              sincronizarImagenes(finalCodigoId);
+              debugLog(`[AppSheetApi] Sincronización maestra de imágenes finalizada para ${finalCodigoId}`);
+            } else {
+              debugLog(`[AppSheetApi] Error HTTP ${imgResponse.getResponseCode()} al descargar la imagen de WhatsApp.`);
+            }
+          } else {
+            debugLog(`[AppSheetApi] La carpeta de Drive para ${finalCodigoId} ya contiene imágenes. Omitiendo descarga e inserción duplicada.`);
+          }
+        }
+      } catch (imgErr) {
+        console.error("Error al procesar y sincronizar imagen: " + imgErr.message);
+      }
+    }
+
+    return { success: true, updated: (existingRowIdx !== -1), codigoId: finalCodigoId };
+  } catch (e) {
+    console.error("Error en appsheet_crearProducto: " + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Normaliza un SKU limpiando espacios, comillas simples iniciales y manejando notación científica.
+ */
+function normalizeSku(sku) {
+  if (sku === null || sku === undefined) return "";
+  let s = String(sku).trim();
+  if (s.startsWith("'")) {
+    s = s.substring(1);
+  }
+  // Detectar y convertir notación científica (ej: 2.62975847698751e+17)
+  if (/^[+-]?[0-9.]+[eE][+-]?[0-9]+$/.test(s)) {
+    try {
+      s = BigInt(Math.round(Number(s))).toString();
+    } catch (e) {
+      s = Number(s).toFixed(0);
+    }
+  }
+  return s.toUpperCase();
+}
+
+/**
+ * Normaliza el nombre de un modelo/título para comparaciones difusas (remueve espacios, puntuaciones y emojis).
+ */
+function normalizeModelName(name) {
+  if (!name) return "";
+  return String(name)
+    .toLowerCase()
+    .replace(/[\s\-_.\(\)\[\]\{\}]/g, "")
+    .replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, ""); // remove emojis
+}

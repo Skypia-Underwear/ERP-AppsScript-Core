@@ -1399,7 +1399,7 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
  * Inspecciona UNA foto con la cuenta gratuita y guarda sus atributos físicos
  * en la columna ANALISIS_FORENSE de BD_IMAGENES delegando al AIService.
  */
-function escanearPrenda(imagenId, forzar = false) {
+function escanearPrenda(imagenId, forzar = false, modeloForzado = null) {
   try {
     const ss = getImagesSpreadsheet();
     const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
@@ -1429,7 +1429,7 @@ function escanearPrenda(imagenId, forzar = false) {
     };
 
     // Ejecución centralizada vía AIService (Motor de persistencia y fallback dual-key)
-    const resLab = AIService.ejecutarPruebaLaboratorio(imagenId, metadata, forzar);
+    const resLab = AIService.ejecutarPruebaLaboratorio(imagenId, metadata, forzar, modeloForzado);
 
     if (resLab && resLab.success) {
       garantizarColumnaANALISIS(sheetImg);

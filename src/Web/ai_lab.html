@@ -206,6 +206,17 @@
             <h2 id="prod-title-view" class="text-[10px] font-bold text-white uppercase truncate">Sin selección</h2>
             <p id="prod-sku-view" class="text-slate-500 font-mono text-[9px]">SKU: ---</p>
             
+            <!-- Selector de Modelo de Análisis Forense -->
+            <div class="mt-2.5">
+              <label class="block text-[8px] font-black text-slate-500 uppercase mb-1">Modelo de Análisis</label>
+              <select id="lab-analysis-model" class="w-full bg-slate-950 border border-slate-800 text-white rounded p-1.5 text-[10px] outline-none focus:border-blue-500 font-bold transition-all duration-300">
+                <option value="gemma-4-26b-a4b-it" selected>Gemma 4 (Peritaje Forense RAW)</option>
+                <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Alta Inteligencia)</option>
+                <option value="gemini-3.5-flash">Gemini 3.5 Flash (Agente Estable)</option>
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Emergencia/Rápido)</option>
+              </select>
+            </div>
+            
             <div class="mt-2 flex items-center gap-2 bg-slate-900/50 p-1.5 rounded border border-slate-800">
               <input type="checkbox" id="lab-force-cache" class="accent-purple-500 w-3 h-3 cursor-pointer rounded border-slate-700">
               <label for="lab-force-cache" class="text-[9px] text-slate-400 cursor-pointer select-none font-bold uppercase tracking-wide">Forzar IA (Ignorar Caché)</label>
@@ -1020,9 +1031,8 @@
 
     let accumulatedClean = "";
 
-    btn.innerHTML = `<span class="material-icons animate-spin text-sm">sync</span> INICIANDO AN\u00c1LISIS PARALELO...`;
-
     const forzar = document.getElementById('lab-force-cache') ? document.getElementById('lab-force-cache').checked : false;
+    const analysisModel = document.getElementById('lab-analysis-model') ? document.getElementById('lab-analysis-model').value : 'gemma-4-26b-a4b-it';
 
     const promises = selectedImageIds.map((imgId, i) => {
       const typeLabel = i === 0 ? "MASTER" : `REFERENCE ${i}`;
@@ -1046,7 +1056,7 @@
           .withFailureHandler(err => {
             resolve({ imgId, typeLabel, i, success: false, cached: false, error: err.message || err });
           })
-          .ejecutarPruebaLaboratorio(imgId, metadata, forzar);
+          .ejecutarPruebaLaboratorio(imgId, metadata, forzar, analysisModel);
       });
     });
 
@@ -1277,6 +1287,7 @@
       formato: formato,
       environment: environment,
       model: model,
+      analysisModel: document.getElementById('lab-analysis-model') ? document.getElementById('lab-analysis-model').value : 'gemma-4-26b-a4b-it',
       aspectRatio: aspect,
       skinTone: skin,
       accessories: acc,

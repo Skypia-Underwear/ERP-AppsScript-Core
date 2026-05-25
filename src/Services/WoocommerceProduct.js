@@ -500,6 +500,14 @@ function enviarProductoWP(sku) {
   try {
     if (!sku) throw new Error("Se requiere un SKU para enviar a WooCommerce.");
 
+    const apiUrl = GLOBAL_CONFIG.WORDPRESS.PRODUCT_API_URL;
+    // Blindaje de seguridad contra credenciales/URLs vacías o de plantilla
+    if (!apiUrl || apiUrl.includes("tudominio.com") || apiUrl.trim() === "") {
+      const skipMsg = "⚠️ WooCommerce Product API no está configurada (URL vacía o de plantilla). Sincronización omitida.";
+      logArray.push(skipMsg);
+      return { success: true, message: skipMsg, logs: logArray };
+    }
+
     const SKU_NORM = String(sku).trim().toUpperCase();
     logArray.push(`ℹ️ Iniciando envío de SKU: ${SKU_NORM} a WooCommerce...`);
 
@@ -628,6 +636,14 @@ function enviarProductoWP(sku) {
  */
 function eliminarProductoWP(wooId, sku) {
   try {
+    const apiUrl = GLOBAL_CONFIG.WORDPRESS.PRODUCT_API_URL;
+    // Blindaje de seguridad contra credenciales/URLs vacías o de plantilla
+    if (!apiUrl || apiUrl.includes("tudominio.com") || apiUrl.trim() === "") {
+      const skipMsg = "⚠️ WooCommerce Product API no está configurada (URL vacía o de plantilla). Omitiendo eliminación.";
+      console.log(skipMsg);
+      return { success: true, message: skipMsg };
+    }
+
     if (!wooId && !sku) throw new Error("Se requiere al menos un WOO_ID o SKU para eliminar en WooCommerce.");
 
     console.log(`🗑️ Solicitando eliminación en WooCommerce para wooId: ${wooId || 'N/A'}, sku: ${sku || 'N/A'}...`);

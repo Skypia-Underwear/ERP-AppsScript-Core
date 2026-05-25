@@ -244,6 +244,11 @@
         <span class="text-sm font-medium sidebar-text">POS / TPV</span>
       </button>
 
+      <button onclick="navigate('whatsapp_import')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-whatsapp_import">
+        <i class="ph-duotone ph-cloud-arrow-up text-xl flex-shrink-0"></i>
+        <span class="text-sm font-medium sidebar-text">Importar Catálogo</span>
+      </button>
+
       <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 nav-section-title">Inventario</p>
       <button onclick="navigate('inventory_dashboard')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-inventory_dashboard">
         <i class="ph-duotone ph-check-circle text-xl flex-shrink-0"></i>
@@ -346,20 +351,40 @@
       window.catalogFetchPromise = (async () => {
         let initialData = null;
         console.log("[Global Fetch] Estrategia Stale-while-revalidate iniciada.");
-        try {
-          if (!rUrl || rUrl.length < 5) throw new Error("URL no valida");
-          console.log("[Global Fetch] Solicitando a Donweb...");
-          const response = await fetch(rUrl);
-          if (response.ok) {
-            initialData = await response.json();
-            window.cachedCatalogData = initialData;
-            console.log("[Global Fetch] Catalogo cargado desde Donweb.");
-          } else {
-            throw new Error("Donweb fallo");
-          }
-        } catch (e) {
-          console.warn("[Global Fetch] Fallo en Donweb, recurriendo a Github...", e.message);
+        
+        // Validar que las URLs estén configuradas, comiencen estrictamente con 'http' y no tengan valores por defecto
+        const isDonwebValid = rUrl && typeof rUrl === 'string' && rUrl.trim().startsWith('http') && !rUrl.includes("tudominio.com");
+        const isGithubValid = fUrl && typeof fUrl === 'string' && fUrl.trim().startsWith('http') && !fUrl.includes("tudominio.com");
+
+        if (isDonwebValid) {
           try {
+            console.log("[Global Fetch] Solicitando a Donweb...");
+            const response = await fetch(rUrl);
+            if (response.ok) {
+              initialData = await response.json();
+              window.cachedCatalogData = initialData;
+              console.log("[Global Fetch] Catalogo cargado desde Donweb.");
+            } else {
+              throw new Error("Donweb fallo");
+            }
+          } catch (e) {
+            console.warn("[Global Fetch] Fallo en Donweb, recurriendo a Github...", e.message);
+            if (isGithubValid) {
+              try {
+                const fbResponse = await fetch(fUrl);
+                if (fbResponse.ok) {
+                  initialData = await fbResponse.json();
+                  window.cachedCatalogData = initialData;
+                  console.log("[Global Fetch] Catalogo cargado desde Github.");
+                }
+              } catch (errFb) {
+                console.error("[Global Fetch] Fallo total (Donweb/Github).");
+              }
+            }
+          }
+        } else if (isGithubValid) {
+          try {
+            console.log("[Global Fetch] Solicitando a Github...");
             const fbResponse = await fetch(fUrl);
             if (fbResponse.ok) {
               initialData = await fbResponse.json();
@@ -367,34 +392,56 @@
               console.log("[Global Fetch] Catalogo cargado desde Github.");
             }
           } catch (errFb) {
-            console.error("[Global Fetch] Fallo total (Donweb/Github).");
+            console.error("[Global Fetch] Fallo total en Github.");
           }
         }
 
-        setTimeout(() => {
-          console.log("[Global Fetch] Sincronizando con Drive...");
+        // Si obtuvimos datos de Donweb/Github, hacemos la sincronización con Drive en segundo plano de forma segura
+        if (initialData) {
+          setTimeout(() => {
+            console.log("[Global Fetch] Sincronizando con Drive en segundo plano...");
+            google.script.run
+              .withSuccessHandler(res => {
+                if (res && res.success && res.catalog) {
+                  const driveData = res.catalog;
+                  const driveTime = driveData.timestamp_ms || 0;
+                  const localTime = window.cachedCatalogData ? (window.cachedCatalogData.timestamp_ms || 0) : 0;
+                  if (driveTime > localTime) {
+                    console.log("[Global Fetch] Nueva version detectada en Drive. Actualizando cache...");
+                    window.cachedCatalogData = driveData;
+                    window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: driveData }));
+                  } else {
+                    console.log("[Global Fetch] Catalogo de Drive sincronizado (sin cambios).");
+                  }
+                }
+              })
+              .withFailureHandler(err => console.warn("[Global Fetch] Advertencia en sincronizacion de Drive:", err.message))
+              .tpv_obtenerCatalogoDesdeDrive();
+          }, 1000); // Margen de seguridad de 1 segundo para evitar competencia
+          
+          return initialData;
+        }
+
+        // Si ambos fallaron o no están configurados, recurrimos de inmediato a Drive Fast como fuente principal
+        console.log("[Global Fetch] Donweb/Github inactivos o fallidos. Activando Drive Fast de inmediato...");
+        return new Promise((resolve, reject) => {
           google.script.run
             .withSuccessHandler(res => {
               if (res && res.success && res.catalog) {
-                const driveData = res.catalog;
-                const driveTime = driveData.timestamp_ms || 0;
-                const localTime = window.cachedCatalogData ? (window.cachedCatalogData.timestamp_ms || 0) : 0;
-                if (driveTime > localTime || !window.cachedCatalogData) {
-                  console.log("[Global Fetch] Nueva version detectada en Drive. Actualizando...");
-                  window.cachedCatalogData = driveData;
-                  window.catalogFetchPromise = Promise.resolve(driveData);
-                  window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: driveData }));
-                } else {
-                  console.log("[Global Fetch] Catalogo actualizado.");
-                }
+                console.log("[Global Fetch] Catalogo cargado exitosamente desde Drive Fast.");
+                window.cachedCatalogData = res.catalog;
+                resolve(res.catalog);
+              } else {
+                const errMsg = (res && res.message) ? res.message : "Error desconocido recuperando catalogo de Drive.";
+                console.error("[Global Fetch] Drive Fast falló: " + errMsg);
+                reject(new Error(errMsg));
               }
             })
-            .withFailureHandler(err => console.error("[Global Fetch] Fallo en sincronizacion:", err.message))
+            .withFailureHandler(err => {
+              console.error("[Global Fetch] Fallo critico en llamada a Drive Fast:", err.message);
+              reject(err);
+            })
             .tpv_obtenerCatalogoDesdeDrive();
-        }, 100);
-
-        return initialData || new Promise((resolve, reject) => {
-          google.script.run.withSuccessHandler(res => resolve(res.catalog)).withFailureHandler(reject).tpv_obtenerCatalogoDesdeDrive();
         });
       })();
       return window.catalogFetchPromise;

@@ -159,7 +159,9 @@ function responderExportarDatos(chatId) {
  */
 function configurarComandosNativosTelegram() {
     const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
-    if (!token) return { success: false, message: "No hay token configurado." };
+    if (!token || token.trim() === "" || token.includes("AQUÍ") || token.includes("BOT_TOKEN")) {
+        return { success: false, message: "Telegram Bot no configurado (Token vacío o de plantilla)." };
+    }
 
     const url = `https://api.telegram.org/bot${token}/setMyCommands`;
     const payload = {
@@ -195,7 +197,9 @@ function configurarMiniAppTelegram() {
     const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
     const webAppUrl = ScriptApp.getService().getUrl();
 
-    if (!token || !webAppUrl) return { success: false, message: "Token o URL de Web App no disponibles." };
+    if (!token || token.trim() === "" || token.includes("AQUÍ") || token.includes("BOT_TOKEN") || !webAppUrl) {
+        return { success: false, message: "Token o URL de Web App no configurados." };
+    }
 
     const url = `https://api.telegram.org/bot${token}/setChatMenuButton`;
     const payload = {
@@ -227,7 +231,10 @@ function configurarMiniAppTelegram() {
  */
 function answerCallbackQuery(callbackQueryId) {
     const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
-    if (!token) return;
+    if (!token || token.trim() === "" || token.includes("AQUÍ") || token.includes("BOT_TOKEN")) {
+        console.log("⚠️ Telegram Bot no configurado (Token vacío o de plantilla). answerCallbackQuery omitida.");
+        return;
+    }
 
     const url = `https://api.telegram.org/bot${token}/answerCallbackQuery`;
     const payload = { callback_query_id: callbackQueryId };
@@ -245,7 +252,10 @@ function answerCallbackQuery(callbackQueryId) {
  */
 function editMessageText(chatId, messageId, text, keyboard = null) {
     const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
-    if (!token) return;
+    if (!token || token.trim() === "" || token.includes("AQUÍ") || token.includes("BOT_TOKEN")) {
+        console.log("⚠️ Telegram Bot no configurado (Token vacío o de plantilla). editMessageText omitida.");
+        return;
+    }
 
     const url = `https://api.telegram.org/bot${token}/editMessageText`;
     const payload = {
@@ -272,7 +282,10 @@ function editMessageText(chatId, messageId, text, keyboard = null) {
  */
 function enviarDocumentoTelegram(chatId, blob, caption = "") {
     const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
-    if (!token) return;
+    if (!token || token.trim() === "" || token.includes("AQUÍ") || token.includes("BOT_TOKEN")) {
+        console.log("⚠️ Telegram Bot no configurado (Token vacío o de plantilla). enviarDocumentoTelegram omitida.");
+        return;
+    }
 
     const url = `https://api.telegram.org/bot${token}/sendDocument`;
     const payload = {
@@ -299,7 +312,10 @@ function enviarDocumentoTelegram(chatId, blob, caption = "") {
  */
 function enviarMensajeTelegramCompleto(chatId, text, keyboard = null) {
     const token = GLOBAL_CONFIG.TELEGRAM.BOT_TOKEN;
-    if (!token) return;
+    if (!token || token.trim() === "" || token.includes("AQUÍ") || token.includes("BOT_TOKEN")) {
+        console.log("⚠️ Telegram Bot no configurado (Token vacío o de plantilla). enviarMensajeTelegramCompleto omitida.");
+        return;
+    }
 
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
     const payload = {

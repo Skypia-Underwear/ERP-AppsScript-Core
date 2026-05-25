@@ -106,8 +106,19 @@ function blogger_procesarSubidasRemotas() {
             return JSON.parse(contenidoStr);
         }, 3);
 
-        const targetDonweb = (GLOBAL_CONFIG.BLOGGER_PUBLICATION_TARGET || "AMBOS").toUpperCase();
-        const useDonweb = (targetDonweb === "DONWEB" || targetDonweb === "AMBOS") && targetDonweb !== "DRIVE";
+        const target = (GLOBAL_CONFIG.BLOGGER_PUBLICATION_TARGET || "AMBOS").toUpperCase();
+
+        // Evaluar si las herramientas están realmente configuradas de forma válida
+        const donwebUrl = GLOBAL_CONFIG.DONWEB.WRITE_URL;
+        const gitHubUser = GLOBAL_CONFIG.GITHUB.USER;
+        const gitHubToken = GLOBAL_CONFIG.GITHUB.TOKEN;
+        const gitHubRepo = GLOBAL_CONFIG.GITHUB.REPO;
+
+        const donwebConfigurado = donwebUrl && donwebUrl.trim() !== "" && !donwebUrl.includes("tudominio.com");
+        const gitHubConfigurado = gitHubUser && gitHubUser.trim() !== "" && gitHubToken && gitHubToken.trim() !== "" && gitHubRepo && gitHubRepo.trim() !== "";
+
+        const useDonweb = (target === "DONWEB" || target === "AMBOS") && target !== "DRIVE" && donwebConfigurado;
+        const useGitHub = (target === "GITHUB" || target === "AMBOS") && target !== "DRIVE" && gitHubConfigurado;
 
         let donwebSuccess = !useDonweb; // Si se omite, se considera neutral
         let donwebMsg = "Omitido por config";
@@ -124,9 +135,6 @@ function blogger_procesarSubidasRemotas() {
         }
 
         // --- PASO 3: GitHub (respaldo 2, externo) ---
-        const target = (GLOBAL_CONFIG.BLOGGER_PUBLICATION_TARGET || "AMBOS").toUpperCase();
-        const useGitHub = (target === "GITHUB" || target === "AMBOS") && target !== "DRIVE";
-        
         let githubSuccess = !useGitHub; 
         let githubMsg = "Omitido por config";
         if (useGitHub) {

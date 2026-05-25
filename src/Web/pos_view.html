@@ -1,4 +1,4 @@
-<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
+﻿<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
 <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 <? } ?>
 
@@ -1431,18 +1431,18 @@
         updateTpvTotals();
       };
 
-      // Ejecuci \u0192\u00c2\u00b3n inmediata
+      // Ejecución inmediata
       initTPV();
 
       window.openCheckoutModal = function () {
         if (cart.length === 0) {
-          alert("El carrito est\u00e1 vac\u00edo");
+          alert("El carrito está vacío");
           return;
         }
 
         const isQr = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
 
-        // Renderizar m \u0192\u00c2\u00a9todos de pago
+        // Renderizar metodos de pago
         renderPaymentMethods('payment-methods-grid');
         renderPaymentMethods('qr-payment-methods-grid');
 
@@ -1539,13 +1539,16 @@
           const userRole = (user ? user.role : '').toUpperCase();
           const sellerId = sessionStorage.getItem('userPassword');
 
-          // 1. Obtener Cat\u00e1logo (Aumentado con Metadatos Est\u00e1ticos)
+          // 1. Obtener Catálogo (Aumentado con Metadatos Estáticos)
           const cat = await window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
-          if (!cat) throw new Error("No se pudo cargar el cat\u00e1logo de productos.");
+          if (!cat) throw new Error("No se pudo cargar el catálogo de productos.");
 
-          // Sincronizar variables (local y global para depuraci\u00f3n)
-          catalog = cat;
-          window.catalog = cat;
+          // Deep-clone para evitar mutar el caché global en navegación SPA
+          const clonedCat = JSON.parse(JSON.stringify(cat));
+
+          // Sincronizar variables (local y global para depuración)
+          catalog = clonedCat;
+          window.catalog = clonedCat;
 
           // 2. Rehidratar posMetadata desde el Cat\u00e1logo (Cero latencia de servidor)
           const globalCfg = cat.generalConfig || {};
@@ -1628,7 +1631,7 @@
       async function finalizeTpvInit(storeId) {
         posMetadata.managedStoreId = storeId;
 
-        // 1. Obtener Datos VOL \u0081TILES (Caja, Sesi\u00f3n) - Nueva funci\u00f3n ligera
+        // 1. Obtener Datos VOLÁTILES (Caja, Sesión) - Nueva función ligera
         google.script.run
           .withFailureHandler(err => { console.warn("Fallo DynamicStatus:", err); })
           .withSuccessHandler(res => {
@@ -1646,17 +1649,17 @@
           })
           .getStoreDynamicStatus(storeId, posMetadata.sellerId);
 
-        // 2. Aplicar Modo de Venta (desde Cat\u00e1logo)
+        // 2. Aplicar Modo de Venta (desde Catálogo)
         var rawMode = (posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
         setTpvMode(rawMode);
 
-        // 3. Popular UI con Metadatos del Cat\u00e1logo
+        // 3. Popular UI con Metadatos del Catálogo
         const transSel = document.getElementById('tpv-transfer-account');
         if (posMetadata.transferAccounts && transSel) {
           transSel.innerHTML = posMetadata.transferAccounts.map(a => `<option value="${a.id}">${a.alias} - ${a.name}</option>`).join('');
         }
 
-        // 4. Stock Espec\u00edfico de Tienda (Carga r\u00e1pida desde Cach\u00e9)
+        // 4. Stock Específico de Tienda (Carga rápida desde Caché)
         google.script.run
           .withFailureHandler(err => { console.warn("Fallo StockCache:", err); })
           .withSuccessHandler(data => {
@@ -1670,14 +1673,35 @@
           .withUserObject(storeId)
           .getAllStockFromCache(storeId);
 
-        // 5. Procesar Cat\u00e1logo de Productos (Local)
+        // 5. Procesar Catálogo de Productos (Local)
         if (catalog) {
+          // Autocuración segura: Solo aplicamos fallback si la tienda del usuario es completamente inválida (no existe en la base de datos)
+          // o si estamos en un sistema con una única tienda (donde no hay riesgo de contaminación cruzada de stock).
+          const availableStores = Object.keys(catalog.stores || {});
+          let resolvedStoreId = storeId;
+
+          const isStoreInvalid = !catalog.stores[resolvedStoreId];
+          const isSingleStore = availableStores.length === 1;
+
+          if (availableStores.length > 0 && (isStoreInvalid || isSingleStore)) {
+            resolvedStoreId = availableStores[0];
+            if (isStoreInvalid) {
+              console.warn(`[TPV] La tienda asignada '${storeId}' no está registrada en el catálogo. Auto-resolviendo a la tienda disponible: '${resolvedStoreId}'`);
+            }
+            posMetadata.managedStoreId = resolvedStoreId;
+            if (catalog.stores[resolvedStoreId] && catalog.stores[resolvedStoreId].config) {
+              posMetadata.storeConfig = catalog.stores[resolvedStoreId].config;
+              posMetadata.printerIp = catalog.stores[resolvedStoreId].config.printerIp;
+              posMetadata.printSettings = catalog.stores[resolvedStoreId].config.printSettings;
+            }
+          }
+
           // Filtrado estricto por tienda y enriquecimiento de variedades
           catalog.products = catalog.products.map(p => {
             if (posMetadata.allVarieties && posMetadata.allVarieties[p.id]) {
               p.varieties = posMetadata.allVarieties[p.id];
             }
-            var filtered = (p.variations || []).filter(v => String(v.store_id) === String(storeId));
+            var filtered = (p.variations || []).filter(v => String(v.store_id) === String(resolvedStoreId));
             return Object.assign({}, p, { variations: filtered });
           }).filter(p => p.variations.length > 0);
 
@@ -1700,9 +1724,9 @@
 
         const btnStandard = document.getElementById('btn-process-checkout');
         const btnQr = document.getElementById('btn-qr-process-sale');
-        const btnRegVenta = document.querySelector('.tpv-btn-primary-large'); // Bot\u00f3n de la barra lateral
+        const btnRegVenta = document.querySelector('.tpv-btn-primary-large'); // Botón de la barra lateral
 
-        // Determinar estado basado en sesi\u00f3n y horario
+        // Determinar estado basado en sesión y horario
         if (!session.isWithinSchedule) {
           color = "bg-red-500 animate-pulse";
           statusText = "Fuera de Horario (" + session.horario.apertura + " - " + session.horario.cierre + ")";
@@ -1731,7 +1755,7 @@
           if (btnQr) btnQr.innerText = "REGISTRAR VENTA";
         } else {
           color = "bg-amber-500";
-          statusText = "Caja Pendiente (Sesi\u00f3n: " + session.storeId + ")";
+          statusText = "Caja Pendiente (Sesion: " + session.storeId + ")";
 
           [btnStandard, btnQr, btnRegVenta].forEach(b => {
             if (b) {
@@ -1769,10 +1793,10 @@
       }
 
       function copyCartToWhatsApp() {
-        if (cart.length === 0) return alert("Carrito vac\u00edo");
+        if (cart.length === 0) return alert("Carrito vacío");
         var text = "*PRESUPUESTO HOSTINGSHOP*\n--------------------------\n";
         cart.forEach(function (i) {
-          text += "\u00e2\u20ac\u00a2 " + i.model + " (" + i.color + "/" + i.size + ")" +
+          text += "• " + i.model + " (" + i.color + "/" + i.size + ")" +
             (i.tipoPrecio && i.tipoPrecio !== 'Est\u00e1ndar' ? " [" + i.tipoPrecio + "]" : "") +
             "\n  " + i.quantity + " x $" + i.price.toLocaleString() + " = $" + (i.price * i.quantity).toLocaleString() + "\n";
         });
@@ -1888,7 +1912,7 @@
               currentTpvFilters.isCombo = false;
             } else {
               // Limpiar otros filtros para ver solo combos? O combinarlos?
-              // El usuario dijo "filtrado anidado a categor\u00edas", pero tambi\u00e9n "bot\u00f3n destacado".
+              // El usuario dijo "filtrado anidado a categorías", pero también "botón destacado".
               // Por ahora, actuamos como toggle.
               currentTpvFilters.parent = 'ALL';
               currentTpvFilters.cat = 'ALL';
@@ -2019,7 +2043,7 @@
           var imgHtml = "<div class='product-img-container'>" +
             (p.image
               ? "<img src='" + p.image + "' style='width:100%;height:100%;object-fit:cover;' alt='" + p.model + "' loading='lazy'>"
-              : "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg-main);opacity:0.3;'>\ud83d\udc55</div>"
+              : "<div style='width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg-main);opacity:0.3;'>👕</div>"
             ) + badgesHtml + "</div>";
 
           var priceHtml = checkIsPrecioVariable() ? '' : "<div class='product-price'>$" + (p.price || 0).toLocaleString() + "</div>";
@@ -2302,7 +2326,7 @@
             container.appendChild(btnPlus);
             wrapper.appendChild(container);
           } else {
-            // MODO EST \u0192\u00c2\u0081NDAR: Bot \u0192\u00c2\u00b3n simple
+            // MODO ESTANDAR: Botón simple
             const btn = document.createElement('button');
             btn.className = `size-btn ${currentStock > 0 ? 'in-stock' : 'out-of-stock'}`;
             btn.innerText = v.size;
@@ -2341,7 +2365,7 @@
         if (!sizes || !colors) return;
 
         // HEAD
-        head.innerHTML = '<tr><th>Variaci \u0192\u00c2\u00b3n</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
+        head.innerHTML = '<tr><th>Variación</th>' + sizes.map(s => '<th>' + s + '</th>').join('') + '<th>+ Curva</th></tr>';
 
         // BODY
         body.innerHTML = '';
@@ -2396,12 +2420,12 @@
               hint.innerText = (stock > 100 ? '99+' : stock);
               td.appendChild(hint);
             } else {
-              td.innerHTML = '<span style="color:#cbd5e1"> \u00a2\u00e2\u201a\u00ac\u00e2\u20ac\u009d</span>';
+              td.innerHTML = '<span style="color:#cbd5e1"> </span>';
             }
             tr.appendChild(td);
           });
 
-          // Celda Bot \u0192\u00c2\u00b3n (+) Curva
+          // Celda Botón (+) Curva
           const tdCurva = document.createElement('td');
           const btn = document.createElement('button');
           btn.className = 'btn-row-curva';
@@ -2487,7 +2511,7 @@
         colTotals.forEach(total => {
           footHtml += '<td style="border:none; background:transparent;">' + total + '</td>';
         });
-        footHtml += '<td style="border:none; background:transparent;">\u00e2\u20ac\u201d</td></tr>';
+        footHtml += '<td style="border:none; background:transparent;">—</td></tr>';
 
         // Status row below totals
         footHtml += '<tr><td style="text-align:right; font-weight:800; border:none; background:transparent;">ESTADO:</td>';
@@ -2504,7 +2528,7 @@
 
           footHtml += '<td style="border:none; background:transparent;"><span class="col-status-indicator ' + statusClass + '">' + statusText + '</span></td>';
         });
-        footHtml += '<td style="border:none; background:transparent;">\u00e2\u20ac\u201d</td></tr>';
+        footHtml += '<td style="border:none; background:transparent;">—</td></tr>';
         foot.innerHTML = footHtml;
 
         // Update Global UI
@@ -2514,7 +2538,7 @@
             counter.style.color = 'var(--success)';
           }
           if (msg) {
-            msg.innerText = '\u00c2\u00a1Curva perfecta! Ya puedes a\u00f1adir al carrito.';
+            msg.innerText = 'Curva perfecta! Ya puedes añadir al carrito.';
             msg.style.color = 'var(--success)';
           }
           btnConfirm.disabled = false;
@@ -2573,7 +2597,7 @@
               realStockCache.map = data.stockMap;
               realStockCache.lastUpdate = new Date();
               console.log("  Stock actualizado manualmente.");
-              // Si el modal est \u0192\u00c2\u00a1 abierto, refrescar talle
+              // Si el modal está abierto, refrescar talle
               const activeColorBtn = document.querySelector('.color-btn.active');
               if (activeColorBtn) {
                 const modalTitle = document.getElementById('modal-product-title').innerText;
@@ -2611,7 +2635,7 @@
         const varId = variation.variation_id;
         const available = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
 
-        // En modo PRECIO VARIABLE: precio y cantidad m \u0192\u00c2\u00adnima vienen de la variedad
+        // En modo PRECIO VARIABLE: precio y cantidad mínima vienen de la variedad
         const isPrecioVariable = checkIsPrecioVariable();
         const itemPrice = isPrecioVariable && variety ? variety.precio_unitario : product.price;
 
@@ -2659,7 +2683,7 @@
         cart.forEach(function (item, index) {
           dt.row.add([
             "<div style='font-weight:600'>" + item.model + "</div>",
-            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '\u00e2\u20ac\u201d') + "</span>",
+            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '—') + "</span>",
             "<div style='font-size:0.85rem;'>" + item.color + " / " + item.size + "</div>",
             "<input type='number' class='qty-input' value='" + item.quantity + "' min='" + (item.min_qty || 1) + "' step='" + (item.min_qty || 1) + "' onchange='updateTpvQty(" + index + ", this.value)'>",
             "$" + (item.price * item.quantity).toLocaleString(),
@@ -2676,7 +2700,7 @@
         let newQty = parseInt(val) || (item.min_qty || 1);
         const minQty = item.min_qty || 1;
 
-        // Asegurar que sea m\u00faltiplo del m\u00ednimo
+        // Asegurar que sea múltiplo del mínimo
         if (newQty % minQty !== 0) {
           newQty = Math.round(newQty / minQty) * minQty;
         }
@@ -2685,8 +2709,8 @@
         const available = (realStockCache.map && realStockCache.map[item.variation_id] !== undefined) ? realStockCache.map[item.variation_id] : 0;
 
         if (newQty > available) {
-          alert("Stock insuficiente. M\u00e1ximo disponible: " + available);
-          // Ajustar al m\u00e1ximo m\u00faltiplo posible
+          alert("Stock insuficiente. Máximo disponible: " + available);
+          // Ajustar al máximo múltiplo posible
           item.quantity = Math.floor(available / minQty) * minQty;
         } else {
           item.quantity = newQty;
@@ -2700,7 +2724,7 @@
         var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
         const isPrecioVariable = checkIsPrecioVariable();
 
-        // A. C \u0192\u00c2\u00a1lculos Base
+        // A. Cálculos Base
         const montoProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const totalUnitsSize = cart.reduce((acc, i) => acc + i.quantity, 0);
 
@@ -2762,11 +2786,11 @@
 
         let paymentSurcharge = 0;
 
-        // La validaci\u00f3n cruzada recae sobre el bot\u00f3n de desactivar operado por el TPV
+        // La validación cruzada recae sobre el botón de desactivar operado por el TPV
         const m = posMetadata.paymentMethods.find(pm => pm.id === method);
         const percent = m ? m.percent : 0;
 
-        // Ocultar/Mostrar checkbox de recargo seg\u00fan proceda
+        // Ocultar/Mostrar checkbox de recargo según proceda
         const surchargeContId = isQr ? 'qr-tpv-surcharge-container' : 'tpv-surcharge-container';
         const surchargeCont = document.getElementById(surchargeContId);
         if (surchargeCont) surchargeCont.style.display = (percent > 0) ? 'flex' : 'none';
@@ -2777,7 +2801,7 @@
 
         const totalFinal = subtotalNeto + paymentSurcharge;
 
-        // F. Sincronizaci\u00f3n UI
+        // F. Sincronización UI
         const sidebarSubtotal = document.getElementById('tpv-sidebar-subtotal');
         if (sidebarSubtotal) sidebarSubtotal.innerText = '$' + montoProductos.toLocaleString();
 
@@ -2834,7 +2858,7 @@
         const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount')?.value) || 0;
         const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account')?.value : '';
 
-        // Funci\u00f3n auxiliar para extraer n\u00fameros de texto con formato (moneda)
+        // Función auxiliar para extraer números de texto con formato (moneda)
         const parseCurrency = (id) => {
           const el = document.getElementById(id);
           if (!el) return 0;
@@ -2888,7 +2912,7 @@
       };
 
       function generateTicketLocal(sale) {
-        if (!catalog || !catalog.stores) throw new Error("Cat\u00e1logo no disponible para impresi\u00f3n");
+        if (!catalog || !catalog.stores) throw new Error("Catálogo no disponible para impresión");
         const store = catalog.stores[sale.storeId] || { name: "SHOP", address: "", phone: "" };
         const settings = posMetadata.printSettings || { copias: 1, sonido: "0", marketing: "" };
 
@@ -3025,7 +3049,7 @@
         setInterval(syncLocalQueue, 30000); // Cada 30 seg
       }
 
-      // Se elimin\u00f3 handleTpvPrinting por redundancia
+      // Se eliminó handleTpvPrinting por redundancia
 
       async function sendToTpvPrinter(p) {
         console.log("[Printer] Enviando comando a:", p.printer_ip);

@@ -665,8 +665,18 @@ function tpv_procesarSubidasRemotas() {
 
     try {
         const target = (GLOBAL_CONFIG.TPV_PUBLICATION_TARGET || "DRIVE").toUpperCase();
-        const useDonweb = target === "DONWEB" || target === "AMBOS";
-        const useGitHub = target === "GITHUB" || target === "AMBOS";
+        
+        // Evaluar si las herramientas están realmente configuradas de forma válida
+        const donwebUrl = GLOBAL_CONFIG.DONWEB.WRITE_URL;
+        const gitHubUser = GLOBAL_CONFIG.GITHUB.USER;
+        const gitHubToken = GLOBAL_CONFIG.GITHUB.TOKEN;
+        const gitHubRepo = GLOBAL_CONFIG.GITHUB.REPO;
+
+        const donwebConfigurado = donwebUrl && donwebUrl.trim() !== "" && !donwebUrl.includes("tudominio.com");
+        const gitHubConfigurado = gitHubUser && gitHubUser.trim() !== "" && gitHubToken && gitHubToken.trim() !== "" && gitHubRepo && gitHubRepo.trim() !== "";
+
+        const useDonweb = (target === "DONWEB" || target === "AMBOS") && donwebConfigurado;
+        const useGitHub = (target === "GITHUB" || target === "AMBOS") && gitHubConfigurado;
 
         const folderId = GLOBAL_CONFIG.DRIVE.JSON_CONFIG_FOLDER_ID;
         if (!folderId) throw new Error("Falta DRIVE_JSON_CONFIG_FOLDER_ID en la BD");
@@ -904,7 +914,10 @@ function subirArchivoADonweb(jsonData, fileName) {
         jsonData.timestamp_ms = Date.now();
 
         const url = GLOBAL_CONFIG.DONWEB.WRITE_URL;
-        if (!url) throw new Error("Falta configurar DONWEB_WRITE_URL en BD_APP_SCRIPT.");
+        if (!url || url.trim() === "" || url.includes("tudominio.com")) {
+            debugLog("⏭️ Donweb: Omitiendo subida (DONWEB_WRITE_URL no está configurada o es de plantilla).");
+            return { success: false, message: "Donweb no configurado. Subida omitida." };
+        }
 
         const payload = JSON.stringify({ fileName: fileName, data: jsonData });
         const sizeMB = (payload.length / (1024 * 1024)).toFixed(2);

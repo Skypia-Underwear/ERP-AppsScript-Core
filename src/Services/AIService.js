@@ -174,7 +174,7 @@ const AIService = {
       if (/^[*#\s-]*[a-z\s]+[?][\s]*(yes|no)/i.test(l)) continue;
 
       // Limpieza de Markdown
-      let cleanLine = l.replace(/[*#`]/g, '').trim();
+      let cleanLine = l.replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
       const parts = cleanLine.split(':');
 
       if (parts.length >= 2) {
@@ -242,7 +242,7 @@ const AIService = {
         if (/^[*#\s-]*$/.test(l)) continue;
         if (/^[*#\s-]*[a-z\s]+[?][\s]*(yes|no)/i.test(l)) continue;
 
-        let cleanLine = l.replace(/[*#`]/g, '').trim();
+        let cleanLine = l.replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
         const parts = cleanLine.split(':');
 
         if (parts.length >= 2) {
@@ -321,10 +321,10 @@ const AIService = {
           conservadosIndices.add(idx);
 
           let parts = l.split(':');
-          let val = parts.slice(-1)[0].replace(/[*#`]/g, '').trim();
+          let val = parts.slice(-1)[0].replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
           // La línea del header se considera conservada
         } else if (currentHeader) {
-          let cleanVal = l.replace(/[*#`]/g, '').trim();
+          let cleanVal = l.replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
           if (cleanVal) {
             conservadosIndices.add(idx);
             indicesPorHeader.get(currentHeader).push(idx);
@@ -508,11 +508,11 @@ const AIService = {
 
         let parts = l.split(':');
         // El valor es todo lo que viene después del ÚLTIMO colon del header
-        let val = parts.slice(-1)[0].replace(/[*#`]/g, '').trim();
+        let val = parts.slice(-1)[0].replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
         // Si el valor es igual al nombre del header, no lo agregamos como contenido
         if (val && val.toUpperCase() !== currentHeader) bloques.get(currentHeader).push(val);
       } else if (currentHeader) {
-        let cleanVal = l.replace(/[*#`]/g, '').trim();
+        let cleanVal = l.replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
         if (cleanVal) bloques.get(currentHeader).push(cleanVal);
       }
     }
@@ -531,7 +531,7 @@ const AIService = {
    * 🔬 LABORATORIO DE IA: Auditoría Transparente (Modo Escuela)
    * Realiza un análisis forense completo pero sin guardar resultados.
    */
-  ejecutarPruebaLaboratorio: function (imagenId, metadata, forzar = false) {
+  ejecutarPruebaLaboratorio: function (imagenId, metadata, forzar = false, modeloForzado = null) {
     try {
       console.log(`🧪 [Lab-IA] Iniciando Fase 1 para imagen: ${imagenId}`);
 
@@ -614,12 +614,18 @@ TIPO_PRENDA: ROPA INTERIOR
       }
       if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
 
-      // EJECUCIÓN RAW CON FALLBACK DINÁMICO (SOT: consultarGemma)
+      // Priorizar modelo forzado si existe
+      let modelosATratar = [...this.MODELS_FREE];
+      if (modeloForzado) {
+        modelosATratar = [modeloForzado, ...modelosATratar.filter(m => m !== modeloForzado)];
+      }
+
+      // EJECUCIÓN CON FALLBACK DINÁMICO (SOT: consultarGemma)
       let rawResponse = "";
       let modeloUsado = "";
       let ultimoError = "";
 
-      for (const modelo of this.MODELS_FREE) {
+      for (const modelo of modelosATratar) {
         for (const keyObj of apiKeysToTry) {
           const apiKey = keyObj.key;
           console.log(`🔬 [Lab-IA] Intentando Auditoría Forense con modelo ${modelo} y API Key ${keyObj.label}`);
@@ -627,26 +633,104 @@ TIPO_PRENDA: ROPA INTERIOR
           let timeoutInSeconds = 60;
           if (modelo === "gemma-4-26b-a4b-it") {
             timeoutInSeconds = (keyObj.label === "Gratuita") ? 120 : 60;
-          } else if (modelo === "gemini-2.5-flash") {
+          } else if (modelo.includes("flash")) {
             timeoutInSeconds = 30;
           }
 
           try {
-            // PREPARAR BLOB (Optimizado para Gemma 4 - Usando File API para mayor velocidad)
+            // PREPARAR BLOB (Optimizado para Gemma/Gemini - Usando File API para mayor velocidad)
             // Se genera dentro del bucle de la llave para asociarse correctamente a la API Key activa.
             const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `lab_${imagenId}`, 'alta', apiKey, false);
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
 
+            const payload = {
+              contents: [{ parts: [{ text: promptForense }, fileDataRef] }],
+              generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 2048
+              },
+              safetySettings: typeof GEMINI_SAFETY_SETTINGS !== 'undefined' ? GEMINI_SAFETY_SETTINGS : [
+                { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
+                { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
+                { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
+                { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" }
+              ]
+            };
+
+            // Inyectar JSON Schema si es modelo Gemini
+            if (modelo.startsWith("gemini-")) {
+              payload.generationConfig.responseMimeType = "application/json";
+              payload.generationConfig.responseSchema = {
+                type: "OBJECT",
+                properties: {
+                  MARCA: { type: "STRING" },
+                  MODELO: { type: "STRING" },
+                  CATEGORIA: { type: "STRING" },
+                  MATERIAL: { type: "STRING" },
+                  GENERO: { type: "STRING" },
+                  CLASIFICACION_ESTRUCTURAL: { 
+                    type: "STRING", 
+                    enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"] 
+                  },
+                  TIPO_PRENDA: { type: "STRING" },
+                  POSICION_DETECTADA: { 
+                    type: "STRING", 
+                    enum: ["FRENTE", "ESPALDA", "LATERAL", "PLANO", "GHOST_MANNEQUIN", "PILA_O_DOBLADO", "INDETERMINADO"] 
+                  },
+                  SOPORTE_O_CONTEXTO: { 
+                    type: "STRING", 
+                    enum: ["FOTO_ESTUDIO", "COLGADA_EN_PERCHA", "DOBLADA_EN_SUPERFICIE", "SOBRE_MANIQUÍ", "EN_PERCHERO_MULTIPLE"] 
+                  },
+                  COLOR_PRINCIPAL: {
+                    type: "OBJECT",
+                    properties: {
+                      NOMBRE_TECNICO: { type: "STRING" },
+                      CODIGO_HEX: { type: "STRING" },
+                      TIPO: { 
+                        type: "STRING", 
+                        enum: ["LISO", "ESTAMPADO", "SUBLIMADO", "RAYADO", "JASPEADO"] 
+                      },
+                      PATRON: { type: "STRING" }
+                    },
+                    required: ["NOMBRE_TECNICO", "CODIGO_HEX", "TIPO", "PATRON"]
+                  },
+                  MATERIAL_ESTIMADO: { type: "STRING" },
+                  LOGO_O_MARCA: {
+                    type: "OBJECT",
+                    properties: {
+                      VISIBLE: { type: "STRING", enum: ["SÍ", "NO"] },
+                      DETALLE: { type: "STRING" }
+                    },
+                    required: ["VISIBLE", "DETALLE"]
+                  },
+                  DETALLES_CONSTRUCTIVOS: {
+                    type: "OBJECT",
+                    properties: {
+                      COSTURAS: { type: "STRING" },
+                      CIERRES: { type: "STRING" },
+                      BOLSILLOS: { type: "STRING" },
+                      ELASTICOS: { type: "STRING" }
+                    },
+                    required: ["COSTURAS", "CIERRES", "BOLSILLOS", "ELASTICOS"]
+                  },
+                  AVISOS_DE_LIMPIEZA_VISIBLES: { type: "STRING", enum: ["SÍ", "NO"] },
+                  ESTADO_VISUAL: { type: "STRING" },
+                  DETALLES_VISUALES: { type: "STRING" }
+                },
+                required: [
+                  "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO", 
+                  "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA", 
+                  "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", 
+                  "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", 
+                  "ESTADO_VISUAL", "DETALLES_VISUALES"
+                ]
+              };
+            }
+
             const response = UrlFetchApp.fetch(url, {
               method: "post", contentType: "application/json",
-              payload: JSON.stringify({
-                contents: [{ parts: [{ text: promptForense }, fileDataRef] }],
-                generationConfig: {
-                  temperature: 0.1,
-                  maxOutputTokens: 1024
-                }
-              }),
+              payload: JSON.stringify(payload),
               muteHttpExceptions: true,
               timeoutInSeconds: timeoutInSeconds
             });
@@ -654,7 +738,53 @@ TIPO_PRENDA: ROPA INTERIOR
             if (response.getResponseCode() === 200) {
               const resBody = JSON.parse(response.getContentText());
               if (resBody.candidates && resBody.candidates[0] && resBody.candidates[0].content) {
-                rawResponse = resBody.candidates[0].content.parts[0].text;
+                const candidate = resBody.candidates[0];
+                const finishReason = candidate.finishReason || "STOP";
+                const text = candidate.content.parts[0].text;
+
+                if (finishReason !== "STOP" && finishReason !== "MAX_TOKENS") {
+                  throw new Error(`Generación interrumpida por el servidor (finishReason: ${finishReason})`);
+                }
+
+                if (modelo.startsWith("gemini-")) {
+                  // Esto validará que el JSON esté bien formado y lanzará un error si está corrupto,
+                  // forzando el fallback automático a la llave de pago en lugar de fallar silenciosamente.
+                  const parsedJson = JSON.parse(text);
+                  const colorPrincipal = parsedJson.COLOR_PRINCIPAL || {};
+                  const logoOMarca = parsedJson.LOGO_O_MARCA || {};
+                  const detallesConstructivos = parsedJson.DETALLES_CONSTRUCTIVOS || {};
+
+                  rawResponse = [
+                    `MARCA: ${parsedJson.MARCA || ""}`,
+                    `MODELO: ${parsedJson.MODELO || ""}`,
+                    `CATEGORÍA: ${parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""}`,
+                    `MATERIAL: ${parsedJson.MATERIAL || ""}`,
+                    `GÉNERO: ${parsedJson.GENERO || parsedJson.GÉNERO || ""}`,
+                    `CLASIFICACION_ESTRUCTURAL: ${parsedJson.CLASIFICACION_ESTRUCTURAL || ""}`,
+                    `TIPO_PRENDA: ${parsedJson.TIPO_PRENDA || ""}`,
+                    `POSICIÓN_DETECTADA: ${parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""}`,
+                    `SOPORTE_O_CONTEXTO: ${parsedJson.SOPORTE_O_CONTEXTO || ""}`,
+                    `COLOR_PRINCIPAL:`,
+                    `  - NOMBRE TÉCNICO: ${colorPrincipal.NOMBRE_TECNICO || colorPrincipal.NOMBRE_TÉCNICO || ""}`,
+                    `  - CÓDIGO HEX: ${colorPrincipal.CODIGO_HEX || colorPrincipal.CÓDIGO_HEX || ""}`,
+                    `  - TIPO: ${colorPrincipal.TIPO || ""}`,
+                    `  - PATRÓN: ${colorPrincipal.PATRON || colorPrincipal.PATRÓN || ""}`,
+                    `MATERIAL_ESTIMADO: ${parsedJson.MATERIAL_ESTIMADO || ""}`,
+                    `LOGO_O_MARCA:`,
+                    `  - VISIBLE: ${logoOMarca.VISIBLE || ""}`,
+                    `  - DETALLE: ${logoOMarca.DETALLE || ""}`,
+                    `DETALLES_CONSTRUCTIVOS:`,
+                    `  - COSTURAS: ${detallesConstructivos.COSTURAS || ""}`,
+                    `  - CIERRES: ${detallesConstructivos.CIERRES || ""}`,
+                    `  - BOLSILLOS: ${detallesConstructivos.BOLSILLOS || ""}`,
+                    `  - ELÁSTICOS: ${detallesConstructivos.ELASTICOS || detallesConstructivos.ELÁSTICOS || ""}`,
+                    `AVISOS_DE_LIMPIEZA_VISIBLES: ${parsedJson.AVISOS_DE_LIMPIEZA_VISIBLES || ""}`,
+                    `ESTADO_VISUAL: ${parsedJson.ESTADO_VISUAL || ""}`,
+                    `DETALLES_VISUALES: ${parsedJson.DETALLES_VISUALES || ""}`
+                  ].join('\n');
+                } else {
+                  rawResponse = text;
+                }
                 modeloUsado = modelo;
                 console.log(`✅ [Lab-IA] Éxito con ${modelo} usando API Key ${keyObj.label}`);
                 break;
@@ -824,7 +954,19 @@ ${directiva.exampleBlock}
       let rawResponse = "";
       let modeloUsado = "";
 
-      for (const modelo of this.MODELS_FREE) {
+      // Construir lista dinámica de modelos priorizando el seleccionado por el usuario
+      const modelosATratar = [];
+      if (extraSpecs.analysisModel) {
+        modelosATratar.push(extraSpecs.analysisModel);
+      }
+      const fallbacks = ["gemma-4-26b-a4b-it", "gemini-2.5-flash"];
+      for (const fb of fallbacks) {
+        if (!modelosATratar.includes(fb)) {
+          modelosATratar.push(fb);
+        }
+      }
+
+      for (const modelo of modelosATratar) {
         for (const keyObj of apiKeysToTry) {
           const apiKey = keyObj.key;
           console.log(`🧠 [Lab-IA] Intentando Prompt Maestro con modelo ${modelo} y API Key ${keyObj.label}`);
@@ -832,7 +974,7 @@ ${directiva.exampleBlock}
           let timeoutInSeconds = 60;
           if (modelo === "gemma-4-26b-a4b-it") {
             timeoutInSeconds = (keyObj.label === "Gratuita") ? 120 : 60;
-          } else if (modelo === "gemini-2.5-flash") {
+          } else if (modelo.includes("flash")) {
             timeoutInSeconds = 30;
           }
 
@@ -872,6 +1014,8 @@ ${directiva.exampleBlock}
                 console.log(`✅ [Lab-IA] Éxito con ${modelo} usando API Key ${keyObj.label}`);
                 break;
               }
+            } else {
+              console.warn(`⚠️ [Lab-IA] Falló ${modelo} (${keyObj.label}) -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`);
             }
           } catch (e) {
             console.warn(`Fallo en ${modelo} (${keyObj.label}): ${e.message}`);
@@ -1205,14 +1349,411 @@ Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo 
       const explicacion = this.generarExplicacionBloqueoIA(promptTexto, e.message);
       return { success: false, error: e.message, explicacionBloqueo: explicacion };
     }
+  },
+
+  /**
+   * 💾 COLA BATCH: Obtiene la hoja BD_COLA_BATCH, creándola si no existe.
+   */
+  _obtenerHojaColaBatch: function () {
+    const ss = getActiveSS();
+    let sheet = ss.getSheetByName(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
+    const expectedHeaders = SHEET_SCHEMA.LAB_BATCH_QUEUE || ["TIMESTAMP", "BATCH_ID", "MODELO", "IMAGEN_IDS", "ESTADO", "ERROR_DETALLE"];
+    
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
+      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders])
+        .setBackground("#4B0082").setFontColor("white").setFontWeight("bold");
+      sheet.setFrozenRows(1);
+    }
+    return sheet;
+  },
+
+  /**
+   * 📦 BATCH API: Encola un lote asíncrono en los servidores de Google Gemini.
+   * Utiliza el método Inline para lotes de hasta 50 imágenes (<20MB totales).
+   */
+  ejecutarCreacionBatchLote: function (imagenIds, modeloForzado = 'gemini-3.1-pro-preview') {
+    try {
+      console.log(`📦 [Batch-IA] Iniciando encolamiento asíncrono para ${imagenIds.length} imágenes...`);
+      if (!imagenIds || !imagenIds.length) throw new Error("Lista de imágenes vacía.");
+
+      // Forzar un modelo Gemini si por error se envía Gemma (Batch API requiere Gemini en v1beta)
+      const modelo = modeloForzado.startsWith("gemini-") ? modeloForzado : "gemini-3.1-pro-preview";
+
+      const ss = getActiveSS();
+      const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+      const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+
+      // Usar llave principal (Pago) o Free para el lote asíncrono
+      const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY || GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
+      if (!apiKey) throw new Error("Falta API Key para IA.");
+
+      // 1. Preparar las directivas y el esquema comunes
+      const forensicWhitelist = [
+        "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
+        "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
+        "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
+        "MATERIAL_ESTIMADO", 
+        "LOGO_O_MARCA", "VISIBLE", "DETALLE", 
+        "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
+        "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
+      ];
+
+      const schema = {
+        type: "OBJECT",
+        properties: {
+          MARCA: { type: "STRING" },
+          MODELO: { type: "STRING" },
+          CATEGORIA: { type: "STRING" },
+          MATERIAL: { type: "STRING" },
+          GENERO: { type: "STRING" },
+          CLASIFICACION_ESTRUCTURAL: { type: "STRING", enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"] },
+          TIPO_PRENDA: { type: "STRING" },
+          POSICION_DETECTADA: { type: "STRING", enum: ["FRENTE", "ESPALDA", "LATERAL", "PLANO", "GHOST_MANNEQUIN", "PILA_O_DOBLADO", "INDETERMINADO"] },
+          SOPORTE_O_CONTEXTO: { type: "STRING", enum: ["FOTO_ESTUDIO", "COLGADA_EN_PERCHA", "DOBLADA_EN_SUPERFICIE", "SOBRE_MANIQUÍ", "EN_PERCHERO_MULTIPLE"] },
+          COLOR_PRINCIPAL: {
+            type: "OBJECT",
+            properties: {
+              NOMBRE_TECNICO: { type: "STRING" },
+              CODIGO_HEX: { type: "STRING" },
+              TIPO: { type: "STRING", enum: ["LISO", "ESTAMPADO", "SUBLIMADO", "RAYADO", "JASPEADO"] },
+              PATRON: { type: "STRING" }
+            },
+            required: ["NOMBRE_TECNICO", "CODIGO_HEX", "TIPO", "PATRON"]
+          },
+          MATERIAL_ESTIMADO: { type: "STRING" },
+          LOGO_O_MARCA: {
+            type: "OBJECT",
+            properties: {
+              VISIBLE: { type: "STRING", enum: ["SÍ", "NO"] },
+              DETALLE: { type: "STRING" }
+            },
+            required: ["VISIBLE", "DETALLE"]
+          },
+          DETALLES_CONSTRUCTIVOS: {
+            type: "OBJECT",
+            properties: {
+              COSTURAS: { type: "STRING" },
+              CIERRES: { type: "STRING" },
+              BOLSILLOS: { type: "STRING" },
+              ELASTICOS: { type: "STRING" }
+            },
+            required: ["COSTURAS", "CIERRES", "BOLSILLOS", "ELASTICOS"]
+          },
+          AVISOS_DE_LIMPIEZA_VISIBLES: { type: "STRING", enum: ["SÍ", "NO"] },
+          ESTADO_VISUAL: { type: "STRING" },
+          DETALLES_VISUALES: { type: "STRING" }
+        },
+        required: [
+          "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO", 
+          "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA", 
+          "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", 
+          "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", 
+          "ESTADO_VISUAL", "DETALLES_VISUALES"
+        ]
+      };
+
+      const safetySettings = typeof GEMINI_SAFETY_SETTINGS !== 'undefined' ? GEMINI_SAFETY_SETTINGS : [
+        { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
+        { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
+        { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
+        { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" }
+      ];
+
+      // 2. Construir lista de peticiones (requests) individuales inlined
+      const requests = [];
+      const imageIdsExitosos = [];
+
+      for (const id of imagenIds) {
+        try {
+          const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", id);
+          if (!imgRow || !imgRow.ARCHIVO_ID) {
+            console.warn(`⚠️ [Batch-IA] Imagen ${id} omitida: Faltan datos o ARCHIVO_ID.`);
+            continue;
+          }
+
+          const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
+          const contextoProducto = prodRow ? `PRODUCT: ${prodRow.MODELO || prodRow.NOMBRE_PRODUCTO} | BRAND: ${prodRow.MARCA} | PARENT_CATEGORY: ${prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE}` : "";
+          
+          const promptForense = `Forensic Clothing Analyst for a high-precision ERP.
+Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).
+Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).
+Plain text, one line per field, no bold, no markdown, no introductions.
+
+* Context Reference (ERP): ${contextoProducto}
+* Analysis Request: Technical forensic breakdown in SPANISH.
+* Schema: 
+MARCA: [Heredar de Context Reference]
+MODELO: [Heredar de Context Reference]
+CATEGORÍA: [Heredar de Context Reference]
+... (resto de campos) ...`;
+
+          // Subir a la File API para asociarlo temporalmente a la API Key
+          const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `batch_${id}`, 'alta', apiKey, false);
+
+          requests.push({
+            model: `models/${modelo}`,
+            contents: [{
+              parts: [
+                { text: promptForense },
+                fileDataRef
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 2048,
+              responseMimeType: "application/json",
+              responseSchema: schema
+            },
+            safetySettings: safetySettings
+          });
+
+          imageIdsExitosos.push(id);
+        } catch (errImg) {
+          console.error(`❌ [Batch-IA] Error preparando imagen ${id} para el lote: ${errImg.message}`);
+        }
+      }
+
+      if (requests.length === 0) throw new Error("No se pudo preparar ninguna imagen para el lote.");
+
+      // 3. Crear el Lote Asíncrono llamando a Google AI Studio
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:batchGenerateContent?key=${apiKey}`;
+      const payload = {
+        model: `models/${modelo}`,
+        displayName: `Lote_Forense_${new Date().getTime()}`,
+        inputConfig: {
+          inlinedRequests: {
+            requests: requests
+          }
+        }
+      };
+
+      const response = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+        timeoutInSeconds: 60
+      });
+
+      if (response.getResponseCode() !== 200) {
+        throw new Error(`Google API HTTP ${response.getResponseCode()}: ${response.getContentText()}`);
+      }
+
+      const resBody = JSON.parse(response.getContentText());
+      const batchId = resBody.name; // Ej. "batches/12345xyz"
+      if (!batchId) throw new Error("Google no devolvió un ID de Lote válido.");
+
+      // 4. Registrar en la Cola de Sheets
+      const sheetCola = this._obtenerHojaColaBatch();
+      sheetCola.appendRow([
+        new Date(),
+        batchId,
+        modelo,
+        imageIdsExitosos.join(','),
+        "PENDIENTE",
+        ""
+      ]);
+
+      console.log(`✅ [Batch-IA] Lote encolado correctamente. ID de Lote: ${batchId}`);
+      return { success: true, batchId: batchId };
+
+    } catch (e) {
+      console.error(`❌ [Batch-IA] Error encolando lote: ${e.message}`);
+      return { success: false, error: e.message };
+    }
+  },
+
+  /**
+   * 🔎 BATCH API: Consulta el estado de un lote asíncrono.
+   */
+  obtenerEstadoBatch: function (batchId) {
+    try {
+      const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY || GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
+      if (!apiKey) throw new Error("Falta API Key configurada.");
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/${batchId}?key=${apiKey}`;
+      const response = UrlFetchApp.fetch(url, {
+        method: "get",
+        muteHttpExceptions: true,
+        timeoutInSeconds: 15
+      });
+
+      if (response.getResponseCode() === 200) {
+        const json = JSON.parse(response.getContentText());
+        return {
+          success: true,
+          state: json.state || "JOB_STATE_PENDING", // JOB_STATE_SUCCEEDED, JOB_STATE_FAILED, etc.
+          raw: json
+        };
+      }
+      return { success: false, error: `HTTP ${response.getResponseCode()}: ${response.getContentText()}` };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
+  /**
+   * 📥 BATCH API: Descarga e ingiere las respuestas de un lote completado con éxito.
+   */
+  descargarResultadosBatch: function (batchId, imagenIdsString) {
+    try {
+      console.log(`📥 [Batch-IA] Procesando resultados del lote finalizado: ${batchId}`);
+      const estadoObj = this.obtenerEstadoBatch(batchId);
+      if (!estadoObj.success || estadoObj.state !== "JOB_STATE_SUCCEEDED") {
+        throw new Error(`El lote no está listo o falló. Estado: ${estadoObj.state}`);
+      }
+
+      const results = estadoObj.raw.response?.results;
+      if (!results || !results.length) throw new Error("El lote completado no contiene resultados.");
+
+      const imagenIds = String(imagenIdsString).split(',');
+      if (results.length !== imagenIds.length) {
+        console.warn(`⚠️ [Batch-IA] Desajuste de conteo: Resultados=${results.length}, Imágenes=${imagenIds.length}. Intentando mapeo secuencial.`);
+      }
+
+      const ss = getActiveSS();
+      const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+
+      let correctos = 0;
+      let fallados = 0;
+
+      for (let idx = 0; idx < results.length; idx++) {
+        const imgId = imagenIds[idx];
+        if (!imgId) continue;
+
+        try {
+          const resultNode = results[idx];
+          const candidate = resultNode.response?.candidates?.[0];
+          const text = candidate?.content?.parts?.[0]?.text;
+
+          if (!text) {
+            console.warn(`⚠️ [Batch-IA] Sin respuesta para imagen ${imgId} en índice ${idx}`);
+            fallados++;
+            continue;
+          }
+
+          // Parsear JSON e interpolar al formato plano compatible
+          const parsedJson = JSON.parse(text);
+          const colorPrincipal = parsedJson.COLOR_PRINCIPAL || {};
+          const logoOMarca = parsedJson.LOGO_O_MARCA || {};
+          const detallesConstructivos = parsedJson.DETALLES_CONSTRUCTIVOS || {};
+
+          const rawResponse = [
+            `MARCA: ${parsedJson.MARCA || ""}`,
+            `MODELO: ${parsedJson.MODELO || ""}`,
+            `CATEGORÍA: ${parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""}`,
+            `MATERIAL: ${parsedJson.MATERIAL || ""}`,
+            `GÉNERO: ${parsedJson.GENERO || parsedJson.GÉNERO || ""}`,
+            `CLASIFICACION_ESTRUCTURAL: ${parsedJson.CLASIFICACION_ESTRUCTURAL || ""}`,
+            `TIPO_PRENDA: ${parsedJson.TIPO_PRENDA || ""}`,
+            `POSICIÓN_DETECTADA: ${parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""}`,
+            `SOPORTE_O_CONTEXTO: ${parsedJson.SOPORTE_O_CONTEXTO || ""}`,
+            `COLOR_PRINCIPAL:`,
+            `  - NOMBRE TÉCNICO: ${colorPrincipal.NOMBRE_TECNICO || colorPrincipal.NOMBRE_TÉCNICO || ""}`,
+            `  - CÓDIGO HEX: ${colorPrincipal.CODIGO_HEX || colorPrincipal.CÓDIGO_HEX || ""}`,
+            `  - TIPO: ${colorPrincipal.TIPO || ""}`,
+            `  - PATRÓN: ${colorPrincipal.PATRON || colorPrincipal.PATRÓN || ""}`,
+            `MATERIAL_ESTIMADO: ${parsedJson.MATERIAL_ESTIMADO || ""}`,
+            `LOGO_O_MARCA:`,
+            `  - VISIBLE: ${logoOMarca.VISIBLE || ""}`,
+            `  - DETALLE: ${logoOMarca.DETALLE || ""}`,
+            `DETALLES_CONSTRUCTIVOS:`,
+            `  - COSTURAS: ${detallesConstructivos.COSTURAS || ""}`,
+            `  - CIERRES: ${detallesConstructivos.CIERRES || ""}`,
+            `  - BOLSILLOS: ${detallesConstructivos.BOLSILLOS || ""}`,
+            `  - ELÁSTICOS: ${detallesConstructivos.ELASTICOS || detallesConstructivos.ELÁSTICOS || ""}`,
+            `AVISOS_DE_LIMPIEZA_VISIBLES: ${parsedJson.AVISOS_DE_LIMPIEZA_VISIBLES || ""}`,
+            `ESTADO_VISUAL: ${parsedJson.ESTADO_VISUAL || ""}`,
+            `DETALLES_VISUALES: ${parsedJson.DETALLES_VISUALES || ""}`
+          ].join('\n');
+
+          const forensicWhitelist = [
+            "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
+            "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
+            "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
+            "MATERIAL_ESTIMADO", 
+            "LOGO_O_MARCA", "VISIBLE", "DETALLE", 
+            "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
+            "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
+          ];
+          const cleanResponse = this.extraerContenido(rawResponse, forensicWhitelist);
+          const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, forensicWhitelist, false);
+
+          // 1. Guardar en BD_PRODUCTO_IMAGENES (Sincronización en Caliente)
+          const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", imgId);
+          if (imgRow) {
+            const map = HeaderManager.getMapping("PRODUCT_IMAGES");
+            const rIdx = this.buscarFilaIndicePorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", imgId);
+            if (rIdx > 0 && map.ANALISIS_FORENSE !== undefined) {
+              sheetImg.getRange(rIdx, map.ANALISIS_FORENSE + 1).setValue(cleanResponse);
+            }
+          }
+
+          // 2. Guardar en BD_LABORATORIO_IA (Cache persistente)
+          this.guardarResultadoLab({
+            imagenId: imgId,
+            estilo: "FORENSIC_ONLY",
+            sku: imgRow ? imgRow.PRODUCTO_ID : "",
+            analisisForense: cleanResponse,
+            analisisForenseRaw: rawConMarcas,
+            modelo: estadoObj.raw.model ? estadoObj.raw.model.replace("models/", "") : "gemini-3.1-pro-preview"
+          });
+
+          correctos++;
+        } catch (errItem) {
+          console.error(`❌ [Batch-IA] Error ingiriendo resultados de imagen ${imgId}: ${errItem.message}`);
+          fallados++;
+        }
+      }
+
+      console.log(`✅ [Batch-IA] Ingesta de Lote ${batchId} finalizada. Éxito: ${correctos}, Fallados: ${fallados}`);
+      
+      // Intentar alertar por Telegram si el puente de notificaciones está disponible
+      try {
+        if (typeof TelegramService !== 'undefined' && TelegramService.enviarMensajeAI) {
+          TelegramService.enviarMensajeAI(`📦 *Lote Forense Finalizado*\n\n*Lote ID:* \`${batchId}\`\n*Total:* ${imagenIds.length}\n*Procesadas:* ${correctos} OK / ${fallados} ERR`);
+        }
+      } catch(eTelegram) {
+        console.warn("⚠️ No se pudo enviar alerta de Telegram.");
+      }
+
+      return { success: true, correctos: correctos, fallados: fallados };
+    } catch (e) {
+      console.error(`❌ [Batch-IA] Error en ingesta de lote: ${e.message}`);
+      return { success: false, error: e.message };
+    }
+  },
+
+  /**
+   * Helper para buscar el índice de fila física por valor.
+   */
+  buscarFilaIndicePorValor: function (sheet, sheetAlias, headerName, valor) {
+    if (!sheet) return -1;
+    const map = HeaderManager.getMapping(sheetAlias);
+    if (!map || map[headerName] === undefined) return -1;
+
+    const data = sheet.getDataRange().getValues();
+    const colIdx = map[headerName];
+    const target = String(valor).trim().toLowerCase();
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][colIdx]).trim().toLowerCase() === target) {
+        return i + 1; // 1-indexed y saltando encabezado
+      }
+    }
+    return -1;
   }
 };
 
 /**
  * WRAPPERS GLOBALES (Exposición para google.script.run)
  */
-function ejecutarPruebaLaboratorio(imagenId, metadata, forzar = false) {
-  return AIService.ejecutarPruebaLaboratorio(imagenId, metadata, forzar);
+function ejecutarCreacionBatchLote(imagenIds, modeloForzado) {
+  return AIService.ejecutarCreacionBatchLote(imagenIds, modeloForzado);
+}
+function ejecutarPruebaLaboratorio(imagenId, metadata, forzar = false, modeloForzado = null) {
+  return AIService.ejecutarPruebaLaboratorio(imagenId, metadata, forzar, modeloForzado);
 }
 
 function ejecutarGeneracionPromptMaestro(imagenId, estilo, extraSpecs, forzar = false) {

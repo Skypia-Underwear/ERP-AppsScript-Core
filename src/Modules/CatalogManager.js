@@ -233,7 +233,7 @@ function tpv_obtenerBaseNameCatalogo() {
 
 function subirArchivoADonweb(jsonData, fileName) {
     const url = GLOBAL_CONFIG.DONWEB.WRITE_URL;
-    if (!url || url.includes("tudominio")) return;
+    if (!url || url.trim() === "" || url.includes("tudominio")) return;
 
     try {
         const res = UrlFetchApp.fetch(url, {

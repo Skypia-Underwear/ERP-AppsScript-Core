@@ -79,7 +79,7 @@ function asset_subirArchivoFisicoAGitHub(content, filePath) {
         const branch = config.BRANCH || "main";
 
         // --- INTERRUPTOR DE SEGURIDAD (Safety Switch) ---
-        const syncEnabled = GLOBAL_CONFIG.SCRIPT_CONFIG["ENABLE_GITHUB_SYNC"] === "TRUE";
+        const syncEnabled = GLOBAL_CONFIG.ASSETS_GITHUB.ENABLE_SYNC;
         if (!syncEnabled) {
             console.warn(`⚠️ [AssetManager] Sincronización GITHUB desactivada (Safety Switch). Omitiendo: ${filePath}`);
             return { success: true, message: "Sincronización desactivada por configuración.", skipped: true };

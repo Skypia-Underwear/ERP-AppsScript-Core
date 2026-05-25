@@ -22,8 +22,12 @@ Esto provoca que todo el código del archivo quede inhabilitado en el navegador 
 - Todos los archivos fuente (`.html`, `.js`, `.json`, `.css`) deben leerse, editarse y guardarse estrictamente en formato **UTF-8 (sin BOM)** y con saltos de línea **LF (`\n`)**.
 - Respeta rigurosamente las reglas definidas en [.editorconfig](file:///c:/Users/USER/OneDrive/Documents/Proyecto_Web/Macros%20HostingShop/.editorconfig).
 
-### 2. Evitar Herramientas de Consola No-UTF8
-- Al ejecutar comandos de terminal (como `git diff` o scripts de consola) para capturar o comparar código, asegúrate de que la codificación de salida del sistema/consola esté configurada en UTF-8 para evitar la inyección indirecta de caracteres corruptos.
+### 2. Configuración y Blindaje Automático de Consola (Windows PowerShell)
+- Al ejecutar comandos de terminal (como `clasp push`, `git` o scripts de Node), es obligatorio que la consola de comandos se comunique en UTF-8 para evitar que interprete secuencias de múltiples bytes como caracteres ANSI heredados y corrompa el código.
+- Para automatizar esto en cualquier nueva computadora de desarrollo, ejecuta este comando único en Windows PowerShell (creará y configurará tu perfil de usuario de forma permanente):
+  ```powershell
+  if (!(Test-Path $PROFILE)) { New-Item -Type File -Path $PROFILE -Force }; Add-Content $PROFILE "`n`$OutputEncoding = [System.Text.Encoding]::UTF8; [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [System.Console]::InputEncoding = [System.Text.Encoding]::UTF8"
+  ```
 
 ---
 
@@ -45,3 +49,26 @@ Antes de dar por completado un cambio o realizar un `clasp push`, realiza un esc
 ## ⚠️ MANDATO PARA EL AGENTE
 - **Obligatorio:** Lee este estándar antes de realizar cualquier edición de archivos en `src/`.
 - No intentes corregir problemas de codificación a través de suposiciones en prompts largos; usa el comando de validación local que no consume cuota de token.
+
+---
+
+## 🔧 SCRIPT DE LIMPIEZA REUTILIZABLE (Para uso del desarrollador)
+
+Se dispone de un script Node.js persistente que puede ser ejecutado directamente por el desarrollador **sin necesitar al agente**:
+
+```
+Ubicación: C:\Users\USER\.gemini\antigravity-ide\brain\98c70f12-6526-4450-8cd7-7796e30f1e5c\scratch\fix_mojibake.js
+```
+
+### Cómo usarlo (desde la raíz del proyecto en PowerShell):
+```powershell
+node "C:\Users\USER\.gemini\antigravity-ide\brain\98c70f12-6526-4450-8cd7-7796e30f1e5c\scratch\fix_mojibake.js"
+```
+
+**Características:**
+- ✅ Escanea **todos** los archivos `.html` en `src/Web/`
+- ✅ Detecta y corrige 20+ patrones Mojibake conocidos (binario + escapes literales)
+- ✅ Es **idempotente** — se puede correr múltiples veces sin riesgo
+- ✅ Muestra un reporte detallado con qué corrigió en qué archivo
+- ✅ No modifica archivos limpios
+
