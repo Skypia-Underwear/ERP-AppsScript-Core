@@ -19,11 +19,25 @@ function blogger_regenerarCacheConfiguracion() {
     console.log("🔄 [Blogger Cache] Iniciando regeneración...");
 
     try {
-        // v12.2: Pasamos forceLocal=true para que el trigger no consuma cuota de AppSheet API
-        const jo = blogger_listar_configuracion_sinCache(true);
+        const props = PropertiesService.getScriptProperties();
+        const lastSyncStr = props.getProperty("LAST_BLOGGER_API_SYNC");
+        const now = Date.now();
+        const doceHorasMs = 12 * 60 * 60 * 1000; // 12 horas
+
+        let forceLocal = true;
+        let razon = "Trigger habitual (Lectura Local 0 API)";
+
+        if (!lastSyncStr || (now - parseInt(lastSyncStr)) >= doceHorasMs) {
+            forceLocal = false;
+            razon = "Sincronización programada semestral/diaria vía API de AppSheet (Smart API)";
+        }
+
+        console.log(`📡 [Blogger Cache] Modo seleccionado: ${forceLocal ? "LOCAL" : "API (GLOBAL)"} - Razón: ${razon}`);
+
+        const jo = blogger_listar_configuracion_sinCache(forceLocal);
         // Inyectamos timestamp_ms para que el archivo en Drive tenga referencia de frescura.
         // Nota: La subida a Donweb/GitHub ignorará este campo al comparar el contenido real.
-        jo.timestamp_ms = Date.now();
+        jo.timestamp_ms = now;
         const jsonFinal = JSON.stringify(jo);
 
         // --- PASO 1: Drive (primario, fuente de verdad local) ---
@@ -45,6 +59,12 @@ function blogger_regenerarCacheConfiguracion() {
             file = folder.createFile(fileName, jsonFinal, "application/json");
             file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
             console.log("✅ [Blogger Cache] Drive: JSON creado de cero.");
+        }
+
+        // Si se realizó con éxito la sincronización API, guardamos el timestamp
+        if (!forceLocal) {
+            props.setProperty("LAST_BLOGGER_API_SYNC", String(now));
+            console.log("💾 [Blogger Cache] Marca de tiempo de sincronización API actualizada con éxito.");
         }
 
         // --- NUEVO: FASE 2 DIFERIDA (Subir a Donweb y GitHub en nuevo contexto) ---

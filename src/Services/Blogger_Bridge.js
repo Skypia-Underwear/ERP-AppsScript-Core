@@ -40,11 +40,11 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
 
     const sheetConfig = ss.getSheetByName(SHEETS.GENERAL_CONFIG);
     const configRow = sheetConfig.getRange(2, 1, 1, sheetConfig.getLastColumn()).getValues()[0];
-    const tipoRegistroProducto = (configRow[mG.TIPO_REGISTRO] || "").toString().trim().toUpperCase();
-    const excluirSurtidosVariedades = blogger_esVerdadero(configRow[mG.EXCLUIR_SURTIDOS]);
+    const tipoRegistroProducto = (configRow[mG.TIPO_REGISTRO_PRODUCTO] || "").toString().trim().toUpperCase();
+    const excluirSurtidosVariedades = blogger_esVerdadero(configRow[mG.EXCLUIR_SURTIDOS_VARIANTES]);
     const urlImagenSinImagen = blogger_getPublicImageURL(appName, configRow[mG.SIN_IMAGEN], SHEETS.GENERAL_CONFIG);
-    const limiteImagenesPorProducto = configRow[mG.LIMITE_IMAGENES] || 10;
-    const aplicarMarcaDeAgua = blogger_esVerdadero(configRow[mG.MARCA_AGUA]);
+    const limiteImagenesPorProducto = configRow[mG.LIMITE_IMAGENES_PRODUCTO] || 10;
+    const aplicarMarcaDeAgua = blogger_esVerdadero(configRow[mG.APLICAR_MARCA_DE_AGUA]);
 
     const sheetTiendas = ss.getSheetByName(SHEETS.STORES);
     const mShtT = HeaderManager.getMapping(SHEETS.STORES);
@@ -70,7 +70,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
         }
     });
 
-    const mapCategoriaAPadre = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.PADRE] || "GENERAL"]));
+    const mapCategoriaAPadre = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.CATEGORIA_PADRE] || "GENERAL"]));
 
     // --- PRE-INDEXACIÓN OPTIMIZADA O(1) ---
     const productosMap = {};
@@ -162,7 +162,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
 
         if (categoria !== categoriaActual) {
             if (categoriaActual) {
-                const catPadre = mapCategoriaAPadre[categoriaActual];
+                const catPadre = mapCategoriaAPadre[categoriaActual] || "GENERAL";
                 const rawIcon = mapCategoriasIconos[categoriaActual] || categoriaActual;
                 const sid = svgIdToNameMap[rawIcon] || rawIcon;
                 const catObjeto = {
@@ -220,7 +220,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
         }
 
         if (j === rowsVisibles.length - 1) {
-            const catPadre = mapCategoriaAPadre[categoriaActual];
+            const catPadre = mapCategoriaAPadre[categoriaActual] || "GENERAL";
             const rawIcon = mapCategoriasIconos[categoriaActual] || categoriaActual;
             const sid = svgIdToNameMap[rawIcon] || rawIcon;
             const catObjeto = {
@@ -426,7 +426,24 @@ function blogger_esVerdadero(v) {
 }
 
 function blogger_safeParse(v) {
-    try { return JSON.parse(v || "{}"); } catch (e) { return {}; }
+    if (!v) return {};
+    let str = String(v).trim();
+    
+    // Si está envuelto en comillas simples externas por Sheets, las removemos
+    if (str.startsWith("'") && str.endsWith("'") && str.length > 1) {
+        str = str.substring(1, str.length - 1).trim();
+    }
+    
+    // Reemplazar comillas tipográficas (curvas/curly/smart quotes) por comillas rectas estándar
+    str = str.replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+             .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
+             
+    try { 
+        return JSON.parse(str); 
+    } catch (e) { 
+        console.warn("⚠️ [Blogger safeParse] Error al parsear JSON: " + e.message + " | Valor: " + str);
+        return {}; 
+    }
 }
 
 function blogger_getPublicImageURL(appName, filePath, tableName) {
@@ -1512,12 +1529,23 @@ function blogger_router(data) {
 
             case "configuracion":
                 let resConfig = blogger_obtenerConfiguracionDesdeDrive();
-                if (!resConfig || payload.refresh === true) {
-                    debugLog("⚠️ [Blogger Router] Caché no disponible o refresh forzado. Generando config en tiempo real...", true);
-                    resConfig = blogger_listar_configuracion_sinCache();
+                
+                // Parsear a objeto si la caché viene serializada como string desde Drive
+                if (resConfig && typeof resConfig === "string") {
+                    try {
+                        resConfig = JSON.parse(resConfig);
+                    } catch (errJson) {
+                        debugLog("⚠️ [Blogger Router] Error parseando caché de Drive. Forzando regeneración.");
+                        resConfig = null;
+                    }
                 }
 
-                if (payload.id) {
+                if (!resConfig || payload.refresh === true) {
+                    debugLog("⚠️ [Blogger Router] Caché no disponible o refresh forzado. Generando config en tiempo real (Local)...", true);
+                    resConfig = blogger_listar_configuracion_sinCache(true); // forzar local
+                }
+
+                if (payload.id && resConfig && typeof resConfig === "object") {
                     blogger_adjuntar_pedido_a_respuesta(resConfig, payload.id);
                 }
                 return resConfig;

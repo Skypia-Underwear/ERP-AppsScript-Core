@@ -179,25 +179,39 @@ function getStoreConfig() {
 }
 
 /**
- * Registra una entrada de auditoría en BD_FORMULARIO_CLIENTE vía API.
+ * Registra una entrada de auditoría en la hoja de logs del formulario de clientes.
+ * Intenta realizar el guardado vía API REST de AppSheet para disparar automatizaciones/bots.
+ * Si la API falla o excede cuotas, registra el error en DEBUG_LOGS, alerta por Telegram (incluyendo
+ * dinámicamente el nombre del ERP), y realiza un fallback escribiendo directamente en la hoja de 
+ * cálculo para no perder datos.
  */
 function registrarLogFormulario(clienteId, email, gestion) {
+    const tableName = "BD_FORMULARIO_CLIENTE";
+    const tz = Session.getScriptTimeZone() || "GMT-3";
+    const fechaHoraIso = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd HH:mm:ss");
+    const logId = Utilities.getUuid();
+    
+    // Obtener dinámicamente el nombre de la App / ERP
+    const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME || "ERP_CORE";
+
+    const logRow = {
+        "LOG_ID": logId,
+        "CLIENTE_ID": String(clienteId),
+        "CORREO_ELECTRONICO": email,
+        "GESTION": gestion,
+        "FECHA_HORA": fechaHoraIso
+    };
+
     try {
         const appId = GLOBAL_CONFIG.APPSHEET.APP_ID;
         const accessKey = GLOBAL_CONFIG.APPSHEET.ACCESS_KEY;
-        const tableName = "BD_FORMULARIO_CLIENTE";
 
-        if (!appId || !accessKey) return;
+        if (!appId || !accessKey) {
+            throw new Error("Credenciales de AppSheet no configuradas (APP_ID o ACCESS_KEY en blanco).");
+        }
 
         const url = `https://api.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
-        const logRow = {
-            "LOG_ID": Utilities.getUuid(),
-            "CLIENTE_ID": String(clienteId),
-            "CORREO_ELECTRONICO": email,
-            "GESTION": gestion,
-            "FECHA_HORA": Utilities.formatDate(new Date(), "GMT-3", "M/d/yyyy HH:mm:ss")
-        };
-
+        
         const requestBody = {
             "Action": "Add",
             "Properties": { "Locale": "es-AR", "Timezone": "SA Western Standard Time" },
@@ -212,10 +226,80 @@ function registrarLogFormulario(clienteId, email, gestion) {
             muteHttpExceptions: true
         };
 
-        UrlFetchApp.fetch(url, options);
+        debugLog(`📡 [${appName}] [registrarLogFormulario] Intentando registrar auditoría vía API AppSheet...`);
+        
+        const response = UrlFetchApp.fetch(url, options);
+        const responseCode = response.getResponseCode();
+        const responseBody = response.getContentText();
+
+        if (responseCode === 200) {
+            debugLog(`✅ [${appName}] [registrarLogFormulario] Auditoría guardada con éxito vía API en '${tableName}'. Bots activados.`, true);
+            return true;
+        } else {
+            throw new Error(`API respondió con código ${responseCode}: ${responseBody}`);
+        }
 
     } catch (e) {
-        debugLog(`❌ Exception in registrarLogFormulario API: ${e.message}`);
+        const errorMsg = `⚠️ [${appName}] [registrarLogFormulario] Falló registro vía API: ${e.message}`;
+        debugLog(errorMsg);
+        
+        // Notificar al desarrollador por Telegram sobre el fallo de la API incluyendo el AppName
+        try {
+            notificarTelegramSalud(
+                `⚠️ <b>Fallo en Registro de Auditoría (AppSheet API)</b>\n` +
+                `💻 <b>ERP:</b> ${appName}\n` +
+                `👤 <b>Cliente:</b> ${clienteId}\n` +
+                `⚙️ <b>Gestión:</b> ${gestion}\n` +
+                `❌ <b>Error:</b> ${e.message}\n\n` +
+                `<i>Se procederá con la escritura directa en Google Sheets como respaldo.</i>`, 
+                "WARN"
+            );
+        } catch (tgError) {
+            console.error("No se pudo enviar alerta de Telegram: " + tgError.message);
+        }
+
+        // --- FALLBACK: Escritura local directa en la hoja de cálculo para proteger los datos ---
+        try {
+            const ss = getActiveSS();
+            if (!ss) throw new Error("No se pudo obtener la hoja de cálculo activa.");
+
+            // Buscar la hoja física por alias oficial o nombre directo
+            let sheetName = SHEETS.CLIENT_FORM_LOG || "BD_CLIENT_FORM_LOG";
+            let sheet = ss.getSheetByName(sheetName);
+            
+            if (!sheet) {
+                sheetName = "BD_FORMULARIO_CLIENTE";
+                sheet = ss.getSheetByName(sheetName);
+            }
+
+            if (!sheet) {
+                throw new Error(`Hoja física no encontrada (se buscó '${SHEETS.CLIENT_FORM_LOG}' y 'BD_FORMULARIO_CLIENTE')`);
+            }
+
+            // Obtener el mapeo de columnas dinámico
+            const mapping = HeaderManager.getMapping("CLIENT_FORM_LOG") || {
+                "LOG_ID": 0, "CLIENTE_ID": 1, "CORREO_ELECTRONICO": 2, "GESTION": 3, "FECHA_HORA": 4
+            };
+
+            const lastCol = Math.max(sheet.getLastColumn(), 5);
+            const rowData = new Array(lastCol).fill("");
+
+            if (mapping.LOG_ID !== undefined) rowData[mapping.LOG_ID] = logId;
+            if (mapping.CLIENTE_ID !== undefined) rowData[mapping.CLIENTE_ID] = String(clienteId);
+            if (mapping.CORREO_ELECTRONICO !== undefined) rowData[mapping.CORREO_ELECTRONICO] = email;
+            if (mapping.GESTION !== undefined) rowData[mapping.GESTION] = gestion;
+            if (mapping.FECHA_HORA !== undefined) rowData[mapping.FECHA_HORA] = fechaHoraIso;
+
+            sheet.appendRow(rowData);
+            SpreadsheetApp.flush();
+            
+            debugLog(`✅ [${appName}] [registrarLogFormulario Fallback] Log guardado directamente en la hoja física '${sheet.getName()}' debido a fallas de API.`, true);
+            return true;
+
+        } catch (localError) {
+            debugLog(`❌ [${appName}] [registrarLogFormulario Crítico] Falló también el fallback de escritura local: ${localError.message}`);
+            return false;
+        }
     }
 }
 

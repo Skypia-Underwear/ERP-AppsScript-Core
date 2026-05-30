@@ -363,8 +363,31 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
     if (productoIdFiltro) {
       const row = prodData.find(r => String(r[idxProdSku]) === String(productoIdFiltro));
-      if (row && idxProdFolder > -1 && row[idxProdFolder]) {
-        productosAProcesar.push({ sku: String(row[idxProdSku]), folderId: row[idxProdFolder] });
+      if (row) {
+        let folderId = idxProdFolder > -1 ? String(row[idxProdFolder]).trim() : "";
+        let folder = null;
+        try {
+          if (folderId && folderId !== "undefined" && folderId !== "") {
+            folder = DriveApp.getFolderById(folderId);
+          }
+        } catch (e) {
+          log(`⚠️ Carpeta ID ${folderId} no existe o no es accesible para ${productoIdFiltro}. Buscando o creando.`);
+          folder = null;
+        }
+
+        if (!folder) {
+          try {
+            log(`🔍 Carpeta faltante o inválida para SKU "${productoIdFiltro}". Intentando rescatar o crear en Drive...`);
+            folder = obtenerOCrearCarpetaProducto(productoIdFiltro);
+            folderId = folder.getId();
+          } catch (errCreate) {
+            log(`❌ Error crítico al rescatar o crear carpeta para ${productoIdFiltro}: ${errCreate.message}`);
+          }
+        }
+
+        if (folder) {
+          productosAProcesar.push({ sku: String(row[idxProdSku]), folderId: folderId });
+        }
       }
     } else {
       productosAProcesar = prodData
@@ -849,7 +872,7 @@ function obtenerImagenesDeProducto(sku, carpetaId) {
   const data = convertirRangoAObjetos_IMAGENES(sheet);
   console.log(`${logPrefix} 📊 Total filas en BD: ${data.length}`);
 
-  const imagenes = data.filter(row => {
+  let imagenes = data.filter(row => {
     // Lógica Dual: Coincidencia por SKU O por Carpeta ID
     const rowSku = String(row.PRODUCTO_ID || "").trim();
     const rowCarpeta = String(row.CARPETA_ID || "").trim();
@@ -862,6 +885,26 @@ function obtenerImagenesDeProducto(sku, carpetaId) {
 
     return matchSku || matchCarpeta;
   });
+
+  // BLINDAJE EXTRA: Si no se encuentran imágenes registradas en la BD y se cuenta con un SKU,
+  // procedemos a realizar una sincronización en vivo bajo demanda para rescatar/crear la carpeta
+  // e indexar de inmediato cualquier imagen preexistente.
+  if (imagenes.length === 0 && sku) {
+    console.log(`${logPrefix} ⚠️ No se hallaron imágenes en BD para SKU "${sku}". Iniciando auto-sincronización y rescate...`);
+    try {
+      sincronizarImagenes(sku);
+      // Volvemos a leer los datos recién sincronizados en la BD de imágenes
+      const freshData = convertirRangoAObjetos_IMAGENES(sheet);
+      imagenes = freshData.filter(row => {
+        const rowSku = String(row.PRODUCTO_ID || "").trim();
+        const targetSku = String(sku || "").trim();
+        return targetSku && rowSku === targetSku;
+      });
+      console.log(`${logPrefix} 🔄 Auto-sincronización completada. Nuevas imágenes encontradas: ${imagenes.length}`);
+    } catch (syncErr) {
+      console.error(`${logPrefix} ❌ Error en auto-sincronización bajo demanda para SKU "${sku}": ${syncErr.message}`);
+    }
+  }
 
   console.log(`${logPrefix} ✅ Result: ${imagenes.length} imágenes encontradas.`);
 
@@ -1252,6 +1295,22 @@ function prepararBlobOptimizado(archivoId, displayName, prioridad = 'alta', apiK
  */
 function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment = 'Studio', prodRow = null) {
   const estilo = (estiloSolicitado || 'ecommerce').toLowerCase();
+  const genero = (prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
+  
+  const category = (prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
+  const modelName = (prodRow ? prodRow.MODELO || '' : '').toLowerCase();
+  const styleName = (prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
+  const skuCode = (prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
+  const specsCategory = (extraSpecs.categoria || '').toLowerCase();
+  const specsSku = (extraSpecs.sku || '').toLowerCase();
+  
+  let isConjunto = category.includes("conjunto") || 
+                   modelName.includes("conjunto") || 
+                   styleName.includes("conjunto") || 
+                   skuCode.includes("conj") ||
+                   specsCategory.includes("conjunto") ||
+                   specsSku.includes("conj");
+
   let promptRules = "";
   let modelAdaptation = "";
 
@@ -1382,6 +1441,68 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
       modelAdaptation = `- Replace source substrate with a fit model.
         - GENDER MANDATE: Use a ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model according to metadata.`;
       break;
+  }
+
+  // --- NUEVO: Directivas Estacionales y Encuadre Trimodal Generalizado ---
+  let extraDirectives = [];
+  if ((estilo === 'ecommerce' || estilo === 'lifestyle') && !isConjunto) {
+    const clasif = (extraSpecs.clasificacionEstructural || "").toUpperCase();
+    const temporada = prodRow ? (prodRow.TEMPORADA || "") : (extraSpecs.temporada || "");
+    const tempLower = temporada.toLowerCase();
+    const esFrio = tempLower.includes("invierno") || tempLower.includes("otoño") || tempLower.includes("winter") || tempLower.includes("autumn") || tempLower.includes("frio") || tempLower.includes("frío");
+    const esFemenino = (genero === 'FEMENINO' || genero === 'MUJER');
+    const tempDesc = temporada ? `season: ${temporada}` : "season: auto-detect based on context";
+    
+    let complementoTexto = "";
+    if (clasif === "PRENDA_INFERIOR") {
+      const topType = esFrio 
+        ? (esFemenino ? "a long-sleeve neutral knit sweater or long-sleeve cotton shirt" : "a plain long-sleeve crewneck shirt or simple solid hoodie")
+        : (esFemenino ? "a basic short-sleeve solid cotton t-shirt or crop top" : "a plain neutral short-sleeve cotton t-shirt");
+      complementoTexto = `UPPER BODY COMPLEMENT MANDATE: The model MUST wear ${topType} to ensure the torso is fully covered and realistic, preventing safety filters from rendering a plastic mannequin. The upper garment must be in a solid neutral color (e.g., plain white, gray, or black) and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the lower garment).`;
+    } else if (clasif === "PRENDA_SUPERIOR") {
+      const bottomType = esFrio
+        ? "classic long dark denim jeans or solid heavy-cotton trousers"
+        : (esFemenino ? "classic simple denim shorts or light cotton trousers" : "classic neutral chino shorts or light trousers");
+      complementoTexto = `LOWER BODY COMPLEMENT MANDATE: The model MUST wear ${bottomType} to ensure the outfit is complete and realistic. The lower garment must be in a simple, solid neutral color and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the upper garment).`;
+    }
+    
+    if (complementoTexto) {
+      extraDirectives.push(complementoTexto);
+    }
+    
+    // Control de encuadre trimodal (Cuerpo Completo vs Enfoque de Prenda vs Auto)
+    const cuerpoCompletoVal = extraSpecs.cuerpoCompleto !== undefined ? String(extraSpecs.cuerpoCompleto).toLowerCase() : "";
+    const isFull = cuerpoCompletoVal === "true" || cuerpoCompletoVal === "cuerpo_completo" || cuerpoCompletoVal === "full_body" || extraSpecs.framing === "full_body";
+    const isProductFocus = cuerpoCompletoVal === "false" || cuerpoCompletoVal === "enfoque_prenda" || extraSpecs.framing === "enfoque_prenda";
+    
+    if (isFull) {
+      extraDirectives.push(`FRAMING MANDATE: Professional full-body fashion shot showing the model from head to toe. Ensure the entire silhouette and both garments (main product and complement) are fully visible in the frame, including footwear.`);
+    } else if (isProductFocus) {
+      if (clasif === "PRENDA_INFERIOR") {
+        extraDirectives.push(`FRAMING MANDATE: Professional mid-shot focused strictly on the lower body from the waist down. The shot must frame the main lower garment prominently. The upper body garment serves only as a secondary neutral background complement and may be partially cropped.`);
+      } else {
+        extraDirectives.push(`FRAMING MANDATE: Professional upper-body portrait shot focused strictly on the upper body, framing the main upper garment prominently from chest/head down to the waist. The lower body garment serves only as a secondary neutral background complement and may be partially cropped.`);
+      }
+    } else {
+      // Modo Auto: IA decide según el estilo
+      if (estilo === 'lifestyle') {
+        extraDirectives.push(`FRAMING MANDATE: Professional and balanced fashion composition. You have the sovereignty to choose the optimal framing (full-body or medium shot) that best complements the environment while keeping the main product (${clasif}) as the core visual anchor.`);
+      } else {
+        // En ecommerce el foco es el producto por defecto
+        if (clasif === "PRENDA_INFERIOR") {
+          extraDirectives.push(`FRAMING MANDATE: Focus the camera primarily on the main product (${clasif}) from the waist down, using the upper body complement strictly as a secondary neutral background element.`);
+        } else {
+          extraDirectives.push(`FRAMING MANDATE: Focus the camera primarily on the main product (${clasif}) from chest/head down to the waist, using the lower body complement strictly as a secondary neutral background element.`);
+        }
+      }
+    }
+    
+    // Mandato de realismo humano explícito
+    extraDirectives.push(`REAL HUMAN MODEL MANDATE: The model must be a real, natural human model with highly realistic facial features, head, and hair (e.g., 'highly realistic human model with natural skin texture, showing face and head clearly'). Absolutely forbid any plastic mannequin structures, hollow mannequin necks, cropped headless bodies, or faceless plastic textures.`);
+  }
+
+  if (extraDirectives.length > 0) {
+    promptRules += `\n      [TECHNICAL DIRECTIVES]:\n      * ${extraDirectives.join('\n      * ')}`;
   }
 
   // 2. Prefijo de Respuesta (Para anclar la intención de la IA)

@@ -143,10 +143,13 @@
       <div class="flex-1 grid grid-cols-2 lg:grid-cols-5 gap-3 w-full">
         <!-- Buscador Inteligente -->
         <div class="relative col-span-2 lg:col-span-1 group">
-          <span class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs transition-colors group-focus-within:text-blue-400">search</span>
-          <input type="text" id="search-input" oninput="filterProductsBySearch()" placeholder="Buscar por código o modelo..."
+          <span
+            class="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs transition-colors group-focus-within:text-blue-400">search</span>
+          <input type="text" id="search-input" oninput="filterProductsBySearch()"
+            placeholder="Buscar por código o modelo..."
             class="w-full bg-slate-900 border border-slate-800 text-white rounded-lg pl-8 pr-7 py-1.5 text-[10px] font-bold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all duration-300 placeholder:text-slate-600 placeholder:font-medium">
-          <span id="clear-search-btn" onclick="clearSearchInput()" class="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 text-xs cursor-pointer hidden transition-colors duration-200">close</span>
+          <span id="clear-search-btn" onclick="clearSearchInput()"
+            class="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 text-xs cursor-pointer hidden transition-colors duration-200">close</span>
         </div>
         <div>
           <select id="cat-selector" onchange="updateProductList()"
@@ -205,21 +208,25 @@
             </div>
             <h2 id="prod-title-view" class="text-[10px] font-bold text-white uppercase truncate">Sin selección</h2>
             <p id="prod-sku-view" class="text-slate-500 font-mono text-[9px]">SKU: ---</p>
-            
+
             <!-- Selector de Modelo de Análisis Forense -->
             <div class="mt-2.5">
               <label class="block text-[8px] font-black text-slate-500 uppercase mb-1">Modelo de Análisis</label>
-              <select id="lab-analysis-model" class="w-full bg-slate-950 border border-slate-800 text-white rounded p-1.5 text-[10px] outline-none focus:border-blue-500 font-bold transition-all duration-300">
+              <select id="lab-analysis-model"
+                class="w-full bg-slate-950 border border-slate-800 text-white rounded p-1.5 text-[10px] outline-none focus:border-blue-500 font-bold transition-all duration-300">
                 <option value="gemma-4-26b-a4b-it" selected>Gemma 4 (Peritaje Forense RAW)</option>
                 <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Alta Inteligencia)</option>
                 <option value="gemini-3.5-flash">Gemini 3.5 Flash (Agente Estable)</option>
                 <option value="gemini-2.5-flash">Gemini 2.5 Flash (Emergencia/Rápido)</option>
               </select>
             </div>
-            
+
             <div class="mt-2 flex items-center gap-2 bg-slate-900/50 p-1.5 rounded border border-slate-800">
-              <input type="checkbox" id="lab-force-cache" class="accent-purple-500 w-3 h-3 cursor-pointer rounded border-slate-700">
-              <label for="lab-force-cache" class="text-[9px] text-slate-400 cursor-pointer select-none font-bold uppercase tracking-wide">Forzar IA (Ignorar Caché)</label>
+              <input type="checkbox" id="lab-force-cache"
+                class="accent-purple-500 w-3 h-3 cursor-pointer rounded border-slate-700">
+              <label for="lab-force-cache"
+                class="text-[9px] text-slate-400 cursor-pointer select-none font-bold uppercase tracking-wide">Forzar IA
+                (Ignorar Caché)</label>
             </div>
           </div>
 
@@ -285,7 +292,8 @@
           </div>
 
           <!-- ANGLE SELECTION (New) -->
-          <div id="lab-angle-selection" class="hidden animate-fade-in bg-purple-500/5 p-2 rounded border border-purple-500/10 mt-2">
+          <div id="lab-angle-selection"
+            class="hidden animate-fade-in bg-purple-500/5 p-2 rounded border border-purple-500/10 mt-2">
             <label class="text-[9px] font-bold text-purple-400 uppercase block mb-1">Posición / Ángulo</label>
             <select id="lab-angle"
               class="w-full bg-slate-950 border-slate-800 text-white rounded p-1.5 text-[10px] outline-none focus:border-purple-500">
@@ -342,7 +350,8 @@
               class="w-full bg-slate-950 border-slate-800 text-white rounded p-1.5 text-[10px] outline-none">
               <option value="single_shot">[FAST] 8 Seg (Single)</option>
               <option value="multi_shot">[SCENES] 30 Seg (Escenas)</option>
-              <option id="opt-living-garment" value="living_garment" class="hidden text-amber-400 font-bold">[3D] 3D Living</option>
+              <option id="opt-living-garment" value="living_garment" class="hidden text-amber-400 font-bold">[3D] 3D
+                Living</option>
             </select>
           </div>
 
@@ -482,7 +491,7 @@
       <!-- COLUMNA 3: FASE 3 - RENDERIZADO -->
       <div id="phase3-results"
         class="flex-1 hidden flex flex-col gap-4 overflow-y-auto pr-2 scroll-thin border-l border-slate-800/50 pl-6 animate-fadeIn">
-        
+
         <!-- Controles de Render -->
         <div class="flex flex-col">
           <div class="flex justify-between items-center mb-2 px-1 shrink-0">
@@ -493,14 +502,17 @@
           </div>
           <div class="bg-slate-900 border border-amber-500/20 p-4 rounded-xl shadow-lg shadow-amber-500/5 mb-4">
             <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">Fuente del Prompt</label>
-            <select id="lab-prompt-source" class="w-full bg-slate-950 border border-slate-800 text-white rounded p-2 text-[10px] outline-none focus:border-amber-500 mb-3">
+            <select id="lab-prompt-source"
+              class="w-full bg-slate-950 border border-slate-800 text-white rounded p-2 text-[10px] outline-none focus:border-amber-500 mb-3">
               <option value="raw">Mente RAW (El más detallado)</option>
               <option value="clean">Prompt Maestro (Limpio)</option>
             </select>
 
-            <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">PIN de Seguridad (Facturación)</label>
-            <input type="password" id="lab-paid-pin" placeholder="****" class="w-full bg-slate-950 border border-slate-800 text-white rounded p-2 text-[12px] outline-none focus:border-amber-500 text-center tracking-widest mb-3">
-            
+            <label class="text-[9px] font-bold text-slate-500 uppercase block mb-1">PIN de Seguridad
+              (Facturación)</label>
+            <input type="password" id="lab-paid-pin" placeholder="****"
+              class="w-full bg-slate-950 border border-slate-800 text-white rounded p-2 text-[12px] outline-none focus:border-amber-500 text-center tracking-widest mb-3">
+
             <button onclick="confirmAndRunRender()" id="run-render-btn"
               class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2">
               <span class="material-icons text-sm">camera_enhance</span> Renderizar Visual
@@ -518,15 +530,20 @@
           </div>
           <div id="render-clean-view"
             class="bg-slate-950 flex-1 p-2 rounded-xl border border-amber-500/20 shadow-lg flex flex-col items-center justify-center overflow-hidden gap-2">
-            <span id="render-placeholder" class="italic opacity-30 text-amber-400/30 text-[10px] text-center px-4">El render final aparecerá aquí...<br>(Requiere completar Fase 2)</span>
-            <img id="render-result-img" src="" class="hidden w-full object-contain rounded cursor-zoom-in flex-1" onclick="openRenderLightbox()">
-            <video id="render-result-video" src="" class="hidden w-full h-full object-contain rounded" controls loop autoplay></video>
+            <span id="render-placeholder" class="italic opacity-30 text-amber-400/30 text-[10px] text-center px-4">El
+              render final aparecerá aquí...<br>(Requiere completar Fase 2)</span>
+            <img id="render-result-img" src="" class="hidden w-full object-contain rounded cursor-zoom-in flex-1"
+              onclick="openRenderLightbox()">
+            <video id="render-result-video" src="" class="hidden w-full h-full object-contain rounded" controls loop
+              autoplay></video>
             <!-- Action bar: visible only after render -->
             <div id="render-action-bar" class="hidden w-full flex gap-1.5 flex-shrink-0">
-              <button onclick="openRenderLightbox()" class="flex-1 flex items-center justify-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg py-1.5 text-[10px] font-bold transition">
+              <button onclick="openRenderLightbox()"
+                class="flex-1 flex items-center justify-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg py-1.5 text-[10px] font-bold transition">
                 <span class="material-icons text-sm">zoom_in</span> PREVISUALIZAR
               </button>
-              <button id="render-drive-link" onclick="openInDrive()" class="flex-1 flex items-center justify-center gap-1 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 rounded-lg py-1.5 text-[10px] font-bold transition">
+              <button id="render-drive-link" onclick="openInDrive()"
+                class="flex-1 flex items-center justify-center gap-1 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 rounded-lg py-1.5 text-[10px] font-bold transition">
                 <span class="material-icons text-sm">open_in_new</span> ABRIR EN DRIVE
               </button>
             </div>
@@ -542,14 +559,18 @@
 </div>
 
 <!-- ===== LIGHTBOX MODAL (Render Preview) ===== -->
-<div id="render-lightbox" onclick="closeRenderLightbox()" class="hidden fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out">
+<div id="render-lightbox" onclick="closeRenderLightbox()"
+  class="hidden fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out">
   <div class="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center gap-3">
-    <img id="lightbox-img" src="" class="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl border border-white/10">
+    <img id="lightbox-img" src=""
+      class="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl border border-white/10">
     <div class="flex gap-3">
-      <button onclick="event.stopPropagation(); openInDrive()" class="flex items-center gap-1.5 bg-sky-500/20 hover:bg-sky-500/40 border border-sky-500/40 text-sky-300 px-4 py-2 rounded-lg text-sm font-bold transition">
+      <button onclick="event.stopPropagation(); openInDrive()"
+        class="flex items-center gap-1.5 bg-sky-500/20 hover:bg-sky-500/40 border border-sky-500/40 text-sky-300 px-4 py-2 rounded-lg text-sm font-bold transition">
         <span class="material-icons text-sm">open_in_new</span> Abrir en Google Drive
       </button>
-      <button onclick="closeRenderLightbox()" class="flex items-center gap-1.5 bg-slate-700/60 hover:bg-slate-600 border border-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-bold transition">
+      <button onclick="closeRenderLightbox()"
+        class="flex items-center gap-1.5 bg-slate-700/60 hover:bg-slate-600 border border-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-bold transition">
         <span class="material-icons text-sm">close</span> Cerrar
       </button>
     </div>
@@ -617,7 +638,7 @@
       }).tpv_obtenerCatalogoDesdeDrive();
 
     } catch (e) {
-      console.error("Error cr\u00edtico cargando cat\u00e1logo:", e);
+      console.error("Error crítico cargando catálogo:", e);
     }
   }
 
@@ -630,10 +651,10 @@
 
     // Guardamos los objetos COMPLETOS para no perder metadatos (Material, Marca, etc)
     CATALOGO = products.map(p => {
-      // Normalizamos solo las claves b\u00e1sicas para los selectores, pero mantenemos el resto
+      // Normalizamos solo las claves básicas para los selectores, pero mantenemos el resto
       p._sku = p.id || p.sku || p.CODIGO_ID;
       p._nombre = p.model || p.nombre || p.NOMBRE_PRODUCTO || "Sin Nombre";
-      p._categoria = p.categoryName || p.categoria || "Sin Categor\u00eda";
+      p._categoria = p.categoryName || p.categoria || "Sin Categoría";
       return p;
     });
 
@@ -692,9 +713,9 @@
       return;
     }
 
-    // Buscar coincidencias de SKU o Nombre en el cat\u00e1logo
-    const matches = CATALOGO.filter(p => 
-      (p._sku && p._sku.toLowerCase().includes(query)) || 
+    // Buscar coincidencias de SKU o Nombre en el catálogo
+    const matches = CATALOGO.filter(p =>
+      (p._sku && p._sku.toLowerCase().includes(query)) ||
       (p._nombre && p._nombre.toLowerCase().includes(query))
     );
 
@@ -737,7 +758,7 @@
     selectedProduct = prod;
     document.getElementById('lab-workspace').classList.remove('hidden');
 
-    // Sincronizar el selector de categor\u00edas si corresponde
+    // Sincronizar el selector de categorías si corresponde
     if (prod._categoria) {
       const catSelector = document.getElementById('cat-selector');
       if (catSelector.value !== prod._categoria) {
@@ -753,10 +774,10 @@
       try {
         imgs = typeof res === 'string' ? JSON.parse(res) : res;
       } catch (e) {
-        console.error("Error parseando im\u00e1genes:", e);
+        console.error("Error parseando imágenes:", e);
       }
 
-      // Limitamos a 10 im\u00e1genes como pidi\u00f3 el usuario
+      // Limitamos a 10 imágenes como pidió el usuario
       currentProductImages = imgs.slice(0, 10);
       renderAssetSelector(currentProductImages, prod);
     }).obtenerImagenesDeProducto(sku);
@@ -772,20 +793,20 @@
       try {
         imgs = typeof res === 'string' ? JSON.parse(res) : res;
       } catch (e) {
-        console.error("Error parseando im\u00e1genes:", e);
+        console.error("Error parseando imágenes:", e);
       }
 
       currentProductImages = imgs.slice(0, 10);
-      
-      // Volver a renderizar la grilla de selecci\u00f3n de forma silenciosa
+
+      // Volver a renderizar la grilla de selección de forma silenciosa
       renderAssetSelector(currentProductImages, selectedProduct, true);
 
-      // Restaurar la selecci\u00f3n previa filtrando solo los IDs que siguen existiendo en el nuevo set
-      selectedImageIds = previousSelection.filter(id => 
+      // Restaurar la selección previa filtrando solo los IDs que siguen existiendo en el nuevo set
+      selectedImageIds = previousSelection.filter(id =>
         currentProductImages.some(img => (img.IMAGEN_ID || img.ID).toString() === id.toString())
       );
 
-      // Si por alg\u00fan motivo qued\u00f3 vac\u00edo y hay im\u00e1genes, auto-seleccionar la primera
+      // Si por algún motivo quedó vacío y hay imágenes, auto-seleccionar la primera
       if (selectedImageIds.length === 0 && currentProductImages.length > 0) {
         selectedImageIds.push((currentProductImages[0].IMAGEN_ID || currentProductImages[0].ID).toString());
       }
@@ -799,13 +820,13 @@
   function renderAssetSelector(imgs, prod, isSilent = false) {
     const grid = document.getElementById('asset-grid');
     grid.innerHTML = '';
-    
+
     if (!isSilent) {
       selectedImageIds = [];
     }
 
     if (imgs.length === 0) {
-      grid.innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin im\u00e1genes</div>';
+      grid.innerHTML = '<div class="text-[9px] text-slate-500 col-span-3">Sin imágenes</div>';
       return;
     }
 
@@ -845,25 +866,25 @@
     const idx = selectedImageIds.indexOf(strId);
 
     if (idx > -1) {
-      // Si ya est\u00e1 seleccionado y hay otros, permitir deseleccionar
+      // Si ya está seleccionado y hay otros, permitir deseleccionar
       if (selectedImageIds.length > 1) {
         selectedImageIds.splice(idx, 1);
         updateAssetGridVisuals();
       } else {
-        return; // No dejar vac\u00eda la selecci\u00f3n
+        return; // No dejar vacía la selección
       }
     } else {
       if (selectedImageIds.length >= 5) {
         Swal.fire({
-          title: 'L\u00edmite alcanzado',
-          text: 'Para no superar los l\u00edmites de tiempo, puedes seleccionar un m\u00e1ximo de 5 referencias (1 Master + 4 Refs).',
+          title: 'Límite alcanzado',
+          text: 'Para no superar los límites de tiempo, puedes seleccionar un máximo de 5 referencias (1 Master + 4 Refs).',
           icon: 'warning',
           background: '#0f172a',
           color: '#fff'
         });
         return;
       }
-      // A\u00f1adir a selecci\u00f3n
+      // Añadir a selección
       selectedImageIds.push(strId);
       updateAssetGridVisuals();
     }
@@ -873,7 +894,7 @@
     const masterImg = currentProductImages.find(i => (i.IMAGEN_ID || i.ID).toString() === masterId);
     if (masterImg) selectImageDisplay(masterImg, prod);
 
-    // Re-evaluar visibilidad de controles seg\u00fan cantidad de im\u00e1genes (ej. Modal de \u00c1ngulo)
+    // Re-evaluar visibilidad de controles según cantidad de imágenes (ej. Modal de Ángulo)
     updateStyleOptions();
     const currentStyle = document.getElementById('lab-style').value;
     checkCategorySpecs(currentStyle);
@@ -882,7 +903,7 @@
   function updateStyleOptions() {
     let selectionIncludesFolded = false;
     let selectionIncludesHanger = false;
-    
+
     selectedImageIds.forEach(id => {
       const img = currentProductImages.find(i => String(i.IMAGEN_ID || i.ID) === id);
       if (img && img.ANALISIS_FORENSE) {
@@ -897,11 +918,11 @@
 
     const isMulti = selectedImageIds.length > 1;
     const count = selectedImageIds.length;
-    
+
     // El modo HERO es idealmente Master (1) + Variantes (1) = 2 im\u00e1genes
     const canShowHero = count === 2 && (selectionIncludesFolded || selectionIncludesHanger);
     const canShowCollage = isMulti;
-    
+
     let isCurrentHanger = false;
     let isCurrentFolded = false;
     if (selectedImageIds.length > 0) {
@@ -915,21 +936,21 @@
 
     const select = document.getElementById('lab-style');
     const currentValue = select.value;
-    
+
     let html = `
       <option value="ecommerce">Ecommerce (On-Body)</option>
       <option value="lifestyle">Lifestyle (Editorial)</option>
       <option value="ghost">Ghost Mannequin (3D)</option>
     `;
-    
+
     if (isCurrentHanger) html += `<option value="hanger">Profesional En Percha</option>`;
     if (isCurrentFolded) html += `<option value="folded">Pila / Doblado</option>`;
-    if (canShowCollage) html += `<option value="collage" ${!selectionIncludesFolded ? 'selected' : ''}>Collage / Cat\u00e1logo Completo</option>`;
+    if (canShowCollage) html += `<option value="collage" ${!selectionIncludesFolded ? 'selected' : ''}>Collage / Catálogo Completo</option>`;
     if (canShowHero) html += `<option value="hero" selected>Hero + Colores (Master+Variants)</option>`;
-    
+
     select.innerHTML = html;
-    
-    // Restaurar valor previo si a\u00fan es v\u00e1lido, sino usar el default
+
+    // Restaurar valor previo si aún es válido, sino usar el default
     if (Array.from(select.options).some(o => o.value === currentValue)) {
       select.value = currentValue;
     } else {
@@ -982,21 +1003,21 @@
   // 3. EJECUCION CON SWAL
   function confirmAndRunTest() {
     if (selectedImageIds.length === 0) return Swal.fire({
-      title: 'Atenci\u00f3n',
-      text: 'Primero elige una o m\u00e1s im\u00e1genes de la galer\u00eda.',
+      title: 'Atención',
+      text: 'Primero elige una o más imágenes de la galería.',
       icon: 'warning',
       background: '#0f172a',
       color: '#fff'
     });
 
     Swal.fire({
-      title: 'Iniciar Simulaci\u00f3n',
-      text: "\u00bfDeseas ejecutar el diagn\u00f3stico forense transparente? Esto consumir\u00e1 cuota de Gemma 4.",
+      title: 'Iniciar Simulacion',
+      text: "¿Deseas ejecutar el diagnóstico forense transparente? Esto consumirá cuota de Gemma 4.",
       icon: 'info',
       showCancelButton: true,
       confirmButtonColor: '#3b82f6',
       cancelButtonColor: '#1e293b',
-      confirmButtonText: 'S\u00ed, analizar ahora',
+      confirmButtonText: 'Sí, analizar ahora',
       background: '#0f172a',
       color: '#fff'
     }).then((result) => {
@@ -1037,7 +1058,7 @@
     const promises = selectedImageIds.map((imgId, i) => {
       const typeLabel = i === 0 ? "MASTER" : `REFERENCE ${i}`;
 
-      // [UI] L\u00d3GICA DE CACH\u00c9
+      // [UI] LOGICA DE CACHÉ
       const imgData = currentProductImages.find(img => (img.IMAGEN_ID || img.ID).toString() === imgId.toString());
       if (!forzar && imgData && imgData.ANALISIS_FORENSE && imgData.ANALISIS_FORENSE.trim() !== "") {
         return Promise.resolve({
@@ -1046,7 +1067,7 @@
         });
       }
 
-      // Si no hay cach\u00e9, enviamos la petici\u00f3n (correr\u00e1n en paralelo en servidores distintos)
+      // Si no hay caché, enviamos la petición (correrán en paralelo en servidores distintos)
       return new Promise((resolve) => {
         google.script.run
           .withSuccessHandler(res => {
@@ -1062,14 +1083,14 @@
 
     const results = await Promise.all(promises);
 
-    // Ordenamos por \u00edndice para asegurar que el MASTER quede primero en el texto
+    // Ordenamos por índice para asegurar que el MASTER quede primero en el texto
     results.sort((a, b) => a.i - b.i).forEach(res => {
-      // ACTUALIZAR MEMORIA UI (Requerido para el dropdown de estilos din\u00e1micos)
+      // ACTUALIZAR MEMORIA UI (Requerido para el dropdown de estilos dinámicos)
       if (res.success && res.clean) {
         const targetImg = currentProductImages.find(img => String(img.IMAGEN_ID || img.ID) === String(res.imgId));
         if (targetImg) targetImg.ANALISIS_FORENSE = res.clean;
 
-        // Actualizaci\u00f3n din\u00e1mica en caliente sin reiniciar la galer\u00eda
+        // Actualización dinámica en caliente sin reiniciar la galería
         const indicator = document.getElementById(`forensic-indicator-${res.imgId}`);
         if (indicator) {
           indicator.classList.remove('hidden');
@@ -1084,7 +1105,7 @@
       if (res.cached) {
         const div = document.createElement('div');
         div.className = 'log-raw-kept p-1 mb-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20';
-        div.innerText = "[FAST] AN\u00c1LISIS RECUPERADO DE BD_PRODUCTO_IMAGENES (Paso omitido para ahorrar cuota/tiempo).";
+        div.innerText = "[FAST] ANALISIS RECUPERADO DE BD_PRODUCTO_IMAGENES (Paso omitido para ahorrar cuota/tiempo).";
         rawView.appendChild(div);
         accumulatedClean += `[FORENSIC AUDIT FOR IMAGE ${res.imgId} (${res.typeLabel})]:\n${res.clean}\n\n`;
       } else if (res.success) {
@@ -1098,7 +1119,7 @@
         } else {
           const div = document.createElement('div');
           div.className = 'log-raw-kept p-1 mb-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20';
-          div.innerText = `[FAST] AN\u00c1LISIS RECUPERADO DE BD_LABORATORIO_IA (Cach\u00e9 del Servidor).`;
+          div.innerText = `[FAST] ANALISIS RECUPERADO DE BD_LABORATORIO_IA (Cache del Servidor).`;
           rawView.appendChild(div);
         }
         accumulatedClean += `[FORENSIC AUDIT FOR IMAGE ${res.imgId} (${res.typeLabel})]:\n${res.clean}\n\n`;
@@ -1115,7 +1136,7 @@
     btn.disabled = false;
     btn.innerHTML = `<span class="material-icons text-sm">biotech</span> ANALIZAR PRENDA`;
 
-    // Reevaluar estilos disponibles ahora que tenemos la auditor\u00eda en memoria
+    // Reevaluar estilos disponibles ahora que tenemos la auditoría en memoria
     updateStyleOptions();
     checkCategorySpecs(document.getElementById('lab-style').value);
 
@@ -1123,7 +1144,7 @@
       toast: true,
       position: 'top-end',
       icon: 'success',
-      title: 'An\u00e1lisis multi-referencia completado',
+      title: 'Análisis multi-referencia completado',
       showConfirmButton: false,
       timer: 3000,
       background: '#1e293b',
@@ -1153,9 +1174,46 @@
     const optLiving = document.getElementById('opt-living-garment');
     if (optLiving) optLiving.classList.add('hidden');
 
-    // L\u00f3gica para mostrar \u00c1ngulo (cuando hay m\u00faltiples im\u00e1genes y no es Hero/Collage)
+    // Lógica para mostrar Angulo (cuando hay múltiples imágenes y no es Hero/Collage)
     if (selectedImageIds.length > 1 && estilo !== 'hero' && estilo !== 'collage') {
       angleSection.classList.remove('hidden');
+
+      const angleSelect = document.getElementById('lab-angle');
+      if (angleSelect) {
+        let selectionIncludesBack = false;
+        selectedImageIds.forEach(id => {
+          const img = currentProductImages.find(i => String(i.IMAGEN_ID || i.ID) === id);
+          if (img && img.ANALISIS_FORENSE) {
+            const forensic = img.ANALISIS_FORENSE.toUpperCase();
+            if (forensic.includes("ESPALDA") || forensic.includes("BACK") || forensic.includes("TRASERA")) {
+              selectionIncludesBack = true;
+            }
+          }
+        });
+
+        // Filtrar u ocultar opciones de espalda
+        const backOptions = Array.from(angleSelect.options).filter(o =>
+          o.value.toLowerCase().includes("back") || o.value.toLowerCase().includes("espalda")
+        );
+        backOptions.forEach(opt => {
+          if (!selectionIncludesBack) {
+            opt.disabled = true;
+            opt.style.display = 'none';
+          } else {
+            opt.disabled = false;
+            opt.style.display = '';
+          }
+        });
+
+        // Si el angulo seleccionado es combinada o trasera, y no hay espalda, resetear a Auto (vac\u00edo)
+        if (!selectionIncludesBack && (
+          angleSelect.value.toLowerCase().includes("back") ||
+          angleSelect.value.toLowerCase().includes("split") ||
+          angleSelect.value.toLowerCase().includes("espalda")
+        )) {
+          angleSelect.value = "";
+        }
+      }
     }
 
     if (estilo === 'ghost' || estilo === 'hanger' || estilo === 'folded' || estilo === 'hero' || estilo === 'collage') {
@@ -1170,14 +1228,14 @@
       footSection.classList.remove('hidden');
       accSection.classList.remove('hidden');
       if (estilo === 'lifestyle') envLifestyle.classList.remove('hidden');
-      
+
       const videoStruct = document.getElementById('lab-video-struct');
       if (videoStruct && videoStruct.value === 'living_garment') {
-         videoStruct.value = 'single_shot';
+        videoStruct.value = 'single_shot';
       }
     }
 
-    // Determinar clasificaci\u00f3n estructural de la prenda (superior vs inferior) de forma din\u00e1mica sin categor\u00edas en el servidor
+    // Determinar clasificación estructural de la prenda (superior vs inferior) de forma dinámica sin categorías en el servidor
     let clasificacion = "PRENDA_INFERIOR"; // Default para Skypia
     const masterImg = selectedImageIds.length > 0 ? currentProductImages.find(i => String(i.IMAGEN_ID || i.ID) === selectedImageIds[0]) : null;
     if (masterImg && masterImg.ANALISIS_FORENSE) {
@@ -1186,7 +1244,7 @@
         clasificacion = "PRENDA_SUPERIOR";
       }
     } else if (selectedProduct) {
-      // Fallback local por palabras clave para cuando a\u00fan no se ha corrido la IA forense
+      // Fallback local por palabras clave para cuando aún no se ha corrido la IA forense
       const cat = (selectedProduct.parentCategory || selectedProduct.categoryName || "").toLowerCase();
       const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpi\u00f1o', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
       if (upperKeywords.some(kw => cat.includes(kw))) {
@@ -1217,8 +1275,8 @@
 
   function confirmAndRunMaestro() {
     if (selectedImageIds.length === 0) return Swal.fire({
-      title: 'Atenci\u00f3n',
-      text: 'Primero elige una o m\u00e1s im\u00e1genes de la galer\u00eda.',
+      title: 'Atencion',
+      text: 'Primero elige una o más imágenes de la galería.',
       icon: 'warning',
       background: '#0f172a',
       color: '#fff'
@@ -1226,12 +1284,12 @@
 
     Swal.fire({
       title: 'Generar Prompt Maestro',
-      text: "\u00bfDeseas transformar el an\u00e1lisis forense en una directiva de arte de alta fidelidad?",
+      text: "Deseas transformar el análisis forense en una directiva de arte de alta fidelidad?",
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#7e22ce',
       cancelButtonColor: '#1e293b',
-      confirmButtonText: 'S\u00ed, generar maestro',
+      confirmButtonText: 'Sí, generar maestro',
       background: '#0f172a',
       color: '#fff'
     }).then((result) => {
@@ -1252,7 +1310,7 @@
     const angle = document.getElementById('lab-angle').value;
     const focus = document.getElementById('lab-focus').value;
 
-    // Entorno seg\u00fan estilo
+    // Entorno según estilo
     const isStill = ['hanger', 'folded', 'hero', 'collage'].includes(estilo);
     const environment = isStill ? document.getElementById('lab-still-env').value : document.getElementById('lab-env').value;
 
@@ -1303,7 +1361,7 @@
   function renderMaestroResults(res) {
     document.getElementById('phase2-results').classList.remove('hidden');
     document.getElementById('phase3-results').classList.remove('hidden'); // Mostrar fase 3
-    
+
     const rawView = document.getElementById('maestro-raw-view');
     rawView.innerHTML = '';
 
@@ -1317,7 +1375,7 @@
     } else {
       const div = document.createElement('div');
       div.className = 'log-maestro-kept p-1 mb-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
-      div.innerText = `[FAST] PROMPT MAESTRO RECUPERADO DE CACH\u00c9.`;
+      div.innerText = `[FAST] PROMPT MAESTRO RECUPERADO DE CACHE.`;
       rawView.appendChild(div);
     }
 
@@ -1375,11 +1433,11 @@
 
   // --- FASE 3: RENDERIZADO VISUAL ---
   function confirmAndRunRender() {
-    if (selectedImageIds.length === 0) return Swal.fire({ title: 'Atenci\u00f3n', text: 'No hay referencias seleccionadas.', icon: 'warning', background: '#0f172a', color: '#fff' });
-    
+    if (selectedImageIds.length === 0) return Swal.fire({ title: 'Atencion', text: 'No hay referencias seleccionadas.', icon: 'warning', background: '#0f172a', color: '#fff' });
+
     const pin = document.getElementById('lab-paid-pin').value;
     if (!pin) {
-      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Debes ingresar tu PIN de seguridad para autorizar el pago.', icon: 'warning', background: '#0f172a', color: '#fff' });
+      return Swal.fire({ title: 'Atencion', text: 'Debes ingresar tu PIN de seguridad para autorizar el pago.', icon: 'warning', background: '#0f172a', color: '#fff' });
     }
 
     const source = document.getElementById('lab-prompt-source').value;
@@ -1419,13 +1477,13 @@
     const imgView = document.getElementById('render-result-img');
     const vidView = document.getElementById('render-result-video');
     const placeholder = document.getElementById('render-placeholder');
-    
-    const model = document.getElementById('lab-model').value; 
+
+    const model = document.getElementById('lab-model').value;
     const aspect = document.getElementById('lab-aspect').value;
 
     btn.disabled = true;
     btn.innerHTML = `<span class="material-icons animate-spin text-sm">sync</span> RENDERIZANDO...`;
-    
+
     imgView.classList.add('hidden');
     vidView.classList.add('hidden');
     placeholder.classList.remove('hidden');
@@ -1444,30 +1502,30 @@
       let parsedRes;
       try {
         parsedRes = typeof res === 'string' ? JSON.parse(res) : res;
-      } catch(e) {
-        parsedRes = { success: false, error: "Respuesta inv\u00e1lida del servidor" };
+      } catch (e) {
+        parsedRes = { success: false, error: "Respuesta inválida del servidor" };
       }
 
       if (parsedRes && parsedRes.success) {
         placeholder.classList.add('hidden');
-        if(parsedRes.fileId) {
+        if (parsedRes.fileId) {
           // Guardar fileId globalmente para el lightbox
           window._lastRenderedFileId = parsedRes.fileId;
-          
+
           // Miniatura para el panel inline
           imgView.src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w800";
           imgView.classList.remove('hidden');
-          
+
           // Imagen completa en el lightbox
           document.getElementById('lightbox-img').src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w2000";
-          
+
           // Mostrar barra de acciones
           document.getElementById('render-action-bar').classList.remove('hidden');
-          
-          // Actualizar la galer\u00eda de fotos en segundo plano de forma silenciosa
+
+          // Actualizar la galería de fotos en segundo plano de forma silenciosa
           refreshProductImagesSilently();
         }
-        
+
         Swal.fire({
           toast: true,
           position: 'top-end',
@@ -1490,10 +1548,10 @@
         let html = `
           <div class="flex items-center gap-2 text-amber-400 font-extrabold text-[11px] uppercase tracking-wider">
             <span class="material-icons text-base">warning</span>
-            <span>DIAGN\u00d3STICO DE GENERACI\u00d3N DE IMAGEN</span>
+            <span>DIAGNÓSTICO DE GENERACIÓN DE IMAGEN</span>
           </div>
           <div class="text-[10px] text-slate-400 font-mono select-all bg-slate-950/80 p-2 rounded border border-slate-800 break-all">
-            <strong>Error T\u00e9cnico:</strong> ${errMsg}
+            <strong>Error Técnico:</strong> ${errMsg}
           </div>
         `;
 
@@ -1501,12 +1559,12 @@
           html += `
             <div class="text-[11px] leading-relaxed text-slate-300 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
               <div class="font-bold text-amber-300 mb-1 flex items-center gap-1">
-                <span class="material-icons text-sm" style="font-size: 14px;">psychology</span> An\u00e1lisis del Asistente:
+                <span class="material-icons text-sm" style="font-size: 14px;">psychology</span> Análisis del Asistente:
               </div>
               <p class="whitespace-pre-wrap">${explanation}</p>
             </div>
             <div class="text-[9px] text-slate-500 italic mt-0.5">
-              * Prueba depurando el prompt maestro o modificando t\u00e9rminos sensibles (como personajes protegidos, logotipos o prendas de ropa interior que activen los filtros de Vertex AI).
+              * Prueba depurando el prompt maestro o modificando términos sensibles (como personajes protegidos, logotipos o prendas de ropa interior que activen los filtros de Vertex AI).
             </div>
           `;
         } else {
@@ -1547,12 +1605,12 @@
     document.getElementById('lab-workspace').classList.add('hidden');
     document.getElementById('render-action-bar').classList.add('hidden');
     document.getElementById('render-result-img').classList.add('hidden');
-    
+
     const placeholder = document.getElementById('render-placeholder');
     placeholder.classList.remove('hidden');
     placeholder.className = "italic opacity-30 text-amber-400/30 text-[10px] text-center px-4";
     placeholder.innerHTML = "El render final aparecer\u00e1 aqu\u00ed...<br>(Requiere completar Fase 2)";
-    
+
     window._lastRenderedFileId = null;
     selectedImageIds = [];
 
@@ -1568,7 +1626,7 @@
     });
   }
 
-  // --- LIGHTBOX: Previsualizaci\u00f3n de Imagen Generada ---
+  // --- LIGHTBOX: Previsualización de Imagen Generada ---
   function openRenderLightbox() {
     const lb = document.getElementById('render-lightbox');
     if (!lb) return;

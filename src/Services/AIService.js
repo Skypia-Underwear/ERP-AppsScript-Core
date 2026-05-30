@@ -586,10 +586,10 @@ LOGO_O_MARCA:
   - VISIBLE: [SÍ / NO. Rigurosamente visual en la tela. IMPORTANTE: Las etiquetas de cartón colgantes (hangtags) o perchas NO cuentan como logo visible en la prenda. Si solo hay una etiqueta de cartón colgante, escribe NO]
   - DETALLE: [Descripción, posición y tamaño en la tela del producto. Excluir rigurosamente las etiquetas de cartón colgantes y adjuntos de tienda]
 DETALLES_CONSTRUCTIVOS:
-  - COSTURAS: [e.g., Flatlock, Overlock, Doble aguja]
-  - CIERRES: [e.g., Cierre frontal, sin cierre, botones]
-  - BOLSILLOS: [e.g., 2 laterales, sin bolsillos]
-  - ELÁSTICOS: [e.g., Cintura elástica, con cordón]
+  - COSTURAS: [Análisis de costuras, e.g., Flatlock, Overlock, Doble aguja. Si no es nítido o no se distingue, escribe estrictamente "Sin detalles visibles". NUNCA devuelvas corchetes vacíos, puntos suspensivos o marcadores vacíos]
+  - CIERRES: [Análisis de cierres, e.g., Cierre frontal, botones, sin cierre. Si no es nítido o no se distingue, escribe estrictamente "Sin detalles visibles". NUNCA devuelvas corchetes vacíos, puntos suspensivos o marcadores vacíos]
+  - BOLSILLOS: [Análisis de bolsillos, e.g., 2 bolsillos laterales, sin bolsillos. Si no es nítido o no se distingue, escribe estrictamente "Sin detalles visibles". NUNCA devuelvas corchetes vacíos, puntos suspensivos o marcadores vacíos]
+  - ELÁSTICOS: [Análisis de elásticos, e.g., Cintura elástica, con cordón. Si no es nítido o no se distingue, escribe estrictamente "Sin detalles visibles". NUNCA devuelvas corchetes vacíos, puntos suspensivos o marcadores vacíos]
 AVISOS_DE_LIMPIEZA_VISIBLES: [SÍ / NO]
 ESTADO_VISUAL: [LIMPIO / Con etiquetas / Con maniquí visible]
 DETALLES_VISUALES: [Descripción detallada para prompt de generación de imagen]
@@ -901,6 +901,7 @@ TIPO_PRENDA: ROPA INTERIOR
         }
       }
       extraSpecs.clasificacionEstructural = clasificacion || "PRENDA_INFERIOR";
+      extraSpecs.referenceCount = selectedRows.length;
 
       const directiva = this._getAiArtDirectionRules(estilo, extraSpecs, extraSpecs.environment, prodRow);
 
@@ -912,31 +913,87 @@ TIPO_PRENDA: ROPA INTERIOR
         }).join('\n\n');
       }
 
+      // Detectar si es Conjunto para ajustar el System Prompt
+      const category = (prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
+      const modelName = (prodRow ? prodRow.MODELO || '' : '').toLowerCase();
+      const styleName = (prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
+      const skuCode = (prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
+      const specsCategory = (extraSpecs.categoria || '').toLowerCase();
+      const specsSku = (extraSpecs.sku || '').toLowerCase();
+      
+      let hasForensicConjunto = false;
+      selectedRows.forEach(r => {
+        if (r.ANALISIS_FORENSE && (
+          r.ANALISIS_FORENSE.toLowerCase().includes("conjunto") ||
+          r.ANALISIS_FORENSE.toLowerCase().includes("2 piezas") ||
+          r.ANALISIS_FORENSE.toLowerCase().includes("dos piezas") ||
+          r.ANALISIS_FORENSE.toLowerCase().includes("piezas")
+        )) {
+          hasForensicConjunto = true;
+        }
+      });
+      if (extraSpecs.fichaForense && (
+        extraSpecs.fichaForense.toLowerCase().includes("conjunto") || 
+        extraSpecs.fichaForense.toLowerCase().includes("2 piezas") || 
+        extraSpecs.fichaForense.toLowerCase().includes("dos piezas") ||
+        extraSpecs.fichaForense.toLowerCase().includes("piezas")
+      )) {
+        hasForensicConjunto = true;
+      }
+      
+      let isConjunto = category.includes("conjunto") || 
+                         modelName.includes("conjunto") || 
+                         styleName.includes("conjunto") || 
+                         skuCode.includes("conj") ||
+                         specsCategory.includes("conjunto") ||
+                         specsSku.includes("conj") ||
+                         hasForensicConjunto;
+
+      // Salvaguarda técnica para lote de 1 referencia (evitar alucinaciones de conjunto si solo se muestra 1 prenda)
+      if (isConjunto && selectedRows.length === 1) {
+        const masterForensic = selectedRows[0].ANALISIS_FORENSE || extraSpecs.fichaForense || "";
+        const forensicUpper = masterForensic.toUpperCase();
+        const hasUpper = forensicUpper.includes("PRENDA_SUPERIOR");
+        const hasLower = forensicUpper.includes("PRENDA_INFERIOR");
+        const hasConjuntoText = forensicUpper.includes("CONJUNTO") || 
+                               forensicUpper.includes("2 PIEZAS") || 
+                               forensicUpper.includes("DOS PIEZAS") ||
+                               forensicUpper.includes("PIEZAS");
+        
+        if ((hasUpper && !hasLower && !hasConjuntoText) || (hasLower && !hasUpper && !hasConjuntoText)) {
+          isConjunto = false;
+        }
+      }
+
       // 4. Build System Prompt (100% English)
       const promptSistema = `
         [SYSTEM]: You are an Art Director for High-End Fashion Photography.
         [MISSION]: Convert forensic clothing audits AND visual references into a technical narrative description for an image generation engine (Stage 3).
-
+ 
         [GOLDEN RULES]:
         1. ABSOLUTE FIDELITY: Do not invent details that are not present in the forensic analysis.
         2. CINEMATIC LANGUAGE: Use precise lighting, composition, and material terminology.
         3. ORIENTATION PROTOCOL: Ensure the garment strictly maintains the detected orientation.
         4. NOISE REMOVAL: Clean up hangers, tags, or mannequins if the selected style requires it.
-        5. MULTI-REFERENCE HANDLING: The FIRST image is the MASTER (Hero). Use it for shape, fit, and primary identity. The other images are REFERENCES for texture, logos, and hidden details.
+        ${isConjunto ? `5. TWO-PIECE SET MULTI-REFERENCE MANDATE: Since this is a TWO-PIECE SET (Conjunto), all provided images represent components of the same set. You MUST combine the forensic audits and visual references of ALL provided images. Ensure BOTH the upper garment (e.g. jacket/hoodie/t-shirt) and the lower garment (e.g. pants/joggers/shorts) are richly and fully described in terms of colors, materials, zippers, hoods, waistbands, and design features in the final MASTER PROMPT. Do NOT omit or simplify either garment.` : `5. MULTI-REFERENCE HANDLING: The FIRST image is the MASTER (Hero). Use it for shape, fit, and primary identity. The other images are REFERENCES for texture, logos, and hidden details.`}
         6. BRAND HALLUCINATION PREVENTION & HANGTAG CLEANUP: 
            - Cardboard hangtags, price tags, and plastic retail attachments visible in the references MUST be completely ignored and NEVER described as logos, prints, or text on the fabric.
            - If the Forensic Audit states LOGO_O_MARCA is "NO" or "No visible", or if the logo is only present on a temporary cardboard hangtag, you MUST NOT include the brand name, model name, or any text in the final narrative description. Describe only the garment's pure visual geometry, construction, and solid colors to prevent the image generator from hallucinating text on the fabric.
+ 
+        ${isConjunto ? `
+        [TWO-PIECE SET CRITICAL DIRECTIVE]:
+        * Since this is a two-piece set, your generated MASTER PROMPT must describe BOTH garments together as a single outfit, specifying the full color and style of each item (e.g. 'dusty pink hooded jacket paired with dark gray neoprene pants'). You must never describe only one garment.` : ""}
 
         ${directiva.prefix}
         ${directiva.promptRules}
         ${directiva.modelAdaptation}
-
+ 
         [SOT - SOURCE OF TRUTH (FORENSIC AUDITS)]:
         ${forensicSOT}
-
+ 
         [MANDATORY OUTPUT FORMAT - FOLLOW THIS EXACT EXAMPLE]:
 ${directiva.exampleBlock}
-
+ 
         CRITICAL: 
         - ALL output MUST be in ENGLISH (Reasoning, Audit, and Master Prompt).
         - NO internal chatter, NO "Step 1", NO "Checklist" at the end.
@@ -1064,6 +1121,48 @@ ${directiva.exampleBlock}
     const estilo = (estiloSolicitado || 'ecommerce').toLowerCase();
     const genero = (prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
 
+    // Detección Inteligente de "Conjunto" (Prendas de dos o más piezas)
+    const category = (prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
+    const modelName = (prodRow ? prodRow.MODELO || '' : '').toLowerCase();
+    const styleName = (prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
+    const skuCode = (prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
+    const specsCategory = (extraSpecs.categoria || '').toLowerCase();
+    const specsSku = (extraSpecs.sku || '').toLowerCase();
+    
+    let hasForensicConjunto = false;
+    if (extraSpecs.fichaForense && (
+      extraSpecs.fichaForense.toLowerCase().includes("conjunto") || 
+      extraSpecs.fichaForense.toLowerCase().includes("2 piezas") || 
+      extraSpecs.fichaForense.toLowerCase().includes("dos piezas") ||
+      extraSpecs.fichaForense.toLowerCase().includes("piezas")
+    )) {
+      hasForensicConjunto = true;
+    }
+    
+    let isConjunto = category.includes("conjunto") || 
+                       modelName.includes("conjunto") || 
+                       styleName.includes("conjunto") || 
+                       skuCode.includes("conj") ||
+                       specsCategory.includes("conjunto") ||
+                       specsSku.includes("conj") ||
+                       hasForensicConjunto;
+
+    // Salvaguarda técnica para lote de 1 referencia (evitar alucinaciones de conjunto si solo se muestra 1 prenda)
+    if (isConjunto && (extraSpecs.referenceCount === 1 || !extraSpecs.referenceCount)) {
+      const masterForensic = extraSpecs.fichaForense || "";
+      const forensicUpper = masterForensic.toUpperCase();
+      const hasUpper = forensicUpper.includes("PRENDA_SUPERIOR");
+      const hasLower = forensicUpper.includes("PRENDA_INFERIOR");
+      const hasConjuntoText = forensicUpper.includes("CONJUNTO") || 
+                             forensicUpper.includes("2 PIEZAS") || 
+                             forensicUpper.includes("DOS PIEZAS") ||
+                             forensicUpper.includes("PIEZAS");
+      
+      if ((hasUpper && !hasLower && !hasConjuntoText) || (hasLower && !hasUpper && !hasConjuntoText)) {
+        isConjunto = false;
+      }
+    }
+
     // 1. LÓGICA DE SUPERFICIES Y PROPS (De Images.js)
     const surfaces = {
       'studio_minimalist': "a high-end photography studio surface (Neutral Soft Gray or Professional Off-White)",
@@ -1084,8 +1183,23 @@ ${directiva.exampleBlock}
     // 2. CONFIGURACIÓN MAESTRA DE ESTILOS (Integración SOT con Legado de Images.js)
     const STYLE_CONFIG = {
       'ghost': {
-        base: "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction. Invisible body effect.",
-        rules: `
+        base: isConjunto 
+          ? "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction of a two-piece set (invisible body effect)."
+          : "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction. Invisible body effect.",
+        rules: isConjunto 
+          ? `
+          - NOISE REMOVAL MANDATE: ABSOLUTELY NO HANGERS, NO RETAIL TAGS, NO PLASTIC HOOKS. The garments must be completely clean of any retail attachments.
+          - TWO-PIECE VOLUME COMPOSITION: Both the upper garment and lower garment must be arranged together in a natural, cohesive, floating 3D set showing full volume.
+          - CENTRALIZATION: The entire two-piece set MUST be PERFECTLY CENTERED on the canvas.
+          - SYMMETRY MANDATE: Ensure both leg openings, sleeves, and overall set shape are geometrically symmetrical and balanced.
+          - SHADOW REMOVAL: Erase any trace of mannequin shadows. 
+          - CONTACT SHADOW: Add a extremely subtle, realistic contact shadow on the ground.
+          - OPENINGS: Show hollow openings with visible inner fabric at the neck, sleeves, waistband, and leg cuffs.
+          - INNER CUT MANDATE: The inner fabric cuts must follow clean geometric perspective, AVOIDING distorted rear fabric.
+          - TEXTURE FIDELITY: Maintain all technical fabric details (mesh, stitching, prints) for both garments.
+          - Background: Pure solid white #FFFFFF. 
+          - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.`
+          : `
           - NOISE REMOVAL MANDATE: ABSOLUTELY NO HANGERS, NO RETAIL TAGS, NO PLASTIC HOOKS. The garment must be completely clean of any retail attachments.
           - LIGHTING: High-end multi-point studio setup to define shape and volume. Uniform Softbox lighting.
           - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
@@ -1098,6 +1212,9 @@ ${directiva.exampleBlock}
           - Background: Pure solid white #FFFFFF. 
           - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.`,
         focus: (() => {
+          if (isConjunto) {
+            return "- TWO-PIECE SET OPENINGS: Show subtle, natural, and shallow 3D hollow depth at all openings (neck, sleeves, waistband, and leg openings) naturally, keeping them elegant, symmetrical, and realistic.";
+          }
           const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
           const focus = extraSpecs.focus || "";
           if (clasif === "PRENDA_SUPERIOR") {
@@ -1118,29 +1235,55 @@ ${directiva.exampleBlock}
             }
           }
         })(),
-        example: `        **REASONING:** Ghost Mannequin style is applied by removing the physical support and visible mannequin. 3D volume and symmetry are highlighted.
+        example: isConjunto
+          ? `        **REASONING:** Ghost Mannequin style is applied to the two-piece set by removing the physical support and visible mannequin. Volumetric 3D shape and symmetry of both the upper and lower garments are highlighted.
+        **VISUAL AUDIT:** [X] Brand, [X] Color, [X] No Humans, [X] White Background.
+        **MASTER PROMPT:** High-end studio photography, ghost mannequin effect, 3D volumetric shape of a two-piece set in [COLOR], perfectly centered, symmetrical, pure white background #FFFFFF, 8k.`
+          : `        **REASONING:** Ghost Mannequin style is applied by removing the physical support and visible mannequin. 3D volume and symmetry are highlighted.
         **VISUAL AUDIT:** [X] Brand, [X] Color, [X] No Humans, [X] White Background.
         **MASTER PROMPT:** High-end studio photography, ghost mannequin effect, 3D volumetric shape of [GARMENT] in [COLOR], centered, symmetrical, pure white background #FFFFFF, 8k.`
       },
       'lifestyle': {
-        base: "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the garment in a natural environment.",
-        rules: `
+        base: isConjunto
+          ? "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the full two-piece set in a natural environment."
+          : "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the garment in a natural environment.",
+        rules: isConjunto
+          ? `
+          - ENVIRONMENT/CONTEXT: ${environment}.
+          - Lighting: Cinematic natural light with professional highlights.
+          - Composition: Strict full-body portrait shot from head to toe, showing the model's entire silhouette and the full length of both garments down to the ankles.`
+          : `
           - ENVIRONMENT/CONTEXT: ${environment}.
           - Lighting: Cinematic natural light with professional highlights.
           - Composition: Medium or full-body shot with soft bokeh depth of field.`,
         model: `- GENDER MANDATE: Use a ${genero} model. Skin tone: ${extraSpecs.skinTone || 'Natural'}.`,
-        example: `        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.
+        example: isConjunto
+          ? `        **REASONING:** The two-piece set is adapted to a natural lifestyle environment with a model, aiming for a cinematic full-body framing showing both garments naturally, with natural draping.
+        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.
+        **MASTER PROMPT:** High-end lifestyle fashion photography, full-body portrait shot of a [GENDER] model wearing a two-piece set, [ENVIRONMENT/CONTEXT], cinematic natural lighting, 8k, editorial style.`
+          : `        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.
         **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.
         **MASTER PROMPT:** High-end lifestyle fashion photography, [GENDER] model wearing [GARMENT], [ENVIRONMENT/CONTEXT], cinematic natural lighting, soft bokeh depth of field, 8k, editorial style.`
       },
       'ecommerce': {
-        base: "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography.",
-        rules: `
+        base: isConjunto
+          ? "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography of a full two-piece set."
+          : "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography.",
+        rules: isConjunto
+          ? `
+          - Background: Neutral professional studio (Light Gray #F2F2F2).
+          - Lighting: Uniform high-key studio softbox lighting.
+          - Style: Professional full-body portrait shot showing the model from head to toe. NO "flat lay" or "flat surface" mentions allowed.`
+          : `
           - Background: Neutral professional studio (Light Gray #F2F2F2).
           - Lighting: Uniform high-key studio softbox lighting.
           - Style: Professional on-body shot. NO "flat lay" or "flat surface" mentions allowed.`,
         model: `- GENDER MANDATE: Use a ${genero} model. Skin tone: ${extraSpecs.skinTone || 'Natural'}.`,
-        example: `        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender mandate. Tags are removed and catalog lighting is applied.
+        example: isConjunto
+          ? `        **REASONING:** Transitioning from flat-laid garments to a professional full-body catalog shot with a female model. The garments are styled with natural layering where the hoodie draping overlaps the pants.
+        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.
+        **MASTER PROMPT:** High-end e-commerce fashion photography, professional full-body portrait shot of a model wearing a two-piece set, showing the full length of the garments from head to toe, frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style.`
+          : `        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender mandate. Tags are removed and catalog lighting is applied.
         **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.
         **MASTER PROMPT:** High-end e-commerce fashion photography, professional on-body shot of a model wearing [GARMENT], [TEXTURE/COLOR DETAILS], frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style.`
       },
@@ -1193,9 +1336,77 @@ ${directiva.exampleBlock}
 
     // 3. PARÁMETROS TRANSVERSALES DEL LABORATORIO
     let extraDirectives = [];
-    if (extraSpecs.angle) extraDirectives.push(`CAMERA ANGLE: ${extraSpecs.angle}. Perfect alignment.`);
+
+    // --- NUEVO: Directivas Estacionales y Encuadre Trimodal Generalizado ---
+    if ((estilo === 'ecommerce' || estilo === 'lifestyle') && !isConjunto) {
+      const clasif = (extraSpecs.clasificacionEstructural || "").toUpperCase();
+      const temporada = prodRow ? (prodRow.TEMPORADA || "") : (extraSpecs.temporada || "");
+      const tempLower = temporada.toLowerCase();
+      const esFrio = tempLower.includes("invierno") || tempLower.includes("otoño") || tempLower.includes("winter") || tempLower.includes("autumn") || tempLower.includes("frio") || tempLower.includes("frío");
+      const esFemenino = (genero === 'FEMENINO' || genero === 'MUJER');
+      const tempDesc = temporada ? `season: ${temporada}` : "season: auto-detect based on context";
+      
+      let complementoTexto = "";
+      if (clasif === "PRENDA_INFERIOR") {
+        const topType = esFrio 
+          ? (esFemenino ? "a long-sleeve neutral knit sweater or long-sleeve cotton shirt" : "a plain long-sleeve crewneck shirt or simple solid hoodie")
+          : (esFemenino ? "a basic short-sleeve solid cotton t-shirt or crop top" : "a plain neutral short-sleeve cotton t-shirt");
+        complementoTexto = `UPPER BODY COMPLEMENT MANDATE: The model MUST wear ${topType} to ensure the torso is fully covered and realistic, preventing safety filters from rendering a plastic mannequin. The upper garment must be in a solid neutral color (e.g., plain white, gray, or black) and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the lower garment).`;
+      } else if (clasif === "PRENDA_SUPERIOR") {
+        const bottomType = esFrio
+          ? "classic long dark denim jeans or solid heavy-cotton trousers"
+          : (esFemenino ? "classic simple denim shorts or light cotton trousers" : "classic neutral chino shorts or light trousers");
+        complementoTexto = `LOWER BODY COMPLEMENT MANDATE: The model MUST wear ${bottomType} to ensure the outfit is complete and realistic. The lower garment must be in a simple, solid neutral color and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the upper garment).`;
+      }
+      
+      if (complementoTexto) {
+        extraDirectives.push(complementoTexto);
+      }
+      
+      // Control de encuadre trimodal (Cuerpo Completo vs Enfoque de Prenda vs Auto)
+      const cuerpoCompletoVal = extraSpecs.cuerpoCompleto !== undefined ? String(extraSpecs.cuerpoCompleto).toLowerCase() : "";
+      const isFull = cuerpoCompletoVal === "true" || cuerpoCompletoVal === "cuerpo_completo" || cuerpoCompletoVal === "full_body" || extraSpecs.framing === "full_body";
+      const isProductFocus = cuerpoCompletoVal === "false" || cuerpoCompletoVal === "enfoque_prenda" || extraSpecs.framing === "enfoque_prenda";
+      
+      if (isFull) {
+        extraDirectives.push(`FRAMING MANDATE: Professional full-body fashion shot showing the model from head to toe. Ensure the entire silhouette and both garments (main product and complement) are fully visible in the frame, including footwear.`);
+      } else if (isProductFocus) {
+        if (clasif === "PRENDA_INFERIOR") {
+          extraDirectives.push(`FRAMING MANDATE: Professional mid-shot focused strictly on the lower body from the waist down. The shot must frame the main lower garment prominently. The upper body garment serves only as a secondary neutral background complement and may be partially cropped.`);
+        } else {
+          extraDirectives.push(`FRAMING MANDATE: Professional upper-body portrait shot focused strictly on the upper body, framing the main upper garment prominently from chest/head down to the waist. The lower body garment serves only as a secondary neutral background complement and may be partially cropped.`);
+        }
+      } else {
+        // Modo Auto: IA decide según el estilo
+        if (estilo === 'lifestyle') {
+          extraDirectives.push(`FRAMING MANDATE: Professional and balanced fashion composition. You have the sovereignty to choose the optimal framing (full-body or medium shot) that best complements the environment while keeping the main product (${clasif}) as the core visual anchor.`);
+        } else {
+          // En ecommerce el foco es el producto por defecto
+          if (clasif === "PRENDA_INFERIOR") {
+            extraDirectives.push(`FRAMING MANDATE: Focus the camera primarily on the main product (${clasif}) from the waist down, using the upper body complement strictly as a secondary neutral background element.`);
+          } else {
+            extraDirectives.push(`FRAMING MANDATE: Focus the camera primarily on the main product (${clasif}) from chest/head down to the waist, using the lower body complement strictly as a secondary neutral background element.`);
+          }
+        }
+      }
+      
+      // Mandato de realismo humano explícito
+      extraDirectives.push(`REAL HUMAN MODEL MANDATE: The model must be a real, natural human model with highly realistic facial features, head, and hair (e.g., 'highly realistic human model with natural skin texture, showing face and head clearly'). Absolutely forbid any plastic mannequin structures, hollow mannequin necks, cropped headless bodies, or faceless plastic textures.`);
+    }
+
+    if (extraSpecs.angle) {
+      extraDirectives.push(`CAMERA ANGLE: ${extraSpecs.angle}. Perfect alignment.`);
+      if (extraSpecs.angle.toLowerCase().includes("split") || extraSpecs.angle.toLowerCase().includes("front and back")) {
+        extraDirectives.push(`COMPOSITION MANDATE: Create a clean split-view layout (diptych). On one side, show the frontal view of the model wearing the garment. On the other side, show the back view of the model wearing the garment. Both sides must feature the identical model, clothing fit, background, and lighting for absolute visual continuity. There must be no visible black line or seam separating the panels, keeping a clean, continuous neutral background.`);
+      }
+    }
     if (extraSpecs.accessories && extraSpecs.accessories !== "Ninguno") extraDirectives.push(`STYLING: Add ${extraSpecs.accessories} to complement.`);
     if (extraSpecs.footwear?.type) extraDirectives.push(`FOOTWEAR: Pair with ${extraSpecs.footwear.type} (${extraSpecs.footwear.color || 'neutral'}).`);
+
+    if (isConjunto) {
+      extraDirectives.push(`TWO-PIECE SET LAYERING: The upper garment (hoodie/jacket/t-shirt) must be worn loose, natural, and draped over the lower garment (pants/joggers/shorts). The bottom hem of the upper garment sits on top of and naturally covers the waistband of the lower garment. The upper garment must NOT be tucked into the pants, and the waistband of the pants must NOT be visible or superimposed over the upper garment.`);
+      extraDirectives.push(`FULL-BODY PORTRAIT COMPOSITION: The shot must be a professional full-body portrait showing the model from head to toe, ensuring the full length of the pants is fully visible down to the ankles with absolutely no cropping of the legs.`);
+    }
 
     if (extraSpecs.formato === 'video') {
       const vStruct = extraSpecs.videoOptions?.structure || 'single_shot';

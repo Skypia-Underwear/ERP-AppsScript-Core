@@ -400,8 +400,8 @@ const GLOBAL_CONFIG = {
   },
 
   SYNC_WINDOW: {
-    get START_HOUR() { return parseInt(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_START_HOUR"] || "0"); },
-    get END_HOUR() { return parseInt(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_END_HOUR"] || "23"); }
+    get START_HOUR() { return parseHourSetting(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_START_HOUR"], 0); },
+    get END_HOUR() { return parseHourSetting(GLOBAL_CONFIG.SCRIPT_CONFIG["SYNC_END_HOUR"], 23); }
   },
 
   BIGQUERY: {
@@ -563,6 +563,28 @@ let _cacheLogSheet = null;
  * Función de logging persistente optimizada (V6.2)
  */
 /**
+ * Parsea de manera robusta un valor de hora desde la configuración.
+ * Soporta números, strings con formato de hora ("HH:mm") y strings de fecha completos
+ * que genera Google Sheets al leer celdas formateadas como Hora ("Sat Dec 30 1899 HH:mm:ss...").
+ * @param {*} val El valor a parsear.
+ * @param {number} defaultVal Valor por defecto si falla el parseo.
+ * @returns {number} La hora parseada.
+ */
+function parseHourSetting(val, defaultVal) {
+  if (val === undefined || val === null || val === "") return defaultVal;
+  const str = String(val).trim();
+  
+  // Buscar un patrón del tipo "HH:mm" dentro del string
+  const match = str.match(/(\d{1,2}):(\d{2})/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  
+  const parsed = parseInt(str, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+}
+
+/**
  * Verifica si el sistema está en horario de trabajo para sincronización. (Modo Nocturno)
  */
 function isSystemInWorkingHours() {
@@ -577,12 +599,23 @@ function isSystemInWorkingHours() {
   const start = GLOBAL_CONFIG.SYNC_WINDOW.START_HOUR;
   const end = GLOBAL_CONFIG.SYNC_WINDOW.END_HOUR;
 
+  if (isNaN(start) || isNaN(end)) {
+    console.warn(`⚠️ [WorkingHours] Error al obtener horas de la ventana: START_HOUR=${start}, END_HOUR=${end}. Omitiendo restricción.`);
+    return true;
+  }
+
+  let isWorking = false;
   if (start <= end) {
-    return hour >= start && hour <= end;
+    isWorking = hour >= start && hour <= end;
   } else {
     // Caso rango cruzado (ej: 22 a 05)
-    return hour >= start || hour <= end;
+    isWorking = hour >= start || hour <= end;
   }
+
+  if (!isWorking) {
+    console.log(`💤 [WorkingHours] Suspendido: Hora actual=${hour}, Ventana=${start}:00 a ${end}:00`);
+  }
+  return isWorking;
 }
 
 /**
@@ -1005,6 +1038,10 @@ function doGet_MainRouter(e) {
     const template = HtmlService.createTemplateFromFile('Web/images_dashboard');
     template.CATALOG_URL = getCatalogJsonUrl();
     template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    template.isWooConfigured = !!(GLOBAL_CONFIG.WORDPRESS.SITE_URL && GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY && GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET);
+    template.wooSiteUrl = String(GLOBAL_CONFIG.WORDPRESS.SITE_URL || "").trim();
+    const paidKey = GLOBAL_CONFIG.GEMINI.API_KEY || "";
+    template.hasGeminiPaidKey = !!(paidKey && paidKey.trim() !== "" && !paidKey.includes("AQUÍ") && !paidKey.includes("GEMINI_API_KEY"));
     return template.evaluate()
       .setTitle('Gestor de Imágenes')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -1095,6 +1132,10 @@ function getPageContent(view, accion, codigo, fecha, isEmbedded = false) {
     template.isEmbedded = isEmbedded;
     template.CATALOG_URL = getCatalogJsonUrl();
     template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    template.isWooConfigured = !!(GLOBAL_CONFIG.WORDPRESS.SITE_URL && GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY && GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET);
+    template.wooSiteUrl = String(GLOBAL_CONFIG.WORDPRESS.SITE_URL || "").trim();
+    const paidKey = GLOBAL_CONFIG.GEMINI.API_KEY || "";
+    template.hasGeminiPaidKey = !!(paidKey && paidKey.trim() !== "" && !paidKey.includes("AQUÍ") && !paidKey.includes("GEMINI_API_KEY"));
     return template.evaluate().getContent();
   }
 
