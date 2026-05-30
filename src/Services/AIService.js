@@ -15,8 +15,8 @@ const AIService = {
 
   // Capa de Pago / Generación de Imagen (ai_model_standard.md - Capa 3)
   MODELS_PAID: [
-    "gemini-3.1-flash-image-preview",
-    "gemini-3-pro-image-preview",
+    "gemini-3.1-flash-image",
+    "gemini-3-pro-image",
     "imagen-4.0-generate-001",
     "imagen-3.0-generate-001"
   ],

@@ -2812,11 +2812,11 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
     const targetRow = dataImg.find(r => rowMatchesSku_IMAGENES(r, skuDestino) || ids.includes(r.IMAGEN_ID));
     if (!targetRow) throw new Error("No se pudo determinar el producto destino.");
 
-    // gemini-3.1-flash-image-preview primero (más efectivo según el feedback al capturar detalles y formas como 'baggy' o femenino).
+    // gemini-3.1-flash-image primero (más efectivo según el feedback al capturar detalles y formas como 'baggy' o femenino).
     // Con max 3 refs + time guard, debería completar dentro del límite.
     let variantes = [
-      "gemini-3.1-flash-image-preview",
-      "gemini-3-pro-image-preview",
+      "gemini-3.1-flash-image",
+      "gemini-3-pro-image",
       "gemini-2.5-flash-image",
       "imagen-4.0-generate-001",
       "imagen-3.0-generate-001"
@@ -2824,11 +2824,11 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
 
     // Override de modelo si el usuario lo solicita explícitamente vía UI
     if (extraSpecs && extraSpecs.model) {
-      if (extraSpecs.model === "gemini-3.1-flash-image-preview") {
-        variantes = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"];
+      if (extraSpecs.model === "gemini-3.1-flash-image" || extraSpecs.model === "gemini-3.1-flash-image-preview") {
+        variantes = ["gemini-3.1-flash-image", "gemini-3-pro-image", "gemini-2.5-flash-image"];
         console.log(`${logPrefix} Override de modelo aplicado: Prioridad a ${variantes[0]}`);
-      } else if (extraSpecs.model === "gemini-3-pro-image-preview") {
-        variantes = ["gemini-3-pro-image-preview", "gemini-3.1-flash-image-preview", "gemini-2.5-flash-image"];
+      } else if (extraSpecs.model === "gemini-3-pro-image" || extraSpecs.model === "gemini-3-pro-image-preview") {
+        variantes = ["gemini-3-pro-image", "gemini-3.1-flash-image", "gemini-2.5-flash-image"];
         console.log(`${logPrefix} Override de modelo aplicado: Prioridad a ${variantes[0]}`);
       }
     }
@@ -2894,8 +2894,8 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
 
                 // --- NUEVO: Tarifario Dinámico ---
                 const skuMap = {
-                  'gemini-3.1-flash-image-preview': { in: 'A44E-F89C-67C0', out: '1BD4-2AB9-AEFB' },
-                  'gemini-3-pro-image-preview': { in: '621F-B428-5221', out: '096D-0370-0236' },
+                  'gemini-3.1-flash-image': { in: 'A44E-F89C-67C0', out: '1BD4-2AB9-AEFB' },
+                  'gemini-3-pro-image': { in: '621F-B428-5221', out: '096D-0370-0236' },
                   'gemini-2.5-flash-image': { in: '74A0-9E74-BEDC', out: '2A8D-CD62-0E04' }
                 };
 
