@@ -3066,24 +3066,36 @@ function generarVarianteAnguloDesdeDashboard(imagenIdMaster, anguloSolicitado, p
 
     const isGhostMaster = promptMaster.toLowerCase().includes("ghost") || promptMaster.toLowerCase().includes("invisible mannequin") || promptMaster.toLowerCase().includes("hollow");
 
-    // 3. Crear Prompt de Ángulo Dirigido
+    // 3. Normalizar el ángulo solicitado para unificar el idioma a inglés (óptimo para la IA de imagen)
+    let angleEnglish = String(anguloSolicitado);
+    const angleLower = angleEnglish.toLowerCase();
+    if (angleLower.includes("3/4") || angleLower.includes("tres cuartos") || angleLower.includes("semi-frontal") || angleLower.includes("semi frontal")) {
+      angleEnglish = "a 3/4 side-frontal view";
+    } else if (angleLower.includes("espalda") || angleLower.includes("trasera") || angleLower.includes("back")) {
+      angleEnglish = "a back view";
+    } else if (angleLower.includes("frente") || angleLower.includes("frontal") || angleLower.includes("front")) {
+      angleEnglish = "a front view";
+    } else if (angleLower.includes("lateral") || angleLower.includes("perfil") || angleLower.includes("side")) {
+      angleEnglish = "a side profile view";
+    }
+
     // Inyectamos una instrucción de "Pivoteo"
     const promptAngulo = `
-      PROTOCOLO DE DERIVACIÓN DE ÁNGULO (PHASE 5):
-      - OBJETIVO: Generar una vista de ${anguloSolicitado}.
-      - REFERENCIA MAESTRA: La ÚLTIMA imagen adjunta es tu referencia de consistencia absoluta. 
-      - REGLAS ESTRICTAS:
+      ANGLE DERIVATION PROTOCOL (PHASE 5):
+      - GOAL: Generate ${angleEnglish}.
+      - MASTER REFERENCE: The LAST attached image is your absolute style and consistency reference.
+      - STRICT RULES:
         ${isGhostMaster ? `
-        1. MANDATO GHOST: ABSOLUTAMENTE SIN MODELOS HUMANOS. Mantén el efecto de Maniquí Invisible.
-        2. MANTÉN exactamente el mismo estilo de renderizado 3D y volumen.
+        1. GHOST MANDATE: ABSOLUTELY NO HUMAN MODELS. Maintain the Invisible Mannequin effect.
+        2. KEEP exactly the same 3D rendering style and garment volume.
         ` : `
-        1. MANTÉN al mismo modelo humano (características físicas, piel, cabello).
-        2. MANTÉN exactamente el mismo fondo y entorno (mismo gimnasio/estudio/calle).
+        1. KEEP the same human model (physical traits, skin tone, hair style).
+        2. KEEP exactly the same background and environment (same studio/gym/street/room).
         `}
-        3. MANTÉN la misma iluminación y postprocesado.
-        4. CAMBIA la posición de la prenda para mostrarla desde el ángulo: ${anguloSolicitado}.
-      - LIMITACIÓN DE CONTEXTO: Si las imágenes originales no muestran detalles específicos de este ángulo (ej: espalda), infiere la continuidad de la textura de forma sobria y profesional.
-      - PROMPT BASE DE ESTILO: ${promptMaster.substring(0, 1000)}
+        3. KEEP the same lighting, color grading, and post-processing style.
+        4. CHANGE the position/pose of the garment to showcase it from the angle: ${angleEnglish}.
+      - CONTEXT LIMITATION: If the original images do not show specific details of this angle (e.g., back view), infer the continuity of the fabric texture in a clean and highly professional manner.
+      - MASTER STYLE PROMPT: ${promptMaster.substring(0, 1000)}
     `;
 
     console.log(`🎨 [Phase-5] Generando ${anguloSolicitado} para SKU ${sku} usando Master ${imagenIdMaster}`);
