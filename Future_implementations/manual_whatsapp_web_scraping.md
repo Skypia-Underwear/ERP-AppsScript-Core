@@ -36,20 +36,47 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
 
 ```javascript
 /**
- * SCRIPT DE CONSOLA: Extractor Inteligente con Auto-Scroll & Soporte de Ofertas
+ * SCRIPT DE CONSOLA: Extractor Inteligente con Auto-Scroll & Soporte de Ofertas (v2 - Sin Dependencia CSS)
  * Desarrollado para: ERP - Macros HostingShop
  * Salida: Descarga automática de "catalogo_whatsapp_interceptado.csv"
  */
 (async function() {
     console.log("🔍 Iniciando Extractor Inteligente de Catálogo de WhatsApp Business...");
-    console.log("⏳ Paso 1: Iniciando Auto-Scroll automático interactivo para cargar el catálogo...");
+    console.log("⏳ Paso 1: Buscando y activando el contenedor de scroll de forma dinámica...");
     
-    // Intentar buscar el contenedor del scroll del catálogo lateral de WhatsApp Web
-    const scrollContainer = document.querySelector('div[data-tab="1"]') || document.querySelector('div[class*="scrollable"]') || window;
+    // Función limpiadora universal de precios (Soporta formatos latinos e internacionales)
+    function cleanPriceString(str) {
+        let s = str.trim();
+        if (s.includes(",") && s.includes(".")) {
+            s = s.replace(/,/g, ""); // "21,000.00" -> "21000.00"
+        } else if (s.includes(",")) {
+            if (/,([0-9]{2})$/.test(s)) {
+                s = s.replace(/\./g, "").replace(",", "."); // "21.000,00" -> "21000.00"
+            } else {
+                s = s.replace(/,/g, ""); // "21,000" -> "21000"
+            }
+        } else if (s.includes(".")) {
+            if (/\.([0-9]{3})$/.test(s)) {
+                s = s.replace(/\./g, ""); // "21.000" -> "21000"
+            }
+        }
+        return parseFloat(s) || 0;
+    }
     
-    let lastHeight = scrollContainer.scrollHeight || document.body.scrollHeight;
+    // Buscador Inteligente de Scroll por Estilos Computados (Evita selectores fijos de Meta)
+    let scrollContainer = window;
+    const allDivs = document.querySelectorAll('div');
+    for (let div of allDivs) {
+        const style = window.getComputedStyle(div);
+        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && div.scrollHeight > div.clientHeight) {
+            scrollContainer = div;
+            break;
+        }
+    }
+    
+    let lastHeight = scrollContainer === window ? document.body.scrollHeight : scrollContainer.scrollHeight;
     let noChangeAttempts = 0;
-    const maxAttempts = 8; // Intentos consecutivos sin incremento de altura para finalizar
+    const maxAttempts = 8; // Intentos sin cambio de altura para finalizar carga
     
     // Crear cartel visual flotante elegante y temporal para guiar al usuario
     const toast = document.createElement("div");
@@ -69,6 +96,8 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
     toast.innerText = "🤖 Auto-Scroll Activo: Cargando productos del catálogo...";
     document.body.appendChild(toast);
     
+    console.log(`   🎯 Contenedor de scroll seleccionado:`, scrollContainer);
+    
     while (noChangeAttempts < maxAttempts) {
         if (scrollContainer === window) {
             window.scrollTo(0, document.body.scrollHeight);
@@ -78,7 +107,7 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         
         await new Promise(r => setTimeout(r, 600)); // Delay para permitir carga del DOM
         
-        let newHeight = scrollContainer.scrollHeight || document.body.scrollHeight;
+        let newHeight = scrollContainer === window ? document.body.scrollHeight : scrollContainer.scrollHeight;
         if (newHeight === lastHeight) {
             noChangeAttempts++;
         } else {
@@ -122,36 +151,29 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             // Sanitización del Título y Limpieza Directa de Emojis/Iconos
             let title = titleEl ? titleEl.innerText.trim() : "Producto Sin Título";
             
-            // --- DETECCIÓN PREMIUM DE PRECIOS DE OFERTA VIGENTES ---
-            const allPrices = card.querySelectorAll('span[class*="_ak8h"], span[class*="price"], span[class*="strike"]');
+            // --- DETECCIÓN DE PRECIO POR INNER_TEXT (100% ROBUSTA A CAMBIOS DE CLASES CSS) ---
             let price = 0;
+            const text = card.innerText || "";
+            // Regex que captura textos que empiezan con ARS o $ seguidos de números y caracteres de moneda
+            const priceRegex = /(?:ARS|\$)\s*([0-9.,\s]+)/gi;
+            let pricesFound = [];
+            let matchPrice;
             
-            if (allPrices.length > 0) {
-                let selectedPriceText = "";
-                
-                if (allPrices.length > 1) {
-                    // Hay más de un precio en la tarjeta -> Oferta activa
-                    let offerPriceEl = null;
-                    allPrices.forEach(pEl => {
-                        const style = window.getComputedStyle(pEl);
-                        const isStruck = style.textDecoration.includes('line-through') || 
-                                         pEl.closest('del') || 
-                                         pEl.querySelector('del') ||
-                                         pEl.className.includes('strike') ||
-                                         pEl.style.textDecoration === 'line-through';
-                        
-                        if (!isStruck) {
-                            offerPriceEl = pEl; // Capturar el precio que no está tachado (el de oferta)
-                        }
-                    });
-                    selectedPriceText = offerPriceEl ? offerPriceEl.innerText : allPrices[allPrices.length - 1].innerText;
-                } else {
-                    // Un solo precio normal
-                    selectedPriceText = allPrices[0].innerText;
+            while ((matchPrice = priceRegex.exec(text)) !== null) {
+                const num = cleanPriceString(matchPrice[1]);
+                if (num > 0) {
+                    pricesFound.push(num);
                 }
-                
-                const rawPrice = selectedPriceText.replace(/[^0-9,.]/g, "").replace(",", ".");
-                price = parseFloat(rawPrice) || 0;
+            }
+            
+            if (pricesFound.length > 0) {
+                if (pricesFound.length > 1) {
+                    // Si hay varios precios en la tarjeta, nos quedamos con el MENOR de ellos
+                    // Esto resuelve matemáticamente el precio de oferta (el de oferta siempre es más barato que el tachado regular)
+                    price = Math.min(...pricesFound);
+                } else {
+                    price = pricesFound[0];
+                }
             }
 
             // Descripción (Fallback/Defecto)
@@ -191,7 +213,7 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
 
     console.log(`✅ ¡Éxito! Se interceptaron ${products.length} productos con sus precios reales.`);
 
-    // --- FORMATEO E IMPORTACIÓN A CSV ---
+    // --- FORMATEO E IMPORTACIÓN E ILUSTRACIÓN EN CSV ---
     const headers = ["SKU", "Title", "Description", "Price", "Image Link"];
     const csvLines = [headers.join(",")];
 
