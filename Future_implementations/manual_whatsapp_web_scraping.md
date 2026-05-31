@@ -36,13 +36,13 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
 
 ```javascript
 /**
- * SCRIPT DE CONSOLA: Extractor Inteligente con Auto-Scroll & Soporte de Ofertas (v2 - Sin Dependencia CSS)
+ * SCRIPT DE CONSOLA: Extractor Inteligente e Instantáneo de Catálogo (v3 - Cero CSS y Cero Blobs)
  * Desarrollado para: ERP - Macros HostingShop
+ * Instrucciones: Haz scroll manual hasta el final del catálogo y luego ejecuta este script en la consola (F12).
  * Salida: Descarga automática de "catalogo_whatsapp_interceptado.csv"
  */
-(async function() {
-    console.log("🔍 Iniciando Extractor Inteligente de Catálogo de WhatsApp Business...");
-    console.log("⏳ Paso 1: Buscando y activando el contenedor de scroll de forma dinámica...");
+(function() {
+    console.log("🔍 Iniciando Extractor Inteligente e Instantáneo de Catálogo...");
     
     // Función limpiadora universal de precios (Soporta formatos latinos e internacionales)
     function cleanPriceString(str) {
@@ -63,65 +63,7 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         return parseFloat(s) || 0;
     }
     
-    // Buscador Inteligente de Scroll por Estilos Computados (Evita selectores fijos de Meta)
-    let scrollContainer = window;
-    const allDivs = document.querySelectorAll('div');
-    for (let div of allDivs) {
-        const style = window.getComputedStyle(div);
-        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && div.scrollHeight > div.clientHeight) {
-            scrollContainer = div;
-            break;
-        }
-    }
-    
-    let lastHeight = scrollContainer === window ? document.body.scrollHeight : scrollContainer.scrollHeight;
-    let noChangeAttempts = 0;
-    const maxAttempts = 8; // Intentos sin cambio de altura para finalizar carga
-    
-    // Crear cartel visual flotante elegante y temporal para guiar al usuario
-    const toast = document.createElement("div");
-    toast.style.position = "fixed";
-    toast.style.top = "20px";
-    toast.style.right = "20px";
-    toast.style.backgroundColor = "#4f46e5";
-    toast.style.color = "white";
-    toast.style.padding = "14px 20px";
-    toast.style.borderRadius = "12px";
-    toast.style.boxShadow = "0 10px 25px rgba(0,0,0,0.3)";
-    toast.style.zIndex = "99999";
-    toast.style.fontFamily = "sans-serif";
-    toast.style.fontSize = "13px";
-    toast.style.fontWeight = "bold";
-    toast.style.transition = "all 0.3s ease";
-    toast.innerText = "🤖 Auto-Scroll Activo: Cargando productos del catálogo...";
-    document.body.appendChild(toast);
-    
-    console.log(`   🎯 Contenedor de scroll seleccionado:`, scrollContainer);
-    
-    while (noChangeAttempts < maxAttempts) {
-        if (scrollContainer === window) {
-            window.scrollTo(0, document.body.scrollHeight);
-        } else {
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        }
-        
-        await new Promise(r => setTimeout(r, 600)); // Delay para permitir carga del DOM
-        
-        let newHeight = scrollContainer === window ? document.body.scrollHeight : scrollContainer.scrollHeight;
-        if (newHeight === lastHeight) {
-            noChangeAttempts++;
-        } else {
-            noChangeAttempts = 0;
-            lastHeight = newHeight;
-            console.log(`   ⏳ Cargando productos... Altura: ${newHeight}px`);
-        }
-    }
-    
-    toast.style.backgroundColor = "#10b981";
-    toast.innerText = "✅ Carga completa. Extrayendo datos de productos...";
-    console.log("🏁 Carga de catálogo completada. Procesando productos...");
-    
-    // Selectores del DOM de WhatsApp Web (Sujetos a cambios en actualizaciones de Meta)
+    // Selectores del DOM de WhatsApp Web (Tarjetas de producto)
     const productCards = document.querySelectorAll('div[role="listitem"], div[class*="_ak8g"], div[class*="selectable-text"]');
     const products = [];
     
@@ -135,20 +77,47 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             let sku = `WS-${Date.now()}-${index}`;
             let imageUrl = "";
             
+            // --- DETECCIÓN PREMIUM DE IMAGEN (Evita URLs 'blob:' locales y captura CDN real de Meta) ---
             if (imgEl) {
-                imageUrl = imgEl.src || "";
-                if (imageUrl.startsWith("blob:")) {
-                    imageUrl = imgEl.getAttribute("data-original-src") || imageUrl;
+                // 1. Escanear atributos de la propia imagen
+                for (let attr of imgEl.attributes) {
+                    const val = attr.value || "";
+                    if (val.startsWith("https://mmg.whatsapp.net") || val.startsWith("https://pps.whatsapp.net")) {
+                        imageUrl = val;
+                        break;
+                    }
                 }
                 
-                // Extraer el hash del ID del CDN de Meta si está disponible
+                // 2. Si no se halló, escanear recursivamente los elementos padres directos
+                if (!imageUrl || imageUrl.startsWith("blob:")) {
+                    let parent = imgEl.parentElement;
+                    let depth = 0;
+                    while (parent && depth < 4 && (!imageUrl || imageUrl.startsWith("blob:"))) {
+                        for (let attr of parent.attributes) {
+                            const val = attr.value || "";
+                            if (val.startsWith("https://mmg.whatsapp.net") || val.startsWith("https://pps.whatsapp.net")) {
+                                imageUrl = val;
+                                break;
+                            }
+                        }
+                        parent = parent.parentElement;
+                        depth++;
+                    }
+                }
+                
+                // 3. Fallback
+                if (!imageUrl) {
+                    imageUrl = imgEl.src || "";
+                }
+                
+                // Extraer el hash de la URL de imagen para el SKU único
                 const match = imageUrl.match(/\/v\/t45\.5328-4\/([a-zA-Z0-9_\-]+)\./);
                 if (match && match[1]) {
                     sku = match[1].replace(/[^0-9]/g, "").substring(0, 17);
                 }
             }
 
-            // Sanitización del Título y Limpieza Directa de Emojis/Iconos
+            // Sanitización del Título
             let title = titleEl ? titleEl.innerText.trim() : "Producto Sin Título";
             
             // --- DETECCIÓN DE PRECIO POR INNER_TEXT (100% ROBUSTA A CAMBIOS DE CLASES CSS) ---
@@ -168,8 +137,7 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             
             if (pricesFound.length > 0) {
                 if (pricesFound.length > 1) {
-                    // Si hay varios precios en la tarjeta, nos quedamos con el MENOR de ellos
-                    // Esto resuelve matemáticamente el precio de oferta (el de oferta siempre es más barato que el tachado regular)
+                    // En ofertas, el precio de oferta siempre es el de menor valor
                     price = Math.min(...pricesFound);
                 } else {
                     price = pricesFound[0];
@@ -200,20 +168,15 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         }
     });
 
-    // Remover cartel visual
-    setTimeout(() => {
-        if (toast.parentNode) document.body.removeChild(toast);
-    }, 3000);
-
     if (products.length === 0) {
         console.warn("❌ No se detectaron productos. Asegúrate de estar con el catálogo abierto.");
         alert("No se encontraron productos. Por favor revisa que el catálogo esté visible en pantalla.");
         return;
     }
 
-    console.log(`✅ ¡Éxito! Se interceptaron ${products.length} productos con sus precios reales.`);
+    console.log(`✅ ¡Éxito! Se interceptaron ${products.length} productos con sus precios e imágenes reales.`);
 
-    // --- FORMATEO E IMPORTACIÓN E ILUSTRACIÓN EN CSV ---
+    // --- FORMATEO E IMPORTACIÓN A CSV ---
     const headers = ["SKU", "Title", "Description", "Price", "Image Link"];
     const csvLines = [headers.join(",")];
 
