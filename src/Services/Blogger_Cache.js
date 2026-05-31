@@ -16,9 +16,27 @@ function blogger_regenerarCacheConfiguracion() {
         console.log("💤 [Modo Nocturno Blogger] Suspendido por horario.");
         return;
     }
-    console.log("🔄 [Blogger Cache] Iniciando regeneración...");
 
+    const lock = LockService.getScriptLock();
     try {
+        // 1. Intentar adquirir el bloqueo por hasta 30 segundos para evitar colisiones
+        lock.waitLock(30000);
+        console.log("🔄 [Blogger Cache] Iniciando regeneración con exclusión mutua...");
+
+        // 2. Saneamiento proactivo de triggers huérfanos/residuales recurrentes cada 10 min
+        try {
+            const handler = "blogger_regenerarCacheConfiguracion";
+            const triggers = ScriptApp.getProjectTriggers();
+            triggers.forEach(t => {
+                if (t.getHandlerFunction() === handler && t.getTriggerSource() === ScriptApp.TriggerSource.CLOCK) {
+                    ScriptApp.deleteTrigger(t);
+                    console.log("🧹 [Blogger Cache] Trigger recurrente huérfano eliminado.");
+                }
+            });
+        } catch (errTrig) {
+            console.warn("⚠️ No se pudo sanear triggers: " + errTrig.message);
+        }
+
         const props = PropertiesService.getScriptProperties();
         const lastSyncStr = props.getProperty("LAST_BLOGGER_API_SYNC");
         const now = Date.now();
@@ -73,6 +91,12 @@ function blogger_regenerarCacheConfiguracion() {
     } catch (e) {
         console.error("❌ [Blogger Cache] Error: " + e.message);
         notificarTelegramSalud("🚨 Error al regenerar caché de Blogger: " + e.message, "ERROR");
+    } finally {
+        // 3. Garantizar la liberación del bloqueo en cualquier circunstancia
+        if (lock.hasLock()) {
+            lock.releaseLock();
+            console.log("🔓 [Blogger Cache] Bloqueo liberado con éxito.");
+        }
     }
 }
 
@@ -266,23 +290,4 @@ function blogger_obtenerResumenSalud() {
     }
 }
 
-/**
- * Mantenimiento: Crea el trigger de 10 minutos si no existe.
- */
-function blogger_instalarTriggerCache() {
-    const handler = "blogger_regenerarCacheConfiguracion";
 
-    // Limpiar previos
-    const triggers = ScriptApp.getProjectTriggers();
-    triggers.forEach(t => {
-        if (t.getHandlerFunction() === handler) ScriptApp.deleteTrigger(t);
-    });
-
-    // Crear nuevo
-    ScriptApp.newTrigger(handler)
-        .timeBased()
-        .everyMinutes(10)
-        .create();
-
-    console.log("✅ [Blogger Cache] Trigger de 10 minutos instalado.");
-}

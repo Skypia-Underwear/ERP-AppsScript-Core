@@ -61,9 +61,14 @@ function instalarTriggersIA() {
         if (AIService._obtenerHojaColaBatch) AIService._obtenerHojaColaBatch();
     }
 
-    // 2. Limpiar previos para evitar ejecuciones duplicadas
+    // 2. Limpiar previos para evitar ejecuciones duplicadas de la automatización de IA
     const triggers = ScriptApp.getProjectTriggers();
-    triggers.forEach(t => ScriptApp.deleteTrigger(t));
+    triggers.forEach(t => {
+        const fn = t.getHandlerFunction();
+        if (fn === 'onEditTrigger' || fn === 'procesarTriggerColaBatch') {
+            ScriptApp.deleteTrigger(t);
+        }
+    });
 
     // Crear Trigger por Edición (AppSheet/Spreadsheet)
     ScriptApp.newTrigger('onEditTrigger')

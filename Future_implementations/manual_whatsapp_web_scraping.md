@@ -36,13 +36,13 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
 
 ```javascript
 /**
- * SCRIPT DE CONSOLA: Extractor Inteligente e Instantáneo de Catálogo (v4 - Cero CSS y Cero Blobs)
+ * SCRIPT DE CONSOLA: Extractor Inteligente e Instantáneo de Catálogo (v5 - Súper Extractor de Blobs en RAM)
  * Desarrollado para: ERP - Macros HostingShop
  * Instrucciones: Haz scroll manual hasta el final del catálogo y luego ejecuta este script en la consola (F12).
  * Salida: Descarga automática de "catalogo_whatsapp_interceptado.csv"
  */
-(function() {
-    console.log("🔍 Iniciando Extractor Inteligente e Instantáneo de Catálogo...");
+(async function() {
+    console.log("🔍 Iniciando Extractor Inteligente e Instantáneo de Catálogo (v5 - Blobs RAM)...");
     
     // Función limpiadora universal de precios (Soporta formatos latinos e internacionales)
     function cleanPriceString(str) {
@@ -63,75 +63,131 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         return parseFloat(s) || 0;
     }
     
-    // Función criptográfica: Extrae la imagen descifrada real visible en pantalla a Base64 usando un lienzo Canvas
-    function getBase64FromImage(imgEl) {
-        try {
-            const canvas = document.createElement("canvas");
-            canvas.width = imgEl.naturalWidth || imgEl.width || 120;
-            canvas.height = imgEl.naturalHeight || imgEl.height || 120;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL("image/jpeg", 0.85); // 85% de calidad JPEG balanceado
-        } catch (e) {
-            console.error("No se pudo descifrar la imagen a Base64 localmente:", e);
-            return "";
+    // Función premium: Extrae la imagen descifrada real visible en pantalla a Base64 desde el Blob en RAM o Canvas
+    async function getBase64FromBlobOrCanvas(blobUrl, imgEl) {
+        if (blobUrl && blobUrl.startsWith("blob:")) {
+            try {
+                const response = await fetch(blobUrl);
+                const blob = await response.blob();
+                const base64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = () => resolve("");
+                    reader.readAsDataURL(blob);
+                });
+                // Verificar que no sea una imagen vacía o un placeholder corrupto (1x1 es muy corto)
+                if (base64 && base64.length > 1000) {
+                    return base64;
+                }
+            } catch (e) {
+                console.warn("No se pudo fetch/decodificar el blob directamente, intentando canvas fallback...", e);
+            }
         }
+        
+        // Fallback a Canvas en GPU si no hay Blob o si el Blob falló
+        if (imgEl) {
+            try {
+                const canvas = document.createElement("canvas");
+                canvas.width = imgEl.naturalWidth || imgEl.width || 120;
+                canvas.height = imgEl.naturalHeight || imgEl.height || 120;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+                const canvasBase64 = canvas.toDataURL("image/jpeg", 0.85);
+                if (canvasBase64 && canvasBase64.length > 1000) {
+                    return canvasBase64;
+                }
+            } catch (e) {
+                console.error("No se pudo descifrar la imagen a Base64 usando canvas:", e);
+            }
+        }
+        return "";
     }
     
     // Selectores del DOM de WhatsApp Web (Tarjetas de producto)
     const productCards = document.querySelectorAll('div[role="listitem"], div[class*="_ak8g"], div[class*="selectable-text"]');
     const products = [];
     
-    productCards.forEach((card, index) => {
+    console.log(`🔍 Analizando ${productCards.length} elementos en el DOM...`);
+    
+    for (let index = 0; index < productCards.length; index++) {
+        const card = productCards[index];
         try {
-            // Intentar buscar los elementos internos de cada tarjeta
+            // Intentar buscar los elementos de título
             const titleEl = card.querySelector('span[class*="selectable-text"], span[dir="auto"], font');
-            const imgEl = card.querySelector('img');
+            if (!titleEl) continue; // Si no hay título, no es una tarjeta de producto real
             
-            // Tratamiento de SKU / ID único de WhatsApp
-            let sku = `WS-${Date.now()}-${index}`;
-            let imageUrl = "";
+            let title = titleEl.innerText.trim();
+            if (title === "Producto Sin Título" || !title) continue;
             
-            // --- DETECCIÓN PREMIUM DE IMAGEN (Evita URLs 'blob:' locales y captura Base64 descifrado real de Meta) ---
-            if (imgEl) {
-                // Descifrar la miniatura visible en la GPU/pantalla del navegador directamente a Base64
-                imageUrl = getBase64FromImage(imgEl);
-                
-                // Generamos un SKU robusto y único de WhatsApp usando el ID del CDN si está presente en los atributos
-                const allElements = card.querySelectorAll('*');
-                const metaCdnRegex = /(https:\/\/[^\s"'>)]*(?:whatsapp\.net|fbcdn\.net)[^\s"'>)]*)/i;
-                let cdnUrl = "";
-                
-                for (let el of allElements) {
-                    if (el.attributes) {
-                        for (let attr of el.attributes) {
-                            const val = attr.value || "";
-                            const match = val.match(metaCdnRegex);
-                            if (match) {
-                                cdnUrl = match[1];
-                                break;
-                            }
-                        }
-                    }
-                    if (cdnUrl) break;
+            // Buscar la URL del blob o CDN de imagen dentro de los elementos de la tarjeta
+            let blobUrl = "";
+            let cdnUrl = "";
+            const metaCdnRegex = /(https:\/\/[^\s"'>)]*(?:whatsapp\.net|fbcdn\.net)[^\s"'>)]*)/i;
+            
+            // Inspeccionar todas las etiquetas del elemento para encontrar blobs e imágenes
+            const allElements = card.querySelectorAll('*');
+            let imgEl = null;
+            
+            for (let el of allElements) {
+                // 1. Guardar primer img tag real
+                if (el.tagName === "IMG" && !imgEl) {
+                    imgEl = el;
                 }
                 
-                // Extraer el hash de la URL de CDN para conservar la unicidad del SKU
-                if (cdnUrl) {
-                    const match = cdnUrl.match(/\/v\/t45\.5328-4\/([a-zA-Z0-9_\-]+)\./);
+                // 2. Extraer blob de atributos (src, style, data-*)
+                if (el.src && el.src.startsWith("blob:")) {
+                    blobUrl = el.src;
+                }
+                if (el.style && el.style.backgroundImage && el.style.backgroundImage.includes("blob:")) {
+                    const match = el.style.backgroundImage.match(/url\(['"]?(blob:[^'"]+)['"]?\)/);
                     if (match && match[1]) {
-                        sku = match[1].replace(/[^0-9]/g, "").substring(0, 17);
+                        blobUrl = match[1];
+                    }
+                }
+                
+                // 3. Buscar CDN de Meta para SKU
+                if (el.attributes) {
+                    for (let attr of el.attributes) {
+                        const val = attr.value || "";
+                        if (val.startsWith("blob:")) {
+                            blobUrl = val;
+                        }
+                        const match = val.match(metaCdnRegex);
+                        if (match) {
+                            cdnUrl = match[1];
+                        }
                     }
                 }
             }
-
-            // Sanitización del Título
-            let title = titleEl ? titleEl.innerText.trim() : "Producto Sin Título";
+            
+            // Si el imgEl de primer nivel tiene src de blob, usarlo
+            if (imgEl && imgEl.src && imgEl.src.startsWith("blob:")) {
+                blobUrl = imgEl.src;
+            }
+            
+            // Tratamiento de SKU / ID único de WhatsApp
+            let sku = `WS-${Date.now()}-${index}`;
+            
+            // Extraer el hash de la URL de CDN para conservar la unicidad del SKU
+            if (cdnUrl) {
+                const match = cdnUrl.match(/\/v\/t45\.5328-4\/([a-zA-Z0-9_\-]+)\./);
+                if (match && match[1]) {
+                    sku = match[1].replace(/[^0-9]/g, "").substring(0, 17);
+                }
+            }
+            
+            // Extraer Base64 real de la imagen descifrada desde RAM
+            let imageUrl = await getBase64FromBlobOrCanvas(blobUrl, imgEl);
+            
+            // Si falló por completo y el imageUrl está vacío, no agregamos este registro vacío
+            if (!imageUrl) {
+                console.warn(`⚠️ Omitiendo ${title} porque no se encontró una imagen descifrada en memoria.`);
+                continue;
+            }
             
             // --- DETECCIÓN DE PRECIO POR INNER_TEXT (100% ROBUSTA A CAMBIOS DE CLASES CSS) ---
             let price = 0;
             const text = card.innerText || "";
-            // Regex que captura textos que empiezan con ARS o $ seguidos de números y caracteres de moneda
             const priceRegex = /(?:ARS|\$)\s*([0-9.,\s]+)/gi;
             let pricesFound = [];
             let matchPrice;
@@ -145,13 +201,12 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             
             if (pricesFound.length > 0) {
                 if (pricesFound.length > 1) {
-                    // En ofertas, el precio de oferta siempre es el de menor valor
-                    price = Math.min(...pricesFound);
+                    price = Math.min(...pricesFound); // El de menor valor es el de oferta
                 } else {
                     price = pricesFound[0];
                 }
             }
-
+            
             // Descripción (Fallback/Defecto)
             let description = "";
             const descEl = card.querySelector('span[class*="description"], div[class*="description"]');
@@ -160,34 +215,32 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             } else {
                 description = `Detalle de talle y material para ${title}`;
             }
-
-            // Omitir tarjetas vacías o redundantes
-            if (title !== "Producto Sin Título" && imageUrl !== "") {
-                products.push({
-                    sku: sku,
-                    title: title,
-                    description: description,
-                    price: price,
-                    imageUrl: imageUrl
-                });
-            }
+            
+            products.push({
+                sku: sku,
+                title: title,
+                description: description,
+                price: price,
+                imageUrl: imageUrl
+            });
+            
         } catch (err) {
             console.error("⚠️ Error procesando tarjeta de producto: ", err);
         }
-    });
-
+    }
+    
     if (products.length === 0) {
-        console.warn("❌ No se detectaron productos. Asegúrate de estar con el catálogo abierto.");
-        alert("No se encontraron productos. Por favor revisa que el catálogo esté visible en pantalla.");
+        console.warn("❌ No se detectaron productos con imágenes válidas. Asegúrate de que las imágenes se vean en pantalla.");
+        alert("No se encontraron productos con imágenes descifradas. Revisa que el catálogo esté cargado y visible.");
         return;
     }
-
-    console.log(`✅ ¡Éxito! Se interceptaron ${products.length} productos con sus precios e imágenes reales.`);
-
+    
+    console.log(`✅ ¡Éxito! Se interceptaron ${products.length} productos con imágenes reales de alta calidad desde la RAM.`);
+    
     // --- FORMATEO E IMPORTACIÓN A CSV ---
     const headers = ["SKU", "Title", "Description", "Price", "Image Link"];
     const csvLines = [headers.join(",")];
-
+    
     products.forEach(p => {
         const escapeCSV = (val) => {
             if (val === null || val === undefined) return '""';
@@ -197,7 +250,7 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             }
             return str;
         };
-
+        
         const row = [
             escapeCSV(p.sku),
             escapeCSV(p.title),
@@ -207,9 +260,9 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         ];
         csvLines.push(row.join(","));
     });
-
+    
     // Descarga del Archivo CSV en el Navegador
-    const csvContent = "\uFEFF" + csvLines.join("\n"); // UTF-8 BOM para soporte de acentos en Excel
+    const csvContent = "\uFEFF" + csvLines.join("\n"); // UTF-8 BOM
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -218,7 +271,7 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
+    
     console.log("💾 Archivo CSV descargado con éxito.");
 })();
 ```

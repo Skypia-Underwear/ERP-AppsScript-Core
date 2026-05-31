@@ -222,7 +222,14 @@ function executeWithRetry(fn, maxRetries = 3) {
       return fn();
     } catch (e) {
       lastError = e;
-      if (e.message.includes("Service Spreadsheets failed") || e.message.includes("Timed out") || e.message.includes("Drive")) {
+      const errMsg = e.message || "";
+      if (errMsg.includes("Service Spreadsheets failed") || 
+          errMsg.includes("Timed out") || 
+          errMsg.includes("Drive") ||
+          errMsg.includes("simultáneas") || 
+          errMsg.includes("simultaneous") || 
+          errMsg.includes("invocaciones") || 
+          errMsg.includes("concurrency")) {
         Utilities.sleep(Math.pow(2, i) * 1000); // Exponential backoff (1s, 2s, 4s)
         continue;
       }

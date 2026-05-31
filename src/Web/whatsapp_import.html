@@ -7,154 +7,182 @@
 --<div class="h-full flex flex-col bg-slate-950 text-slate-100 p-4 overflow-y-auto animate-fade-in">
   
   <!-- Encabezado de la Vista Ultra-Compacto -->
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800/80 pb-3.5 mb-3.5">
-    <div class="flex items-center gap-2.5">
-      <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
-        <i class="ph-bold ph-cloud-arrow-up text-lg"></i>
-      </div>
-      <div>
-        <h1 class="text-lg font-bold text-white leading-none">Importar Catálogo WhatsApp</h1>
-        <p class="text-[11px] text-slate-400 mt-1">Carga tu CSV y registra productos de forma inteligente mediante AppSheet API.</p>
-      </div>
+<div
+  class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800/80 pb-3.5 mb-3.5">
+  <div class="flex items-center gap-2.5">
+    <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
+      <i class="ph-bold ph-cloud-arrow-up text-lg"></i>
     </div>
-    
-    <!-- Estado de Conexión de API -->
-    <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg self-stretch sm:self-auto justify-center">
-      <div class="relative flex h-1.5 w-1.5">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-      </div>
-      <span class="text-[10px] font-bold text-slate-300">AppSheet API Conectada</span>
+    <div>
+      <h1 class="text-lg font-bold text-white leading-none">Importar Catálogo WhatsApp</h1>
+      <p class="text-[11px] text-slate-400 mt-1">Carga tu CSV y registra productos de forma inteligente mediante
+        AppSheet API.</p>
     </div>
   </div>
 
-  <!-- Panel 1: Drag & Drop y Carga de Archivo -->
-  <div id="drop-zone-container" class="grid grid-cols-1 gap-6 mb-4">
-    <div id="drop-zone" class="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 bg-slate-900/30 hover:bg-slate-900/60 transition duration-300 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer group relative overflow-hidden">
-      <input type="file" id="csv-file-input" accept=".csv" class="hidden">
-      <div class="p-4 bg-slate-900 text-slate-400 group-hover:text-indigo-400 rounded-full border border-slate-850 group-hover:border-indigo-500/30 transition duration-300 mb-4">
-        <i class="ph-bold ph-file-csv text-3xl"></i>
+  <!-- Estado de Conexión de API -->
+  <div
+    class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg self-stretch sm:self-auto justify-center">
+    <div class="relative flex h-1.5 w-1.5">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+      <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+    </div>
+    <span class="text-[10px] font-bold text-slate-300">AppSheet API Conectada</span>
+  </div>
+</div>
+
+<!-- Panel 1: Drag & Drop y Carga de Archivo -->
+<div id="drop-zone-container" class="grid grid-cols-1 gap-6 mb-4">
+  <div id="drop-zone"
+    class="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 bg-slate-900/30 hover:bg-slate-900/60 transition duration-300 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer group relative overflow-hidden">
+    <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+    <div
+      class="p-4 bg-slate-900 text-slate-400 group-hover:text-indigo-400 rounded-full border border-slate-850 group-hover:border-indigo-500/30 transition duration-300 mb-4">
+      <i class="ph-bold ph-file-csv text-3xl"></i>
+    </div>
+    <h3 class="text-base font-bold text-white mb-1">Arrastra tu archivo CSV aquí</h3>
+    <p class="text-xs text-slate-400 max-w-sm mb-4">Sube el archivo "catalogo_whatsapp_interceptado_X.csv" que
+      descargaste usando la consola en tu WhatsApp Web.</p>
+    <button onclick="document.getElementById('csv-file-input').click()"
+      class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+      <i class="ph-bold ph-folder-open"></i> Seleccionar Archivo
+    </button>
+  </div>
+</div>
+
+<!-- Panel 2: Previsualización y Editor Masivo (Oculto al inicio) -->
+<div id="editor-container" class="hidden flex-1 flex flex-col overflow-hidden min-h-0 space-y-4">
+
+  <!-- Asignador de Metadatos Masivo Compactado e Inline -->
+  <div class="bg-slate-900/40 border border-slate-800/50 rounded-xl p-3.5 backdrop-blur-md">
+    <div class="flex flex-wrap md:flex-nowrap items-end gap-3.5">
+      <div class="flex items-center gap-1.5 text-indigo-400 font-bold text-xs shrink-0 self-center">
+        <i class="ph-bold ph-pencil-simple text-sm"></i>
+        <span>Ajuste Masivo:</span>
       </div>
-      <h3 class="text-base font-bold text-white mb-1">Arrastra tu archivo CSV aquí</h3>
-      <p class="text-xs text-slate-400 max-w-sm mb-4">Sube el archivo "catalogo_whatsapp_interceptado_X.csv" que descargaste usando la consola en tu WhatsApp Web.</p>
-      <button onclick="document.getElementById('csv-file-input').click()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-2">
-        <i class="ph-bold ph-folder-open"></i> Seleccionar Archivo
+      <div class="flex flex-col gap-1 w-full md:w-44">
+        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Categoría Padre</label>
+        <select id="bulk-cat-padre"
+          class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+          <option value="INDUMENTARIA">INDUMENTARIA</option>
+          <option value="ACCESORIOS">ACCESORIOS</option>
+          <option value="OTRO">OTRO</option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-1 w-full md:w-36">
+        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Marca</label>
+        <input type="text" id="bulk-marca" value="MINOM" placeholder="Marca"
+          class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+      </div>
+      <div class="flex flex-col gap-1 w-full md:w-36">
+        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Género</label>
+        <select id="bulk-genero"
+          class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+          <option value="Unisex">Unisex</option>
+          <option value="Mujer">Mujer</option>
+          <option value="Hombre">Hombre</option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-1 w-full md:w-40">
+        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Temporada</label>
+        <input type="text" id="bulk-temporada" placeholder="Temporada"
+          class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+      </div>
+      <button onclick="aplicarMetadatosMasivos()"
+        class="w-full md:w-auto px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-bold rounded-lg border border-indigo-500/20 transition flex items-center justify-center gap-1.5 self-end h-[32px]">
+        <i class="ph-bold ph-arrows-merge"></i> Aplicar
       </button>
     </div>
   </div>
 
-  <!-- Panel 2: Previsualización y Editor Masivo (Oculto al inicio) -->
-  <div id="editor-container" class="hidden flex-1 flex flex-col overflow-hidden min-h-0 space-y-4">
-    
-    <!-- Asignador de Metadatos Masivo Compactado e Inline -->
-    <div class="bg-slate-900/40 border border-slate-800/50 rounded-xl p-3.5 backdrop-blur-md">
-      <div class="flex flex-wrap md:flex-nowrap items-end gap-3.5">
-        <div class="flex items-center gap-1.5 text-indigo-400 font-bold text-xs shrink-0 self-center">
-          <i class="ph-bold ph-pencil-simple text-sm"></i>
-          <span>Ajuste Masivo:</span>
-        </div>
-        <div class="flex flex-col gap-1 w-full md:w-44">
-          <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Categoría Padre</label>
-          <select id="bulk-cat-padre" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-            <option value="INDUMENTARIA">INDUMENTARIA</option>
-            <option value="ACCESORIOS">ACCESORIOS</option>
-            <option value="OTRO">OTRO</option>
+  <!-- Tabla de Productos y Acción de Importación -->
+  <div
+    class="flex-1 flex flex-col bg-slate-900/35 border border-slate-800 rounded-2xl overflow-hidden min-h-[250px] transition-all">
+
+    <!-- Cabecera de la Tabla / Buscador -->
+    <div
+      class="flex flex-col sm:flex-row justify-between items-center px-6 py-3 border-b border-slate-800 bg-slate-900/50 gap-3">
+      <div class="flex flex-wrap items-center gap-3.5 w-full sm:w-auto">
+        <h3 class="text-xs font-bold text-white flex items-center gap-2">
+          📦 Productos en Cola: <span id="selected-count" class="text-indigo-400">0</span> / <span
+            id="total-rows">0</span> seleccionados
+        </h3>
+
+        <!-- Filtro de Estado Premium -->
+        <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800/80 rounded-lg px-2.5 py-1">
+          <span
+            class="text-[9px] text-slate-400 font-bold uppercase tracking-wider shrink-0 select-none">Filtrar:</span>
+          <select id="state-filter" onchange="filtrarGrillaPorEstado(this.value)"
+            class="bg-transparent border-0 text-[11px] font-bold text-slate-200 focus:ring-0 cursor-pointer p-0 select-none">
+            <option value="all" class="bg-slate-950 text-slate-200">Todos</option>
+            <option value="ready" class="bg-slate-950 text-slate-200">Solo Listos (Nuevos)</option>
+            <option value="exists" class="bg-slate-950 text-slate-200">Solo Registrados (ERP)</option>
+            <option value="omitted" class="bg-slate-950 text-slate-200">Solo Omitidos ($0)</option>
           </select>
         </div>
-        <div class="flex flex-col gap-1 w-full md:w-36">
-          <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Marca</label>
-          <input type="text" id="bulk-marca" value="MINOM" placeholder="Marca" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-        </div>
-        <div class="flex flex-col gap-1 w-full md:w-36">
-          <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Género</label>
-          <select id="bulk-genero" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-            <option value="Unisex">Unisex</option>
-            <option value="Mujer">Mujer</option>
-            <option value="Hombre">Hombre</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1 w-full md:w-40">
-          <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Temporada</label>
-          <input type="text" id="bulk-temporada" placeholder="Temporada" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-        </div>
-        <button onclick="aplicarMetadatosMasivos()" class="w-full md:w-auto px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-bold rounded-lg border border-indigo-500/20 transition flex items-center justify-center gap-1.5 self-end h-[32px]">
-          <i class="ph-bold ph-arrows-merge"></i> Aplicar
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+        <button onclick="exportarConfiguracionCSV()"
+          class="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold bg-emerald-500/10 px-3.5 py-1.5 rounded-lg border border-emerald-500/20 flex items-center gap-1.5 transition">
+          <i class="ph-bold ph-download-simple"></i> Exportar Respaldo
         </button>
+        <button onclick="seleccionarTodo(true)"
+          class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20">Seleccionar
+          Todos</button>
+        <button onclick="seleccionarTodo(false)"
+          class="text-[11px] text-slate-400 hover:text-slate-300 font-bold bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Desmarcar
+          Todos</button>
       </div>
     </div>
 
-    <!-- Tabla de Productos y Acción de Importación -->
-    <div class="flex-1 flex flex-col bg-slate-900/35 border border-slate-800 rounded-2xl overflow-hidden min-h-[250px] transition-all">
-      
-      <!-- Cabecera de la Tabla / Buscador -->
-      <div class="flex flex-col sm:flex-row justify-between items-center px-6 py-3 border-b border-slate-800 bg-slate-900/50 gap-3">
-        <div class="flex flex-wrap items-center gap-3.5 w-full sm:w-auto">
-          <h3 class="text-xs font-bold text-white flex items-center gap-2">
-            📦 Productos en Cola: <span id="selected-count" class="text-indigo-400">0</span> / <span id="total-rows">0</span> seleccionados
-          </h3>
-          
-          <!-- Filtro de Estado Premium -->
-          <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800/80 rounded-lg px-2.5 py-1">
-            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider shrink-0 select-none">Filtrar:</span>
-            <select id="state-filter" onchange="filtrarGrillaPorEstado(this.value)" class="bg-transparent border-0 text-[11px] font-bold text-slate-200 focus:ring-0 cursor-pointer p-0 select-none">
-              <option value="all" class="bg-slate-950 text-slate-200">Todos</option>
-              <option value="ready" class="bg-slate-950 text-slate-200">Solo Listos (Nuevos)</option>
-              <option value="exists" class="bg-slate-950 text-slate-200">Solo Registrados (ERP)</option>
-              <option value="omitted" class="bg-slate-950 text-slate-200">Solo Omitidos ($0)</option>
-            </select>
-          </div>
+    <!-- Contenedor Scroll de la Tabla -->
+    <div class="flex-1 overflow-x-auto overflow-y-auto min-h-0">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead>
+          <tr
+            class="border-b border-slate-800 bg-slate-900/20 text-slate-400 uppercase tracking-wider text-[10px] font-bold">
+            <th class="py-2.5 px-3 w-10 text-center">Sel</th>
+            <th class="py-2.5 px-3 w-14">Foto</th>
+            <th class="py-2.5 px-3 w-28">SKU Original</th>
+            <th class="py-2.5 px-3 w-44">Categoría ERP</th>
+            <th class="py-2.5 px-3 w-32">Código ID (Único)</th>
+            <th class="py-2.5 px-3">Nombre / Modelo</th>
+            <th class="py-2.5 px-3 w-28">Costo ($)</th>
+            <th class="py-2.5 px-3 w-24">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="preview-tbody" class="divide-y divide-slate-850">
+          <!-- Filas inyectadas por JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Barra de Estado e Iniciar Proceso -->
+    <div
+      class="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex flex-col gap-1 w-full sm:w-auto">
+        <div class="flex justify-between sm:justify-start items-center gap-2">
+          <span class="text-xs text-slate-400 font-medium">Progreso de Importación:</span>
+          <span id="progress-percentage" class="text-xs font-bold text-white hidden">0%</span>
         </div>
-        <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
-          <button onclick="exportarConfiguracionCSV()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold bg-emerald-500/10 px-3.5 py-1.5 rounded-lg border border-emerald-500/20 flex items-center gap-1.5 transition">
-            <i class="ph-bold ph-download-simple"></i> Exportar Respaldo
-          </button>
-          <button onclick="seleccionarTodo(true)" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20">Seleccionar Todos</button>
-          <button onclick="seleccionarTodo(false)" class="text-[11px] text-slate-400 hover:text-slate-300 font-bold bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Desmarcar Todos</button>
+        <div id="progress-bar-container"
+          class="w-full sm:w-64 h-2.5 bg-slate-950 rounded-full overflow-hidden mt-1 hidden border border-slate-850">
+          <div id="progress-bar"
+            class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-300"
+            style="width: 0%"></div>
         </div>
+        <span id="progress-status" class="text-[10px] text-slate-500 font-medium italic mt-1">Esperando inicio...</span>
       </div>
 
-      <!-- Contenedor Scroll de la Tabla -->
-      <div class="flex-1 overflow-x-auto overflow-y-auto min-h-0">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr class="border-b border-slate-800 bg-slate-900/20 text-slate-400 uppercase tracking-wider text-[10px] font-bold">
-              <th class="py-2.5 px-3 w-10 text-center">Sel</th>
-              <th class="py-2.5 px-3 w-14">Foto</th>
-              <th class="py-2.5 px-3 w-28">SKU Original</th>
-              <th class="py-2.5 px-3 w-44">Categoría ERP</th>
-              <th class="py-2.5 px-3 w-32">Código ID (Único)</th>
-              <th class="py-2.5 px-3">Nombre / Modelo</th>
-              <th class="py-2.5 px-3 w-28">Costo ($)</th>
-              <th class="py-2.5 px-3 w-24">Estado</th>
-            </tr>
-          </thead>
-          <tbody id="preview-tbody" class="divide-y divide-slate-850">
-            <!-- Filas inyectadas por JS -->
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Barra de Estado e Iniciar Proceso -->
-      <div class="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div class="flex flex-col gap-1 w-full sm:w-auto">
-          <div class="flex justify-between sm:justify-start items-center gap-2">
-            <span class="text-xs text-slate-400 font-medium">Progreso de Importación:</span>
-            <span id="progress-percentage" class="text-xs font-bold text-white hidden">0%</span>
-          </div>
-          <div id="progress-bar-container" class="w-full sm:w-64 h-2.5 bg-slate-950 rounded-full overflow-hidden mt-1 hidden border border-slate-850">
-            <div id="progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-300" style="width: 0%"></div>
-          </div>
-          <span id="progress-status" class="text-[10px] text-slate-500 font-medium italic mt-1">Esperando inicio...</span>
-        </div>
-
-        <button id="btn-iniciar-importacion" onclick="procesarImportacionLote()" class="w-full sm:w-auto px-8 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs font-bold rounded-xl transition duration-300 shadow-xl shadow-indigo-600/10 flex items-center justify-center gap-2">
-          <i class="ph-bold ph-rocket-launch text-lg"></i> Iniciar Importación Controlada
-        </button>
-      </div>
-
+      <button id="btn-iniciar-importacion" onclick="procesarImportacionLote()"
+        class="w-full sm:w-auto px-8 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs font-bold rounded-xl transition duration-300 shadow-xl shadow-indigo-600/10 flex items-center justify-center gap-2">
+        <i class="ph-bold ph-rocket-launch text-lg"></i> Iniciar Importación Controlada
+      </button>
     </div>
 
   </div>
+
+</div>
 
 </div>
 
@@ -209,11 +237,11 @@
         setGlobalStatus(false);
         if (response.success) {
           CATEGORIES_DB = response.categories || [];
-          
+
           EXISTING_CODES = new Set();
           EXISTING_PRODUCTS_MAP = new Map();
           EXISTING_PRODUCTS_BY_MODEL_MAP = new Map();
-          
+
           (response.existingProducts || []).forEach(p => {
             if (p.codigoId) {
               EXISTING_CODES.add(p.codigoId.toUpperCase());
@@ -235,7 +263,7 @@
               });
             }
           });
-          
+
           console.log(`[Importador] ${CATEGORIES_DB.length} categorías cargadas.`);
           console.log(`[Importador] ${EXISTING_CODES.size} códigos existentes indexados.`);
           console.log(`[Importador] ${EXISTING_PRODUCTS_MAP.size} productos existentes por SKU indexados.`);
@@ -249,7 +277,7 @@
         alert("Fallo crítico recuperando datos: " + err.message);
       })
       .whatsapp_obtenerCategoriasYCodigos();
-      
+
     // Configurar Zona de Drop
     const dropZone = document.getElementById("drop-zone");
     const fileInput = document.getElementById("csv-file-input");
@@ -284,11 +312,11 @@
   function procesarArchivoCSV(file) {
     showLoader();
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
       try {
         const text = e.target.result;
         const rows = parsearCSV(text);
-        
+
         if (rows.length <= 1) {
           throw new Error("El archivo CSV no contiene registros.");
         }
@@ -296,7 +324,7 @@
         // Mapeo flexible de columnas
         const rawHeaders = rows[0];
         const headers = rawHeaders.map(h => stripAccents(String(h).trim().toUpperCase()).replace(/[\s_-]/g, ""));
-        
+
         const colMap = {
           sku: headers.indexOf("SKU") > -1 ? headers.indexOf("SKU") : headers.indexOf("ID"),
           title: headers.indexOf("TITLE") > -1 ? headers.indexOf("TITLE") : headers.indexOf("NAME"),
@@ -326,7 +354,7 @@
           const title = cleanTitle(String(r[colMap.title] || "").trim());
           const desc = colMap.description !== -1 ? String(r[colMap.description] || "").trim() : "";
           const imgUrl = colMap.image_link !== -1 ? String(r[colMap.image_link] || "").trim() : "";
-          
+
           let price = parseFloat(String(r[colMap.price] || "0").replace(/[^0-9.]/g, "")) || 0;
           // Escalamiento automático inteligente
           if (price > 0 && price < 1000) {
@@ -336,7 +364,7 @@
           // Buscar si el producto ya existe en el ERP por su SKU de WhatsApp (normalizado) o por su modelo normalizado (Fuzzy Matcher)
           const cleanSkuVal = cleanSku(sku);
           let extProd = EXISTING_PRODUCTS_MAP.get(cleanSkuVal);
-          
+
           if (!extProd) {
             const normModel = normalizeModelName(title);
             extProd = EXISTING_PRODUCTS_BY_MODEL_MAP.get(normModel);
@@ -344,12 +372,12 @@
               console.log(`[Fuzzy Match] Asociando SKU CSV "${cleanSkuVal}" a producto registrado "${extProd.codigoId}" por modelo "${title}"`);
             }
           }
-          
+
           const catId = extProd ? extProd.categoriaId : (colMap.categoriaId !== -1 ? String(r[colMap.categoriaId] || "").trim() : "");
           const catGen = colMap.categoriaGeneral !== -1 ? String(r[colMap.categoriaGeneral] || "").trim() : "INDUMENTARIA";
           const codId = extProd ? extProd.codigoId : (colMap.codigoId !== -1 ? String(r[colMap.codigoId] || "").trim() : "");
           const marcaVal = colMap.marca !== -1 ? String(r[colMap.marca] || "").trim() : "";
-          
+
           // Mapeo seguro de género de backup para evitar desalineación
           let genVal = colMap.genero !== -1 ? String(r[colMap.genero] || "").trim() : "Unisex";
           if (genVal.toUpperCase() === "FEMENINO" || genVal.toUpperCase() === "MUJER") genVal = "Mujer";
@@ -380,10 +408,10 @@
         document.getElementById("total-rows").innerText = PRODUCT_ROWS.length;
         document.getElementById("drop-zone-container").classList.add("hidden");
         document.getElementById("editor-container").classList.remove("hidden");
-        
+
         renderPreviewTable();
         actualizarContadores();
-        
+
       } catch (err) {
         alert("Error procesando CSV: " + err.message);
       } finally {
@@ -401,7 +429,7 @@
 
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
-      const next = text[i+1];
+      const next = text[i + 1];
 
       if (c === '"') {
         if (inQuotes && next === '"') {
@@ -466,12 +494,12 @@
         </td>
         <td class="py-2 px-3" id="status-cell-${idx}">
           ${p.status === "omitted"
-            ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-slate-400 border border-slate-700/30" title="Precio $0. Omitido de la importación.">Omitido ($0)</span>`
-            : (p.status === "exists" 
-              ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" title="El SKU ya existe en el ERP. Importar actualizará su descripción y sincronizará su imagen.">Registrado</span>`
-              : `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-slate-400">Listo</span>`
-            )
-          }
+          ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-slate-400 border border-slate-700/30" title="Precio $0. Omitido de la importación.">Omitido ($0)</span>`
+          : (p.status === "exists"
+            ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" title="El SKU ya existe en el ERP. Importar actualizará su descripción y sincronizará su imagen.">Registrado</span>`
+            : `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-slate-400">Listo</span>`
+          )
+        }
         </td>
       `;
       tbody.appendChild(tr);
@@ -481,7 +509,7 @@
   // Genera un CODIGO_ID profesional 100% único
   function cambioCategoriaRow(idx, val) {
     PRODUCT_ROWS[idx].categoriaId = val;
-    
+
     // Obtener Categoría General
     const catMatch = CATEGORIES_DB.find(c => c.categoriaId === val);
     PRODUCT_ROWS[idx].categoriaGeneral = catMatch ? catMatch.categoriaGeneral : "INDUMENTARIA";
@@ -539,7 +567,7 @@
       const tr = document.getElementById(`row-${idx}`);
       // Ignorar filas que están ocultas por el filtro de estado actual
       if (tr && tr.style.display === "none") return;
-      
+
       const el = document.getElementById(`check-${idx}`);
       if (el) el.checked = val;
       p.checked = val;
@@ -565,12 +593,12 @@
     PRODUCT_ROWS.forEach((p, idx) => {
       const tr = document.getElementById(`row-${idx}`);
       if (!tr) return;
-      
+
       let isVisible = true;
       if (filterVal === "ready" && p.status !== "ready") isVisible = false;
       else if (filterVal === "exists" && p.status !== "exists") isVisible = false;
       else if (filterVal === "omitted" && p.status !== "omitted") isVisible = false;
-      
+
       if (isVisible) {
         tr.style.display = "";
       } else {
@@ -605,7 +633,7 @@
   // --- SUBIDA SECUENCIAL CONTROLADA (Cero Timeouts y Control de Bots) ---
   async function procesarImportacionLote() {
     const btn = document.getElementById("btn-iniciar-importacion");
-    
+
     // Obtener la lista de productos seleccionados y con códigos válidos
     const queue = [];
     PRODUCT_ROWS.forEach((p, idx) => {
@@ -631,7 +659,7 @@
     // Lock UI
     btn.disabled = true;
     btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-lg"></i> Procesando Sincronización...`;
-    
+
     document.getElementById("progress-bar-container").classList.remove("hidden");
     document.getElementById("progress-percentage").classList.remove("hidden");
     const progressBar = document.getElementById("progress-bar");
@@ -651,11 +679,11 @@
         successCount++;
         document.getElementById(`status-cell-${idx}`).innerHTML = `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-slate-500">Omitido ($0)</span>`;
         p.status = "success";
-        
+
         const pct = Math.round(((i + 1) / queue.length) * 100);
         progressBar.style.width = `${pct}%`;
         progressPercentage.innerText = `${pct}%`;
-        
+
         await new Promise(r => setTimeout(r, 60)); // Breve retardo visual premium
         continue;
       }
@@ -663,7 +691,7 @@
       // Actualizar estado en UI de fila a "importando"
       document.getElementById(`status-cell-${idx}`).innerHTML = `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">Sincronizando</span>`;
       progressStatus.innerText = `Sincronizando ${i + 1}/${queue.length}: ${p.title}`;
-      
+
       const pct = Math.round((i / queue.length) * 100);
       progressBar.style.width = `${pct}%`;
       progressPercentage.innerText = `${pct}%`;
@@ -693,9 +721,9 @@
         successCount++;
         const badgeClass = result.updated ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
         const badgeText = result.updated ? "Actualizado" : "Sincronizado";
-        
+
         document.getElementById(`status-cell-${idx}`).innerHTML = `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeClass}">${badgeText}</span>`;
-        
+
         // Registrar en los índices locales de la sesión
         EXISTING_CODES.add(p.codigoId.toUpperCase());
         const cleanSkuVal = cleanSku(p.sku);
@@ -719,22 +747,22 @@
     progressBar.style.width = "100%";
     progressPercentage.innerText = "100%";
     progressStatus.innerText = `Sincronización completada. Éxito: ${successCount} | Errores: ${failedCount}`;
-    
+
     alert(`🎉 ¡Proceso Finalizado!\n\nSe registraron con éxito ${successCount} productos a través de la API de AppSheet.\nFallidos: ${failedCount}.\n\nLos bots de AppSheet se encargarán en segundo plano de crear las carpetas en Drive, las variedades de precios y los stocks automáticamente.`);
-    
+
     // Limpiar productos exitosos de la vista previa
     PRODUCT_ROWS = PRODUCT_ROWS.filter(p => p.status !== "success");
     document.getElementById("total-rows").innerText = PRODUCT_ROWS.length;
-    
+
     if (PRODUCT_ROWS.length === 0) {
       document.getElementById("editor-container").classList.add("hidden");
       document.getElementById("drop-zone-container").classList.remove("hidden");
     } else {
       renderPreviewTable();
     }
-    
+
     actualizarContadores();
-    
+
     btn.disabled = false;
     btn.innerHTML = `<i class="ph-bold ph-rocket-launch text-lg"></i> Iniciar Importación Controlada`;
   }
@@ -745,11 +773,11 @@
       alert("No hay productos en la cola para exportar.");
       return;
     }
-    
+
     // Cabeceras exactas para poder re-importarlo y restaurar todo automáticamente
     const headers = ["SKU", "Title", "Description", "Price", "ImageUrl", "CategoriaId", "CategoriaGeneral", "CodigoId", "Marca", "Genero", "Temporada"];
     const csvLines = [headers.join(",")];
-    
+
     PRODUCT_ROWS.forEach(p => {
       const escapeCSV = (val) => {
         if (val === null || val === undefined) return '""';
@@ -759,7 +787,7 @@
         }
         return str;
       };
-      
+
       const row = [
         escapeCSV(p.sku),
         escapeCSV(p.title),
@@ -775,13 +803,13 @@
       ];
       csvLines.push(row.join(","));
     });
-    
+
     const csvContent = "\uFEFF" + csvLines.join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `respaldo_importacion_whatsapp_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `respaldo_importacion_whatsapp_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -790,24 +818,36 @@
 
 <style>
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+
   .animate-fade-in {
     animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
+
   /* Estilos del Scrollbar Premium */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
+
   ::-webkit-scrollbar-track {
     background: #090d16;
   }
+
   ::-webkit-scrollbar-thumb {
     background: #1e293b;
     border-radius: 99px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     background: #334155;
   }
