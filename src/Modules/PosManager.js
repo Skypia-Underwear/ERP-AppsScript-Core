@@ -924,8 +924,15 @@ function subirArchivoADonweb(jsonData, fileName) {
             return { success: false, message: "Donweb no configurado. Subida omitida." };
         }
 
-        const payload = JSON.stringify({ fileName: fileName, data: jsonData });
+        // Comprimir el JSON en vuelo usando gzip y base64
+        const jsonStr = JSON.stringify(jsonData);
+        const blob = Utilities.newBlob(jsonStr, "application/json", fileName);
+        const compressedBlob = Utilities.gzip(blob);
+        const base64Data = Utilities.base64Encode(compressedBlob.getBytes());
+
+        const payload = JSON.stringify({ fileName: fileName, data: base64Data, gzipped: true });
         const sizeMB = (payload.length / (1024 * 1024)).toFixed(2);
+        const originalSizeMB = (jsonStr.length / (1024 * 1024)).toFixed(2);
         const isCriticalSize = payload.length > 2 * 1024 * 1024; // > 2MB
 
         const MAX_RETRIES = 3;
@@ -940,7 +947,7 @@ function subirArchivoADonweb(jsonData, fileName) {
                 Utilities.sleep(waitMs);
             }
 
-            debugLog(`📤 Enviando a Donweb [${fileName}] (${sizeMB} MB) ${isCriticalSize ? '⚠️ ALTO VOLUMEN' : ''} -> ${url}`);
+            debugLog(`📤 Enviando a Donweb [${fileName}] (Original: ${originalSizeMB} MB | Gzipped: ${sizeMB} MB) ${isCriticalSize ? '⚠️ ALTO VOLUMEN' : ''} -> ${url}`);
 
             const response = UrlFetchApp.fetch(url, {
                 method: "post",
