@@ -37,8 +37,7 @@
         var url_final_venta = GAS_BASE_URL;
         var DONWEB_BLOGGER_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + BLOGGER_JSON_FILE;
         var GITHUB_BLOGGER_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + BLOGGER_JSON_FILE;
-        var DONWEB_TPV_URL = DONWEB_BASE_URL + DONWEB_READ_SCRIPT + '?file=' + TPV_JSON_FILE;
-        var GITHUB_TPV_URL = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/' + BLOGGER_JSON_FILE;
+
 
         window.setLoaderText = function(mensaje) {
             const el = document.getElementById('loader-text');
