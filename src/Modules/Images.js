@@ -1296,20 +1296,20 @@ function prepararBlobOptimizado(archivoId, displayName, prioridad = 'alta', apiK
 function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment = 'Studio', prodRow = null) {
   const estilo = (estiloSolicitado || 'ecommerce').toLowerCase();
   const genero = (prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
-  
+
   const category = (prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
   const modelName = (prodRow ? prodRow.MODELO || '' : '').toLowerCase();
   const styleName = (prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
   const skuCode = (prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
   const specsCategory = (extraSpecs.categoria || '').toLowerCase();
   const specsSku = (extraSpecs.sku || '').toLowerCase();
-  
-  let isConjunto = category.includes("conjunto") || 
-                   modelName.includes("conjunto") || 
-                   styleName.includes("conjunto") || 
-                   skuCode.includes("conj") ||
-                   specsCategory.includes("conjunto") ||
-                   specsSku.includes("conj");
+
+  let isConjunto = category.includes("conjunto") ||
+    modelName.includes("conjunto") ||
+    styleName.includes("conjunto") ||
+    skuCode.includes("conj") ||
+    specsCategory.includes("conjunto") ||
+    specsSku.includes("conj");
 
   let promptRules = "";
   let modelAdaptation = "";
@@ -1320,7 +1320,7 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
       const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
       const focus = extraSpecs.focus || "";
       let focusMandate = "";
-      
+
       if (clasif === "PRENDA_SUPERIOR") {
         if (focus === "waist") {
           focusMandate = "- USER FOCUS REQUEST: Upper Neck/Collar opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the top collar/neck opening. Keep it shallow and clean. The bottom hem and sleeve openings MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
@@ -1452,10 +1452,10 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
     const esFrio = tempLower.includes("invierno") || tempLower.includes("otoño") || tempLower.includes("winter") || tempLower.includes("autumn") || tempLower.includes("frio") || tempLower.includes("frío");
     const esFemenino = (genero === 'FEMENINO' || genero === 'MUJER');
     const tempDesc = temporada ? `season: ${temporada}` : "season: auto-detect based on context";
-    
+
     let complementoTexto = "";
     if (clasif === "PRENDA_INFERIOR") {
-      const topType = esFrio 
+      const topType = esFrio
         ? (esFemenino ? "a long-sleeve neutral knit sweater or long-sleeve cotton shirt" : "a plain long-sleeve crewneck shirt or simple solid hoodie")
         : (esFemenino ? "a basic short-sleeve solid cotton t-shirt or crop top" : "a plain neutral short-sleeve cotton t-shirt");
       complementoTexto = `UPPER BODY COMPLEMENT MANDATE: The model MUST wear ${topType} to ensure the torso is fully covered and realistic, preventing safety filters from rendering a plastic mannequin. The upper garment must be in a solid neutral color (e.g., plain white, gray, or black) and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the lower garment).`;
@@ -1465,16 +1465,16 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
         : (esFemenino ? "classic simple denim shorts or light cotton trousers" : "classic neutral chino shorts or light trousers");
       complementoTexto = `LOWER BODY COMPLEMENT MANDATE: The model MUST wear ${bottomType} to ensure the outfit is complete and realistic. The lower garment must be in a simple, solid neutral color and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the upper garment).`;
     }
-    
+
     if (complementoTexto) {
       extraDirectives.push(complementoTexto);
     }
-    
+
     // Control de encuadre trimodal (Cuerpo Completo vs Enfoque de Prenda vs Auto)
     const cuerpoCompletoVal = extraSpecs.cuerpoCompleto !== undefined ? String(extraSpecs.cuerpoCompleto).toLowerCase() : "";
     const isFull = cuerpoCompletoVal === "true" || cuerpoCompletoVal === "cuerpo_completo" || cuerpoCompletoVal === "full_body" || extraSpecs.framing === "full_body";
     const isProductFocus = cuerpoCompletoVal === "false" || cuerpoCompletoVal === "enfoque_prenda" || extraSpecs.framing === "enfoque_prenda";
-    
+
     if (isFull) {
       extraDirectives.push(`FRAMING MANDATE: Professional full-body fashion shot showing the model from head to toe. Ensure the entire silhouette and both garments (main product and complement) are fully visible in the frame, including footwear.`);
     } else if (isProductFocus) {
@@ -1496,7 +1496,7 @@ function _getAiArtDirectionRules(estiloSolicitado, extraSpecs = {}, environment 
         }
       }
     }
-    
+
     // Mandato de realismo humano explícito
     extraDirectives.push(`REAL HUMAN MODEL MANDATE: The model must be a real, natural human model with highly realistic facial features, head, and hair (e.g., 'highly realistic human model with natural skin texture, showing face and head clearly'). Absolutely forbid any plastic mannequin structures, hollow mannequin necks, cropped headless bodies, or faceless plastic textures.`);
   }
@@ -1587,11 +1587,11 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
 
   try {
     console.log(`🧠 [Core-Flow] Delegando generación de Prompt Maestro a AIService para imagen: ${imagenId}`);
-    
+
     // Invocamos el servicio maestro de AIService
     // Forzamos la regeneración (true) al ser solicitado desde el dashboard
     const result = AIService.ejecutarGeneracionPromptMaestro([imagenId], estiloSolicitado, extraSpecs, true);
-    
+
     if (!result.success) throw new Error(result.error || "Error indeterminado de IA.");
 
     const promptGenerado = result.clean;
@@ -1599,11 +1599,11 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
     // Persistimos en la columna de la hoja comercial BD_PRODUCTO_IMAGENES
     actualizarCeldaPorHeader(imagenId, 'PROMPT', promptGenerado);
 
-    let resObj = { 
-      success: true, 
-      text: promptGenerado, 
-      raw: result.raw, 
-      modelUsed: result.modelo 
+    let resObj = {
+      success: true,
+      text: promptGenerado,
+      raw: result.raw,
+      modelUsed: result.modelo
     };
 
     // INTEGRACIÓN CORE: Renderizamos usando la imagen actual como referencia
@@ -1851,11 +1851,11 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
 
   try {
     console.log(`🧠 [Core-Flow] Delegando generación de Prompt Maestro Masivo a AIService para: ${imageIds.join(', ')}`);
-    
+
     // Invocamos el servicio maestro de AIService
     // Forzamos la regeneración (true) al ser solicitado desde el dashboard
     const result = AIService.ejecutarGeneracionPromptMaestro(imageIds, estiloSolicitado, extraSpecs, true);
-    
+
     if (!result.success) throw new Error(result.error || "Error indeterminado de IA.");
 
     const promptGenerado = result.clean;
@@ -1864,11 +1864,11 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
     // Persistimos en la columna de la hoja comercial BD_PRODUCTO_IMAGENES (sobre la imagen Master)
     actualizarCeldaPorHeader(masterId, 'PROMPT', promptGenerado);
 
-    let resObj = { 
-      success: true, 
-      text: promptGenerado, 
-      raw: result.raw, 
-      modelUsed: result.modelo 
+    let resObj = {
+      success: true,
+      text: promptGenerado,
+      raw: result.raw,
+      modelUsed: result.modelo
     };
 
     // INTEGRACIÓN CORE: Renderizamos usando el grupo de imágenes de referencia

@@ -36,12 +36,61 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
 
 ```javascript
 /**
- * SCRIPT DE CONSOLA: Extractor de Catálogo Comercial en WhatsApp Web
+ * SCRIPT DE CONSOLA: Extractor Inteligente con Auto-Scroll & Soporte de Ofertas
  * Desarrollado para: ERP - Macros HostingShop
  * Salida: Descarga automática de "catalogo_whatsapp_interceptado.csv"
  */
-(function() {
-    console.log("🔍 Iniciando intercepción de catálogo WhatsApp...");
+(async function() {
+    console.log("🔍 Iniciando Extractor Inteligente de Catálogo de WhatsApp Business...");
+    console.log("⏳ Paso 1: Iniciando Auto-Scroll automático interactivo para cargar el catálogo...");
+    
+    // Intentar buscar el contenedor del scroll del catálogo lateral de WhatsApp Web
+    const scrollContainer = document.querySelector('div[data-tab="1"]') || document.querySelector('div[class*="scrollable"]') || window;
+    
+    let lastHeight = scrollContainer.scrollHeight || document.body.scrollHeight;
+    let noChangeAttempts = 0;
+    const maxAttempts = 8; // Intentos consecutivos sin incremento de altura para finalizar
+    
+    // Crear cartel visual flotante elegante y temporal para guiar al usuario
+    const toast = document.createElement("div");
+    toast.style.position = "fixed";
+    toast.style.top = "20px";
+    toast.style.right = "20px";
+    toast.style.backgroundColor = "#4f46e5";
+    toast.style.color = "white";
+    toast.style.padding = "14px 20px";
+    toast.style.borderRadius = "12px";
+    toast.style.boxShadow = "0 10px 25px rgba(0,0,0,0.3)";
+    toast.style.zIndex = "99999";
+    toast.style.fontFamily = "sans-serif";
+    toast.style.fontSize = "13px";
+    toast.style.fontWeight = "bold";
+    toast.style.transition = "all 0.3s ease";
+    toast.innerText = "🤖 Auto-Scroll Activo: Cargando productos del catálogo...";
+    document.body.appendChild(toast);
+    
+    while (noChangeAttempts < maxAttempts) {
+        if (scrollContainer === window) {
+            window.scrollTo(0, document.body.scrollHeight);
+        } else {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+        
+        await new Promise(r => setTimeout(r, 600)); // Delay para permitir carga del DOM
+        
+        let newHeight = scrollContainer.scrollHeight || document.body.scrollHeight;
+        if (newHeight === lastHeight) {
+            noChangeAttempts++;
+        } else {
+            noChangeAttempts = 0;
+            lastHeight = newHeight;
+            console.log(`   ⏳ Cargando productos... Altura: ${newHeight}px`);
+        }
+    }
+    
+    toast.style.backgroundColor = "#10b981";
+    toast.innerText = "✅ Carga completa. Extrayendo datos de productos...";
+    console.log("🏁 Carga de catálogo completada. Procesando productos...");
     
     // Selectores del DOM de WhatsApp Web (Sujetos a cambios en actualizaciones de Meta)
     const productCards = document.querySelectorAll('div[role="listitem"], div[class*="_ak8g"], div[class*="selectable-text"]');
@@ -51,11 +100,9 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         try {
             // Intentar buscar los elementos internos de cada tarjeta
             const titleEl = card.querySelector('span[class*="selectable-text"], span[dir="auto"], font');
-            const priceEl = card.querySelector('span[class*="_ak8h"], span[class*="price"]');
             const imgEl = card.querySelector('img');
             
             // Tratamiento de SKU / ID único de WhatsApp
-            // Si el elemento img tiene una URL, el ID de WhatsApp suele estar codificado allí
             let sku = `WS-${Date.now()}-${index}`;
             let imageUrl = "";
             
@@ -68,7 +115,6 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
                 // Extraer el hash del ID del CDN de Meta si está disponible
                 const match = imageUrl.match(/\/v\/t45\.5328-4\/([a-zA-Z0-9_\-]+)\./);
                 if (match && match[1]) {
-                    // Limpiar el hash de la imagen para usarlo como SKU único numérico
                     sku = match[1].replace(/[^0-9]/g, "").substring(0, 17);
                 }
             }
@@ -76,21 +122,44 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             // Sanitización del Título y Limpieza Directa de Emojis/Iconos
             let title = titleEl ? titleEl.innerText.trim() : "Producto Sin Título";
             
-            // Extracción y Normalización de Precio (Elimina caracteres de moneda)
+            // --- DETECCIÓN PREMIUM DE PRECIOS DE OFERTA VIGENTES ---
+            const allPrices = card.querySelectorAll('span[class*="_ak8h"], span[class*="price"], span[class*="strike"]');
             let price = 0;
-            if (priceEl) {
-                const rawPrice = priceEl.innerText.replace(/[^0-9,.]/g, "").replace(",", ".");
+            
+            if (allPrices.length > 0) {
+                let selectedPriceText = "";
+                
+                if (allPrices.length > 1) {
+                    // Hay más de un precio en la tarjeta -> Oferta activa
+                    let offerPriceEl = null;
+                    allPrices.forEach(pEl => {
+                        const style = window.getComputedStyle(pEl);
+                        const isStruck = style.textDecoration.includes('line-through') || 
+                                         pEl.closest('del') || 
+                                         pEl.querySelector('del') ||
+                                         pEl.className.includes('strike') ||
+                                         pEl.style.textDecoration === 'line-through';
+                        
+                        if (!isStruck) {
+                            offerPriceEl = pEl; // Capturar el precio que no está tachado (el de oferta)
+                        }
+                    });
+                    selectedPriceText = offerPriceEl ? offerPriceEl.innerText : allPrices[allPrices.length - 1].innerText;
+                } else {
+                    // Un solo precio normal
+                    selectedPriceText = allPrices[0].innerText;
+                }
+                
+                const rawPrice = selectedPriceText.replace(/[^0-9,.]/g, "").replace(",", ".");
                 price = parseFloat(rawPrice) || 0;
             }
 
-            // Nota: En la vista de lista de catálogo, WhatsApp a veces no muestra la descripción larga.
-            // Extraemos por defecto el detalle que exponga el DOM, o dejamos el campo listo para el limpiador.
+            // Descripción (Fallback/Defecto)
             let description = "";
             const descEl = card.querySelector('span[class*="description"], div[class*="description"]');
             if (descEl) {
                 description = descEl.innerText.trim();
             } else {
-                // Fallback: usar parte del título o dejar en blanco para que lo asigne el usuario manualmente en el importador
                 description = `Detalle de talle y material para ${title}`;
             }
 
@@ -109,13 +178,18 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         }
     });
 
+    // Remover cartel visual
+    setTimeout(() => {
+        if (toast.parentNode) document.body.removeChild(toast);
+    }, 3000);
+
     if (products.length === 0) {
-        console.warn("❌ No se detectaron productos. Asegúrate de estar con el panel lateral de catálogo abierto y haber hecho scroll.");
+        console.warn("❌ No se detectaron productos. Asegúrate de estar con el catálogo abierto.");
         alert("No se encontraron productos. Por favor revisa que el catálogo esté visible en pantalla.");
         return;
     }
 
-    console.log(`✅ ¡Éxito! Se interceptaron ${products.length} productos.`);
+    console.log(`✅ ¡Éxito! Se interceptaron ${products.length} productos con sus precios reales.`);
 
     // --- FORMATEO E IMPORTACIÓN A CSV ---
     const headers = ["SKU", "Title", "Description", "Price", "Image Link"];

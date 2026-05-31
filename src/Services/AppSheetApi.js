@@ -540,19 +540,41 @@ function appsheet_crearProducto(productData) {
     } else {
       debugLog(`[AppSheetApi] Producto existente encontrado en fila ${existingRowIdx} con código ${finalCodigoId}. Omitiendo creación y ejecutando actualizaciones.`);
     }
-    // 1.5 Si es un producto EXISTENTE (ya registrado) y viene una descripción, escribirla directamente en la Sheet.
-    // Para los nuevos, ya se envió e insertó de forma limpia y síncrona a través del payload de la API de AppSheet de arriba!
-    if (productData.DESCRIPCION_IA && existingRowIdx !== -1) {
-      try {
-        if (sheetProducts && mappingProd) {
+
+    // 1.5 Si es un producto EXISTENTE (ya registrado), actualizar los metadatos modificados directamente en la Sheet.
+    if (existingRowIdx !== -1 && sheetProducts && mappingProd) {
+      // A. Actualizar descripción si viene en el payload
+      if (productData.DESCRIPCION_IA) {
+        try {
           const colDesc = mappingProd.DESCRIPCION_IA !== undefined ? mappingProd.DESCRIPCION_IA : mappingProd.DESCRIPCION;
           if (colDesc !== undefined) {
             sheetProducts.getRange(existingRowIdx, colDesc + 1).setValue(productData.DESCRIPCION_IA);
             debugLog(`[AppSheetApi] Descripción de producto existente guardada directamente en Sheet en fila ${existingRowIdx} para ${finalCodigoId}`);
           }
+        } catch (sheetErr) {
+          console.error("Error al escribir descripción en Sheet: " + sheetErr.message);
         }
-      } catch (sheetErr) {
-        console.error("Error al escribir descripción en Sheet: " + sheetErr.message);
+      }
+
+      // B. Actualizar PRECIO_COSTO para gatillar los bots de AppSheet
+      if (productData.PRECIO_COSTO !== undefined) {
+        try {
+          const colCosto = mappingProd.PRECIO_COSTO;
+          if (colCosto !== undefined) {
+            const oldVal = parseFloat(sheetProducts.getRange(existingRowIdx, colCosto + 1).getValue()) || 0;
+            const newVal = parseFloat(productData.PRECIO_COSTO) || 0;
+
+            if (oldVal !== newVal) {
+              sheetProducts.getRange(existingRowIdx, colCosto + 1).setValue(newVal);
+              sheetProducts.getRange(existingRowIdx, mappingProd.ULTIMA_ACTUALIZACION + 1).setValue(fechaSync);
+              debugLog(`[AppSheetApi] PRECIO_COSTO de producto existente actualizado en fila ${existingRowIdx} para ${finalCodigoId}: $${oldVal} -> $${newVal}. (Disparará bot de AppSheet)`);
+            } else {
+              debugLog(`[AppSheetApi] PRECIO_COSTO sin cambios para ${finalCodigoId} ($${newVal}). Omisión de escritura.`);
+            }
+          }
+        } catch (costoErr) {
+          console.error("Error al escribir precio de costo en Sheet: " + costoErr.message);
+        }
       }
     }
 
