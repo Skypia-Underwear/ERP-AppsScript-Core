@@ -63,6 +63,21 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
         return parseFloat(s) || 0;
     }
     
+    // Función criptográfica: Extrae la imagen descifrada real visible en pantalla a Base64 usando un lienzo Canvas
+    function getBase64FromImage(imgEl) {
+        try {
+            const canvas = document.createElement("canvas");
+            canvas.width = imgEl.naturalWidth || imgEl.width || 120;
+            canvas.height = imgEl.naturalHeight || imgEl.height || 120;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL("image/jpeg", 0.85); // 85% de calidad JPEG balanceado
+        } catch (e) {
+            console.error("No se pudo descifrar la imagen a Base64 localmente:", e);
+            return "";
+        }
+    }
+    
     // Selectores del DOM de WhatsApp Web (Tarjetas de producto)
     const productCards = document.querySelectorAll('div[role="listitem"], div[class*="_ak8g"], div[class*="selectable-text"]');
     const products = [];
@@ -77,11 +92,15 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             let sku = `WS-${Date.now()}-${index}`;
             let imageUrl = "";
             
-            // --- DETECCIÓN PREMIUM DE IMAGEN (Evita URLs 'blob:' locales y captura CDN real de Meta) ---
+            // --- DETECCIÓN PREMIUM DE IMAGEN (Evita URLs 'blob:' locales y captura Base64 descifrado real de Meta) ---
             if (imgEl) {
-                // 1. Escanear todos los subelementos e inspeccionar todos sus atributos en la tarjeta buscando dominios de CDN
+                // Descifrar la miniatura visible en la GPU/pantalla del navegador directamente a Base64
+                imageUrl = getBase64FromImage(imgEl);
+                
+                // Generamos un SKU robusto y único de WhatsApp usando el ID del CDN si está presente en los atributos
                 const allElements = card.querySelectorAll('*');
                 const metaCdnRegex = /(https:\/\/[^\s"'>)]*(?:whatsapp\.net|fbcdn\.net)[^\s"'>)]*)/i;
+                let cdnUrl = "";
                 
                 for (let el of allElements) {
                     if (el.attributes) {
@@ -89,23 +108,20 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
                             const val = attr.value || "";
                             const match = val.match(metaCdnRegex);
                             if (match) {
-                                imageUrl = match[1];
+                                cdnUrl = match[1];
                                 break;
                             }
                         }
                     }
-                    if (imageUrl) break;
+                    if (cdnUrl) break;
                 }
                 
-                // 2. Fallback de resguardo
-                if (!imageUrl) {
-                    imageUrl = imgEl.src || "";
-                }
-                
-                // Extraer el hash de la URL de imagen para el SKU único
-                const match = imageUrl.match(/\/v\/t45\.5328-4\/([a-zA-Z0-9_\-]+)\./);
-                if (match && match[1]) {
-                    sku = match[1].replace(/[^0-9]/g, "").substring(0, 17);
+                // Extraer el hash de la URL de CDN para conservar la unicidad del SKU
+                if (cdnUrl) {
+                    const match = cdnUrl.match(/\/v\/t45\.5328-4\/([a-zA-Z0-9_\-]+)\./);
+                    if (match && match[1]) {
+                        sku = match[1].replace(/[^0-9]/g, "").substring(0, 17);
+                    }
                 }
             }
 

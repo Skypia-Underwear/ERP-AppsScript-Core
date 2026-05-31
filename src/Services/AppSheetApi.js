@@ -578,36 +578,50 @@ function appsheet_crearProducto(productData) {
       }
     }
 
-    // 2. Si tiene URL de imagen de WhatsApp, descargarla directamente en Drive y sincronizar mediante la lógica nativa de Images.js
-    if (productData.imageUrl && productData.imageUrl.startsWith("http")) {
+    // 2. Si tiene payload de imagen Base64 o URL de WhatsApp, guardarla directamente en Drive
+    if (productData.imageUrl) {
       try {
-        // A. Obtener o crear la carpeta física del producto (guarda CARPETA_ID en la Sheet)
         const folder = obtenerOCrearCarpetaProducto(finalCodigoId);
         if (folder) {
-          // Si la carpeta ya contiene algún archivo (imagen o vídeo), evitamos volver a descargar desde WhatsApp para prevenir duplicados.
+          // Si la carpeta ya contiene algún archivo (imagen o vídeo), evitamos volver a descargar para prevenir duplicados.
           const hasFiles = folder.getFiles().hasNext();
           
           if (!hasFiles) {
             const fileName = `${finalCodigoId}_01.jpg`;
-            const imgResponse = UrlFetchApp.fetch(productData.imageUrl, { muteHttpExceptions: true });
-            if (imgResponse.getResponseCode() === 200) {
-              const blob = imgResponse.getBlob().setName(fileName);
+            let blob = null;
+            
+            if (productData.imageUrl.startsWith("data:image")) {
+              // A. Decodificación de payload Base64 local en memoria (Cero HTTP Fetch al CDN de Meta)
+              const parts = productData.imageUrl.split(",");
+              const base64Data = parts[1];
+              const contentType = parts[0].split(";")[0].split(":")[1] || "image/jpeg";
+              const decodedBytes = Utilities.base64Decode(base64Data);
+              blob = Utilities.newBlob(decodedBytes, contentType, fileName);
+              debugLog(`[AppSheetApi] Imagen de WhatsApp Base64 decodificada localmente con éxito para ${finalCodigoId}`);
+            } else if (productData.imageUrl.startsWith("http")) {
+              // B. Descarga tradicional por HTTP (WooCommerce / Blogger / CDN no encriptado)
+              const imgResponse = UrlFetchApp.fetch(productData.imageUrl, { muteHttpExceptions: true });
+              if (imgResponse.getResponseCode() === 200) {
+                blob = imgResponse.getBlob().setName(fileName);
+                debugLog(`[AppSheetApi] Imagen por URL HTTP descargada con éxito para ${finalCodigoId}`);
+              } else {
+                debugLog(`[AppSheetApi] Error HTTP ${imgResponse.getResponseCode()} al descargar la imagen por URL.`);
+              }
+            }
+            
+            if (blob) {
               folder.createFile(blob);
-              debugLog(`[AppSheetApi] Imagen de WhatsApp guardada en carpeta de Drive para ${finalCodigoId}`);
               
-              // B. Ejecutar la sincronización de imágenes nativa para este producto
-              // Esto se encarga de renombrar la imagen al formato estable de AppSheet y de registrarla en la base BD_PRODUCTO_IMAGENES
+              // C. Sincronizar imágenes nativas
               sincronizarImagenes(finalCodigoId);
               debugLog(`[AppSheetApi] Sincronización maestra de imágenes finalizada para ${finalCodigoId}`);
-            } else {
-              debugLog(`[AppSheetApi] Error HTTP ${imgResponse.getResponseCode()} al descargar la imagen de WhatsApp.`);
             }
           } else {
             debugLog(`[AppSheetApi] La carpeta de Drive para ${finalCodigoId} ya contiene imágenes. Omitiendo descarga e inserción duplicada.`);
           }
         }
       } catch (imgErr) {
-        console.error("Error al procesar y sincronizar imagen: " + imgErr.message);
+        console.error("Error al procesar y sincronizar imagen Base64/URL: " + imgErr.message);
       }
     }
 
