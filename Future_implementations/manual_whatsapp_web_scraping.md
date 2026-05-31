@@ -36,7 +36,7 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
 
 ```javascript
 /**
- * SCRIPT DE CONSOLA: Extractor Inteligente e Instantáneo de Catálogo (v3 - Cero CSS y Cero Blobs)
+ * SCRIPT DE CONSOLA: Extractor Inteligente e Instantáneo de Catálogo (v4 - Cero CSS y Cero Blobs)
  * Desarrollado para: ERP - Macros HostingShop
  * Instrucciones: Haz scroll manual hasta el final del catálogo y luego ejecuta este script en la consola (F12).
  * Salida: Descarga automática de "catalogo_whatsapp_interceptado.csv"
@@ -79,33 +79,25 @@ Copia y pega el siguiente script de JavaScript en la consola y presiona **Enter*
             
             // --- DETECCIÓN PREMIUM DE IMAGEN (Evita URLs 'blob:' locales y captura CDN real de Meta) ---
             if (imgEl) {
-                // 1. Escanear atributos de la propia imagen
-                for (let attr of imgEl.attributes) {
-                    const val = attr.value || "";
-                    if (val.startsWith("https://mmg.whatsapp.net") || val.startsWith("https://pps.whatsapp.net")) {
-                        imageUrl = val;
-                        break;
-                    }
-                }
+                // 1. Escanear todos los subelementos e inspeccionar todos sus atributos en la tarjeta buscando dominios de CDN
+                const allElements = card.querySelectorAll('*');
+                const metaCdnRegex = /(https:\/\/[^\s"'>)]*(?:whatsapp\.net|fbcdn\.net)[^\s"'>)]*)/i;
                 
-                // 2. Si no se halló, escanear recursivamente los elementos padres directos
-                if (!imageUrl || imageUrl.startsWith("blob:")) {
-                    let parent = imgEl.parentElement;
-                    let depth = 0;
-                    while (parent && depth < 4 && (!imageUrl || imageUrl.startsWith("blob:"))) {
-                        for (let attr of parent.attributes) {
+                for (let el of allElements) {
+                    if (el.attributes) {
+                        for (let attr of el.attributes) {
                             const val = attr.value || "";
-                            if (val.startsWith("https://mmg.whatsapp.net") || val.startsWith("https://pps.whatsapp.net")) {
-                                imageUrl = val;
+                            const match = val.match(metaCdnRegex);
+                            if (match) {
+                                imageUrl = match[1];
                                 break;
                             }
                         }
-                        parent = parent.parentElement;
-                        depth++;
                     }
+                    if (imageUrl) break;
                 }
                 
-                // 3. Fallback
+                // 2. Fallback de resguardo
                 if (!imageUrl) {
                     imageUrl = imgEl.src || "";
                 }
