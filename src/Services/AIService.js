@@ -990,7 +990,7 @@ TIPO_PRENDA: ROPA INTERIOR
         [CRITICAL USER REFINEMENT DIRECTIVE]:
         The user has requested the following specific modification:
         "${extraSpecs.refinementInstruction}"
-        You MUST apply this modification to the final scene description. Update the REASONING, VISUAL AUDIT, RESUMEN_ESPAÑOL, and MASTER PROMPT fields to reflect this change. Ensure all other details of the clothing item and its core structure from the forensic audit remain intact unless they directly conflict with this change.
+        You MUST apply this modification to the final scene description. Update the REASONING, VISUAL AUDIT, RESUMEN_ESPAÑOL, and MASTER PROMPT (or master_prompt_en) fields to reflect this change. Ensure all other details of the clothing item and its core structure from the forensic audit remain intact unless they directly conflict with this change.
       ` : "";
 
       const promptSistema = `
@@ -1021,17 +1021,18 @@ TIPO_PRENDA: ROPA INTERIOR
         ${forensicSOT}
   
         [OUTPUT STRUCTURE MANDATE]:
-        You MUST structure your response with these exact headers:
+        - If generating JSON (Gemini models): Return a JSON object with keys "reasoning", "visual_audit", and "master_prompt_en". The "master_prompt_en" field MUST contain a rich visual description of the clothing item in English, focusing on subject, materials, textures, details, environment, lighting, and style (minimum 40 words, maximum detail). Do NOT generate Spanish translation inside the JSON, as it will be translated programmatically.
+        - If generating plain text (Gemma models): You MUST structure your response with these exact headers:
         REASONING: [Your reasoning in English]
         VISUAL AUDIT: [Your audit in English]
         RESUMEN_ESPAÑOL: [A detailed, complete description of the scene in SPANISH for the cataloger, translating all key details of the garment, colors, patterns, model features, pose, clothing styling, background, and lighting, without sentence limits, so the cataloger can audit the entire prompt details in Spanish.]
-        MASTER PROMPT: [The final technical prompt in English]
+        MASTER PROMPT: [The final technical prompt in English, focusing on subject, details, environment, lighting, and style with minimum 40 words]
 
-        [MANDATORY OUTPUT FORMAT - FOLLOW THIS EXACT EXAMPLE]:
+        [MANDATORY OUTPUT FORMAT - FOLLOW THIS EXACT EXAMPLE IF NOT GENERATING JSON]:
 ${directiva.exampleBlock}
   
         CRITICAL: 
-        - ALL output MUST be in ENGLISH (Reasoning, Audit, and Master Prompt), EXCEPT for the RESUMEN_ESPAÑOL block which MUST be in SPANISH.
+        - ALL output MUST be in ENGLISH (Reasoning, Audit, and Master Prompt), EXCEPT for the RESUMEN_ESPAÑOL block (when generating text) which MUST be in SPANISH.
         - NO internal chatter, NO "Step 1", NO "Checklist" at the end.
       `;
 
@@ -1046,6 +1047,8 @@ ${directiva.exampleBlock}
       // 5. Ejecución RAW Multimodal
       let rawResponse = "";
       let modeloUsado = "";
+      let resumenEspanolDeGemini = ""; // Guardar traducción nativa de Gemini
+      let rawResponseGeminiRaw = ""; // Guardar el JSON crudo retornado por Gemini
 
       // Construir lista dinámica de modelos priorizando el seleccionado por el usuario
       const modelosATratar = [];
@@ -1092,6 +1095,29 @@ ${directiva.exampleBlock}
               generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
             };
 
+            // Inyectar JSON Schema si es modelo Gemini
+            if (modelo.startsWith("gemini-")) {
+              payload.generationConfig.responseMimeType = "application/json";
+              payload.generationConfig.responseSchema = {
+                type: "OBJECT",
+                properties: {
+                  reasoning: { 
+                    type: "STRING",
+                    description: "Reasoning and composition choices in English."
+                  },
+                  visual_audit: { 
+                    type: "STRING",
+                    description: "Detailed visual audit of clothing components in English."
+                  },
+                  master_prompt_en: { 
+                    type: "STRING",
+                    description: "The final technical prompt in English (minimum 40 words, rich description of subject, details, environment, lighting, and style)."
+                  }
+                },
+                required: ["reasoning", "visual_audit", "master_prompt_en"]
+              };
+            }
+
             const response = UrlFetchApp.fetch(url, {
               method: "post", contentType: "application/json",
               payload: JSON.stringify(payload),
@@ -1102,7 +1128,40 @@ ${directiva.exampleBlock}
             if (response.getResponseCode() === 200) {
               const resJson = JSON.parse(response.getContentText());
               if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
-                rawResponse = resJson.candidates[0].content.parts[0].text;
+                const textOutput = resJson.candidates[0].content.parts[0].text;
+                
+                if (modelo.startsWith("gemini-")) {
+                  rawResponseGeminiRaw = textOutput;
+                  try {
+                    const parsedJson = JSON.parse(textOutput);
+                    
+                    // 1. Traducir el prompt maestro de inglés a español nativamente
+                    if (parsedJson.master_prompt_en) {
+                      try {
+                        resumenEspanolDeGemini = LanguageApp.translate(parsedJson.master_prompt_en, "en", "es");
+                        console.log("🌐 [LanguageApp] Traducido master_prompt_en de Gemini a Español con éxito.");
+                      } catch (errTranslate) {
+                        console.warn("⚠️ [LanguageApp] Falló traducción de master_prompt_en: " + errTranslate.message);
+                        resumenEspanolDeGemini = "Error al traducir el prompt al español.";
+                      }
+                    }
+
+                    // 2. Reconstruir rawResponse en el formato estructurado legacy
+                    rawResponse = [
+                      `REASONING:\n${parsedJson.reasoning || ""}`,
+                      `VISUAL AUDIT:\n${parsedJson.visual_audit || ""}`,
+                      `RESUMEN_ESPAÑOL:\n${resumenEspanolDeGemini}`,
+                      `MASTER PROMPT:\n${parsedJson.master_prompt_en || ""}`
+                    ].join("\n\n");
+
+                  } catch (errParse) {
+                    console.error("❌ [Lab-IA] Error parseando respuesta JSON de Gemini: " + errParse.message + ". Usando texto plano.");
+                    rawResponse = textOutput;
+                  }
+                } else {
+                  rawResponse = textOutput;
+                }
+                
                 modeloUsado = modelo;
                 console.log(`✅ [Lab-IA] Éxito con ${modelo} usando API Key ${keyObj.label}`);
                 break;
@@ -1134,12 +1193,17 @@ ${directiva.exampleBlock}
 
       let resumenEspanolText = "";
       if (masterPromptText) {
-        try {
-          resumenEspanolText = LanguageApp.translate(masterPromptText, "en", "es");
-          console.log("🌐 [LanguageApp] Traducido Master Prompt a Español con éxito.");
-        } catch (e) {
-          console.warn("⚠️ [LanguageApp] Falló traducción: " + e.message);
-          resumenEspanolText = "Error al traducir el prompt al español.";
+        if (resumenEspanolDeGemini) {
+          resumenEspanolText = resumenEspanolDeGemini;
+          console.log("🌐 [LanguageApp] Reutilizada traducción existente para evitar llamada duplicada.");
+        } else {
+          try {
+            resumenEspanolText = LanguageApp.translate(masterPromptText, "en", "es");
+            console.log("🌐 [LanguageApp] Traducido Master Prompt a Español con éxito.");
+          } catch (e) {
+            console.warn("⚠️ [LanguageApp] Falló traducción: " + e.message);
+            resumenEspanolText = "Error al traducir el prompt al español.";
+          }
         }
       }
       // Limpiar cualquier etiqueta RESUMEN_ESPAÑOL preexistente generada espontáneamente por el LLM en cleanResponse
@@ -1154,7 +1218,17 @@ ${directiva.exampleBlock}
       }
 
       // 7. GUARDAR EN CACHÉ (Solo guardamos con el ID del Master para consolidación)
-      const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, whitelist, true);
+      let rawConMarcas = "";
+      if (modeloUsado.startsWith("gemini-")) {
+        try {
+          rawConMarcas = JSON.stringify(JSON.parse(rawResponseGeminiRaw), null, 2);
+        } catch (e) {
+          rawConMarcas = rawResponseGeminiRaw;
+        }
+      } else {
+        rawConMarcas = this.generarMenteRawConMarcas(rawResponse, whitelist, true);
+      }
+
       if (!extraSpecs || !extraSpecs.skipLabLog) {
         this.guardarResultadoLab({
           imagenId: masterId,
@@ -1166,12 +1240,20 @@ ${directiva.exampleBlock}
         });
       }
 
+      // Preparar logs de depuración para Mente Raw
+      let debugOutput = [];
+      if (modeloUsado.startsWith("gemini-")) {
+        debugOutput = rawConMarcas.split('\n').map(line => ({ text: line, status: 'KEPT' }));
+      } else {
+        debugOutput = this.generarLogDiferencial(rawResponse, cleanResponse);
+      }
+
       return {
         success: true,
         modelo: modeloUsado,
         raw: rawConMarcas,
         clean: cleanResponse,
-        debug: this.generarLogDiferencial(rawResponse, cleanResponse)
+        debug: debugOutput
       };
 
     } catch (e) {
