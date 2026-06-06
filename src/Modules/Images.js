@@ -1924,18 +1924,38 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
 
   // Extraer únicamente la sección del Prompt Maestro para el renderizador
   let cleanPromptText = promptTexto;
-  const masterPromptMarker = /MASTER PROMPT\s*:\s*([\s\S]+)/i;
-  const legacyMarker = /PROMPT MAESTRO\s*\(PARA IMAGEN 4 ULTRA\)\s*:\s*([\s\S]+)/i;
-  const directPromptMarker = /(?:^|\n)PROMPT\s*:\s*([\s\S]+)/i;
+  let isJsonParsed = false;
   
-  let promptMatch = promptTexto.match(masterPromptMarker) || promptTexto.match(legacyMarker) || promptTexto.match(directPromptMarker);
-  if (promptMatch) {
-    cleanPromptText = promptMatch[1].trim();
-  } else {
-    // Fallback: Limpieza básica si no se encuentran las cabeceras estructuradas
-    cleanPromptText = promptTexto.replace(/\[DEBUG v\d+.*?\]/gi, "")
-      .replace(/```json|```|PROMPT MAESTRO \(PARA IMAGEN 4 ULTRA\):/gi, "")
-      .trim();
+  if (typeof promptTexto === 'string' && promptTexto.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(promptTexto);
+      if (parsed.master_prompt_en) {
+        cleanPromptText = parsed.master_prompt_en;
+        isJsonParsed = true;
+        console.log(`${logPrefix} Extraído master_prompt_en desde JSON estructurado.`);
+      } else if (parsed.prompt) {
+        cleanPromptText = parsed.prompt;
+        isJsonParsed = true;
+      }
+    } catch (e) {
+      console.warn(`${logPrefix} ⚠️ No se pudo parsear el prompt JSON:`, e.message);
+    }
+  }
+
+  if (!isJsonParsed) {
+    const masterPromptMarker = /MASTER PROMPT\s*:\s*([\s\S]+)/i;
+    const legacyMarker = /PROMPT MAESTRO\s*\(PARA IMAGEN 4 ULTRA\)\s*:\s*([\s\S]+)/i;
+    const directPromptMarker = /(?:^|\n)PROMPT\s*:\s*([\s\S]+)/i;
+    
+    let promptMatch = promptTexto.match(masterPromptMarker) || promptTexto.match(legacyMarker) || promptTexto.match(directPromptMarker);
+    if (promptMatch) {
+      cleanPromptText = promptMatch[1].trim();
+    } else {
+      // Fallback: Limpieza básica si no se encuentran las cabeceras estructuradas
+      cleanPromptText = promptTexto.replace(/\[DEBUG v\d+.*?\]/gi, "")
+        .replace(/```json|```|PROMPT MAESTRO \(PARA IMAGEN 4 ULTRA\):/gi, "")
+        .trim();
+    }
   }
 
   try {
