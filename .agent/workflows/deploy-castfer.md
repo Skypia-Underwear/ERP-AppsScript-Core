@@ -8,7 +8,7 @@ Sincroniza el código local con el proyecto de Apps Script del cliente Castfer u
 > [!IMPORTANT]
 > Este workflow **solo pushea al proyecto del cliente Castfer**. No hace git commit/push ni afecta tu proyecto principal.
 > El Script ID de Castfer está configurado en `.clasp-castfer.json`: `1Te9svmz1gbbfj6Mep3U7dlTqVnYpMg6qU6TyUMIq6btC6CndjJnQTH_B`
-> ID de Implementación Web (Castfer): `AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg`
+> ID de Implementación Web (Castfer): `AKfycbyEpH5qTx-0LUVX8DjAt4xVQnrABSGJGn7JHk_3gVadu_DOuBONXbo3rXcfNjyL7Wh-Hw`
 
 ## Pasos de Ejecución para el Agente
 
@@ -25,7 +25,7 @@ clasp push --force
 # 3. Generar versión e implementar en la WebApp oficial
 clasp version "Despliegue Castfer - Sincronización"
 # Nota: Obtené el ID de versión retornado por el comando anterior para usarlo abajo (ej: 42)
-clasp deploy -i AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg -d "Despliegue Castfer - Sincronización"
+clasp deploy -i AKfycbyEpH5qTx-0LUVX8DjAt4xVQnrABSGJGn7JHk_3gVadu_DOuBONXbo3rXcfNjyL7Wh-Hw -d "Despliegue Castfer - Sincronización"
 
 # 4. Restaurar la configuración original de la macro
 Copy-Item .clasp-backup.json .clasp.json

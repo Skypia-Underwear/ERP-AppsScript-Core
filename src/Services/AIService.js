@@ -37,7 +37,7 @@ const AIService = {
     for (const modelo of this.MODELS_FREE) {
       for (const keyObj of apiKeysToTry) {
         const apiKey = keyObj.key;
-        console.log(`🧠 [AIService] Consultando con modelo ${modelo} usando API Key: ${keyObj.label}`);
+        console.log("🧠 [AIService] Consultando con modelo " + modelo + " usando API Key: " + keyObj.label);
 
         let timeoutInSeconds = 60;
         if (modelo === "gemma-4-26b-a4b-it") {
@@ -79,7 +79,7 @@ const AIService = {
           console.warn(`⚠️ [AIService] ${ultimoError}`);
         } catch (e) {
           ultimoError = `Mod ${modelo} (${keyObj.label}) -> ${e.message}`;
-          console.warn(`❌ [AIService] Excepción: ${ultimoError}`);
+          console.warn("❌ [AIService] Excepción: " + ultimoError);
         }
       }
     }
@@ -218,12 +218,12 @@ const AIService = {
   generarMenteRawConMarcas: function (texto, whitelistHeaders, isNarrativo) {
     if (!texto) return "";
     const lineasOriginales = texto.split('\n');
-    
+
     if (!isNarrativo) {
       // MODO FORENSE: Simular la extracción de vistos para identificar cuál fue la ganadora de cada header
       const ganadorIndice = new Map();
       const whitelistUpper = whitelistHeaders ? whitelistHeaders.map(h => h.toUpperCase()) : null;
-      
+
       const chatterKeywords = [
         "wait,", "i will", "let's", "final check", "self-correction", "i should",
         "prompt says", "refining schema", "final polish", "one more check",
@@ -312,7 +312,7 @@ const AIService = {
 
         if (foundHeader) {
           currentHeader = foundHeader.toUpperCase();
-          
+
           if (indicesPorHeader.has(currentHeader)) {
             const antiguosIndices = indicesPorHeader.get(currentHeader);
             antiguosIndices.forEach(i => conservadosIndices.delete(i));
@@ -363,11 +363,11 @@ const AIService = {
     const ss = getActiveSS();
     let sheet = ss.getSheetByName(SHEETS.LAB_IA);
     const expectedHeaders = [
-      "TIMESTAMP", "IMAGEN_ID", "SKU", "CATEGORIA", "ESTILO", 
-      "ANALISIS_FORENSE", "FORENSE_RAW", "PROMPT_MAESTRO", "PROMPT_RAW", 
-      "MODELO", "VERSION_REGLAS"
+      "TIMESTAMP", "IMAGEN_ID", "SKU", "CATEGORIA", "ESTILO",
+      "ANALISIS_FORENSE", "FORENSE_RAW", "PROMPT_MAESTRO", "PROMPT_RAW",
+      "MODELO", "VERSION_REGLAS", "CONFIG_PARAMS"
     ];
-    
+
     if (!sheet) {
       sheet = ss.insertSheet(SHEETS.LAB_IA);
       sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders])
@@ -377,17 +377,17 @@ const AIService = {
       // Validar si la hoja ya existe y si faltan columnas de forma segura
       const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
       const missingHeaders = expectedHeaders.filter(h => !currentHeaders.includes(h));
-      
+
       if (missingHeaders.length > 0) {
-        console.log(`🔧 [Lab-IA] Columnas faltantes detectadas en ${SHEETS.LAB_IA}: ${missingHeaders.join(', ')}. Actualizando...`);
+        console.log("🔧 [Lab-IA] Columnas faltantes detectadas en " + SHEETS.LAB_IA + ": " + missingHeaders.join(', ') + ". Actualizando...");
         let updatedHeaders = [...currentHeaders];
         missingHeaders.forEach(h => {
           updatedHeaders.push(h);
         });
-        
+
         // Escribir los nuevos encabezados
         sheet.getRange(1, 1, 1, updatedHeaders.length).setValues([updatedHeaders]);
-        
+
         // Aplicar el estilo al encabezado completo
         sheet.getRange(1, 1, 1, updatedHeaders.length)
           .setBackground("#4B0082").setFontColor("white").setFontWeight("bold");
@@ -426,6 +426,9 @@ const AIService = {
       if (data.promptMaestroRaw !== undefined && colMap.PROMPT_RAW !== undefined) newRow[colMap.PROMPT_RAW] = data.promptMaestroRaw;
       if (data.modelo) newRow[colMap.MODELO] = data.modelo;
       newRow[colMap.VERSION_REGLAS] = "v4.2 (Consolidado)";
+      if (data.configParams !== undefined && colMap.CONFIG_PARAMS !== undefined) {
+        newRow[colMap.CONFIG_PARAMS] = typeof data.configParams === 'string' ? data.configParams : JSON.stringify(data.configParams);
+      }
 
       if (rowIndex > 0) {
         sheet.getRange(rowIndex, 1, 1, newRow.length).setValues([newRow]);
@@ -449,13 +452,22 @@ const AIService = {
 
       const match = data.find(r => r[colMap.IMAGEN_ID] === imagenId);
       if (match) {
+        let configParamsObj = {};
+        if (colMap.CONFIG_PARAMS !== undefined && match[colMap.CONFIG_PARAMS]) {
+          try {
+            configParamsObj = JSON.parse(match[colMap.CONFIG_PARAMS]);
+          } catch (e) {
+            console.warn("[Lab-IA] Error parseando CONFIG_PARAMS:", e.message);
+          }
+        }
         return {
           sku: match[colMap.SKU],
           categoria: match[colMap.CATEGORIA],
           estilo: match[colMap.ESTILO],
           analisisForense: match[colMap.ANALISIS_FORENSE],
           promptMaestro: match[colMap.PROMPT_MAESTRO],
-          modelo: match[colMap.MODELO]
+          modelo: match[colMap.MODELO],
+          configParams: configParamsObj
         };
       }
       return null;
@@ -511,6 +523,9 @@ const AIService = {
         let val = parts.slice(-1)[0].replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
         // Si el valor es igual al nombre del header, no lo agregamos como contenido
         if (val && val.toUpperCase() !== currentHeader) bloques.get(currentHeader).push(val);
+      } else if (/^[#*\s]*([a-zA-Z_]{3,})[^a-z0-9]*:/i.test(l)) {
+        // Es un encabezado genérico pero no está en la whitelist (detenemos acumulación en el bloque anterior)
+        currentHeader = null;
       } else if (currentHeader) {
         let cleanVal = l.replace(/^#+\s+/, '').replace(/[*`]/g, '').trim();
         if (cleanVal) bloques.get(currentHeader).push(cleanVal);
@@ -558,7 +573,7 @@ const AIService = {
       const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
 
       // Construir Prompt Forense (Fase Industrial: Ignora metadata, reporta lo que veo)
-      const contextoProducto = prodRow ? `PRODUCT: ${prodRow.MODELO || prodRow.NOMBRE_PRODUCTO} | BRAND: ${prodRow.MARCA} | PARENT_CATEGORY: ${prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE}` : "";
+      const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) : "";
       const promptForense = `Forensic Clothing Analyst for a high-precision ERP.
 Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).
 Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).
@@ -669,27 +684,27 @@ TIPO_PRENDA: ROPA INTERIOR
                   CATEGORIA: { type: "STRING" },
                   MATERIAL: { type: "STRING" },
                   GENERO: { type: "STRING" },
-                  CLASIFICACION_ESTRUCTURAL: { 
-                    type: "STRING", 
-                    enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"] 
+                  CLASIFICACION_ESTRUCTURAL: {
+                    type: "STRING",
+                    enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"]
                   },
                   TIPO_PRENDA: { type: "STRING" },
-                  POSICION_DETECTADA: { 
-                    type: "STRING", 
-                    enum: ["FRENTE", "ESPALDA", "LATERAL", "PLANO", "GHOST_MANNEQUIN", "PILA_O_DOBLADO", "INDETERMINADO"] 
+                  POSICION_DETECTADA: {
+                    type: "STRING",
+                    enum: ["FRENTE", "ESPALDA", "LATERAL", "PLANO", "GHOST_MANNEQUIN", "PILA_O_DOBLADO", "INDETERMINADO"]
                   },
-                  SOPORTE_O_CONTEXTO: { 
-                    type: "STRING", 
-                    enum: ["FOTO_ESTUDIO", "COLGADA_EN_PERCHA", "DOBLADA_EN_SUPERFICIE", "SOBRE_MANIQUÍ", "EN_PERCHERO_MULTIPLE"] 
+                  SOPORTE_O_CONTEXTO: {
+                    type: "STRING",
+                    enum: ["FOTO_ESTUDIO", "COLGADA_EN_PERCHA", "DOBLADA_EN_SUPERFICIE", "SOBRE_MANIQUÍ", "EN_PERCHERO_MULTIPLE"]
                   },
                   COLOR_PRINCIPAL: {
                     type: "OBJECT",
                     properties: {
                       NOMBRE_TECNICO: { type: "STRING" },
                       CODIGO_HEX: { type: "STRING" },
-                      TIPO: { 
-                        type: "STRING", 
-                        enum: ["LISO", "ESTAMPADO", "SUBLIMADO", "RAYADO", "JASPEADO"] 
+                      TIPO: {
+                        type: "STRING",
+                        enum: ["LISO", "ESTAMPADO", "SUBLIMADO", "RAYADO", "JASPEADO"]
                       },
                       PATRON: { type: "STRING" }
                     },
@@ -719,10 +734,10 @@ TIPO_PRENDA: ROPA INTERIOR
                   DETALLES_VISUALES: { type: "STRING" }
                 },
                 required: [
-                  "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO", 
-                  "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA", 
-                  "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", 
-                  "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", 
+                  "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO",
+                  "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA",
+                  "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO",
+                  "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES",
                   "ESTADO_VISUAL", "DETALLES_VISUALES"
                 ]
               };
@@ -791,10 +806,10 @@ TIPO_PRENDA: ROPA INTERIOR
               }
             }
             ultimoError = `Mod ${modelo} (${keyObj.label}) -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`;
-            console.warn(`⚠️ [Lab-IA] Fallo en ${modelo}: ${ultimoError}`);
+            console.warn("⚠️ [Lab-IA] Fallo en " + modelo + ": " + ultimoError);
           } catch (e) {
             ultimoError = `Mod ${modelo} (${keyObj.label}) -> ${e.message}`;
-            console.warn(`❌ [Lab-IA] Excepción en ${modelo}: ${e.message}`);
+            console.warn("❌ [Lab-IA] Excepción en " + modelo + ": " + e.message);
           }
         }
         if (rawResponse) break; // Si tuvimos éxito, salimos del bucle de modelos
@@ -805,10 +820,10 @@ TIPO_PRENDA: ROPA INTERIOR
       // 4. Limpieza Industrial
       const forensicWhitelist = [
         "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
-        "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
+        "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
         "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
-        "MATERIAL_ESTIMADO", 
-        "LOGO_O_MARCA", "VISIBLE", "DETALLE", 
+        "MATERIAL_ESTIMADO",
+        "LOGO_O_MARCA", "VISIBLE", "DETALLE",
         "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
         "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
       ];
@@ -816,15 +831,17 @@ TIPO_PRENDA: ROPA INTERIOR
 
       // 5. GUARDAR EN CACHÉ
       const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, forensicWhitelist, false);
-      this.guardarResultadoLab({
-        imagenId: imagenId,
-        estilo: "FORENSIC_ONLY",
-        sku: metadata.sku,
-        categoria: metadata.categoria,
-        analisisForense: cleanResponse,
-        analisisForenseRaw: rawConMarcas,
-        modelo: modeloUsado
-      });
+      if (!metadata || !metadata.skipLabLog) {
+        this.guardarResultadoLab({
+          imagenId: imagenId,
+          estilo: "FORENSIC_ONLY",
+          sku: metadata.sku,
+          categoria: metadata.categoria,
+          analisisForense: cleanResponse,
+          analisisForenseRaw: rawConMarcas,
+          modelo: modeloUsado
+        });
+      }
 
       return {
         success: true,
@@ -837,7 +854,7 @@ TIPO_PRENDA: ROPA INTERIOR
       };
 
     } catch (e) {
-      console.error(`❌ [Lab-IA] Error fatal: ${e.message}`);
+      console.error("❌ [Lab-IA] Error fatal: " + e.message);
       return { success: false, error: e.message };
     }
   },
@@ -851,7 +868,10 @@ TIPO_PRENDA: ROPA INTERIOR
       if (!Array.isArray(imagenIds)) imagenIds = [imagenIds];
       const masterId = imagenIds[0];
 
-      console.log(`🧠 [Lab-IA] Generando Prompt Maestro para imágenes: ${imagenIds.join(', ')} (Estilo: ${estilo})`);
+      console.log("🧠 [Lab-IA] Generando Prompt Maestro para imágenes: " + imagenIds.join(', ') + " (Estilo: " + estilo + ")");
+      if (extraSpecs.refinementInstruction) {
+        console.log("🧠 [Lab-IA] Con Instrucción de Refinamiento: \"" + extraSpecs.refinementInstruction + "\"");
+      }
 
       // 1. INTENTAR CARGAR DESDE CACHÉ (Solo si es 1 imagen)
       if (imagenIds.length === 1 && !forzar) {
@@ -868,7 +888,7 @@ TIPO_PRENDA: ROPA INTERIOR
 
       const ss = getActiveSS();
       const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
-      
+
       const selectedRows = [];
       for (const id of imagenIds) {
         const row = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", id);
@@ -884,7 +904,7 @@ TIPO_PRENDA: ROPA INTERIOR
       // 3. Obtener Directivas de Arte según estilo
       let clasificacion = "";
       if (masterRow && masterRow.ANALISIS_FORENSE) {
-        const forensic = masterRow.ANALISIS_FORENSE.toUpperCase();
+        const forensic = String(masterRow.ANALISIS_FORENSE).toUpperCase();
         if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_SUPERIOR") || forensic.includes("PRENDA_SUPERIOR")) {
           clasificacion = "PRENDA_SUPERIOR";
         } else if (forensic.includes("CLASIFICACION_ESTRUCTURAL: PRENDA_INFERIOR") || forensic.includes("PRENDA_INFERIOR")) {
@@ -892,7 +912,7 @@ TIPO_PRENDA: ROPA INTERIOR
         }
       }
       if (!clasificacion && prodRow) {
-        const cat = (prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || "").toLowerCase();
+        const cat = String(prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || "").toLowerCase();
         const upperKeywords = ['remera', 'buzo', 'camisa', 'campera', 'chaleco', 'chomba', 'musculosa', 'parka', 'sueter', 'tapado', 'blazer', 'saco', 'corpiño', 'top', 'brasier', 'camiseta', 'upper', 'superior', 'top'];
         if (upperKeywords.some(kw => cat.includes(kw))) {
           clasificacion = "PRENDA_SUPERIOR";
@@ -914,62 +934,71 @@ TIPO_PRENDA: ROPA INTERIOR
       }
 
       // Detectar si es Conjunto para ajustar el System Prompt
-      const category = (prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
-      const modelName = (prodRow ? prodRow.MODELO || '' : '').toLowerCase();
-      const styleName = (prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
-      const skuCode = (prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
-      const specsCategory = (extraSpecs.categoria || '').toLowerCase();
-      const specsSku = (extraSpecs.sku || '').toLowerCase();
-      
+      const category = String(prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
+      const modelName = String(prodRow ? prodRow.MODELO || '' : '').toLowerCase();
+      const styleName = String(prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
+      const skuCode = String(prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
+      const specsCategory = String(extraSpecs.categoria || '').toLowerCase();
+      const specsSku = String(extraSpecs.sku || '').toLowerCase();
+
       let hasForensicConjunto = false;
       selectedRows.forEach(r => {
         if (r.ANALISIS_FORENSE && (
-          r.ANALISIS_FORENSE.toLowerCase().includes("conjunto") ||
-          r.ANALISIS_FORENSE.toLowerCase().includes("2 piezas") ||
-          r.ANALISIS_FORENSE.toLowerCase().includes("dos piezas") ||
-          r.ANALISIS_FORENSE.toLowerCase().includes("piezas")
+          String(r.ANALISIS_FORENSE).toLowerCase().includes("conjunto") ||
+          String(r.ANALISIS_FORENSE).toLowerCase().includes("2 piezas") ||
+          String(r.ANALISIS_FORENSE).toLowerCase().includes("dos piezas") ||
+          String(r.ANALISIS_FORENSE).toLowerCase().includes("piezas")
         )) {
           hasForensicConjunto = true;
         }
       });
       if (extraSpecs.fichaForense && (
-        extraSpecs.fichaForense.toLowerCase().includes("conjunto") || 
-        extraSpecs.fichaForense.toLowerCase().includes("2 piezas") || 
-        extraSpecs.fichaForense.toLowerCase().includes("dos piezas") ||
-        extraSpecs.fichaForense.toLowerCase().includes("piezas")
+        String(extraSpecs.fichaForense).toLowerCase().includes("conjunto") ||
+        String(extraSpecs.fichaForense).toLowerCase().includes("2 piezas") ||
+        String(extraSpecs.fichaForense).toLowerCase().includes("dos piezas") ||
+        String(extraSpecs.fichaForense).toLowerCase().includes("piezas")
       )) {
         hasForensicConjunto = true;
       }
-      
-      let isConjunto = category.includes("conjunto") || 
-                         modelName.includes("conjunto") || 
-                         styleName.includes("conjunto") || 
-                         skuCode.includes("conj") ||
-                         specsCategory.includes("conjunto") ||
-                         specsSku.includes("conj") ||
-                         hasForensicConjunto;
+
+      let isConjunto = category.includes("conjunto") ||
+        modelName.includes("conjunto") ||
+        styleName.includes("conjunto") ||
+        skuCode.includes("conj") ||
+        specsCategory.includes("conjunto") ||
+        specsSku.includes("conj") ||
+        hasForensicConjunto;
 
       // Salvaguarda técnica para lote de 1 referencia (evitar alucinaciones de conjunto si solo se muestra 1 prenda)
       if (isConjunto && selectedRows.length === 1) {
         const masterForensic = selectedRows[0].ANALISIS_FORENSE || extraSpecs.fichaForense || "";
-        const forensicUpper = masterForensic.toUpperCase();
+        const forensicUpper = String(masterForensic).toUpperCase();
         const hasUpper = forensicUpper.includes("PRENDA_SUPERIOR");
         const hasLower = forensicUpper.includes("PRENDA_INFERIOR");
-        const hasConjuntoText = forensicUpper.includes("CONJUNTO") || 
-                               forensicUpper.includes("2 PIEZAS") || 
-                               forensicUpper.includes("DOS PIEZAS") ||
-                               forensicUpper.includes("PIEZAS");
-        
+        const hasConjuntoText = forensicUpper.includes("CONJUNTO") ||
+          forensicUpper.includes("2 PIEZAS") ||
+          forensicUpper.includes("DOS PIEZAS") ||
+          forensicUpper.includes("PIEZAS");
+
         if ((hasUpper && !hasLower && !hasConjuntoText) || (hasLower && !hasUpper && !hasConjuntoText)) {
           isConjunto = false;
         }
       }
 
-      // 4. Build System Prompt (100% English)
+      // 4. Build System Prompt (100% English except Spanish summary)
+      const refinementSection = extraSpecs.refinementInstruction ? `
+        [CRITICAL USER REFINEMENT DIRECTIVE]:
+        The user has requested the following specific modification:
+        "${extraSpecs.refinementInstruction}"
+        You MUST apply this modification to the final scene description. Update the REASONING, VISUAL AUDIT, RESUMEN_ESPAÑOL, and MASTER PROMPT fields to reflect this change. Ensure all other details of the clothing item and its core structure from the forensic audit remain intact unless they directly conflict with this change.
+      ` : "";
+
       const promptSistema = `
         [SYSTEM]: You are an Art Director for High-End Fashion Photography.
         [MISSION]: Convert forensic clothing audits AND visual references into a technical narrative description for an image generation engine (Stage 3).
- 
+  
+        ${refinementSection}
+
         [GOLDEN RULES]:
         1. ABSOLUTE FIDELITY: Do not invent details that are not present in the forensic analysis.
         2. CINEMATIC LANGUAGE: Use precise lighting, composition, and material terminology.
@@ -979,7 +1008,7 @@ TIPO_PRENDA: ROPA INTERIOR
         6. BRAND HALLUCINATION PREVENTION & HANGTAG CLEANUP: 
            - Cardboard hangtags, price tags, and plastic retail attachments visible in the references MUST be completely ignored and NEVER described as logos, prints, or text on the fabric.
            - If the Forensic Audit states LOGO_O_MARCA is "NO" or "No visible", or if the logo is only present on a temporary cardboard hangtag, you MUST NOT include the brand name, model name, or any text in the final narrative description. Describe only the garment's pure visual geometry, construction, and solid colors to prevent the image generator from hallucinating text on the fabric.
- 
+  
         ${isConjunto ? `
         [TWO-PIECE SET CRITICAL DIRECTIVE]:
         * Since this is a two-piece set, your generated MASTER PROMPT must describe BOTH garments together as a single outfit, specifying the full color and style of each item (e.g. 'dusty pink hooded jacket paired with dark gray neoprene pants'). You must never describe only one garment.` : ""}
@@ -987,15 +1016,22 @@ TIPO_PRENDA: ROPA INTERIOR
         ${directiva.prefix}
         ${directiva.promptRules}
         ${directiva.modelAdaptation}
- 
+  
         [SOT - SOURCE OF TRUTH (FORENSIC AUDITS)]:
         ${forensicSOT}
- 
+  
+        [OUTPUT STRUCTURE MANDATE]:
+        You MUST structure your response with these exact headers:
+        REASONING: [Your reasoning in English]
+        VISUAL AUDIT: [Your audit in English]
+        RESUMEN_ESPAÑOL: [A detailed, complete description of the scene in SPANISH for the cataloger, translating all key details of the garment, colors, patterns, model features, pose, clothing styling, background, and lighting, without sentence limits, so the cataloger can audit the entire prompt details in Spanish.]
+        MASTER PROMPT: [The final technical prompt in English]
+
         [MANDATORY OUTPUT FORMAT - FOLLOW THIS EXACT EXAMPLE]:
 ${directiva.exampleBlock}
- 
+  
         CRITICAL: 
-        - ALL output MUST be in ENGLISH (Reasoning, Audit, and Master Prompt).
+        - ALL output MUST be in ENGLISH (Reasoning, Audit, and Master Prompt), EXCEPT for the RESUMEN_ESPAÑOL block which MUST be in SPANISH.
         - NO internal chatter, NO "Step 1", NO "Checklist" at the end.
       `;
 
@@ -1016,7 +1052,7 @@ ${directiva.exampleBlock}
       if (extraSpecs.analysisModel) {
         modelosATratar.push(extraSpecs.analysisModel);
       }
-      const fallbacks = ["gemma-4-26b-a4b-it", "gemini-2.5-flash"];
+      const fallbacks = ["gemma-4-26b-a4b-it"];
       for (const fb of fallbacks) {
         if (!modelosATratar.includes(fb)) {
           modelosATratar.push(fb);
@@ -1045,7 +1081,7 @@ ${directiva.exampleBlock}
             }
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-            
+
             let partsData = [{ text: promptSistema }];
             if (imagePartsArray.length > 0) {
               partsData = partsData.concat(imagePartsArray);
@@ -1053,7 +1089,7 @@ ${directiva.exampleBlock}
 
             const payload = {
               contents: [{ parts: partsData }],
-              generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+              generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
             };
 
             const response = UrlFetchApp.fetch(url, {
@@ -1072,10 +1108,10 @@ ${directiva.exampleBlock}
                 break;
               }
             } else {
-              console.warn(`⚠️ [Lab-IA] Falló ${modelo} (${keyObj.label}) -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`);
+              console.warn("⚠️ [Lab-IA] Falló " + modelo + " (" + keyObj.label + ") -> HTTP " + response.getResponseCode() + ": " + response.getContentText());
             }
           } catch (e) {
-            console.warn(`Fallo en ${modelo} (${keyObj.label}): ${e.message}`);
+            console.warn("Fallo en " + modelo + " (" + keyObj.label + "): " + e.message);
           }
         }
         if (rawResponse) break;
@@ -1085,19 +1121,50 @@ ${directiva.exampleBlock}
 
       // 6. Industrial Cleanup (Pure English)
       const whitelist = [
-        "REASONING", "VISUAL AUDIT", "AUDIT", "MASTER PROMPT"
+        "REASONING", "VISUAL AUDIT", "AUDIT", "MASTER PROMPT", "PROMPT"
       ];
-      const cleanResponse = this.extraerContenidoNarrativo(rawResponse, whitelist);
+      let cleanResponse = this.extraerContenidoNarrativo(rawResponse, whitelist);
+
+      // 6.5. Traducción automática programática de MASTER PROMPT / PROMPT a Español
+      let masterPromptText = "";
+      const masterMatch = cleanResponse.match(/(?:MASTER )?PROMPT\s*:\s*([\s\S]+)/i);
+      if (masterMatch) {
+        masterPromptText = masterMatch[1].trim();
+      }
+
+      let resumenEspanolText = "";
+      if (masterPromptText) {
+        try {
+          resumenEspanolText = LanguageApp.translate(masterPromptText, "en", "es");
+          console.log("🌐 [LanguageApp] Traducido Master Prompt a Español con éxito.");
+        } catch (e) {
+          console.warn("⚠️ [LanguageApp] Falló traducción: " + e.message);
+          resumenEspanolText = "Error al traducir el prompt al español.";
+        }
+      }
+      // Limpiar cualquier etiqueta RESUMEN_ESPAÑOL preexistente generada espontáneamente por el LLM en cleanResponse
+      cleanResponse = cleanResponse.replace(/RESUMEN_ESPAÑOL\s*:[\s\S]*?(?=(?:[A-Z_]+:|$))/i, "").trim();
+
+      // Re-insertar RESUMEN_ESPAÑOL traducido antes del MASTER PROMPT o PROMPT en cleanResponse para compatibilidad
+      if (resumenEspanolText) {
+        cleanResponse = cleanResponse.replace(
+          /((?:MASTER )?PROMPT\s*:)/i,
+          "RESUMEN_ESPAÑOL:\n" + resumenEspanolText + "\n\n$1"
+        );
+      }
 
       // 7. GUARDAR EN CACHÉ (Solo guardamos con el ID del Master para consolidación)
       const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, whitelist, true);
-      this.guardarResultadoLab({
-        imagenId: masterId,
-        estilo: estilo,
-        promptMaestro: cleanResponse,
-        promptMaestroRaw: rawConMarcas,
-        modelo: modeloUsado
-      });
+      if (!extraSpecs || !extraSpecs.skipLabLog) {
+        this.guardarResultadoLab({
+          imagenId: masterId,
+          estilo: estilo,
+          promptMaestro: cleanResponse,
+          promptMaestroRaw: rawConMarcas,
+          modelo: modeloUsado,
+          configParams: extraSpecs
+        });
+      }
 
       return {
         success: true,
@@ -1108,7 +1175,210 @@ ${directiva.exampleBlock}
       };
 
     } catch (e) {
-      console.error(`❌ [Lab-IA] Error Maestro: ${e.message}`);
+      console.error("❌ [Lab-IA] Error fatal: " + e.message);
+      return { success: false, error: e.message };
+    }
+  },
+
+  /**
+   * FASE 2.5: REFINAMIENTO DE PROMPT POR VOZ (Multimodal)
+   * Escucha el audio dictado por el usuario y refina semánticamente el Prompt Maestro.
+   */
+  ejecutarRefinamientoPromptPorVoz: function (imagenId, currentPrompt, base64Audio, mimeType, isAudio = true, estilo = null, extraSpecs = {}) {
+    try {
+      console.log(`🧠 [Lab-IA] Refinando Prompt Maestro por ${isAudio ? 'voz' : 'texto'} para imagen: ${imagenId}`);
+      if (!base64Audio) throw new Error(isAudio ? "Falta el audio en Base64." : "Falta la instrucción de texto.");
+
+      // Definir juego de API Keys para fallback
+      const apiKeysToTry = [];
+      if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+      if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+        apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+      }
+      if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
+
+      let cleanedInstruction = "";
+
+      // 1. FASE DE TRADUCCIÓN / LIMPIEZA CON GEMINI 2.5 FLASH
+      console.log(`🧠 [Lab-IA] Fase 2.5: Traducción y limpieza de instrucción con gemini-2.5-flash`);
+
+      const systemPromptTraductor = `
+        [SYSTEM]: You are a translation and transcription assistant for a fashion design system.
+        [MISSION]: Analyze the designer's instructions (which may be a spoken audio file in Spanish or a typed text in Spanish/English, potentially with pronunciation errors, typos, or slang).
+        Your job is to translate and clean this instruction into a clear, concise design update instruction in English.
+        
+        [RULES]:
+        - Do NOT include any conversational filler, introductory remarks, or explanations.
+        - Output ONLY the clean, translated instruction in English (e.g. "Add a wide, baggy style to the cargo bermuda shorts" or "Change background to warm sand beach").
+        - Keep it extremely concise and direct.
+      `;
+
+      let rawTransResp = "";
+      const modelosATratar = ["gemini-2.5-flash"];
+
+      for (const modelo of modelosATratar) {
+        for (const keyObj of apiKeysToTry) {
+          const apiKey = keyObj.key;
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+
+            let inputPart;
+            if (isAudio) {
+              inputPart = {
+                inlineData: {
+                  mimeType: mimeType || "audio/webm",
+                  data: base64Audio
+                }
+              };
+            } else {
+              inputPart = { text: `INSTRUCCIÓN EN ESPAÑOL DEL USUARIO: "${base64Audio}"` };
+            }
+
+            const payload = {
+              systemInstruction: { parts: [{ text: systemPromptTraductor }] },
+              contents: [{ parts: [inputPart] }],
+              generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 256
+              }
+            };
+
+            const response = UrlFetchApp.fetch(url, {
+              method: "post",
+              contentType: "application/json",
+              payload: JSON.stringify(payload),
+              muteHttpExceptions: true,
+              timeoutInSeconds: 45
+            });
+
+            if (response.getResponseCode() === 200) {
+              const resJson = JSON.parse(response.getContentText());
+              if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
+                rawTransResp = resJson.candidates[0].content.parts[0].text;
+                console.log("✅ [Lab-IA] Instrucción limpia obtenida con " + modelo + ": \"" + rawTransResp.trim() + "\"");
+                break;
+              }
+            }
+            console.warn("⚠️ [Lab-IA] Fallo traduciendo con " + modelo + ": " + response.getResponseCode());
+          } catch (e) {
+            console.warn("❌ [Lab-IA] Excepción traduciendo con " + modelo + ": " + e.message);
+          }
+        }
+        if (rawTransResp) break;
+      }
+
+      if (rawTransResp) {
+        cleanedInstruction = rawTransResp.trim();
+      } else {
+        if (!isAudio) {
+          cleanedInstruction = base64Audio;
+        } else {
+          throw new Error("No se pudo transcribir o traducir la instrucción de voz.");
+        }
+      }
+
+      // 2. FASE DE RE-GENERACIÓN CON EL MODELO DE ALTA POTENCIA
+      console.log("🧠 [Lab-IA] Ejecutando regeneración de prompt con la instrucción limpia: \"" + cleanedInstruction + "\"");
+
+      const cache = this.obtenerCacheLab(imagenId);
+      let estiloFinal = estilo;
+      let specsFinal = { ...extraSpecs };
+
+      if (cache) {
+        if (!estiloFinal && cache.estilo && cache.estilo !== "FORENSIC_ONLY") {
+          estiloFinal = cache.estilo;
+        }
+        if (cache.configParams && Object.keys(cache.configParams).length > 0) {
+          // Fusionar las especificaciones guardadas en caché con las nuevas
+          specsFinal = { ...cache.configParams, ...specsFinal };
+        }
+      }
+      if (!estiloFinal) estiloFinal = "ecommerce";
+
+      const resultMaestro = this.ejecutarGeneracionPromptMaestro(
+        [imagenId],
+        estiloFinal,
+        {
+          ...specsFinal,
+          refinementInstruction: cleanedInstruction,
+          originalPrompt: currentPrompt
+        },
+        true // Forzar regeneración
+      );
+
+      if (resultMaestro.success && resultMaestro.clean) {
+        // Persistir en la columna de la hoja comercial BD_PRODUCTO_IMAGENES
+        actualizarCeldaPorHeader(imagenId, 'PROMPT', resultMaestro.clean);
+      }
+
+      return resultMaestro;
+
+    } catch (e) {
+      console.error("❌ [Lab-IA] Error en refinamiento de prompt: " + e.message);
+      return { success: false, error: e.message };
+    }
+  },
+
+  transcribirAudio: function (base64Audio, mimeType) {
+    try {
+      console.log(`🧠 [Lab-IA] Transcribiendo audio para refinamiento pago.`);
+      if (!base64Audio) throw new Error("Falta el audio en Base64.");
+
+      // Definir juego de API Keys para fallback
+      const apiKeysToTry = [];
+      if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+      if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+        apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+      }
+      if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
+
+      const promptSistema = "Transcribe el siguiente audio exactamente a texto en español. Devuelve únicamente la transcripción limpia, sin comentarios, sin introducciones y sin formateos extras.";
+
+      let rawResponse = "";
+      for (const keyObj of apiKeysToTry) {
+        for (const modelo of ["gemini-2.5-flash"]) {
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${keyObj.key}`;
+            const payload = {
+              contents: [{
+                parts: [
+                  { text: promptSistema },
+                  {
+                    inlineData: {
+                      mimeType: mimeType || "audio/webm",
+                      data: base64Audio
+                    }
+                  }
+                ]
+              }]
+            };
+
+            const response = UrlFetchApp.fetch(url, {
+              method: "post",
+              contentType: "application/json",
+              payload: JSON.stringify(payload),
+              muteHttpExceptions: true
+            });
+
+            if (response.getResponseCode() === 200) {
+              const resJson = JSON.parse(response.getContentText());
+              if (resJson.candidates && resJson.candidates[0].content.parts[0].text) {
+                rawResponse = resJson.candidates[0].content.parts[0].text.trim();
+                break;
+              }
+            }
+          } catch (e) {
+            console.warn(`Error en transcripción con ${modelo}: ${e.message}`);
+          }
+        }
+        if (rawResponse) break;
+      }
+
+      if (!rawResponse) throw new Error("No se pudo transcribir el audio.");
+      return { success: true, text: rawResponse };
+
+    } catch (e) {
+      console.error("❌ [Lab-IA] Error transcribiendo audio: " + e.message);
       return { success: false, error: e.message };
     }
   },
@@ -1118,46 +1388,46 @@ ${directiva.exampleBlock}
    * Integra meses de desarrollo de Images.js con la flexibilidad del Laboratorio.
    */
   _getAiArtDirectionRules: function (estiloSolicitado, extraSpecs = {}, environment = 'Studio', prodRow = null) {
-    const estilo = (estiloSolicitado || 'ecommerce').toLowerCase();
-    const genero = (prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
+    const estilo = String(estiloSolicitado || 'ecommerce').toLowerCase();
+    const genero = String(prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
 
     // Detección Inteligente de "Conjunto" (Prendas de dos o más piezas)
-    const category = (prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
-    const modelName = (prodRow ? prodRow.MODELO || '' : '').toLowerCase();
-    const styleName = (prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
-    const skuCode = (prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
-    const specsCategory = (extraSpecs.categoria || '').toLowerCase();
-    const specsSku = (extraSpecs.sku || '').toLowerCase();
-    
+    const category = String(prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
+    const modelName = String(prodRow ? prodRow.MODELO || '' : '').toLowerCase();
+    const styleName = String(prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
+    const skuCode = String(prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
+    const specsCategory = String(extraSpecs.categoria || '').toLowerCase();
+    const specsSku = String(extraSpecs.sku || '').toLowerCase();
+
     let hasForensicConjunto = false;
     if (extraSpecs.fichaForense && (
-      extraSpecs.fichaForense.toLowerCase().includes("conjunto") || 
-      extraSpecs.fichaForense.toLowerCase().includes("2 piezas") || 
-      extraSpecs.fichaForense.toLowerCase().includes("dos piezas") ||
-      extraSpecs.fichaForense.toLowerCase().includes("piezas")
+      String(extraSpecs.fichaForense).toLowerCase().includes("conjunto") ||
+      String(extraSpecs.fichaForense).toLowerCase().includes("2 piezas") ||
+      String(extraSpecs.fichaForense).toLowerCase().includes("dos piezas") ||
+      String(extraSpecs.fichaForense).toLowerCase().includes("piezas")
     )) {
       hasForensicConjunto = true;
     }
-    
-    let isConjunto = category.includes("conjunto") || 
-                       modelName.includes("conjunto") || 
-                       styleName.includes("conjunto") || 
-                       skuCode.includes("conj") ||
-                       specsCategory.includes("conjunto") ||
-                       specsSku.includes("conj") ||
-                       hasForensicConjunto;
+
+    let isConjunto = category.includes("conjunto") ||
+      modelName.includes("conjunto") ||
+      styleName.includes("conjunto") ||
+      skuCode.includes("conj") ||
+      specsCategory.includes("conjunto") ||
+      specsSku.includes("conj") ||
+      hasForensicConjunto;
 
     // Salvaguarda técnica para lote de 1 referencia (evitar alucinaciones de conjunto si solo se muestra 1 prenda)
     if (isConjunto && (extraSpecs.referenceCount === 1 || !extraSpecs.referenceCount)) {
       const masterForensic = extraSpecs.fichaForense || "";
-      const forensicUpper = masterForensic.toUpperCase();
+      const forensicUpper = String(masterForensic).toUpperCase();
       const hasUpper = forensicUpper.includes("PRENDA_SUPERIOR");
       const hasLower = forensicUpper.includes("PRENDA_INFERIOR");
-      const hasConjuntoText = forensicUpper.includes("CONJUNTO") || 
-                             forensicUpper.includes("2 PIEZAS") || 
-                             forensicUpper.includes("DOS PIEZAS") ||
-                             forensicUpper.includes("PIEZAS");
-      
+      const hasConjuntoText = forensicUpper.includes("CONJUNTO") ||
+        forensicUpper.includes("2 PIEZAS") ||
+        forensicUpper.includes("DOS PIEZAS") ||
+        forensicUpper.includes("PIEZAS");
+
       if ((hasUpper && !hasLower && !hasConjuntoText) || (hasLower && !hasUpper && !hasConjuntoText)) {
         isConjunto = false;
       }
@@ -1183,10 +1453,10 @@ ${directiva.exampleBlock}
     // 2. CONFIGURACIÓN MAESTRA DE ESTILOS (Integración SOT con Legado de Images.js)
     const STYLE_CONFIG = {
       'ghost': {
-        base: isConjunto 
+        base: isConjunto
           ? "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction of a two-piece set (invisible body effect)."
           : "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction. Invisible body effect.",
-        rules: isConjunto 
+        rules: isConjunto
           ? `
           - NOISE REMOVAL MANDATE: ABSOLUTELY NO HANGERS, NO RETAIL TAGS, NO PLASTIC HOOKS. The garments must be completely clean of any retail attachments.
           - TWO-PIECE VOLUME COMPOSITION: Both the upper garment and lower garment must be arranged together in a natural, cohesive, floating 3D set showing full volume.
@@ -1248,87 +1518,44 @@ ${directiva.exampleBlock}
           ? "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the full two-piece set in a natural environment."
           : "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the garment in a natural environment.",
         rules: isConjunto
-          ? `
-          - ENVIRONMENT/CONTEXT: ${environment}.
-          - Lighting: Cinematic natural light with professional highlights.
-          - Composition: Strict full-body portrait shot from head to toe, showing the model's entire silhouette and the full length of both garments down to the ankles.`
-          : `
-          - ENVIRONMENT/CONTEXT: ${environment}.
-          - Lighting: Cinematic natural light with professional highlights.
-          - Composition: Medium or full-body shot with soft bokeh depth of field.`,
-        model: `- GENDER MANDATE: Use a ${genero} model. Skin tone: ${extraSpecs.skinTone || 'Natural'}.`,
+          ? "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Strict full-body portrait shot from head to toe, showing the model's entire silhouette and the full length of both garments down to the ankles."
+          : "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Medium or full-body shot with soft bokeh depth of field.",
+        model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
         example: isConjunto
-          ? `        **REASONING:** The two-piece set is adapted to a natural lifestyle environment with a model, aiming for a cinematic full-body framing showing both garments naturally, with natural draping.
-        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.
-        **MASTER PROMPT:** High-end lifestyle fashion photography, full-body portrait shot of a [GENDER] model wearing a two-piece set, [ENVIRONMENT/CONTEXT], cinematic natural lighting, 8k, editorial style.`
-          : `        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.
-        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.
-        **MASTER PROMPT:** High-end lifestyle fashion photography, [GENDER] model wearing [GARMENT], [ENVIRONMENT/CONTEXT], cinematic natural lighting, soft bokeh depth of field, 8k, editorial style.`
+          ? "        **REASONING:** The two-piece set is adapted to a natural lifestyle environment with a model, aiming for a cinematic full-body framing showing both garments naturally, with natural draping.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, full-body portrait shot of a [GENDER] model wearing a two-piece set, [ENVIRONMENT/CONTEXT], cinematic natural lighting, 8k, editorial style."
+          : "        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, [GENDER] model wearing [GARMENT], [ENVIRONMENT/CONTEXT], cinematic natural lighting, soft bokeh depth of field, 8k, editorial style."
       },
       'ecommerce': {
         base: isConjunto
           ? "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography of a full two-piece set."
           : "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography.",
         rules: isConjunto
-          ? `
-          - Background: Neutral professional studio (Light Gray #F2F2F2).
-          - Lighting: Uniform high-key studio softbox lighting.
-          - Style: Professional full-body portrait shot showing the model from head to toe. NO "flat lay" or "flat surface" mentions allowed.`
-          : `
-          - Background: Neutral professional studio (Light Gray #F2F2F2).
-          - Lighting: Uniform high-key studio softbox lighting.
-          - Style: Professional on-body shot. NO "flat lay" or "flat surface" mentions allowed.`,
-        model: `- GENDER MANDATE: Use a ${genero} model. Skin tone: ${extraSpecs.skinTone || 'Natural'}.`,
+          ? "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional full-body portrait shot showing the model from head to toe. NO \"flat lay\" or \"flat surface\" mentions allowed."
+          : "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional on-body shot. NO \"flat lay\" or \"flat surface\" mentions allowed.",
+        model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
         example: isConjunto
-          ? `        **REASONING:** Transitioning from flat-laid garments to a professional full-body catalog shot with a female model. The garments are styled with natural layering where the hoodie draping overlaps the pants.
-        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.
-        **MASTER PROMPT:** High-end e-commerce fashion photography, professional full-body portrait shot of a model wearing a two-piece set, showing the full length of the garments from head to toe, frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style.`
-          : `        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender mandate. Tags are removed and catalog lighting is applied.
-        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.
-        **MASTER PROMPT:** High-end e-commerce fashion photography, professional on-body shot of a model wearing [GARMENT], [TEXTURE/COLOR DETAILS], frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style.`
+          ? "        **REASONING:** Transitioning from flat-laid garments to a professional full-body catalog shot with a female model. The garments are styled with natural layering where the hoodie draping overlaps the pants.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional full-body portrait shot of a model wearing a two-piece set, showing the full length of the garments from head to toe, frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
+          : "        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender mandate. Tags are removed and catalog lighting is applied.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional on-body shot of a model wearing [GARMENT], [TEXTURE/COLOR DETAILS], frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
       },
       'hanger': {
         base: "STILL LIFE - PROFESSIONAL HANGER: Garment professionally hanging on a luxury minimalist hanger.",
-        rules: `
-          - Surface/Background: ${surfaceInstruction}.
-          - Lighting: Softbox multi-point lighting. Highlight technical fabric details.
-          - REALISM MANDATE: Maintain realistic garment characteristics like seams and natural drape.
-          - ABSOLUTELY NO MODELS OR HUMAN BODIES.`,
-        example: `        **REASONING:** The garment is adapted to a Still Life style hanging from a professional hanger, removing humans and distracting elements.
-        **VISUAL AUDIT:** [X] Brand, [X] Hanger Style, [X] No Humans, [X] Surface.
-        **MASTER PROMPT:** High-end Still Life commercial product photography, garment professionally hanging on a luxury hanger, [GARMENT/DETAILS], softbox lighting, [SURFACE], 8k.`
+        rules: "\n          - Surface/Background: " + surfaceInstruction + ".\n          - Lighting: Softbox multi-point lighting. Highlight technical fabric details.\n          - REALISM MANDATE: Maintain realistic garment characteristics like seams and natural drape.\n          - ABSOLUTELY NO MODELS OR HUMAN BODIES.",
+        example: "        **REASONING:** The garment is adapted to a Still Life style hanging from a professional hanger, removing humans and distracting elements.\n        **VISUAL AUDIT:** [X] Brand, [X] Hanger Style, [X] No Humans, [X] Surface.\n        **MASTER PROMPT:** High-end Still Life commercial product photography, garment professionally hanging on a luxury hanger, [GARMENT/DETAILS], softbox lighting, [SURFACE], 8k."
       },
       'folded': {
         base: "STILL LIFE - STACKED/FOLDED: Garment professionally folded on a surface, focusing entirely on texture.",
-        rules: `
-          - Surface: ${surfaceInstruction}.
-          ${genderProps}
-          - BOUTIQUE QUALITY: The garment MUST appear professionally steamed and neatly arranged.
-          - ABSOLUTELY NO MODELS OR HUMAN BODIES.`,
-        example: `        **REASONING:** The garment is presented in a Still Life style, professionally folded on a surface, highlighting texture and removing humans.
-        **VISUAL AUDIT:** [X] Brand, [X] Folded Style, [X] Texture, [X] No Humans.
-        **MASTER PROMPT:** High-end Still Life commercial product photography, garment perfectly folded on a professional surface, [GARMENT/TEXTURES], softbox lighting, [SURFACE], 8k.`
+        rules: "\n          - Surface: " + surfaceInstruction + ".\n          " + genderProps + "\n          - BOUTIQUE QUALITY: The garment MUST appear professionally steamed and neatly arranged.\n          - ABSOLUTELY NO MODELS OR HUMAN BODIES.",
+        example: "        **REASONING:** The garment is presented in a Still Life style, professionally folded on a surface, highlighting texture and removing humans.\n        **VISUAL AUDIT:** [X] Brand, [X] Folded Style, [X] Texture, [X] No Humans.\n        **MASTER PROMPT:** High-end Still Life commercial product photography, garment perfectly folded on a professional surface, [GARMENT/TEXTURES], softbox lighting, [SURFACE], 8k."
       },
       'collage': {
         base: "COLLAGE CATALOG MANDATE: Professional multi-image grid (2x2 or 1+2).",
-        rules: `
-          - Layout: Harmonious assembly of all provided reference views.
-          - Aesthetic: Consistent lighting and color grading across all grid elements.
-          - Background: ${surfaceInstruction}.`,
-        example: `        **REASONING:** A professional multi-image collage is generated, ensuring consistent lighting and colors across all views.
-        **VISUAL AUDIT:** [X] Multiple Views, [X] Consistency, [X] Surface.
-        **MASTER PROMPT:** High-end commercial collage photography, multi-image grid showing [GARMENT], consistent lighting, [SURFACE], 8k.`
+        rules: "\n          - Layout: Harmonious assembly of all provided reference views.\n          - Aesthetic: Consistent lighting and color grading across all grid elements.\n          - Background: " + surfaceInstruction + ".",
+        example: "        **REASONING:** A professional multi-image collage is generated, ensuring consistent lighting and colors across all views.\n        **VISUAL AUDIT:** [X] Multiple Views, [X] Consistency, [X] Surface.\n        **MASTER PROMPT:** High-end commercial collage photography, multi-image grid showing [GARMENT], consistent lighting, [SURFACE], 8k."
       },
       'hero': {
         base: "HERO COMPOSITION MANDATE: Commercial split-view or offset arrangement.",
-        rules: `
-          - Primary Focus: One large, clear representation of the garment (The Hero).
-          - Secondary Focus: Neatly arranged color variants or detail swatches.
-          - Balance: Use clean negative space between the Hero and variants.
-          - Surface: ${surfaceInstruction}.`,
-        example: `        **REASONING:** A Hero composition is generated with a prominent main view and secondary details, ensuring a balance of negative space.
-        **VISUAL AUDIT:** [X] Hero Focus, [X] Variants, [X] Balance, [X] Surface.
-        **MASTER PROMPT:** High-end commercial split-view photography, main hero shot of [GARMENT] with secondary detail swatches, clean negative space, [SURFACE], 8k.`
+        rules: "\n          - Primary Focus: One large, clear representation of the garment (The Hero).\n          - Secondary Focus: Neatly arranged color variants or detail swatches.\n          - Balance: Use clean negative space between the Hero and variants.\n          - Surface: " + surfaceInstruction + ".",
+        example: "        **REASONING:** A Hero composition is generated with a prominent main view and secondary details, ensuring a balance of negative space.\n        **VISUAL AUDIT:** [X] Hero Focus, [X] Variants, [X] Balance, [X] Surface.\n        **MASTER PROMPT:** High-end commercial split-view photography, main hero shot of [GARMENT] with secondary detail swatches, clean negative space, [SURFACE], 8k."
       }
     };
 
@@ -1339,73 +1566,74 @@ ${directiva.exampleBlock}
 
     // --- NUEVO: Directivas Estacionales y Encuadre Trimodal Generalizado ---
     if ((estilo === 'ecommerce' || estilo === 'lifestyle') && !isConjunto) {
-      const clasif = (extraSpecs.clasificacionEstructural || "").toUpperCase();
+      const clasif = String(extraSpecs.clasificacionEstructural || "").toUpperCase();
       const temporada = prodRow ? (prodRow.TEMPORADA || "") : (extraSpecs.temporada || "");
-      const tempLower = temporada.toLowerCase();
+      const tempLower = String(temporada).toLowerCase();
       const esFrio = tempLower.includes("invierno") || tempLower.includes("otoño") || tempLower.includes("winter") || tempLower.includes("autumn") || tempLower.includes("frio") || tempLower.includes("frío");
       const esFemenino = (genero === 'FEMENINO' || genero === 'MUJER');
-      const tempDesc = temporada ? `season: ${temporada}` : "season: auto-detect based on context";
-      
+      const tempDesc = temporada ? "season: " + temporada : "season: auto-detect based on context";
+
       let complementoTexto = "";
       if (clasif === "PRENDA_INFERIOR") {
-        const topType = esFrio 
+        const topType = esFrio
           ? (esFemenino ? "a long-sleeve neutral knit sweater or long-sleeve cotton shirt" : "a plain long-sleeve crewneck shirt or simple solid hoodie")
           : (esFemenino ? "a basic short-sleeve solid cotton t-shirt or crop top" : "a plain neutral short-sleeve cotton t-shirt");
-        complementoTexto = `UPPER BODY COMPLEMENT MANDATE: The model MUST wear ${topType} to ensure the torso is fully covered and realistic, preventing safety filters from rendering a plastic mannequin. The upper garment must be in a solid neutral color (e.g., plain white, gray, or black) and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the lower garment).`;
+        complementoTexto = "UPPER BODY COMPLEMENT MANDATE: The model MUST wear " + topType + " to ensure the torso is fully covered and realistic, preventing safety filters from rendering a plastic mannequin. The upper garment must be in a solid neutral color (e.g., plain white, gray, or black) and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the lower garment).";
       } else if (clasif === "PRENDA_SUPERIOR") {
         const bottomType = esFrio
           ? "classic long dark denim jeans or solid heavy-cotton trousers"
           : (esFemenino ? "classic simple denim shorts or light cotton trousers" : "classic neutral chino shorts or light trousers");
-        complementoTexto = `LOWER BODY COMPLEMENT MANDATE: The model MUST wear ${bottomType} to ensure the outfit is complete and realistic. The lower garment must be in a simple, solid neutral color and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the upper garment).`;
+        complementoTexto = "LOWER BODY COMPLEMENT MANDATE: The model MUST wear " + bottomType + " to ensure the outfit is complete and realistic. The lower garment must be in a simple, solid neutral color and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the upper garment).";
       }
-      
+
       if (complementoTexto) {
         extraDirectives.push(complementoTexto);
       }
-      
+
       // Control de encuadre trimodal (Cuerpo Completo vs Enfoque de Prenda vs Auto)
       const cuerpoCompletoVal = extraSpecs.cuerpoCompleto !== undefined ? String(extraSpecs.cuerpoCompleto).toLowerCase() : "";
       const isFull = cuerpoCompletoVal === "true" || cuerpoCompletoVal === "cuerpo_completo" || cuerpoCompletoVal === "full_body" || extraSpecs.framing === "full_body";
       const isProductFocus = cuerpoCompletoVal === "false" || cuerpoCompletoVal === "enfoque_prenda" || extraSpecs.framing === "enfoque_prenda";
-      
+
       if (isFull) {
-        extraDirectives.push(`FRAMING MANDATE: Professional full-body fashion shot showing the model from head to toe. Ensure the entire silhouette and both garments (main product and complement) are fully visible in the frame, including footwear.`);
+        extraDirectives.push("FRAMING MANDATE: Professional full-body fashion shot showing the model from head to toe. Ensure the entire silhouette and both garments (main product and complement) are fully visible in the frame, including footwear.");
       } else if (isProductFocus) {
         if (clasif === "PRENDA_INFERIOR") {
-          extraDirectives.push(`FRAMING MANDATE: Professional mid-shot focused strictly on the lower body from the waist down. The shot must frame the main lower garment prominently. The upper body garment serves only as a secondary neutral background complement and may be partially cropped.`);
+          extraDirectives.push("FRAMING MANDATE: Professional mid-shot focused strictly on the lower body from the waist down. The shot must frame the main lower garment prominently. The upper body garment serves only as a secondary neutral background complement and may be partially cropped.");
         } else {
-          extraDirectives.push(`FRAMING MANDATE: Professional upper-body portrait shot focused strictly on the upper body, framing the main upper garment prominently from chest/head down to the waist. The lower body garment serves only as a secondary neutral background complement and may be partially cropped.`);
+          extraDirectives.push("FRAMING MANDATE: Professional upper-body portrait shot focused strictly on the upper body, framing the main upper garment prominently from chest/head down to the waist. The lower body garment serves only as a secondary neutral background complement and may be partially cropped.");
         }
       } else {
         // Modo Auto: IA decide según el estilo
         if (estilo === 'lifestyle') {
-          extraDirectives.push(`FRAMING MANDATE: Professional and balanced fashion composition. You have the sovereignty to choose the optimal framing (full-body or medium shot) that best complements the environment while keeping the main product (${clasif}) as the core visual anchor.`);
+          extraDirectives.push("FRAMING MANDATE: Professional and balanced fashion composition. You have the sovereignty to choose the optimal framing (full-body or medium shot) that best complements the environment while keeping the main product (" + clasif + ") as the core visual anchor.");
         } else {
           // En ecommerce el foco es el producto por defecto
           if (clasif === "PRENDA_INFERIOR") {
-            extraDirectives.push(`FRAMING MANDATE: Focus the camera primarily on the main product (${clasif}) from the waist down, using the upper body complement strictly as a secondary neutral background element.`);
+            extraDirectives.push("FRAMING MANDATE: Focus the camera primarily on the main product (" + clasif + ") from the waist down, using the upper body complement strictly as a secondary neutral background element.");
           } else {
-            extraDirectives.push(`FRAMING MANDATE: Focus the camera primarily on the main product (${clasif}) from chest/head down to the waist, using the lower body complement strictly as a secondary neutral background element.`);
+            extraDirectives.push("FRAMING MANDATE: Focus the camera primarily on the main product (" + clasif + ") from chest/head down to the waist, using the lower body complement strictly as a secondary neutral background element.");
           }
         }
       }
-      
+
       // Mandato de realismo humano explícito
-      extraDirectives.push(`REAL HUMAN MODEL MANDATE: The model must be a real, natural human model with highly realistic facial features, head, and hair (e.g., 'highly realistic human model with natural skin texture, showing face and head clearly'). Absolutely forbid any plastic mannequin structures, hollow mannequin necks, cropped headless bodies, or faceless plastic textures.`);
+      extraDirectives.push("REAL HUMAN MODEL MANDATE: The model must be a real, natural human model with highly realistic facial features, head, and hair (e.g., 'highly realistic human model with natural skin texture, showing face and head clearly'). Absolutely forbid any plastic mannequin structures, hollow mannequin necks, cropped headless bodies, or faceless plastic textures.");
     }
 
     if (extraSpecs.angle) {
-      extraDirectives.push(`CAMERA ANGLE: ${extraSpecs.angle}. Perfect alignment.`);
-      if (extraSpecs.angle.toLowerCase().includes("split") || extraSpecs.angle.toLowerCase().includes("front and back")) {
-        extraDirectives.push(`COMPOSITION MANDATE: Create a clean split-view layout (diptych). On one side, show the frontal view of the model wearing the garment. On the other side, show the back view of the model wearing the garment. Both sides must feature the identical model, clothing fit, background, and lighting for absolute visual continuity. There must be no visible black line or seam separating the panels, keeping a clean, continuous neutral background.`);
+      extraDirectives.push("CAMERA ANGLE: " + extraSpecs.angle + ". Perfect alignment.");
+      const angleStr = String(extraSpecs.angle).toLowerCase();
+      if (angleStr.includes("split") || angleStr.includes("front and back")) {
+        extraDirectives.push("COMPOSITION MANDATE: Create a clean split-view layout (diptych). On one side, show the frontal view of the model wearing the garment. On the other side, show the back view of the model wearing the garment. Both sides must feature the identical model, clothing fit, background, and lighting for absolute visual continuity. There must be no visible black line or seam separating the panels, keeping a clean, continuous neutral background.");
       }
     }
-    if (extraSpecs.accessories && extraSpecs.accessories !== "Ninguno") extraDirectives.push(`STYLING: Add ${extraSpecs.accessories} to complement.`);
-    if (extraSpecs.footwear?.type) extraDirectives.push(`FOOTWEAR: Pair with ${extraSpecs.footwear.type} (${extraSpecs.footwear.color || 'neutral'}).`);
+    if (extraSpecs.accessories && extraSpecs.accessories !== "Ninguno") extraDirectives.push("STYLING: Add " + extraSpecs.accessories + " to complement.");
+    if (extraSpecs.footwear?.type) extraDirectives.push("FOOTWEAR: Pair with " + extraSpecs.footwear.type + " (" + (extraSpecs.footwear.color || 'neutral') + ").");
 
     if (isConjunto) {
-      extraDirectives.push(`TWO-PIECE SET LAYERING: The upper garment (hoodie/jacket/t-shirt) must be worn loose, natural, and draped over the lower garment (pants/joggers/shorts). The bottom hem of the upper garment sits on top of and naturally covers the waistband of the lower garment. The upper garment must NOT be tucked into the pants, and the waistband of the pants must NOT be visible or superimposed over the upper garment.`);
-      extraDirectives.push(`FULL-BODY PORTRAIT COMPOSITION: The shot must be a professional full-body portrait showing the model from head to toe, ensuring the full length of the pants is fully visible down to the ankles with absolutely no cropping of the legs.`);
+      extraDirectives.push("TWO-PIECE SET LAYERING: The upper garment (hoodie/jacket/t-shirt) must be worn loose, natural, and draped over the lower garment (pants/joggers/shorts). The bottom hem of the upper garment sits on top of and naturally covers the waistband of the lower garment. The upper garment must NOT be tucked into the pants, and the waistband of the pants must NOT be visible or superimposed over the upper garment.");
+      extraDirectives.push("FULL-BODY PORTRAIT COMPOSITION: The shot must be a professional full-body portrait showing the model from head to toe, ensuring the full length of the pants is fully visible down to the ankles with absolutely no cropping of the legs.");
     }
 
     if (extraSpecs.formato === 'video') {
@@ -1419,13 +1647,12 @@ ${directiva.exampleBlock}
     }
 
     // 4. ENSAMBLAJE FINAL (Preservando Prefijos Mandatorios de Images.js)
-    let promptRules = `
-      [TECHNICAL DIRECTIVES]:
-      * STYLE BASE: ${config.base}
-      * COMPOSITION: ${config.rules}
-      ${config.focus ? `* FOCUS: ${config.focus}` : ""}
-      ${extraDirectives.map(d => `* ${d}`).join('\n      ')}
-    `;
+    let promptRules = 
+      "\n      [TECHNICAL DIRECTIVES]:\n" +
+      "      * STYLE BASE: " + config.base + "\n" +
+      "      * COMPOSITION: " + config.rules + "\n" +
+      (config.focus ? "      * FOCUS: " + config.focus + "\n" : "") +
+      extraDirectives.map(d => "      * " + d).join('\n      ') + "\n    ";
 
     let modelAdaptation = config.model ? config.model : "- GENDER MANDATE: NO HUMANS, MODELS, OR VISIBLE MANNEQUINS.";
 
@@ -1436,9 +1663,10 @@ ${directiva.exampleBlock}
 
     if (extraSpecs.formato === 'video') prefix = `[Narrative Video Script]. ${prefix}`;
 
-    let exampleBlock = config.example || `        **REASONING:** [Explanation of directive adaptation].
-        **VISUAL AUDIT:** [X] Validations.
-        **MASTER PROMPT:** [Final prompt in English].`;
+    let exampleBlock = config.example || 
+        "        **REASONING:** [Explanation of directive adaptation].\n" +
+        "        **VISUAL AUDIT:** [X] Validations.\n" +
+        "        **MASTER PROMPT:** [Final prompt in English].";
 
     return { promptRules, modelAdaptation, prefix, exampleBlock };
   },
@@ -1484,28 +1712,23 @@ ${directiva.exampleBlock}
   generarExplicacionBloqueoIA: function (promptTexto, detallesErrores) {
     try {
       console.log("🧠 [Lab-IA] Generando explicación inteligente de bloqueo con IA...");
-      const promptDiagnostico = `
-Eres Antigravity, un perito experto en inteligencia artificial y políticas de generación de imágenes de Google Vertex AI (Imagen 3, Imagen 4, Gemini 3.1/3-Pro).
-El sistema de generación de imágenes publicitarias ha fallado o ha sido bloqueado al intentar renderizar un producto.
-
-Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo y en español, que ayude al usuario (diseñador/operador de ERP) a entender exactamente por qué falló la generación y qué acciones puede tomar para evitarlo.
-
-[INFORMACIÓN DEL RENDERIZADO]
-- Prompt Maestro Enviado:
-"${promptTexto}"
-
-- Mensaje/Detalle del Error Capturado:
-"${detallesErrores}"
-
-[REGLAS DE RESPUESTA]
-1. Explica la causa probable del error en español de manera profesional y amable (sin jerga excesivamente técnica pero con precisión).
-2. Si el error menciona "SAFETY", "NO_IMAGE", "400" o bloqueos similares, analiza si se debe a:
-   - Presencia de marcas comerciales o personajes protegidos por derechos de autor (ej. Dragon Ball, Goku, Marvel, etc.).
-   - Clasificación sensible de la prenda (ropa interior, bóxers) que pueda ser interpretada por los filtros de seguridad/desnudez de Google como contenido no permitido.
-   - Restricciones multimodales por las referencias de entrada.
-3. Da 2 o 3 recomendaciones accionables y concisas para corregir el problema en el prompt o en las configuraciones (ej: "Evitar mencionar nombres específicos de franquicias protegidas", "Reemplazar estampados con patrones genéricos de color", "Ajustar el encuadre a estilo Ghost").
-4. Mantén la respuesta breve (máximo 3-4 párrafos bien estructurados), sin rodeos, sin monólogos ni introducciones robóticas.
-`;
+      const promptDiagnostico = 
+        "\nEres Antigravity, un perito experto en inteligencia artificial y políticas de generación de imágenes de Google Vertex AI (Imagen 3, Imagen 4, Gemini 3.1/3-Pro).\n" +
+        "El sistema de generación de imágenes publicitarias ha fallado o ha sido bloqueado al intentar renderizar un producto.\n\n" +
+        "Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo y en español, que ayude al usuario (diseñador/operador de ERP) a entender exactamente por qué falló la generación y qué acciones puede tomar para evitarlo.\n\n" +
+        "[INFORMACIÓN DEL RENDERIZADO]\n" +
+        "- Prompt Maestro Enviado:\n" +
+        "\"" + promptTexto + "\"\n\n" +
+        "- Mensaje/Detalle del Error Capturado:\n" +
+        "\"" + detallesErrores + "\"\n\n" +
+        "[REGLAS DE RESPUESTA]\n" +
+        "1. Explica la causa probable del error en español de manera profesional y amable (sin jerga excesivamente técnica pero con precisión).\n" +
+        "2. Si el error menciona \"SAFETY\", \"NO_IMAGE\", \"400\" o bloqueos similares, analiza si se debe a:\n" +
+        "   - Presencia de marcas comerciales o personajes protegidos por derechos de autor (ej. Dragon Ball, Goku, Marvel, etc.).\n" +
+        "   - Clasificación sensible de la prenda (ropa interior, bóxers) que pueda ser interpretada por los filtros de seguridad/desnudez de Google como contenido no permitido.\n" +
+        "   - Restricciones multimodales por las referencias de entrada.\n" +
+        "3. Da 2 o 3 recomendaciones accionables y concisas para corregir el problema en el prompt o en las configuraciones (ej: \"Evitar mencionar nombres específicos de franquicias protegidas\", \"Reemplazar estampados con patrones genéricos de color\", \"Ajustar el encuadre a estilo Ghost\").\n" +
+        "4. Mantén la respuesta breve (máximo 3-4 párrafos bien estructurados), sin rodeos, sin monólogos ni introducciones robóticas.\n";
 
       const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
       if (!apiKey) return "Error: No se pudo iniciar el análisis de diagnóstico porque no hay una API Key configurada.";
@@ -1532,7 +1755,7 @@ Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo 
       }
       return `No se pudo obtener el diagnóstico del servidor de IA (HTTP ${response.getResponseCode()}).`;
     } catch (e) {
-      return `Excepción durante el diagnóstico autónomo: ${e.message}`;
+      return "Excepción durante el diagnóstico autónomo: " + e.message;
     }
   },
 
@@ -1542,21 +1765,21 @@ Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo 
    */
   ejecutarRenderizadoDesdeLaboratorio: function (imagenIds, promptTexto, pin, extraSpecs = {}) {
     try {
-      console.log(`🎨 [Lab-IA] Iniciando Fase 3 (Renderizado) para: ${imagenIds.join(', ')}`);
-      
+      console.log("🎨 [Lab-IA] Iniciando Fase 3 (Renderizado) para: " + imagenIds.join(', '));
+
       // Llamada directa a la pasarela Core en Images.js
       // Esto reutiliza todo el sistema de Fallbacks, Upload a Drive y Registro de Costos.
       const resultado = generarImagenDesdePrompt(imagenIds, promptTexto, pin, null, null, extraSpecs);
-      
+
       if (resultado && !resultado.success) {
         console.warn(`⚠️ [Lab-IA] El renderizado reportó fallo. Ejecutando diagnóstico inteligente...`);
         const explicacion = this.generarExplicacionBloqueoIA(promptTexto, resultado.error || "Fallo de renderizado general");
         resultado.explicacionBloqueo = explicacion;
       }
-      
+
       return resultado;
     } catch (e) {
-      console.error(`❌ [Lab-IA] Error Fase 3 Render: ${e.message}`);
+      console.error("❌ [Lab-IA] Error Fase 3 Render: " + e.message);
       const explicacion = this.generarExplicacionBloqueoIA(promptTexto, e.message);
       return { success: false, error: e.message, explicacionBloqueo: explicacion };
     }
@@ -1569,7 +1792,7 @@ Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo 
     const ss = getActiveSS();
     let sheet = ss.getSheetByName(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
     const expectedHeaders = SHEET_SCHEMA.LAB_BATCH_QUEUE || ["TIMESTAMP", "BATCH_ID", "MODELO", "IMAGEN_IDS", "ESTADO", "ERROR_DETALLE"];
-    
+
     if (!sheet) {
       sheet = ss.insertSheet(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
       sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders])
@@ -1602,10 +1825,10 @@ Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo 
       // 1. Preparar las directivas y el esquema comunes
       const forensicWhitelist = [
         "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
-        "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
+        "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
         "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
-        "MATERIAL_ESTIMADO", 
-        "LOGO_O_MARCA", "VISIBLE", "DETALLE", 
+        "MATERIAL_ESTIMADO",
+        "LOGO_O_MARCA", "VISIBLE", "DETALLE",
         "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
         "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
       ];
@@ -1656,10 +1879,10 @@ Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo 
           DETALLES_VISUALES: { type: "STRING" }
         },
         required: [
-          "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO", 
-          "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA", 
-          "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO", 
-          "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES", 
+          "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO",
+          "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA",
+          "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO",
+          "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES",
           "ESTADO_VISUAL", "DETALLES_VISUALES"
         ]
       };
@@ -1679,25 +1902,24 @@ Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo 
         try {
           const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", id);
           if (!imgRow || !imgRow.ARCHIVO_ID) {
-            console.warn(`⚠️ [Batch-IA] Imagen ${id} omitida: Faltan datos o ARCHIVO_ID.`);
+            console.warn("⚠️ [Batch-IA] Imagen " + id + " omitida: Faltan datos o ARCHIVO_ID.");
             continue;
           }
 
           const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
-          const contextoProducto = prodRow ? `PRODUCT: ${prodRow.MODELO || prodRow.NOMBRE_PRODUCTO} | BRAND: ${prodRow.MARCA} | PARENT_CATEGORY: ${prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE}` : "";
-          
-          const promptForense = `Forensic Clothing Analyst for a high-precision ERP.
-Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).
-Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).
-Plain text, one line per field, no bold, no markdown, no introductions.
+          const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) : "";
 
-* Context Reference (ERP): ${contextoProducto}
-* Analysis Request: Technical forensic breakdown in SPANISH.
-* Schema: 
-MARCA: [Heredar de Context Reference]
-MODELO: [Heredar de Context Reference]
-CATEGORÍA: [Heredar de Context Reference]
-... (resto de campos) ...`;
+          const promptForense = "Forensic Clothing Analyst for a high-precision ERP.\n" +
+            "Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).\n" +
+            "Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).\n" +
+            "Plain text, one line per field, no bold, no markdown, no introductions.\n\n" +
+            "* Context Reference (ERP): " + contextoProducto + "\n" +
+            "* Analysis Request: Technical forensic breakdown in SPANISH.\n" +
+            "* Schema: \n" +
+            "MARCA: [Heredar de Context Reference]\n" +
+            "MODELO: [Heredar de Context Reference]\n" +
+            "CATEGORÍA: [Heredar de Context Reference]\n" +
+            "... (resto de campos) ...";
 
           // Subir a la File API para asociarlo temporalmente a la API Key
           const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `batch_${id}`, 'alta', apiKey, false);
@@ -1721,7 +1943,7 @@ CATEGORÍA: [Heredar de Context Reference]
 
           imageIdsExitosos.push(id);
         } catch (errImg) {
-          console.error(`❌ [Batch-IA] Error preparando imagen ${id} para el lote: ${errImg.message}`);
+          console.error("❌ [Batch-IA] Error preparando imagen " + id + " para el lote: " + errImg.message);
         }
       }
 
@@ -1766,11 +1988,11 @@ CATEGORÍA: [Heredar de Context Reference]
         ""
       ]);
 
-      console.log(`✅ [Batch-IA] Lote encolado correctamente. ID de Lote: ${batchId}`);
+      console.log("✅ [Batch-IA] Lote encolado correctamente. ID de Lote: " + batchId);
       return { success: true, batchId: batchId };
 
     } catch (e) {
-      console.error(`❌ [Batch-IA] Error encolando lote: ${e.message}`);
+      console.error("❌ [Batch-IA] Error encolando lote: " + e.message);
       return { success: false, error: e.message };
     }
   },
@@ -1798,7 +2020,7 @@ CATEGORÍA: [Heredar de Context Reference]
           raw: json
         };
       }
-      return { success: false, error: `HTTP ${response.getResponseCode()}: ${response.getContentText()}` };
+      return { success: false, error: "HTTP " + response.getResponseCode() + ": " + response.getContentText() };
     } catch (e) {
       return { success: false, error: e.message };
     }
@@ -1809,10 +2031,10 @@ CATEGORÍA: [Heredar de Context Reference]
    */
   descargarResultadosBatch: function (batchId, imagenIdsString) {
     try {
-      console.log(`📥 [Batch-IA] Procesando resultados del lote finalizado: ${batchId}`);
+      console.log("📥 [Batch-IA] Procesando resultados del lote finalizado: " + batchId);
       const estadoObj = this.obtenerEstadoBatch(batchId);
       if (!estadoObj.success || estadoObj.state !== "JOB_STATE_SUCCEEDED") {
-        throw new Error(`El lote no está listo o falló. Estado: ${estadoObj.state}`);
+        throw new Error("El lote no está listo o falló. Estado: " + estadoObj.state);
       }
 
       const results = estadoObj.raw.response?.results;
@@ -1820,7 +2042,7 @@ CATEGORÍA: [Heredar de Context Reference]
 
       const imagenIds = String(imagenIdsString).split(',');
       if (results.length !== imagenIds.length) {
-        console.warn(`⚠️ [Batch-IA] Desajuste de conteo: Resultados=${results.length}, Imágenes=${imagenIds.length}. Intentando mapeo secuencial.`);
+        console.warn("⚠️ [Batch-IA] Desajuste de conteo: Resultados=" + results.length + ", Imágenes=" + imagenIds.length + ". Intentando mapeo secuencial.");
       }
 
       const ss = getActiveSS();
@@ -1839,7 +2061,7 @@ CATEGORÍA: [Heredar de Context Reference]
           const text = candidate?.content?.parts?.[0]?.text;
 
           if (!text) {
-            console.warn(`⚠️ [Batch-IA] Sin respuesta para imagen ${imgId} en índice ${idx}`);
+            console.warn("⚠️ [Batch-IA] Sin respuesta para imagen " + imgId + " en índice " + idx);
             fallados++;
             continue;
           }
@@ -1851,40 +2073,40 @@ CATEGORÍA: [Heredar de Context Reference]
           const detallesConstructivos = parsedJson.DETALLES_CONSTRUCTIVOS || {};
 
           const rawResponse = [
-            `MARCA: ${parsedJson.MARCA || ""}`,
-            `MODELO: ${parsedJson.MODELO || ""}`,
-            `CATEGORÍA: ${parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""}`,
-            `MATERIAL: ${parsedJson.MATERIAL || ""}`,
-            `GÉNERO: ${parsedJson.GENERO || parsedJson.GÉNERO || ""}`,
-            `CLASIFICACION_ESTRUCTURAL: ${parsedJson.CLASIFICACION_ESTRUCTURAL || ""}`,
-            `TIPO_PRENDA: ${parsedJson.TIPO_PRENDA || ""}`,
-            `POSICIÓN_DETECTADA: ${parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""}`,
-            `SOPORTE_O_CONTEXTO: ${parsedJson.SOPORTE_O_CONTEXTO || ""}`,
-            `COLOR_PRINCIPAL:`,
-            `  - NOMBRE TÉCNICO: ${colorPrincipal.NOMBRE_TECNICO || colorPrincipal.NOMBRE_TÉCNICO || ""}`,
-            `  - CÓDIGO HEX: ${colorPrincipal.CODIGO_HEX || colorPrincipal.CÓDIGO_HEX || ""}`,
-            `  - TIPO: ${colorPrincipal.TIPO || ""}`,
-            `  - PATRÓN: ${colorPrincipal.PATRON || colorPrincipal.PATRÓN || ""}`,
-            `MATERIAL_ESTIMADO: ${parsedJson.MATERIAL_ESTIMADO || ""}`,
-            `LOGO_O_MARCA:`,
-            `  - VISIBLE: ${logoOMarca.VISIBLE || ""}`,
-            `  - DETALLE: ${logoOMarca.DETALLE || ""}`,
-            `DETALLES_CONSTRUCTIVOS:`,
-            `  - COSTURAS: ${detallesConstructivos.COSTURAS || ""}`,
-            `  - CIERRES: ${detallesConstructivos.CIERRES || ""}`,
-            `  - BOLSILLOS: ${detallesConstructivos.BOLSILLOS || ""}`,
-            `  - ELÁSTICOS: ${detallesConstructivos.ELASTICOS || detallesConstructivos.ELÁSTICOS || ""}`,
-            `AVISOS_DE_LIMPIEZA_VISIBLES: ${parsedJson.AVISOS_DE_LIMPIEZA_VISIBLES || ""}`,
-            `ESTADO_VISUAL: ${parsedJson.ESTADO_VISUAL || ""}`,
-            `DETALLES_VISUALES: ${parsedJson.DETALLES_VISUALES || ""}`
+            "MARCA: " + (parsedJson.MARCA || ""),
+            "MODELO: " + (parsedJson.MODELO || ""),
+            "CATEGORÍA: " + (parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""),
+            "MATERIAL: " + (parsedJson.MATERIAL || ""),
+            "GÉNERO: " + (parsedJson.GENERO || parsedJson.GÉNERO || ""),
+            "CLASIFICACION_ESTRUCTURAL: " + (parsedJson.CLASIFICACION_ESTRUCTURAL || ""),
+            "TIPO_PRENDA: " + (parsedJson.TIPO_PRENDA || ""),
+            "POSICIÓN_DETECTADA: " + (parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""),
+            "SOPORTE_O_CONTEXTO: " + (parsedJson.SOPORTE_O_CONTEXTO || ""),
+            "COLOR_PRINCIPAL:",
+            "  - NOMBRE TÉCNICO: " + (colorPrincipal.NOMBRE_TECNICO || colorPrincipal.NOMBRE_TÉCNICO || ""),
+            "  - CÓDIGO HEX: " + (colorPrincipal.CODIGO_HEX || colorPrincipal.CÓDIGO_HEX || ""),
+            "  - TIPO: " + (colorPrincipal.TIPO || ""),
+            "  - PATRÓN: " + (colorPrincipal.PATRON || colorPrincipal.PATRÓN || ""),
+            "MATERIAL_ESTIMADO: " + (parsedJson.MATERIAL_ESTIMADO || ""),
+            "LOGO_O_MARCA:",
+            "  - VISIBLE: " + (logoOMarca.VISIBLE || ""),
+            "  - DETALLE: " + (logoOMarca.DETALLE || ""),
+            "DETALLES_CONSTRUCTIVOS:",
+            "  - COSTURAS: " + (detallesConstructivos.COSTURAS || ""),
+            "  - CIERRES: " + (detallesConstructivos.CIERRES || ""),
+            "  - BOLSILLOS: " + (detallesConstructivos.BOLSILLOS || ""),
+            "  - ELÁSTICOS: " + (detallesConstructivos.ELASTICOS || detallesConstructivos.ELÁSTICOS || ""),
+            "AVISOS_DE_LIMPIEZA_VISIBLES: " + (parsedJson.AVISOS_DE_LIMPIEZA_VISIBLES || ""),
+            "ESTADO_VISUAL: " + (parsedJson.ESTADO_VISUAL || ""),
+            "DETALLES_VISUALES: " + (parsedJson.DETALLES_VISUALES || "")
           ].join('\n');
 
           const forensicWhitelist = [
             "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
-            "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO", 
+            "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
             "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
-            "MATERIAL_ESTIMADO", 
-            "LOGO_O_MARCA", "VISIBLE", "DETALLE", 
+            "MATERIAL_ESTIMADO",
+            "LOGO_O_MARCA", "VISIBLE", "DETALLE",
             "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
             "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
           ];
@@ -1913,25 +2135,25 @@ CATEGORÍA: [Heredar de Context Reference]
 
           correctos++;
         } catch (errItem) {
-          console.error(`❌ [Batch-IA] Error ingiriendo resultados de imagen ${imgId}: ${errItem.message}`);
+          console.error("❌ [Batch-IA] Error ingiriendo resultados de imagen " + imgId + ": " + errItem.message);
           fallados++;
         }
       }
 
-      console.log(`✅ [Batch-IA] Ingesta de Lote ${batchId} finalizada. Éxito: ${correctos}, Fallados: ${fallados}`);
-      
+      console.log("✅ [Batch-IA] Ingesta de Lote " + batchId + " finalizada. Éxito: " + correctos + ", Fallados: " + fallados);
+
       // Intentar alertar por Telegram si el puente de notificaciones está disponible
       try {
         if (typeof TelegramService !== 'undefined' && TelegramService.enviarMensajeAI) {
-          TelegramService.enviarMensajeAI(`📦 *Lote Forense Finalizado*\n\n*Lote ID:* \`${batchId}\`\n*Total:* ${imagenIds.length}\n*Procesadas:* ${correctos} OK / ${fallados} ERR`);
+          TelegramService.enviarMensajeAI("📦 *Lote Forense Finalizado*\n\n*Lote ID:* `" + batchId + "`\n*Total:* " + imagenIds.length + "\n*Procesadas:* " + correctos + " OK / " + fallados + " ERR");
         }
-      } catch(eTelegram) {
+      } catch (eTelegram) {
         console.warn("⚠️ No se pudo enviar alerta de Telegram.");
       }
 
       return { success: true, correctos: correctos, fallados: fallados };
     } catch (e) {
-      console.error(`❌ [Batch-IA] Error en ingesta de lote: ${e.message}`);
+      console.error("❌ [Batch-IA] Error en ingesta de lote: " + e.message);
       return { success: false, error: e.message };
     }
   },
@@ -1973,4 +2195,12 @@ function ejecutarGeneracionPromptMaestro(imagenId, estilo, extraSpecs, forzar = 
 
 function ejecutarRenderizadoDesdeLaboratorio(imagenIds, promptTexto, pin, extraSpecs) {
   return AIService.ejecutarRenderizadoDesdeLaboratorio(imagenIds, promptTexto, pin, extraSpecs);
+}
+
+function ejecutarRefinamientoPromptPorVoz(imagenId, currentPrompt, base64Audio, mimeType, isAudio = true, estilo = null, extraSpecs = {}) {
+  return AIService.ejecutarRefinamientoPromptPorVoz(imagenId, currentPrompt, base64Audio, mimeType, isAudio, estilo, extraSpecs);
+}
+
+function transcribirAudio(base64Audio, mimeType) {
+  return AIService.transcribirAudio(base64Audio, mimeType);
 }

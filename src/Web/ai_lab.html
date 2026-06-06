@@ -124,6 +124,19 @@
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }
+
+  /* Animación de ondas de voz premium */
+  @keyframes voiceWaveBounce {
+    0%, 100% {
+      height: 20%;
+    }
+    50% {
+      height: 100%;
+    }
+  }
+  .voice-bar {
+    animation: voiceWaveBounce 0.8s ease-in-out infinite;
+  }
 </style>
 
 <div class="h-full flex flex-col bg-slate-950 p-4 overflow-hidden">
@@ -486,6 +499,33 @@
             <span class="italic opacity-30 text-cyan-400/30">El prompt final de alta fidelidad aparecerá aquí...</span>
           </div>
         </div>
+
+        <!-- PANEL DE REFINAMIENTO DE PROMPT POR VOZ (Fase 2.5 - Gratis) -->
+        <div id="lab-voice-prompt-panel" class="flex flex-col bg-slate-900 border border-purple-500/20 p-3 rounded-xl shadow-lg shadow-purple-500/5 mt-3 shrink-0">
+          <label class="text-[9px] font-bold text-purple-400 uppercase mb-2 block flex items-center gap-1">
+            <span class="material-icons text-xs animate-pulse">mic</span> Fase 2.5: Refinamiento por Voz (Gratis)
+          </label>
+          <div class="flex items-center gap-3">
+            <!-- Botón de Micrófono Premium -->
+            <button id="lab-voice-mic-btn" onclick="toggleVoiceRecording()" class="relative flex-shrink-0 w-10 h-10 rounded-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center transition-all duration-300 group outline-none">
+              <span id="lab-voice-mic-icon" class="material-icons text-lg">mic</span>
+              <span id="lab-voice-pulse-ring" class="absolute inset-0 rounded-full bg-purple-500/30 animate-ping hidden"></span>
+            </button>
+            <!-- Controles y Ondas -->
+            <div class="flex-1 min-w-0">
+              <div id="lab-voice-status" class="text-[9px] text-slate-400 font-bold uppercase truncate">Pulsa para dictar correcciones (Máx. 15s)</div>
+              <!-- Ondas de audio animadas con CSS -->
+              <div id="lab-voice-waves" class="hidden items-end gap-1 h-3 mt-1.5">
+                <span class="w-0.5 bg-purple-400 rounded-full voice-bar" style="animation-duration: 0.6s; height: 20%;"></span>
+                <span class="w-0.5 bg-purple-400 rounded-full voice-bar" style="animation-duration: 0.4s; height: 20%; animation-delay: 0.1s;"></span>
+                <span class="w-0.5 bg-purple-400 rounded-full voice-bar" style="animation-duration: 0.8s; height: 20%; animation-delay: 0.2s;"></span>
+                <span class="w-0.5 bg-purple-400 rounded-full voice-bar" style="animation-duration: 0.5s; height: 20%; animation-delay: 0.3s;"></span>
+                <span class="w-0.5 bg-purple-400 rounded-full voice-bar" style="animation-duration: 0.7s; height: 20%; animation-delay: 0.4s;"></span>
+              </div>
+              <div id="lab-voice-timer" class="text-[8px] text-slate-500 font-mono hidden mt-0.5">00:00 / 00:15</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- COLUMNA 3: FASE 3 - RENDERIZADO -->
@@ -518,6 +558,42 @@
               <span class="material-icons text-sm">camera_enhance</span> Renderizar Visual
             </button>
           </div>
+        </div>
+
+        <!-- PANEL DE REFINAMIENTO (Corrección Lab - Fase 4) -->
+        <div id="lab-refine-panel" class="flex flex-col bg-slate-900 border border-amber-500/10 p-4 rounded-xl shadow-lg shadow-amber-500/5 mb-4">
+          <label class="text-[10px] font-bold text-amber-500 uppercase mb-2 block flex items-center gap-1">
+            <span class="material-icons text-xs">edit_note</span> Fase 4: Refinamiento de Imagen
+          </label>
+          <textarea id="lab-refine-feedback" placeholder="Ej: Quita los lentes, cambia el fondo a estudio..."
+            class="w-full h-16 bg-slate-950 border border-slate-800 rounded p-2 text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-amber-500/50 outline-none resize-none"></textarea>
+          <button id="lab-btn-refine-ai" onclick="confirmAndRunLabRefinement()"
+            class="w-full py-2 mt-2 bg-amber-600/20 text-amber-400 border border-amber-600/30 rounded font-bold text-[10px] uppercase hover:bg-amber-600/40 transition flex items-center justify-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed">
+            <span class="material-icons text-xs">mms</span> Rehacer Imagen con Corrección (Pago)
+          </button>
+        </div>
+
+        <!-- PANEL DE ANGULOS (Derivación Lab - Fase 5) -->
+        <div id="lab-angle-panel" class="flex flex-col bg-slate-900 border border-indigo-500/20 p-4 rounded-xl shadow-lg shadow-indigo-500/5 mb-4">
+          <label class="text-[10px] font-bold text-indigo-400 uppercase mb-2 block flex items-center gap-1">
+            <span class="material-icons text-xs">cameraswitch</span> Fase 5: Derivar Otros Ángulos
+          </label>
+          <select id="lab-angle-pivot-select"
+            class="w-full text-[10px] bg-slate-950 text-slate-200 border border-slate-800 rounded p-1.5 mb-2 outline-none focus:border-indigo-500">
+            <option value="" disabled selected>-- Seleccionar Ángulo --</option>
+            <option value="Vista Trasera (Back View)">Vista Trasera (Back View)</option>
+            <option value="Vista Lateral (Side View)">Vista Lateral (Side View)</option>
+            <option value="Vista Lateral Semi-Frontal (3/4 View)">Vista Lateral Semi-Frontal (3/4 View)</option>
+            <option value="Detalle de Textura / Macro (Close-up)">Detalle / Macro (Close-up)</option>
+            <option value="Plano Medio (Half Body)">Plano Medio (Half Body)</option>
+          </select>
+          <button id="lab-btn-angle-ai" onclick="confirmAndRunLabAngle()"
+            class="w-full py-2 bg-indigo-600 text-white rounded font-bold text-[10px] uppercase hover:bg-indigo-500 transition flex items-center justify-center gap-1 disabled:opacity-30">
+            <span class="material-icons text-xs">auto_awesome_motion</span> Generar Ángulo Consistente (Pago)
+          </button>
+          <p class="text-[8px] text-slate-500 mt-2 italic leading-tight">
+            <span class="text-amber-500 font-bold">Nota:</span> Usa la imagen generada de la derecha o tu selección como base.
+          </p>
         </div>
 
         <!-- Visual Generado -->
@@ -1358,7 +1434,7 @@
     }, forzar);
   }
 
-  function renderMaestroResults(res) {
+  function renderMaestroResults(res, isRefinement = false) {
     document.getElementById('phase2-results').classList.remove('hidden');
     document.getElementById('phase3-results').classList.remove('hidden'); // Mostrar fase 3
 
@@ -1375,7 +1451,7 @@
     } else {
       const div = document.createElement('div');
       div.className = 'log-maestro-kept p-1 mb-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
-      div.innerText = `[FAST] PROMPT MAESTRO RECUPERADO DE CACHE.`;
+      div.innerText = isRefinement ? `[FAST] PROMPT MAESTRO REFINADO DE CACHE.` : `[FAST] PROMPT MAESTRO RECUPERADO DE CACHE.`;
       rawView.appendChild(div);
     }
 
@@ -1386,12 +1462,277 @@
       toast: true,
       position: 'top-end',
       icon: 'success',
-      title: 'Prompt Maestro generado',
+      title: isRefinement ? 'Prompt Maestro refinado' : 'Prompt Maestro generado',
       showConfirmButton: false,
       timer: 3000,
       background: '#1e293b',
       color: '#fff'
     });
+  }
+
+  // === FASE 2.5: LÓGICA DE GRABACIÓN DE VOZ (AUDIO-TO-PROMPT) ===
+  let labMediaRecorder = null;
+  let labAudioChunks = [];
+  let labRecordingTimer = null;
+  let labRecordingSeconds = 0;
+  let labAudioStream = null;
+
+  async function toggleVoiceRecording() {
+    const isRecording = labMediaRecorder && labMediaRecorder.state === "recording";
+    if (isRecording) {
+      stopVoiceRecording();
+    } else {
+      await startVoiceRecording();
+    }
+  }
+
+  async function startVoiceRecording() {
+    if (selectedImageIds.length === 0) {
+      return Swal.fire({
+        title: 'Atención',
+        text: 'Primero elige una o más imágenes de la galería.',
+        icon: 'warning',
+        background: '#0f172a',
+        color: '#fff'
+      });
+    }
+
+    const cleanView = document.getElementById('maestro-clean-view');
+    let currentPrompt = cleanView ? cleanView.innerText : "";
+    if (currentPrompt.includes("El prompt final de alta fidelidad") || !currentPrompt.trim()) {
+      return Swal.fire({
+        title: 'Atención',
+        text: 'Debes generar el Prompt Maestro (Fase 2) antes de refinarlo por voz.',
+        icon: 'warning',
+        background: '#0f172a',
+        color: '#fff'
+      });
+    }
+
+    try {
+      labAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      let options = {};
+      if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options = { mimeType: 'audio/webm' };
+      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        options = { mimeType: 'audio/ogg' };
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4' };
+      }
+
+      labMediaRecorder = new MediaRecorder(labAudioStream, options);
+      labAudioChunks = [];
+
+      labMediaRecorder.ondataavailable = event => {
+        if (event.data && event.data.size > 0) {
+          labAudioChunks.push(event.data);
+        }
+      };
+
+      labMediaRecorder.onstop = async () => {
+        if (labAudioStream) {
+          labAudioStream.getTracks().forEach(track => track.stop());
+        }
+
+        const mimeType = labMediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(labAudioChunks, { type: mimeType });
+        if (audioBlob.size === 0) return;
+
+        const base64Audio = await convertirBlobABase64(audioBlob);
+        enviarAudioAlServidor(base64Audio, mimeType);
+      };
+
+      // Iniciar grabación
+      labMediaRecorder.start();
+
+      // UI visual feedback
+      document.getElementById('lab-voice-pulse-ring').classList.remove('hidden');
+      const micIcon = document.getElementById('lab-voice-mic-icon');
+      micIcon.innerText = 'stop';
+      micIcon.classList.add('text-rose-400');
+
+      const statusText = document.getElementById('lab-voice-status');
+      statusText.innerText = 'Grabando... Habla ahora.';
+      statusText.classList.add('text-rose-400');
+
+      const waves = document.getElementById('lab-voice-waves');
+      waves.classList.remove('hidden');
+      waves.classList.add('flex');
+
+      const timerElement = document.getElementById('lab-voice-timer');
+      timerElement.classList.remove('hidden');
+
+      // Temporizador
+      labRecordingSeconds = 0;
+      updateVoiceTimerDisplay();
+
+      labRecordingTimer = setInterval(() => {
+        labRecordingSeconds++;
+        updateVoiceTimerDisplay();
+
+        if (labRecordingSeconds >= 15) {
+          stopVoiceRecording();
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: 'Límite de 15 segundos alcanzado',
+            showConfirmButton: false,
+            timer: 2000,
+            background: '#1e293b',
+            color: '#fff'
+          });
+        }
+      }, 1000);
+
+    } catch (err) {
+      console.error('Error al acceder al micrófono:', err);
+      Swal.fire({
+        title: 'Error de Micrófono',
+        text: 'No se pudo acceder al micrófono. Asegúrate de otorgar los permisos necesarios en el navegador.',
+        icon: 'error',
+        background: '#0f172a',
+        color: '#fff'
+      });
+      resetVoiceUI();
+    }
+  }
+
+  function stopVoiceRecording() {
+    if (labMediaRecorder && labMediaRecorder.state === "recording") {
+      labMediaRecorder.stop();
+    }
+
+    if (labRecordingTimer) {
+      clearInterval(labRecordingTimer);
+      labRecordingTimer = null;
+    }
+
+    resetVoiceUI();
+  }
+
+  function resetVoiceUI() {
+    const pulseRing = document.getElementById('lab-voice-pulse-ring');
+    if (pulseRing) pulseRing.classList.add('hidden');
+
+    const micIcon = document.getElementById('lab-voice-mic-icon');
+    if (micIcon) {
+      micIcon.innerText = 'mic';
+      micIcon.classList.remove('text-rose-400');
+    }
+
+    const statusText = document.getElementById('lab-voice-status');
+    if (statusText) {
+      statusText.innerText = 'Pulsa para dictar correcciones (Máx. 15s)';
+      statusText.classList.remove('text-rose-400');
+    }
+
+    const waves = document.getElementById('lab-voice-waves');
+    if (waves) {
+      waves.classList.add('hidden');
+      waves.classList.remove('flex');
+    }
+
+    const timer = document.getElementById('lab-voice-timer');
+    if (timer) timer.classList.add('hidden');
+  }
+
+  function updateVoiceTimerDisplay() {
+    const min = Math.floor(labRecordingSeconds / 60).toString().padStart(2, '0');
+    const sec = (labRecordingSeconds % 60).toString().padStart(2, '0');
+    const timerElement = document.getElementById('lab-voice-timer');
+    if (timerElement) {
+      timerElement.innerText = `${min}:${sec} / 00:15`;
+    }
+  }
+
+  function convertirBlobABase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Data = reader.result.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function enviarAudioAlServidor(base64Audio, mimeType) {
+    const masterId = selectedImageIds[0];
+    const currentPrompt = document.getElementById('maestro-clean-view').innerText;
+    const micBtn = document.getElementById('lab-voice-mic-btn');
+    const statusText = document.getElementById('lab-voice-status');
+
+    if (micBtn) {
+      micBtn.disabled = true;
+      micBtn.classList.add('opacity-30');
+    }
+    if (statusText) {
+      statusText.innerText = 'Escuchando y rediseñando prompt...';
+      statusText.classList.add('animate-pulse', 'text-purple-400');
+    }
+
+    // Recopilar configuraciones actuales del laboratorio
+    const formato = document.getElementById('lab-format').value;
+    const estilo = document.getElementById('lab-style').value;
+    const model = document.getElementById('lab-model').value;
+    const aspect = document.getElementById('lab-aspect').value;
+    const skin = document.getElementById('lab-skin').value;
+    const acc = document.getElementById('lab-acc').value;
+    const angle = document.getElementById('lab-angle').value;
+    const focus = document.getElementById('lab-focus').value;
+
+    const isStill = ['hanger', 'folded', 'hero', 'collage'].includes(estilo);
+    const environment = isStill ? document.getElementById('lab-still-env').value : document.getElementById('lab-env').value;
+
+    const shoes = {
+      type: document.getElementById('lab-shoes').value,
+      color: document.getElementById('lab-shoes-color').value || "Color neutro"
+    };
+
+    const forensicData = document.getElementById('clean-view').innerText;
+
+    const extraSpecs = {
+      fichaForense: forensicData,
+      formato: formato,
+      environment: environment,
+      model: model,
+      analysisModel: document.getElementById('lab-analysis-model') ? document.getElementById('lab-analysis-model').value : 'gemma-4-26b-a4b-it',
+      aspectRatio: aspect,
+      skinTone: skin,
+      accessories: acc,
+      angle: angle,
+      focus: focus,
+      footwear: shoes,
+      videoOptions: {
+        structure: document.getElementById('lab-video-struct').value
+      }
+    };
+
+    google.script.run.withSuccessHandler(res => {
+      if (micBtn) {
+        micBtn.disabled = false;
+        micBtn.classList.remove('opacity-30');
+      }
+      if (statusText) {
+        statusText.classList.remove('animate-pulse', 'text-purple-400');
+        statusText.innerText = 'Pulsa para dictar correcciones (Máx. 15s)';
+      }
+
+      if (res.success) {
+        renderMaestroResults(res, true);
+      } else {
+        Swal.fire({
+          title: 'Error de Refinamiento',
+          text: res.error || "No se pudo refinar el prompt por voz.",
+          icon: 'error',
+          background: '#0f172a',
+          color: '#fff'
+        });
+      }
+    }).ejecutarRefinamientoPromptPorVoz(masterId, currentPrompt, base64Audio, mimeType, true, estilo, extraSpecs);
   }
 
   function copyToClipboard(elementId, title) {
@@ -1455,19 +1796,26 @@
       return Swal.fire({ title: 'Atenci\u00f3n', text: 'No hay un prompt generado v\u00e1lido. Completa la Fase 2 primero.', icon: 'warning', background: '#0f172a', color: '#fff' });
     }
 
+    const formato = document.getElementById('lab-format').value;
+    const isVideo = formato === 'video';
+
     Swal.fire({
-      title: 'Generar Visual de Pago',
-      text: `\u00bfDeseas lanzar el renderizado usando la fuente "${source.toUpperCase()}"? Esto consumir\u00e1 saldo de tu facturaci\u00f3n de GCP.`,
+      title: isVideo ? 'Generar Video VEO (Pago)' : 'Generar Visual de Pago',
+      text: `\u00bfDeseas lanzar el renderizado de ${isVideo ? 'video' : 'imagen'} usando la fuente "${source.toUpperCase()}"? Esto consumir\u00e1 saldo de tu facturaci\u00f3n de GCP.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d97706',
       cancelButtonColor: '#1e293b',
-      confirmButtonText: 'S\u00ed, Renderizar (Pago)',
+      confirmButtonText: isVideo ? 'S\u00ed, Generar Video (Pago)' : 'S\u00ed, Renderizar (Pago)',
       background: '#0f172a',
       color: '#fff'
     }).then((result) => {
       if (result.isConfirmed) {
-        runRender(pin, promptToSend);
+        if (isVideo) {
+          iniciarRenderVEOLab(pin, promptToSend);
+        } else {
+          runRender(pin, promptToSend);
+        }
       }
     });
   }
@@ -1586,6 +1934,261 @@
         });
       }
     }).ejecutarRenderizadoDesdeLaboratorio(selectedImageIds, promptToSend, pin, extraSpecs);
+  }
+
+  // =================================================================
+  // ===  FASE 4: REFINAMIENTO DE IMAGEN (LABORATORIO)             ===
+  // =================================================================
+  function confirmAndRunLabRefinement() {
+    if (selectedImageIds.length === 0) {
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Selecciona la imagen master en la galer\u00eda para refinar.', icon: 'warning', background: '#0f172a', color: '#fff' });
+    }
+
+    const feedback = document.getElementById('lab-refine-feedback').value.trim();
+    if (!feedback) {
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Escribe las correcciones o feedback para rehacer la imagen.', icon: 'warning', background: '#0f172a', color: '#fff' });
+    }
+
+    const pin = document.getElementById('lab-paid-pin').value;
+    if (!pin) {
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Debes ingresar tu PIN de seguridad para autorizar la correcci\u00f3n (Pago).', icon: 'warning', background: '#0f172a', color: '#fff' });
+    }
+
+    Swal.fire({
+      title: 'Refinando Imagen (Lab)',
+      text: "\u00bfDeseas lanzar la correcci\u00f3n de la imagen? Esto consumir\u00e1 saldo de Vertex AI.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d97706',
+      cancelButtonColor: '#1e293b',
+      confirmButtonText: 'S\u00ed, Refinar (Pago)',
+      background: '#0f172a',
+      color: '#fff'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        runLabRefinement(pin, feedback);
+      }
+    });
+  }
+
+  function runLabRefinement(pin, feedback) {
+    const btn = document.getElementById('lab-btn-refine-ai');
+    const masterId = selectedImageIds[0];
+    const imgView = document.getElementById('render-result-img');
+    const placeholder = document.getElementById('render-placeholder');
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-icons animate-spin text-sm">sync</span> REFINANDO...`;
+
+    placeholder.classList.remove('hidden');
+    placeholder.innerText = "Aplicando feedback a la imagen...";
+    imgView.classList.add('hidden');
+
+    google.script.run.withSuccessHandler(res => {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="material-icons text-xs">mms</span> Rehacer Imagen con Correcci\u00f3n (Pago)`;
+
+      let parsedRes;
+      try {
+        parsedRes = typeof res === 'string' ? JSON.parse(res) : res;
+      } catch (e) {
+        parsedRes = { success: false, error: "Respuesta inv\u00e1lida del servidor" };
+      }
+
+      if (parsedRes && parsedRes.success) {
+        placeholder.classList.add('hidden');
+        if (parsedRes.fileId) {
+          window._lastRenderedFileId = parsedRes.fileId;
+          imgView.src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w800";
+          imgView.classList.remove('hidden');
+          document.getElementById('lightbox-img').src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w2000";
+          document.getElementById('render-action-bar').classList.remove('hidden');
+          refreshProductImagesSilently();
+        }
+        Swal.fire({ title: '\u00c9xito', text: 'Refinamiento completado con \u00e9xito.', icon: 'success', background: '#0f172a', color: '#fff' });
+      } else {
+        placeholder.classList.remove('hidden');
+        placeholder.className = "text-red-400 text-xs p-4 text-center";
+        placeholder.innerText = "Error: " + (parsedRes ? parsedRes.error : "Desconocido");
+        Swal.fire({ title: 'Error de Refinamiento', text: parsedRes ? parsedRes.error : 'Fallo t\u00e9cnico', icon: 'error', background: '#0f172a', color: '#fff' });
+      }
+    }).withFailureHandler(err => {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="material-icons text-xs">mms</span> Rehacer Imagen con Correcci\u00f3n (Pago)`;
+      placeholder.classList.remove('hidden');
+      placeholder.className = "text-red-400 text-xs p-4 text-center";
+      placeholder.innerText = "Error cr\u00edtico de red";
+      Swal.fire({ title: 'Error Cr\u00edtico', text: err.message, icon: 'error', background: '#0f172a', color: '#fff' });
+    }).ejecutarRefinamientoDesdeDashboard(masterId, feedback, pin);
+  }
+
+  // =================================================================
+  // ===  FASE 5: DERIVACI\u00d3N DE \u00c1NGULOS (LABORATORIO)              ===
+  // =================================================================
+  function confirmAndRunLabAngle() {
+    if (selectedImageIds.length === 0) {
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Selecciona una imagen Master en la galer\u00eda para derivar.', icon: 'warning', background: '#0f172a', color: '#fff' });
+    }
+
+    const angulo = document.getElementById('lab-angle-pivot-select').value;
+    if (!angulo) {
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Selecciona un \u00e1ngulo de la lista para derivar.', icon: 'warning', background: '#0f172a', color: '#fff' });
+    }
+
+    const pin = document.getElementById('lab-paid-pin').value;
+    if (!pin) {
+      return Swal.fire({ title: 'Atenci\u00f3n', text: 'Debes ingresar tu PIN de seguridad para autorizar la variante (Pago).', icon: 'warning', background: '#0f172a', color: '#fff' });
+    }
+
+    Swal.fire({
+      title: 'Derivando \u00c1ngulo Consistente',
+      html: `\u00bfDeseas generar la vista <b>${angulo}</b> manteniendo consistencia? Esto consumir\u00e1 saldo de Vertex AI.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#1e293b',
+      confirmButtonText: 'S\u00ed, Generar \u00c1ngulo (Pago)',
+      background: '#0f172a',
+      color: '#fff'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        runLabAngle(pin, angulo);
+      }
+    });
+  }
+
+  function runLabAngle(pin, angulo) {
+    const btn = document.getElementById('lab-btn-angle-ai');
+    const masterId = selectedImageIds[0];
+    const imgView = document.getElementById('render-result-img');
+    const placeholder = document.getElementById('render-placeholder');
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-icons animate-spin text-sm">sync</span> GENERANDO...`;
+
+    placeholder.classList.remove('hidden');
+    placeholder.innerText = `Derivando \u00e1ngulo ${angulo}...`;
+    imgView.classList.add('hidden');
+
+    google.script.run.withSuccessHandler(res => {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="material-icons text-xs">auto_awesome_motion</span> Generar \u00c1ngulo Consistente (Pago)`;
+
+      let parsedRes;
+      try {
+        parsedRes = typeof res === 'string' ? JSON.parse(res) : res;
+      } catch (e) {
+        parsedRes = { success: false, error: "Respuesta inv\u00e1lida del servidor" };
+      }
+
+      if (parsedRes && parsedRes.success) {
+        placeholder.classList.add('hidden');
+        if (parsedRes.fileId) {
+          window._lastRenderedFileId = parsedRes.fileId;
+          imgView.src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w800";
+          imgView.classList.remove('hidden');
+          document.getElementById('lightbox-img').src = "https:\u002f\u002fdrive.google.com\u002fthumbnail?id=" + parsedRes.fileId + "\u0026sz=w2000";
+          document.getElementById('render-action-bar').classList.remove('hidden');
+          refreshProductImagesSilently();
+        }
+        Swal.fire({ title: '\u00c9xito', text: `\u00c1ngulo [${angulo}] generado.`, icon: 'success', background: '#0f172a', color: '#fff' });
+      } else {
+        placeholder.classList.remove('hidden');
+        placeholder.className = "text-red-400 text-xs p-4 text-center";
+        placeholder.innerText = "Error: " + (parsedRes ? parsedRes.error : "Desconocido");
+        Swal.fire({ title: 'Error de Generaci\u00f3n', text: parsedRes ? parsedRes.error : 'Fallo t\u00e9cnico', icon: 'error', background: '#0f172a', color: '#fff' });
+      }
+    }).withFailureHandler(err => {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="material-icons text-xs">auto_awesome_motion</span> Generar \u00c1ngulo Consistente (Pago)`;
+      placeholder.classList.remove('hidden');
+      placeholder.className = "text-red-400 text-xs p-4 text-center";
+      placeholder.innerText = "Error cr\u00edtico de red";
+      Swal.fire({ title: 'Error Cr\u00edtico', text: err.message, icon: 'error', background: '#0f172a', color: '#fff' });
+    }).generarVarianteAnguloDesdeDashboard(masterId, angulo, pin);
+  }
+
+  // =================================================================
+  // ===  FASE 6: AUTOMATIZACI\u00d3N VIDEO VEO (LABORATORIO)           ===
+  // =================================================================
+  function iniciarRenderVEOLab(pin, prompt) {
+    const placeholder = document.getElementById('render-placeholder');
+    const imgView = document.getElementById('render-result-img');
+    const vidView = document.getElementById('render-result-video');
+    const btn = document.getElementById('run-render-btn');
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-icons animate-spin text-sm">sync</span> RENDERIZANDO VIDEO...`;
+
+    imgView.classList.add('hidden');
+    vidView.classList.add('hidden');
+    placeholder.classList.remove('hidden');
+    placeholder.className = "italic opacity-30 text-amber-400/30 text-[10px] text-center px-4";
+    placeholder.innerText = "Iniciando motor VEO (GCP Long Running)...";
+
+    const masterId = selectedImageIds[0];
+
+    google.script.run.withSuccessHandler(res => {
+      let d;
+      try { d = typeof res === 'string' ? JSON.parse(res) : res; } catch (e) { d = { success: false, error: "Respuesta inv\u00e1lida" }; }
+
+      if (d.success && d.operationId) {
+        placeholder.innerText = "Video VEO en proceso en la nube... Esperando el primer chequeo (30s).";
+        Swal.fire({
+          title: 'VEO: Operaci\u00f3n Larga',
+          html: `<div class="text-xs">Video gener\u00e1ndose as\u00edncronamente en GCP.</div><div class="mt-4 p-2 bg-slate-950 rounded text-[9px] font-mono text-indigo-400">${d.operationId}</div>`,
+          icon: 'info', background: '#1e293b', color: '#fff',
+          timer: 8000, timerProgressBar: true
+        });
+        setTimeout(() => monitorizarVideoVEOLab(d.operationId, d.sku, d.carpetaId), 30000);
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = `<span class="material-icons text-sm">camera_enhance</span> Renderizar Visual`;
+        placeholder.innerText = "Error: " + d.error;
+        Swal.fire('Error VEO', d.error, 'error');
+      }
+    }).ejecutarRenderizadoVideoVEO(masterId, prompt, pin);
+  }
+
+  function monitorizarVideoVEOLab(opId, sku, carpetaId) {
+    const placeholder = document.getElementById('render-placeholder');
+    const btn = document.getElementById('run-render-btn');
+    const imgView = document.getElementById('render-result-img');
+    const vidView = document.getElementById('render-result-video');
+
+    console.log("[VEO-Lab] Verificando estado...");
+
+    google.script.run.withSuccessHandler(res => {
+      let d;
+      try { d = typeof res === 'string' ? JSON.parse(res) : res; } catch (e) { d = { success: false }; }
+
+      if (d.success) {
+        if (d.done) {
+          btn.disabled = false;
+          btn.innerHTML = `<span class="material-icons text-sm">camera_enhance</span> Renderizar Visual`;
+
+          placeholder.classList.add('hidden');
+          imgView.classList.add('hidden');
+
+          const finalLink = d.videoUri || d.driveUrl;
+          vidView.src = finalLink;
+          vidView.classList.remove('hidden');
+
+          window._lastRenderedFileId = d.fileId || "";
+          document.getElementById('render-action-bar').classList.remove('hidden');
+
+          Swal.fire({ title: '\u00a1Video Listo!', text: 'El renderizado MP4 de VEO ha finalizado y se guard\u00f3 en Drive.', icon: 'success', background: '#1e293b', color: '#fff' });
+          refreshProductImagesSilently();
+        } else {
+          placeholder.innerText = "VEO: Cocinando escenas de alta gama... (Re-chequeo en 30s)";
+          setTimeout(() => monitorizarVideoVEOLab(opId, sku, carpetaId), 30000);
+        }
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = `<span class="material-icons text-sm">camera_enhance</span> Renderizar Visual`;
+        placeholder.innerText = "Fallo de monitorizaci\u00f3n: " + d.error;
+      }
+    }).verificarEstadoVideoVEO(opId, sku, carpetaId);
   }
 
   function resetLab() {

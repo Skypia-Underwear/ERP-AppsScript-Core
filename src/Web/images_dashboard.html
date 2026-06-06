@@ -1049,6 +1049,23 @@
     .fab .material-icons {
         font-size: 24px;
     }
+
+    /* Animación de ondas de voz premium */
+    @keyframes voiceWaveBounce {
+
+        0%,
+        100% {
+            height: 20%;
+        }
+
+        50% {
+            height: 100%;
+        }
+    }
+
+    .voice-bar {
+        animation: voiceWaveBounce 0.8s ease-in-out infinite;
+    }
 </style>
 <div id="img-manager-root">
     <!-- Selector oculto para Galería (Multiple) -->
@@ -1540,25 +1557,82 @@
                 <div class="pt-4 border-t border-slate-700 mt-4">
                     <label class="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Inteligencia
                         Artificial</label>
-                    <button id="btnStartAiModal" onclick="generarPromptModal()"
-                        class="w-full py-2 bg-indigo-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500 shadow-sm transition">
-                        <span class="material-icons text-sm">auto_awesome</span>Generar Prompt
-                    </button>
                     <!-- BOTÓN DE ANÁLISIS FORENSE -->
                     <button id="btnForensicModal" onclick="ejecutarAuditoriaForense()"
-                        class="w-full mt-2 py-2 bg-amber-600/20 text-amber-500 border border-amber-600/30 rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-600/30 transition shadow-sm">
+                        class="w-full py-2 bg-amber-600/20 text-amber-500 border border-amber-600/30 rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-600/30 transition shadow-sm">
                         <span class="material-icons text-sm">biotech</span>Análisis Forense
                     </button>
-                    <div id="aiResultBox" class="hidden mt-2">
-                        <textarea id="aiPromptText" readonly
-                            class="w-full h-20 bg-slate-900 border border-slate-600 rounded p-2 text-[10px] font-mono resize-none focus:outline-none focus:border-indigo-500 text-slate-300"></textarea>
-                        <button onclick="copiarPrompt()"
-                            class="text-[10px] text-blue-400 hover:text-blue-300 font-bold mt-1 w-full text-right uppercase">Copiar
-                            Prompt</button>
-                        <button onclick="auditarPrompt()"
-                            class="flex items-center justify-center gap-1.5 w-full mt-2 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 rounded text-[10px] font-bold text-slate-300 transition uppercase">
-                            <span class="material-icons text-sm">zoom_in</span> Auditar Prompt
-                        </button>
+                    <!-- BOTÓN DE GENERAR PROMPT -->
+                    <button id="btnStartAiModal" onclick="generarPromptModal()"
+                        class="w-full mt-2 py-2 bg-indigo-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500 shadow-sm transition">
+                        <span class="material-icons text-sm">auto_awesome</span>Generar Prompt
+                    </button>
+                    <!-- BOTÓN DE AUDITAR PROMPT (DINÁMICO) -->
+                    <button id="btnAuditPromptModal" onclick="auditarPromptModal()"
+                        class="w-full mt-2 py-2 bg-indigo-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500 shadow-sm transition hidden">
+                        <span class="material-icons text-sm">visibility</span>Auditar Prompt
+                    </button>
+                    <div id="aiResultBox" class="hidden">
+                        <textarea id="aiPromptText" readonly class="hidden"></textarea>
+                    </div>
+
+                    <!-- BOX DE RESUMEN EN ESPAÑOL (OCULTO - EVALUADO EN EL MODAL DE AUDITORÍA) -->
+                    <div id="spanishSummaryBox" class="hidden">
+                        <p id="spanishSummaryText" class="hidden"></p>
+                    </div>
+
+                    <!-- PANEL DE REFINAMIENTO DE PROMPT (Fase 2.5 - Gratis) -->
+                    <div id="promptRefinePanel" class="hidden mt-4 pt-4 border-t border-slate-700/50">
+                        <label
+                            class="text-[10px] font-bold text-indigo-400 uppercase mb-2 block flex items-center gap-1">
+                            <span class="material-icons text-xs">edit_note</span> Mejorar Prompt (Gratis)
+                        </label>
+
+                        <!-- Lógica de Voz (Premium) -->
+                        <div
+                            class="flex flex-col items-center justify-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 mb-3">
+                            <div class="relative">
+                                <!-- Anillo de Pulsación -->
+                                <div id="prompt-voice-pulse-ring"
+                                    class="absolute inset-0 rounded-full bg-rose-500/20 scale-150 animate-ping hidden">
+                                </div>
+                                <!-- Botón Micrófono -->
+                                <button id="prompt-voice-mic-btn" onclick="togglePromptVoiceRecording()"
+                                    class="relative w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg transition active:scale-95 border border-indigo-400/30">
+                                    <span id="prompt-voice-mic-icon" class="material-icons text-lg">mic</span>
+                                </button>
+                            </div>
+
+                            <span id="prompt-voice-status"
+                                class="text-[9px] text-slate-400 mt-2 font-medium text-center">Pulsa para dictar
+                                correcciones (Máx. 15s)</span>
+                            <span id="prompt-voice-timer"
+                                class="text-[9px] font-mono text-rose-400 font-bold mt-0.5 hidden">00:00 / 00:15</span>
+
+                            <!-- Ondas de Voz Animadas -->
+                            <div id="prompt-voice-waves" class="hidden items-end justify-center gap-0.5 h-4 mt-2">
+                                <span class="voice-bar w-0.5 bg-rose-400 rounded-full"
+                                    style="animation-delay: 0.1s; height: 30%"></span>
+                                <span class="voice-bar w-0.5 bg-rose-400 rounded-full"
+                                    style="animation-delay: 0.2s; height: 60%"></span>
+                                <span class="voice-bar w-0.5 bg-rose-400 rounded-full"
+                                    style="animation-delay: 0.3s; height: 90%"></span>
+                                <span class="voice-bar w-0.5 bg-rose-400 rounded-full"
+                                    style="animation-delay: 0.4s; height: 40%"></span>
+                                <span class="voice-bar w-0.5 bg-rose-400 rounded-full"
+                                    style="animation-delay: 0.5s; height: 70%"></span>
+                            </div>
+                        </div>
+
+                        <!-- Fallback / Entrada por Texto -->
+                        <div class="space-y-2">
+                            <textarea id="promptRefineText" placeholder="O escribe tu corrección en español aquí..."
+                                class="w-full h-16 bg-slate-900 border border-slate-700 rounded p-2 text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-indigo-500 outline-none resize-none"></textarea>
+                            <button id="btnPromptRefineSubmit" onclick="ejecutarPromptRefinamientoTexto()"
+                                class="w-full py-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded font-bold text-[10px] uppercase hover:bg-indigo-600/30 transition flex items-center justify-center gap-1">
+                                <span class="material-icons text-xs">send</span> Enviar Instrucción Escrita
+                            </button>
+                        </div>
                     </div>
 
                     <!-- PANEL DE REFINAMIENTO (Corrección) -->
@@ -1567,6 +1641,43 @@
                             class="text-[10px] font-bold text-amber-500 uppercase mb-2 block flex items-center gap-1">
                             <span class="material-icons text-xs">edit_note</span> ¿Qué corregimos?
                         </label>
+
+                        <!-- Lógica de Voz para Modo Pago -->
+                        <div
+                            class="flex flex-col items-center justify-center p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 mb-3">
+                            <div class="relative">
+                                <!-- Anillo de Pulsación -->
+                                <div id="paid-voice-pulse-ring"
+                                    class="absolute inset-0 rounded-full bg-amber-500/20 scale-150 animate-ping hidden">
+                                </div>
+                                <!-- Botón Micrófono -->
+                                <button id="paid-voice-mic-btn" onclick="togglePaidVoiceRecording()"
+                                    class="relative w-10 h-10 rounded-full bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center shadow-lg transition active:scale-95 border border-amber-400/30">
+                                    <span id="paid-voice-mic-icon" class="material-icons text-lg">mic</span>
+                                </button>
+                            </div>
+
+                            <span id="paid-voice-status"
+                                class="text-[9px] text-slate-400 mt-2 font-medium text-center">Pulsa para dictar
+                                correcciones (Máx. 15s)</span>
+                            <span id="paid-voice-timer"
+                                class="text-[9px] font-mono text-amber-400 font-bold mt-0.5 hidden">00:00 / 00:15</span>
+
+                            <!-- Ondas de Voz Animadas -->
+                            <div id="paid-voice-waves" class="hidden items-end justify-center gap-0.5 h-4 mt-2">
+                                <span class="voice-bar w-0.5 bg-amber-400 rounded-full"
+                                    style="animation-delay: 0.1s; height: 30%"></span>
+                                <span class="voice-bar w-0.5 bg-amber-400 rounded-full"
+                                    style="animation-delay: 0.2s; height: 60%"></span>
+                                <span class="voice-bar w-0.5 bg-amber-400 rounded-full"
+                                    style="animation-delay: 0.3s; height: 90%"></span>
+                                <span class="voice-bar w-0.5 bg-amber-400 rounded-full"
+                                    style="animation-delay: 0.4s; height: 40%"></span>
+                                <span class="voice-bar w-0.5 bg-amber-400 rounded-full"
+                                    style="animation-delay: 0.5s; height: 70%"></span>
+                            </div>
+                        </div>
+
                         <textarea id="refineFeedback" placeholder="Ej: Quita los lentes, cambia el fondo a estudio..."
                             class="w-full h-16 bg-slate-900 border border-slate-700 rounded p-2 text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-amber-500/50 outline-none resize-none"></textarea>
                         <button id="btnRefineAi" onclick="ejecutarRefinamiento()"
@@ -1587,7 +1698,8 @@
                             <option value="" disabled selected>-- Seleccionar Angulo --</option>
                             <option value="Vista Trasera (Back View)">Vista Trasera (Back View)</option>
                             <option value="Vista Lateral (Side View)">Vista Lateral (Side View)</option>
-                            <option value="Vista Lateral Semi-Frontal (3/4 View)">Vista Lateral Semi-Frontal (3/4 View)</option>
+                            <option value="Vista Lateral Semi-Frontal (3/4 View)">Vista Lateral Semi-Frontal (3/4 View)
+                            </option>
                             <option value="Detalle de Textura / Macro (Close-up)">Detalle / Macro (Close-up)
                             </option>
                             <option value="Plano Medio (Half Body)">Plano Medio (Half Body)</option>
@@ -2406,7 +2518,7 @@
         if (isReorderMode) {
             btn.innerHTML = '<span class="material-icons text-[10px]">close</span><span class="btn-responsive-text"> Salir de Reordenar</span>';
             btn.classList.add('bg-rose-500/20', 'text-rose-400', 'border-rose-500/30');
-            
+
             if (isSelectMode) {
                 isSelectMode = false;
                 const btnSel = document.getElementById('btnToggleSelectMode');
@@ -3052,6 +3164,7 @@
 
         document.getElementById('imageModal').classList.remove('hidden');
         updateAiButtonLabels();
+        chequearSoporteMicrofono();
 
         // MOSTRAR PANEL DE REFINAR Y ÁNGULOS SI ES GENERADA POR IA O TIENE PROMPT Y PIN ACTIVO
         if (refinePanel) refinePanel.classList.toggle('hidden', !showPremium);
@@ -3672,29 +3785,70 @@
 
     function updateAiButtonLabels() {
         showPremium = !!currentPaidPin;
-        const label = showPremium ? "Generar Imagen" : "Generar Prompt";
 
-        // Modal button
         const btnModal = document.getElementById('btnStartAiModal');
+        const btnAudit = document.getElementById('btnAuditPromptModal');
+
         if (btnModal) {
-            btnModal.innerHTML = `<span class="material-icons text-sm">${showPremium ? 'rocket_launch' : 'auto_awesome'}</span> ${label}`;
             if (showPremium) {
-                btnModal.classList.replace('bg-indigo-600', 'bg-amber-600');
-                btnModal.classList.replace('hover:bg-indigo-500', 'hover:bg-amber-500');
+                btnModal.innerHTML = `<span class="material-icons text-sm">rocket_launch</span> Generar Imagen`;
+                btnModal.setAttribute('onclick', 'generarPromptModal()');
+                btnModal.className = "w-full mt-2 py-2 bg-amber-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-500 shadow-sm transition";
+
+                if (btnAudit) {
+                    if (currentImgObj && currentImgObj.PROMPT) {
+                        btnAudit.classList.remove('hidden');
+                        btnAudit.className = "w-full mt-2 py-2 bg-amber-600/20 text-amber-500 border border-amber-600/30 rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-600/30 transition shadow-sm";
+                    } else {
+                        btnAudit.classList.add('hidden');
+                    }
+                }
             } else {
-                btnModal.classList.replace('bg-amber-600', 'bg-indigo-600');
-                btnModal.classList.replace('hover:bg-amber-500', 'hover:bg-indigo-500');
+                btnModal.className = "w-full mt-2 py-2 bg-indigo-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500 shadow-sm transition";
+
+                if (currentImgObj && currentImgObj.PROMPT) {
+                    btnModal.innerHTML = `<span class="material-icons text-sm">visibility</span> Auditar Prompt`;
+                    btnModal.setAttribute('onclick', 'auditarPromptModal()');
+                } else {
+                    btnModal.innerHTML = `<span class="material-icons text-sm">auto_awesome</span> Generar Prompt`;
+                    btnModal.setAttribute('onclick', 'generarPromptModal()');
+                }
+
+                if (btnAudit) {
+                    btnAudit.classList.add('hidden');
+                }
             }
         }
 
         // Toolbar button
         actualizarToolbar();
 
-        // Visibilidad de Paneles de Pago
+        // Visibilidad de Paneles de Pago vs Gratis y Resumen
         const refinePanel = document.getElementById('refinePanel');
+        const promptRefinePanel = document.getElementById('promptRefinePanel');
         const anglePanel = document.getElementById('anglePanel');
-        if (refinePanel) refinePanel.classList.toggle('hidden', !showPremium);
+        const summaryBox = document.getElementById('spanishSummaryBox');
+        const summaryText = document.getElementById('spanishSummaryText');
+
+        // El panel de refinamiento de imagen (de pago) se muestra si showPremium es true Y tenemos una imagen ya generada.
+        if (refinePanel) refinePanel.classList.toggle('hidden', !showPremium || !currentImgObj || !currentImgObj.PROMPT);
+        // El panel de refinamiento de prompt (gratuito) se muestra si showPremium es false Y tenemos un prompt generado.
+        if (promptRefinePanel) promptRefinePanel.classList.toggle('hidden', showPremium || !currentImgObj || !currentImgObj.PROMPT);
+
         if (anglePanel) anglePanel.classList.toggle('hidden', !showPremium);
+
+        // Mostrar resumen en español si existe en el prompt
+        if (currentImgObj && currentImgObj.PROMPT) {
+            const resumen = extraerResumenEspanol(currentImgObj.PROMPT);
+            if (resumen && summaryBox && summaryText) {
+                summaryText.innerText = resumen;
+                summaryBox.classList.remove('hidden');
+            } else if (summaryBox) {
+                summaryBox.classList.add('hidden');
+            }
+        } else {
+            if (summaryBox) summaryBox.classList.add('hidden');
+        }
 
         // Angle button availability
         const btnAngle = document.getElementById('btnGenerateAngle');
@@ -3839,34 +3993,52 @@
                     const finalContent = (formato === 'video' || isJson) ? formatVideoScript(d.text) : d.text;
                     txt.value = finalContent;
 
-                    // MOSTRAR ALERTA CON RESULTADO
-                    let htmlContent = `<div class="text-left mb-2 text-xs text-slate-400 font-bold uppercase text-indigo-400">An\u00e1lisis y Directiva IA (Auditable):</div>`;
-                    htmlContent += `<textarea id="swalPromptText" class="w-full h-60 p-3 text-[11px] bg-slate-950 text-emerald-400 border border-slate-800 rounded font-mono focus:ring-1 focus:ring-indigo-500 outline-none scroll-thin" readonly>${finalContent}</textarea>`;
+                    // MOSTRAR ALERTA CON RESULTADO EN ESPAÑOL Y ACCIONES DIRECTAS
+                    let bodyHtml = '';
+                    if (formato === 'video' || isJson) {
+                        bodyHtml = `<textarea class="w-full h-60 p-3 text-[11px] bg-slate-950 text-emerald-400 border border-slate-800 rounded font-mono focus:ring-1 focus:ring-indigo-500 outline-none scroll-thin" readonly>${finalContent}</textarea>`;
+                    } else {
+                        const resumenEspanol = extraerResumenEspanol(finalContent);
+                        bodyHtml = `
+                            <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg">
+                                <p class="text-xs text-slate-300 leading-relaxed font-sans">${resumenEspanol || "No hay resumen en español disponible."}</p>
+                            </div>`;
+                    }
 
-                    const btnText = d.imageSuccess ? 'Cerrar' : 'Copiar y Cerrar';
-                    const btnIcon = d.imageSuccess ? 'close' : 'content_copy';
+                    let htmlContent = `
+                        <div class="text-left space-y-3">
+                            ${bodyHtml}
+                            <div class="grid grid-cols-2 gap-2 mt-4">
+                                <button id="swalBtnCopiar" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                                    <span class="material-icons text-sm">content_copy</span> Copiar Prompt Inglés
+                                </button>
+                                <button id="swalBtnRehacer" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                                    <span class="material-icons text-sm">autorenew</span> Rehacer Prompt
+                                </button>
+                            </div>
+                        </div>`;
 
-                    // Botones extra para VEO si es video
                     const showVeoButton = formato === 'video' && isJson;
 
                     Swal.fire({
-                        title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">auto_awesome</span> <span>\u00a1An\u00e1lisis de la IA!</span></div>',
+                        title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">translate</span> <span>Composición del Prompt</span></div>',
                         html: htmlContent,
+                        showConfirmButton: false,
                         showCancelButton: showVeoButton,
                         cancelButtonText: `<div class="flex items-center gap-2"><span class="material-icons text-sm">movie</span> <span>Renderizar MP4 con VEO</span></div>`,
                         cancelButtonColor: '#4f46e5',
-                        confirmButtonText: `<div class="flex items-center gap-2"><span>${btnText}</span> <span class="material-icons text-sm">${btnIcon}</span></div>`,
-                        confirmButtonColor: '#1e293b',
-                        width: '650px',
+                        showCloseButton: true,
+                        width: '450px',
                         background: '#1e293b',
                         color: '#f1f5f9',
-                        preConfirm: () => {
-                            if (!d.imageSuccess) {
-                                const swalTxt = document.getElementById('swalPromptText');
-                                swalTxt.select();
-                                document.execCommand('copy');
-                                log("Copiado al portapapeles.", "success");
-                            }
+                        didOpen: () => {
+                            document.getElementById('swalBtnCopiar').onclick = () => {
+                                copiarTextoAlPortapapeles(finalContent);
+                            };
+                            document.getElementById('swalBtnRehacer').onclick = () => {
+                                Swal.close();
+                                generarPromptModal();
+                            };
                         }
                     }).then((result) => {
                         if (result.dismiss === Swal.DismissReason.cancel && showVeoButton) {
@@ -3884,7 +4056,7 @@
                                 const jsonScript = JSON.parse(cleanJson);
                                 const promptVeo = jsonScript.PROMPT_FOR_VIDEO_AI || (jsonScript.TOMAS && jsonScript.TOMAS[0].visual_prompt);
                                 if (promptVeo) {
-                                    // Prioridad: Selecci\u00f3n actual -> Contexto preservado del servidor -> Nueva imagen
+                                    // Prioridad: Seleccion actual -> Contexto preservado del servidor -> Nueva imagen
                                     let idsContext = Array.from(selectedImages);
                                     if (idsContext.length === 0 && d.imageIds) idsContext = d.imageIds;
 
@@ -3960,8 +4132,604 @@
             }
         }
     }
-    function copiarPrompt() { document.getElementById('aiPromptText').select(); document.execCommand('copy'); log("Prompt copiado al portapapeles.", "info"); }
+    function copiarTextoAlPortapapeles(texto) {
+        if (!texto) return;
+        try {
+            const tempTxt = document.createElement('textarea');
+            tempTxt.value = texto;
+            tempTxt.style.position = 'fixed';
+            tempTxt.style.left = '-9999px';
+            tempTxt.style.top = '0';
+            tempTxt.style.opacity = '0';
+            document.body.appendChild(tempTxt);
+            tempTxt.focus();
+            tempTxt.select();
+            const success = document.execCommand('copy');
+            document.body.removeChild(tempTxt);
+            if (success) {
+                log("Prompt copiado al portapapeles.", "success");
+                return;
+            }
+        } catch (e) {
+            console.error("Error copy fallback:", e);
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texto)
+                .then(() => log("Prompt copiado al portapapeles.", "success"))
+                .catch(err => {
+                    console.error("Clipboard API failed:", err);
+                    log("No se pudo copiar automáticamente.", "warning");
+                });
+        } else {
+            log("No se pudo copiar automáticamente.", "warning");
+        }
+    }
+
+    function copiarPrompt() {
+        const text = document.getElementById('aiPromptText').value;
+        copiarTextoAlPortapapeles(text);
+    }
+
+    function auditarPromptModal(imgObj = null) {
+        const targetImg = imgObj || currentImgObj;
+        if (!targetImg || !targetImg.PROMPT) return;
+
+        const resumenEspanol = extraerResumenEspanol(targetImg.PROMPT);
+        const finalContent = targetImg.PROMPT;
+
+        let htmlContent = `
+            <div class="text-left space-y-3">
+                <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg">
+                    <p class="text-xs text-slate-300 leading-relaxed font-sans">${resumenEspanol || "No hay resumen en español disponible."}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button id="swalBtnCopiar" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                        <span class="material-icons text-sm">content_copy</span> Copiar Prompt Inglés
+                    </button>
+                    <button id="swalBtnRehacer" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                        <span class="material-icons text-sm">autorenew</span> Rehacer Prompt
+                    </button>
+                </div>
+            </div>`;
+
+        Swal.fire({
+            title: '<div class="flex items-center gap-2"><span class="material-icons text-indigo-400">translate</span> <span>Composición del Prompt</span></div>',
+            html: htmlContent,
+            showConfirmButton: false,
+            showCloseButton: true,
+            width: '450px',
+            background: '#1e293b',
+            color: '#f1f5f9',
+            didOpen: () => {
+                document.getElementById('swalBtnCopiar').onclick = () => {
+                    copiarTextoAlPortapapeles(finalContent);
+                };
+                document.getElementById('swalBtnRehacer').onclick = () => {
+                    Swal.close();
+                    generarPromptModal();
+                };
+            }
+        });
+    }
+
     function generarPromptMasivo() { generarPromptModal(); }
+
+    // --- LÓGICA DE REFINAMIENTO DE PROMPT POR VOZ / TEXTO (FASE 2.5 - GRATIS) ---
+    let promptMediaRecorder = null;
+    let promptAudioChunks = [];
+    let promptRecordingTimer = null;
+    let promptRecordingSeconds = 0;
+    let promptAudioStream = null;
+    let microfonoVerificado = false;
+    let microfonoDisponible = false;
+
+    function extraerResumenEspanol(promptText) {
+        if (!promptText) return "";
+        const match = promptText.match(/RESUMEN_ESPAÑOL:\s*([\s\S]*?)(?=\n\n|\n[A-Z_]+:|$)/i);
+        return match ? match[1].trim() : "";
+    }
+
+    function chequearSoporteMicrofono() {
+        if (microfonoVerificado) {
+            if (!microfonoDisponible) deshabilitarPromptMicUI();
+            return;
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            microfonoVerificado = true;
+            microfonoDisponible = false;
+            deshabilitarPromptMicUI();
+            return;
+        }
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                stream.getTracks().forEach(track => track.stop());
+                microfonoVerificado = true;
+                microfonoDisponible = true;
+            })
+            .catch(err => {
+                microfonoVerificado = true;
+                microfonoDisponible = false;
+                deshabilitarPromptMicUI();
+            });
+    }
+
+    async function togglePromptVoiceRecording() {
+        const isRecording = promptMediaRecorder && promptMediaRecorder.state === "recording";
+        if (isRecording) {
+            stopPromptVoiceRecording();
+        } else {
+            await startPromptVoiceRecording();
+        }
+    }
+
+    async function startPromptVoiceRecording() {
+        if (!currentImgObj || !currentImgObj.PROMPT) {
+            log("Debes generar el prompt primero para poder refinarlo.", "warning");
+            return;
+        }
+
+        try {
+            promptAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            let options = {};
+            if (MediaRecorder.isTypeSupported('audio/webm')) {
+                options = { mimeType: 'audio/webm' };
+            } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                options = { mimeType: 'audio/ogg' };
+            } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                options = { mimeType: 'audio/mp4' };
+            }
+
+            promptMediaRecorder = new MediaRecorder(promptAudioStream, options);
+            promptAudioChunks = [];
+
+            promptMediaRecorder.ondataavailable = event => {
+                if (event.data && event.data.size > 0) {
+                    promptAudioChunks.push(event.data);
+                }
+            };
+
+            promptMediaRecorder.onstop = async () => {
+                if (promptAudioStream) {
+                    promptAudioStream.getTracks().forEach(track => track.stop());
+                }
+
+                const mimeType = promptMediaRecorder.mimeType || 'audio/webm';
+                const audioBlob = new Blob(promptAudioChunks, { type: mimeType });
+                if (audioBlob.size === 0) return;
+
+                Swal.fire({
+                    title: 'Procesando Audio...',
+                    html: 'Subiendo y analizando tu instrucción de voz.',
+                    background: '#1e293b',
+                    color: '#fff',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const base64Audio = await convertirBlobABase64(audioBlob);
+                enviarRefinamientoPromptServidor(base64Audio, true, mimeType);
+            };
+
+            promptMediaRecorder.start();
+
+            // UI Feedback
+            document.getElementById('prompt-voice-pulse-ring').classList.remove('hidden');
+            const micIcon = document.getElementById('prompt-voice-mic-icon');
+            micIcon.innerText = 'stop';
+            micIcon.classList.add('text-rose-400');
+
+            const statusText = document.getElementById('prompt-voice-status');
+            statusText.innerText = 'Grabando... Habla ahora.';
+            statusText.classList.add('text-rose-400');
+
+            const waves = document.getElementById('prompt-voice-waves');
+            waves.classList.remove('hidden');
+            waves.classList.add('flex');
+
+            const timerElement = document.getElementById('prompt-voice-timer');
+            timerElement.classList.remove('hidden');
+
+            promptRecordingSeconds = 0;
+            updatePromptVoiceTimerDisplay();
+
+            promptRecordingTimer = setInterval(() => {
+                promptRecordingSeconds++;
+                updatePromptVoiceTimerDisplay();
+
+                if (promptRecordingSeconds >= 15) {
+                    stopPromptVoiceRecording();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Límite de 15 segundos alcanzado',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                }
+            }, 1000);
+
+        } catch (err) {
+            console.error('Error al acceder al micrófono:', err);
+            Swal.fire({
+                title: 'Micrófono no Disponible',
+                text: 'No se pudo acceder al micrófono. Por favor escribe tu instrucción en el cuadro de texto.',
+                icon: 'info',
+                background: '#1e293b',
+                color: '#fff'
+            });
+            deshabilitarPromptMicUI();
+        }
+    }
+
+    function stopPromptVoiceRecording() {
+        if (promptMediaRecorder && promptMediaRecorder.state === "recording") {
+            promptMediaRecorder.stop();
+        }
+        if (promptRecordingTimer) {
+            clearInterval(promptRecordingTimer);
+            promptRecordingTimer = null;
+        }
+        resetPromptVoiceUI();
+    }
+
+    function resetPromptVoiceUI() {
+        const pulseRing = document.getElementById('prompt-voice-pulse-ring');
+        if (pulseRing) pulseRing.classList.add('hidden');
+
+        const micIcon = document.getElementById('prompt-voice-mic-icon');
+        if (micIcon) {
+            micIcon.innerText = 'mic';
+            micIcon.classList.remove('text-rose-400');
+        }
+
+        const statusText = document.getElementById('prompt-voice-status');
+        if (statusText) {
+            statusText.innerText = 'Pulsa para dictar correcciones (Máx. 15s)';
+            statusText.classList.remove('text-rose-400');
+        }
+
+        const waves = document.getElementById('prompt-voice-waves');
+        if (waves) {
+            waves.classList.add('hidden');
+            waves.classList.remove('flex');
+        }
+
+        const timer = document.getElementById('prompt-voice-timer');
+        if (timer) timer.classList.add('hidden');
+    }
+
+    function deshabilitarPromptMicUI() {
+        resetPromptVoiceUI();
+        const micBtn = document.getElementById('prompt-voice-mic-btn');
+        if (micBtn) {
+            micBtn.disabled = true;
+            micBtn.classList.add('opacity-40', 'cursor-not-allowed');
+            micBtn.title = "Micrófono no disponible en este entorno";
+        }
+        const statusText = document.getElementById('prompt-voice-status');
+        if (statusText) {
+            statusText.innerText = "Micrófono desactivado. Usa el cuadro de texto de abajo.";
+        }
+
+        // --- TAMBIÉN PARA MODO PAGO ---
+        resetPaidVoiceUI();
+        const paidMicBtn = document.getElementById('paid-voice-mic-btn');
+        if (paidMicBtn) {
+            paidMicBtn.disabled = true;
+            paidMicBtn.classList.add('opacity-40', 'cursor-not-allowed');
+            paidMicBtn.title = "Micrófono no disponible en este entorno";
+        }
+        const paidStatusText = document.getElementById('paid-voice-status');
+        if (paidStatusText) {
+            paidStatusText.innerText = "Micrófono desactivado. Usa el cuadro de texto de abajo.";
+        }
+    }
+
+    function updatePromptVoiceTimerDisplay() {
+        const min = Math.floor(promptRecordingSeconds / 60).toString().padStart(2, '0');
+        const sec = (promptRecordingSeconds % 60).toString().padStart(2, '0');
+        const timerElement = document.getElementById('prompt-voice-timer');
+        if (timerElement) {
+            timerElement.innerText = `${min}:${sec} / 00:15`;
+        }
+    }
+
+    function convertirBlobABase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Data = reader.result.split(',')[1];
+                resolve(base64Data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    function ejecutarPromptRefinamientoTexto() {
+        const text = document.getElementById('promptRefineText').value.trim();
+        if (!text) {
+            log("Escribe alguna corrección para refinar.", "warning");
+            return;
+        }
+
+        Swal.fire({
+            title: 'Procesando Corrección...',
+            html: 'Enviando instrucción de texto a Gemini.',
+            background: '#1e293b',
+            color: '#fff',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        enviarRefinamientoPromptServidor(text, false);
+    }
+
+    function enviarRefinamientoPromptServidor(instructions, esAudio = true, mimeType = null) {
+        if (!currentImgObj || !currentImgObj.PROMPT) return;
+        const currentPrompt = currentImgObj.PROMPT;
+
+        // Extraer configuraciones visuales del DOM
+        const estilo = document.getElementById('swal-input-style') ? document.getElementById('swal-input-style').value : "ecommerce";
+        const stillLifeEnvEl = document.getElementById('swal-input-still-life-env');
+        const envEl = document.getElementById('swal-input-env');
+        const isStillLife = ['folded', 'hanger', 'hero', 'collage'].includes(estilo);
+        const envVal = isStillLife ? (stillLifeEnvEl ? stillLifeEnvEl.value : "") : (envEl ? envEl.value : "");
+
+        const extraSpecs = {
+            model: document.getElementById('swal-input-model') ? document.getElementById('swal-input-model').value : "",
+            aspectRatio: document.getElementById('swal-input-aspect') ? document.getElementById('swal-input-aspect').value : "3:4",
+            skinTone: document.getElementById('swal-input-skin') ? document.getElementById('swal-input-skin').value : "",
+            accessory: document.getElementById('swal-input-acc-type') ? document.getElementById('swal-input-acc-type').value : "",
+            environment: envVal,
+            cuerpoCompleto: document.getElementById('swal-input-framing') ? document.getElementById('swal-input-framing').value : "auto",
+            angle: document.getElementById('swal-input-angle') ? document.getElementById('swal-input-angle').value : "",
+            focus: document.getElementById('swal-input-focus') ? document.getElementById('swal-input-focus').value : "",
+            analysisModel: document.getElementById('dashboard-analysis-model') ? document.getElementById('dashboard-analysis-model').value : 'gemini-3.5-flash',
+            footwear: (document.getElementById('swal-input-foot-type') && document.getElementById('swal-input-foot-type').value !== "") ? {
+                type: document.getElementById('swal-input-foot-type').value,
+                color: document.getElementById('swal-input-foot-color').value || "Color neutro"
+            } : null
+        };
+
+        google.script.run.withSuccessHandler(res => {
+            Swal.close();
+            if (res.success) {
+                log("Prompt mejorado con éxito por Gemini Flash.", "success");
+
+                document.getElementById('promptRefineText').value = "";
+
+                currentImgObj.PROMPT = res.clean;
+                const index = CURRENT_IMAGES.findIndex(img => img.IMAGEN_ID === currentImgObj.IMAGEN_ID);
+                if (index !== -1) CURRENT_IMAGES[index].PROMPT = res.clean;
+
+                const aiResultBox = document.getElementById('aiResultBox');
+                const aiPromptText = document.getElementById('aiPromptText');
+                if (aiResultBox && aiPromptText) {
+                    aiResultBox.classList.remove('hidden');
+                    aiPromptText.value = res.clean;
+                }
+
+                updateAiButtonLabels();
+
+                Swal.fire({
+                    title: '¡Prompt Refinado!',
+                    text: 'Las modificaciones se aplicaron correctamente al prompt en inglés y al resumen.',
+                    icon: 'success',
+                    background: '#1e293b',
+                    color: '#fff',
+                    timer: 2000
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error de Refinamiento',
+                    text: res.error || "No se pudo procesar tu instrucción.",
+                    icon: 'error',
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+            }
+        }).ejecutarRefinamientoPromptPorVoz(currentImgObj.IMAGEN_ID, currentPrompt, instructions, mimeType, esAudio, estilo, extraSpecs);
+    }
+
+    // --- LÓGICA DE REFINAMIENTO DE IMAGEN POR VOZ (MODO PAGO) ---
+    let paidMediaRecorder = null;
+    let paidAudioChunks = [];
+    let paidRecordingTimer = null;
+    let paidRecordingSeconds = 0;
+    let paidAudioStream = null;
+
+    async function togglePaidVoiceRecording() {
+        const isRecording = paidMediaRecorder && paidMediaRecorder.state === "recording";
+        if (isRecording) {
+            stopPaidVoiceRecording();
+        } else {
+            await startPaidVoiceRecording();
+        }
+    }
+
+    async function startPaidVoiceRecording() {
+        if (!currentImageId) {
+            log("No hay ninguna imagen seleccionada para refinar.", "warning");
+            return;
+        }
+
+        try {
+            paidAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            let options = {};
+            if (MediaRecorder.isTypeSupported('audio/webm')) {
+                options = { mimeType: 'audio/webm' };
+            } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                options = { mimeType: 'audio/ogg' };
+            } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                options = { mimeType: 'audio/mp4' };
+            }
+
+            paidMediaRecorder = new MediaRecorder(paidAudioStream, options);
+            paidAudioChunks = [];
+
+            paidMediaRecorder.ondataavailable = event => {
+                if (event.data && event.data.size > 0) {
+                    paidAudioChunks.push(event.data);
+                }
+            };
+
+            paidMediaRecorder.onstop = async () => {
+                if (paidAudioStream) {
+                    paidAudioStream.getTracks().forEach(track => track.stop());
+                }
+
+                const mimeType = paidMediaRecorder.mimeType || 'audio/webm';
+                const audioBlob = new Blob(paidAudioChunks, { type: mimeType });
+                if (audioBlob.size === 0) return;
+
+                Swal.fire({
+                    title: 'Procesando Audio...',
+                    html: 'Transcribiendo tu instrucción de voz a texto (Gratis).',
+                    background: '#1e293b',
+                    color: '#fff',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const base64Audio = await convertirBlobABase64(audioBlob);
+
+                google.script.run.withSuccessHandler(res => {
+                    Swal.close();
+                    if (res && res.success) {
+                        log("Audio transcrito correctamente.", "success");
+                        const refineFeedback = document.getElementById('refineFeedback');
+                        if (refineFeedback) {
+                            refineFeedback.value = res.text;
+                        }
+                    } else {
+                        Swal.fire({
+                            title: 'Error de Transcripción',
+                            text: (res ? res.error : "") || "No se pudo transcribir tu audio.",
+                            icon: 'error',
+                            background: '#1e293b',
+                            color: '#fff'
+                        });
+                    }
+                }).withFailureHandler(err => {
+                    Swal.close();
+                    Swal.fire('Error Crítico', err.message, 'error');
+                }).transcribirAudio(base64Audio, mimeType);
+            };
+
+            paidMediaRecorder.start();
+
+            // UI Feedback (Amber Theme)
+            document.getElementById('paid-voice-pulse-ring').classList.remove('hidden');
+            const micIcon = document.getElementById('paid-voice-mic-icon');
+            if (micIcon) {
+                micIcon.innerText = 'stop';
+                micIcon.classList.add('text-amber-500');
+            }
+
+            const statusText = document.getElementById('paid-voice-status');
+            if (statusText) {
+                statusText.innerText = 'Grabando... Habla ahora.';
+                statusText.classList.add('text-amber-500');
+            }
+
+            const waves = document.getElementById('paid-voice-waves');
+            if (waves) {
+                waves.classList.remove('hidden');
+                waves.classList.add('flex');
+            }
+
+            const timerElement = document.getElementById('paid-voice-timer');
+            if (timerElement) {
+                timerElement.classList.remove('hidden');
+            }
+
+            paidRecordingSeconds = 0;
+            updatePaidVoiceTimerDisplay();
+
+            paidRecordingTimer = setInterval(() => {
+                paidRecordingSeconds++;
+                updatePaidVoiceTimerDisplay();
+
+                if (paidRecordingSeconds >= 15) {
+                    stopPaidVoiceRecording();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Límite de 15 segundos alcanzado',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                }
+            }, 1000);
+
+        } catch (err) {
+            console.error('Error al acceder al micrófono en modo pago:', err);
+            Swal.fire({
+                title: 'Micrófono no Disponible',
+                text: 'No se pudo acceder al micrófono. Por favor escribe tu instrucción en el cuadro de texto.',
+                icon: 'info',
+                background: '#1e293b',
+                color: '#fff'
+            });
+            deshabilitarPromptMicUI();
+        }
+    }
+
+    function stopPaidVoiceRecording() {
+        if (paidMediaRecorder && paidMediaRecorder.state === "recording") {
+            paidMediaRecorder.stop();
+        }
+        if (paidRecordingTimer) {
+            clearInterval(paidRecordingTimer);
+            paidRecordingTimer = null;
+        }
+        resetPaidVoiceUI();
+    }
+
+    function resetPaidVoiceUI() {
+        const pulseRing = document.getElementById('paid-voice-pulse-ring');
+        if (pulseRing) pulseRing.classList.add('hidden');
+
+        const micIcon = document.getElementById('paid-voice-mic-icon');
+        if (micIcon) {
+            micIcon.innerText = 'mic';
+            micIcon.classList.remove('text-amber-500');
+        }
+
+        const statusText = document.getElementById('paid-voice-status');
+        if (statusText) {
+            statusText.innerText = 'Pulsa para dictar correcciones (Máx. 15s)';
+            statusText.classList.remove('text-amber-500');
+        }
+
+        const waves = document.getElementById('paid-voice-waves');
+        if (waves) {
+            waves.classList.add('hidden');
+            waves.classList.remove('flex');
+        }
+
+        const timer = document.getElementById('paid-voice-timer');
+        if (timer) timer.classList.add('hidden');
+    }
+
+    function updatePaidVoiceTimerDisplay() {
+        const min = Math.floor(paidRecordingSeconds / 60).toString().padStart(2, '0');
+        const sec = (paidRecordingSeconds % 60).toString().padStart(2, '0');
+        const timerElement = document.getElementById('paid-voice-timer');
+        if (timerElement) {
+            timerElement.innerText = `${min}:${sec} / 00:15`;
+        }
+    }
 
     // --- REFINAMIENTO (NUEVO) ---
     function ejecutarRefinamiento() {

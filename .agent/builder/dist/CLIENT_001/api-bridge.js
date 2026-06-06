@@ -7,7 +7,7 @@ window.google = window.google || {};
 window.google.script = window.google.script || {};
 
 (function () {
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyEpH5qTx-0LUVX8DjAt4xVQnrABSGJGn7JHk_3gVadu_DOuBONXbo3rXcfNjyL7Wh-Hw/exec";
 
   // --- MAPEO DE VISTAS (Apps Script -> PWA Files) ---
   const VIEW_MAP = {

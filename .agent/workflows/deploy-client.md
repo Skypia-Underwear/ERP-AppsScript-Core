@@ -10,7 +10,7 @@ Para dar soporte ordenado a múltiples clientes independientes sin riesgo de sob
 ### 1. Cliente Castfer (Donweb)
 * **Archivo de Configuración:** `.clasp-castfer.json`
 * **Script ID:** `1Te9svmz1gbbfj6Mep3U7dlTqVnYpMg6qU6TyUMIq6btC6CndjJnQTH_B`
-* **Implementación Web App ID:** `AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg`
+* **Implementación Web App ID:** `AKfycbyEpH5qTx-0LUVX8DjAt4xVQnrABSGJGn7JHk_3gVadu_DOuBONXbo3rXcfNjyL7Wh-Hw`
 * **Workflow Comando:** Usa el workflow específico [/deploy-castfer](file:///c:/Users/USER/OneDrive/Documents/Proyecto_Web/Macros%20HostingShop/.agent/workflows/deploy-castfer.md)
 
 ### 2. Cliente MINOM JEANS (Nimon System)

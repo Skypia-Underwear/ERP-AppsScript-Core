@@ -32,7 +32,7 @@ Copy-Item .clasp-castfer.json .clasp.json
 clasp push --force
 clasp version "Sincronización Global - Castfer"
 # Deploy a la WebApp de Castfer
-clasp deploy -i AKfycbySMq7IZrZMhXE2wZAH-4YCLV8S-VpwjiTcKMAa1jonor7Zyjd2IdJo1EHZMs9WJahSKg -d "Sincronización Global - Castfer"
+clasp deploy -i AKfycbyEpH5qTx-0LUVX8DjAt4xVQnrABSGJGn7JHk_3gVadu_DOuBONXbo3rXcfNjyL7Wh-Hw -d "Sincronización Global - Castfer"
 
 # 3. Restaurar configuración original temporalmente
 Copy-Item .clasp-backup.json .clasp.json
