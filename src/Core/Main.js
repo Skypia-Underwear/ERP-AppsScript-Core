@@ -149,18 +149,13 @@ function doPost(e) {
       }
     }
 
-    // --- BLOQUE RESELLER (V3.0) ---
-    if (accion === "batch_sync_category") {
-      const res = reseller_sendBatchByCategory(contents.categoria_id);
-      return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    if (accion === "importar_reseller") {
-      const serverToken = GLOBAL_CONFIG.SCRIPT_CONFIG["RESELLER_SYNC_TOKEN"] || "RESELLER_SYNC_TOKEN_V1";
-      if (contents.token !== serverToken) {
-        return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Acceso denegado (Invalid Token)" })).setMimeType(ContentService.MimeType.JSON);
+    // --- BLOQUE RESELLER (INDIVIDUAL AUDITADO) ---
+    if (accion === "importar_reseller_individual") {
+      const validPin = GLOBAL_CONFIG.GEMINI.PAID_PIN;
+      if (String(contents.pin).trim() !== String(validPin).trim()) {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Acceso denegado (PIN inválido)" })).setMimeType(ContentService.MimeType.JSON);
       }
-      const res = reseller_handleImport(contents.data);
+      const res = reseller_handleImport(contents);
       return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
     }
 

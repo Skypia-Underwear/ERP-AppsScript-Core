@@ -7042,7 +7042,7 @@
 
         <!-- 🚀 Acciones Rápidas -->
         <div class="mt-3 d-flex flex-wrap gap-2 border-top pt-3">
-            <button class="btn btn-sm btn-action-premium btn-action-share flex-grow-1" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
+            <button class="btn btn-sm btn-action-premium btn-action-share flex-grow-1" onclick="compartirProducto('${producto.nombre}', '${productoURL}', '${producto.codigo}', '${categoria.codigo}')">
                 <i class="fa fa-share-alt"></i> Compartir
             </button>
             ${urlWhatsApp ? `<button class="btn btn-sm btn-action-premium btn-action-whatsapp flex-grow-1" onclick="window.open('${urlWhatsApp}', '_blank')">
@@ -7150,7 +7150,7 @@
 
             <div class="acciones-compactas">
                 <div class="d-flex gap-1 mb-1">
-                    <button class="btn btn-sm btn-action-premium btn-action-share flex-grow-1 p-1" style="font-size: 0.7rem;" onclick="compartirProducto('${producto.nombre}', '${productoURL}')">
+                    <button class="btn btn-sm btn-action-premium btn-action-share flex-grow-1 p-1" style="font-size: 0.7rem;" onclick="compartirProducto('${producto.nombre}', '${productoURL}', '${producto.codigo}', '${categoria.codigo}')">
                         <i class="fa fa-share-alt"></i>
                     </button>
                     ${urlWhatsApp ? `<button class="btn btn-sm btn-action-premium btn-action-whatsapp flex-grow-1 p-1" style="font-size: 0.7rem;" onclick="window.open('${urlWhatsApp}', '_blank')">
@@ -8082,12 +8082,21 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
         }
 
-        function compartirProducto(nombre, url) {
+        function compartirProducto(nombre, url, sku, categoriaCodigo) {
+            const erpUrl = localStorage.getItem('reseller_erp_url');
+            const pin = localStorage.getItem('reseller_pin');
+            const mostrarBotonReventa = erpUrl && pin && sku && categoriaCodigo;
+
             Swal.fire({
                 title: 'Compartir producto',
                 html: `
             <p>Elige una red social para compartir:</p>
             <div class="d-flex flex-column align-items-stretch">
+                ${mostrarBotonReventa ? `
+                <button class="btn btn-warning mb-2 fw-bold text-white shadow-sm" style="background-color: #f59e0b; border-color: #d97706;" data-red="reventa">
+                    <i class="fa fa-refresh"></i> 🔄 Importar para Reventa
+                </button>
+                ` : ''}
                 <button class="btn btn-success mb-2" data-red="whatsapp">
                     <i class="fa fa-whatsapp"></i> WhatsApp
                 </button>
@@ -8128,6 +8137,9 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         btn.addEventListener('click', () => {
                             const red = btn.getAttribute('data-red');
                             switch (red) {
+                                case 'reventa':
+                                    ejecutarImportacionReseller(sku, categoriaCodigo);
+                                    break;
                                 case 'whatsapp':
                                     compartirWhatsApp(url, nombre);
                                     break;
@@ -8158,6 +8170,173 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         });
                     });
                 }
+            });
+        }
+
+        // --- 🔄 SCRIPT DE REVENTA DESCENTRALIZADA (Blogger Side) ---
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+                e.preventDefault();
+                abrirConfiguracionReventa();
+            }
+        });
+
+        function abrirConfiguracionReventa() {
+            const currentUrl = localStorage.getItem('reseller_erp_url') || '';
+            const currentPin = localStorage.getItem('reseller_pin') || '';
+
+            Swal.fire({
+                title: '⚙️ Configuración de Reventa',
+                html: `
+                    <p class="text-muted small">Configura las credenciales de tu ERP local para activar la importación de productos.</p>
+                    <div class="text-start mb-3">
+                        <label class="form-label fw-bold small">URL WebApp del ERP</label>
+                        <input type="text" id="swal_reseller_url" class="form-control form-control-sm" placeholder="https://script.google.com/macros/s/.../exec" value="${currentUrl}">
+                    </div>
+                    <div class="text-start mb-3">
+                        <label class="form-label fw-bold small">PIN de Seguridad del ERP</label>
+                        <input type="password" id="swal_reseller_pin" class="form-control form-control-sm" placeholder="PIN de 4 dígitos" value="${currentPin}">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar Configuración',
+                cancelButtonText: 'Cerrar',
+                confirmButtonColor: '#198754',
+                preConfirm: () => {
+                    const url = document.getElementById('swal_reseller_url').value.trim();
+                    const pin = document.getElementById('swal_reseller_pin').value.trim();
+                    if (!url || !pin) {
+                        Swal.showValidationMessage('Ambos campos son obligatorios');
+                        return false;
+                    }
+                    return { url, pin };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.setItem('reseller_erp_url', result.value.url);
+                    localStorage.setItem('reseller_pin', result.value.pin);
+                    Swal.fire({
+                        title: '¡Guardado!',
+                        text: 'La configuración de reventa ha sido guardada. Podrás importar productos en el modal de compartir.',
+                        icon: 'success',
+                        confirmButtonText: 'Aceptar'
+                    });
+                }
+            });
+        }
+
+        function ejecutarImportacionReseller(sku, categoriaCodigo) {
+            const erpUrl = localStorage.getItem('reseller_erp_url');
+            const pin = localStorage.getItem('reseller_pin');
+
+            if (!erpUrl || !pin) {
+                Swal.fire('Error', 'Configura primero tu ERP con Ctrl+Shift+R', 'error');
+                return;
+            }
+
+            // 1. Obtener los datos del producto del localStorage
+            const configCompleta = JSON.parse(localStorage.getItem("configuracion_pagina") || '{}');
+            const categorias = (configCompleta?.content || []).flatMap(padre => padre.categorias || []);
+            const categoria = categorias.find(cat => String(cat.codigo) === String(categoriaCodigo));
+            if (!categoria) {
+                Swal.fire('Error', 'No se encontró la categoría del producto.', 'error');
+                return;
+            }
+
+            const producto = categoria.producto.find(p => String(p.codigo) === String(sku));
+            if (!producto) {
+                Swal.fire('Error', 'No se encontró el producto en el catálogo.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Importando para Reventa',
+                text: `Registrando ${producto.nombre} en tu ERP...`,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Preparar el payload
+            // Inyectamos el precio de reventa utilizando la variedad con el menor precio unitario
+            let precioCosto = 0;
+            if (producto.variedad && producto.variedad.length > 0) {
+                // Encontrar el precio mínimo de las variedades
+                const preciosValidos = producto.variedad.map(v => parseFloat(v.precio)).filter(p => !isNaN(p) && p > 0);
+                if (preciosValidos.length > 0) {
+                    precioCosto = Math.min(...preciosValidos);
+                }
+            }
+
+            // Extraemos los atributos básicos mapeados
+            const desc = producto.descripcion || {};
+            
+            // Extraer Talles y Colores desde la estructura del catálogo de Blogger
+            let tallesList = "Surtido";
+            if (desc.talles && Array.isArray(desc.talles.valores)) {
+                tallesList = desc.talles.valores.join(",");
+            }
+            
+            let coloresList = "Surtido";
+            if (desc.colores && Array.isArray(desc.colores.valores)) {
+                coloresList = desc.colores.valores.map(c => c.nombre).join(",");
+            }
+
+            const productPayload = {
+                CODIGO_ID: String(producto.codigo),
+                MODELO: desc.modelo?.valor || producto.nombre,
+                MARCA: desc.marca?.valor || "HostingShop",
+                GENERO: desc.genero?.valor || "Unisex",
+                MATERIAL: desc.material?.valor || "N/A",
+                TEMPORADA: desc.temporada?.valor || "SIN-TEMPORADA",
+                SKU: String(producto.codigo),
+                CATEGORIA_PADRE: categoria.nombre_padre || "",
+                CATEGORIA: categoria.nombre || "",
+                TALLES: tallesList,
+                COLORES: coloresList,
+                PRECIO_COSTO: precioCosto,
+                RECARGO_MENOR: parseFloat(desc.recargo_menor?.valor) || 0,
+                DESCRIPCION_IA: desc.descripcion_ia?.valor || ""
+            };
+
+            // Imágenes con sus correspondientes archivo_ids
+            const imagesPayload = (producto.imagen || []).map(img => ({
+                archivo_id: img.archivo_id,
+                url: img.url,
+                portada: img.portada === true || String(img.portada).toUpperCase() === "TRUE",
+                orden: parseInt(img.orden) || 1
+            }));
+
+            // Enviamos el POST
+            fetch(erpUrl, {
+                method: 'POST',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
+                body: JSON.stringify({
+                    accion: 'importar_reseller_individual',
+                    pin: pin,
+                    producto: productPayload,
+                    imagenes: imagesPayload
+                })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                if (resData.success) {
+                    Swal.fire({
+                        title: '¡Importación Exitosa!',
+                        text: resData.message || 'El producto fue importado correctamente.',
+                        icon: 'success'
+                    });
+                } else {
+                    Swal.fire('Error de Importación', resData.error || resData.message || 'Error desconocido.', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire('Error de Conexión', 'No se pudo comunicar con tu ERP WebApp. Revisa la URL y que tenga los permisos de ejecución de WebApp correctos.', 'error');
             });
         }
 

@@ -2690,12 +2690,16 @@ function _ejecutarSincronizacionAuto(sku, logArray) {
 function checkNewProductsFlag(skusExistentes) {
   try {
     const cache = CacheService.getScriptCache();
-    const flag = cache.get("NEW_PRODUCTS_AVAILABLE");
+    const hasNewFlag = cache.get("NEW_PRODUCTS_AVAILABLE");
+    const noNewFlag = cache.get("NO_NEW_PRODUCTS");
 
-    // Si no hay flag, salida ultra rápida (10ms)
-    if (!flag) return { success: true, hasNew: false };
+    // Si explícitamente no hay nuevos productos (caché negativa activa), y no se ha forzado el flag de nuevos,
+    // retornamos una salida rápida (10ms) sin leer la hoja.
+    if (!hasNewFlag && noNewFlag === "true") {
+      return { success: true, hasNew: false };
+    }
 
-    // Si hay flag, leemos la hoja de productos
+    // Leemos la hoja de productos
     const ss = getImagesSpreadsheet();
     const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
     const mapping = HeaderManager.getMapping("PRODUCTS");
@@ -2742,10 +2746,13 @@ function checkNewProductsFlag(skusExistentes) {
 
     // Si encontramos y enviamos los nuevos
     if (nuevosProductos.length > 0) {
-      // NOTE: No eliminamos la cache aquí para evitar Race Conditions con múltiples clientes
+      // Configuramos el flag de nuevos (para otros clientes que no los hayan cargado)
+      cache.put("NEW_PRODUCTS_AVAILABLE", "true", 90);
+      cache.remove("NO_NEW_PRODUCTS");
       return { success: true, hasNew: true, products: nuevosProductos };
     } else {
-      // Falsa alarma (tal vez se borró iterando cabeceras) o cliente ya actualizado
+      // Si no hay nuevos, configuramos la caché negativa por 30 segundos para no saturar lecturas
+      cache.put("NO_NEW_PRODUCTS", "true", 30);
       return { success: true, hasNew: false };
     }
 

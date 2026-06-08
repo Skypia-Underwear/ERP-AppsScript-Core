@@ -35,6 +35,28 @@ function onEditTrigger(e) {
 }
 
 /**
+ * ⚡ TRIGGER DE CAMBIO ESTRUCTURAL (onChange)
+ * Se ejecuta al realizar inserciones, eliminaciones o cambios mediante API (p. ej. AppSheet).
+ */
+function onChangeTrigger(e) {
+  try {
+    const ss = e ? e.source : SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getActiveSheet();
+    const sheetName = sheet.getName();
+
+    // Si la hoja que cambió es la de productos o la de imágenes, invalidamos la caché negativa
+    if (sheetName === SHEETS.PRODUCTS || sheetName === SHEETS.PRODUCT_IMAGES) {
+      const cache = CacheService.getScriptCache();
+      cache.put("NEW_PRODUCTS_AVAILABLE", "true", 90);
+      cache.remove("NO_NEW_PRODUCTS");
+      console.log(`[onChangeTrigger] Cambio detectado en la hoja ${sheetName}. Flags actualizados.`);
+    }
+  } catch (err) {
+    console.error(`Error en onChangeTrigger: ${err.message}`);
+  }
+}
+
+/**
  * Instalador de los disparadores del proyecto.
  */
 function instalarTriggersIA() {
@@ -47,7 +69,7 @@ function instalarTriggersIA() {
         const triggers = ScriptApp.getProjectTriggers();
         triggers.forEach(t => {
             const fn = t.getHandlerFunction();
-            if (fn === 'onEditTrigger' || fn === 'procesarTriggerColaBatch') {
+            if (fn === 'onEditTrigger' || fn === 'procesarTriggerColaBatch' || fn === 'onChangeTrigger') {
                 ScriptApp.deleteTrigger(t);
             }
         });
@@ -65,7 +87,7 @@ function instalarTriggersIA() {
     const triggers = ScriptApp.getProjectTriggers();
     triggers.forEach(t => {
         const fn = t.getHandlerFunction();
-        if (fn === 'onEditTrigger' || fn === 'procesarTriggerColaBatch') {
+        if (fn === 'onEditTrigger' || fn === 'procesarTriggerColaBatch' || fn === 'onChangeTrigger') {
             ScriptApp.deleteTrigger(t);
         }
     });
@@ -74,6 +96,12 @@ function instalarTriggersIA() {
     ScriptApp.newTrigger('onEditTrigger')
         .forSpreadsheet(ss)
         .onEdit()
+        .create();
+
+    // Crear Trigger por Cambio estructural (AppSheet/API/Spreadsheet)
+    ScriptApp.newTrigger('onChangeTrigger')
+        .forSpreadsheet(ss)
+        .onChange()
         .create();
 
     // Crear Trigger por Tiempo cada 10 minutos para procesar lotes asíncronos
