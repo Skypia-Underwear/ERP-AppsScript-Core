@@ -151,7 +151,7 @@ function doPost(e) {
 
     // --- BLOQUE RESELLER (INDIVIDUAL AUDITADO) ---
     if (accion === "importar_reseller_individual") {
-      const validPin = GLOBAL_CONFIG.GEMINI.PAID_PIN;
+      const validPin = GLOBAL_CONFIG.SCRIPT_CONFIG["RESELLER_SYNC_TOKEN"] || GLOBAL_CONFIG.GEMINI.PAID_PIN || "RESELLER_SYNC_TOKEN_V1";
       if (String(contents.pin).trim() !== String(validPin).trim()) {
         return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Acceso denegado (PIN inválido)" })).setMimeType(ContentService.MimeType.JSON);
       }

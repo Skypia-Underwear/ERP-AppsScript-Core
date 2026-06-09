@@ -12,15 +12,15 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
     const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME;
 
     // --- MAPEOS DINÁMICOS ---
-    const mP = HeaderManager.getMapping(SHEETS.PRODUCTS);
-    const mV = HeaderManager.getMapping(SHEETS.PRODUCT_VARIETIES);
-    const mI = HeaderManager.getMapping(SHEETS.PRODUCT_IMAGES);
-    const mC = HeaderManager.getMapping(SHEETS.CATEGORIES);
-    const mS = HeaderManager.getMapping(SHEETS.SVG_GALLERY);
-    const mA = HeaderManager.getMapping(SHEETS.SHIPPING_AGENCIES);
-    const mInv = HeaderManager.getMapping(SHEETS.INVENTORY);
-    const mCol = HeaderManager.getMapping(SHEETS.COLORS);
-    const mG = HeaderManager.getMapping(SHEETS.GENERAL_CONFIG);
+    const mP = HeaderManager.getMapping("PRODUCTS");
+    const mV = HeaderManager.getMapping("PRODUCT_VARIETIES");
+    const mI = HeaderManager.getMapping("PRODUCT_IMAGES");
+    const mC = HeaderManager.getMapping("CATEGORIES");
+    const mS = HeaderManager.getMapping("SVG_GALLERY");
+    const mA = HeaderManager.getMapping("SHIPPING_AGENCIES");
+    const mInv = HeaderManager.getMapping("INVENTORY");
+    const mCol = HeaderManager.getMapping("COLORS");
+    const mG = HeaderManager.getMapping("GENERAL_CONFIG");
 
     const getData = (sheetAlias) => {
         const sheet = ss.getSheetByName(SHEETS[sheetAlias]);
@@ -47,7 +47,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
     const aplicarMarcaDeAgua = blogger_esVerdadero(configRow[mG.APLICAR_MARCA_DE_AGUA]);
 
     const sheetTiendas = ss.getSheetByName(SHEETS.STORES);
-    const mShtT = HeaderManager.getMapping(SHEETS.STORES);
+    const mShtT = HeaderManager.getMapping("STORES");
     const tiendaId = sheetTiendas.getRange(2, mShtT.TIENDA_ID + 1).getValue();
     const celularTienda = sheetTiendas.getRange(2, (mShtT.CELULAR !== undefined ? mShtT.CELULAR : 10) + 1).getValue(); // Fallback to index 10 (col 11) if mapping fails
 
@@ -555,8 +555,8 @@ function blogger_adjuntar_pedido_a_respuesta(respuestaObjeto, idPedido) {
  */
 function blogger_completarCamposFaltantesDesdeClientes(venta, datosClientes) {
     const ss = getActiveSS();
-    const mC = HeaderManager.getMapping(SHEETS.CLIENTS);
-    const mA = HeaderManager.getMapping(SHEETS.SHIPPING_AGENCIES);
+    const mC = HeaderManager.getMapping("CLIENTS");
+    const mA = HeaderManager.getMapping("SHIPPING_AGENCIES");
 
     const clienteIndex = datosClientes.findIndex((fila, i) => i > 0 && (fila[mC.CLIENTE_ID] || "").toString().toUpperCase() === (venta.nombre_entrega || "").toString().toUpperCase());
 
@@ -658,7 +658,7 @@ function blogger_completarCamposFaltantesDesdeClientes(venta, datosClientes) {
 }
 
 function blogger_buscarClienteExistente(datosClientes, correo, dni, celular) {
-    const mC = HeaderManager.getMapping(SHEETS.CLIENTS);
+    const mC = HeaderManager.getMapping("CLIENTS");
     const correoBusq = (correo || "").toString().toLowerCase().trim();
     if (correoBusq) {
         let index = datosClientes.findIndex(c => (String(c[mC.CORREO_ELECTRONICO] || "")).toLowerCase().trim() === correoBusq);
