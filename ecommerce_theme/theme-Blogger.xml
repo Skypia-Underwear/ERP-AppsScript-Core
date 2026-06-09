@@ -8284,13 +8284,13 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
 
             const productPayload = {
-                CODIGO_ID: String(producto.codigo),
+                CODIGO_ID: String(producto.nombre).trim().toUpperCase(),
                 MODELO: desc.modelo?.valor || producto.nombre,
-                MARCA: desc.marca?.valor || "HostingShop",
+                MARCA: desc.marca?.valor || "BlogShop",
                 GENERO: desc.genero?.valor || "Unisex",
                 MATERIAL: desc.material?.valor || "N/A",
                 TEMPORADA: desc.temporada?.valor || "SIN-TEMPORADA",
-                SKU: String(producto.codigo),
+                SKU: String(producto.nombre).trim().toUpperCase(),
                 CATEGORIA_PADRE: categoria.nombre_padre || "",
                 CATEGORIA: categoria.nombre || "",
                 TALLES: tallesList,

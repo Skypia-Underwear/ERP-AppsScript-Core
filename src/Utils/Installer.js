@@ -241,7 +241,6 @@ function inicializarEntorno() {
       { clave: "DONWEB_READ_URL", val: "https://tudominio.com/api_json_read.php", desc: "URL PHP de lectura JSON en Donweb", grupo: "📡 DONWEB HOSTING" },
       { clave: "SYNC_START_HOUR", val: "6", desc: "Hora de inicio de sincronización (0-23)", grupo: "⚙️ CONFIGURACIÓN GENERAL" },
       { clave: "SYNC_END_HOUR", val: "23", desc: "Hora de fin de sincronización (0-23)", grupo: "⚙️ CONFIGURACIÓN GENERAL" },
-      { clave: "RESELLER_DESTINATION_URL", val: "", desc: "URL WebApp del ERP Personal (Para recibir productos)", grupo: "🔌 INTEGRACIÓN RESELLER" },
       { clave: "RESELLER_SYNC_TOKEN", val: "RESELLER_SYNC_TOKEN_V1", desc: "Token secreto para validar la sincronización (Debe ser igual en ambos ERP)", grupo: "🔌 INTEGRACIÓN RESELLER" }
     ];
 
