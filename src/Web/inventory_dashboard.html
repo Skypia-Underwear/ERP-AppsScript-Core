@@ -471,10 +471,6 @@
       </button>
       <div id="divider-sync" class="hidden w-px h-6 bg-slate-700 mx-1"></div>
 
-      <button onclick="runGlobalAudit()" title="Auditoría Global (Proceso Pesado)"
-        class="p-2 border border-red-500/50 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition bg-red-900/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
-        <i class="ph-bold ph-globe-hemisphere-east text-lg"></i>
-      </button>
 
       <button onclick="openBartenderModal()" title="Generar Etiquetas Bartender"
         class="p-2 border border-slate-700 hover:bg-slate-700 text-slate-300 rounded-lg transition bg-slate-800 shadow-sm hover:border-purple-500/50">
@@ -895,21 +891,12 @@
         if (res && res.success && res.hasNew && res.products && res.products.length > 0) {
           log(`Detectado ${res.products.length} producto(s) nuevo(s)! Refrescando catalogo...`, 'success');
 
-          // En inventario, lo m\u00e1s seguro es reiniciar la app para reconstruir tablas y KPIs
-          initApp();
+          if (typeof window.addNotification === 'function') {
+            res.products.forEach(p => window.addNotification(p));
+          }
 
-          // Alerta visual discreta (Toast)
-          Swal.fire({
-            title: '¡Producto Nuevo!',
-            text: `Se detecto el ingreso de ${res.products[0].sku} al sistema.`,
-            icon: 'info',
-            toast: true,
-            position: 'top-end',
-            timer: 5000,
-            showConfirmButton: false,
-            background: 'var(--bg-secondary)',
-            color: '#fff'
-          });
+          // En inventario, lo más seguro es reiniciar la app para reconstruir tablas y KPIs
+          initApp();
         }
       }).checkNewProductsFlag(currentSkus);
 
@@ -1111,7 +1098,7 @@
 
     const placeholderImg = 'https://placehold.co/100x120/1e293b/94a3b8?text=X';
     container.innerHTML = filtered.map(p => `
-            <div onclick="selectProduct('${p.id}', this)" class="product-card flex-shrink-0 w-full h-[110px] rounded-lg border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden relative group">
+            <div onclick="selectProduct('${p.id}', this)" data-sku="${p.id}" class="product-card flex-shrink-0 w-full h-[110px] rounded-lg border border-slate-700 bg-slate-800 cursor-pointer overflow-hidden relative group">
                 <div class="h-[75px] bg-slate-900 overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-cover opacity-80" onerror="this.src='${placeholderImg}'" loading="lazy"></div>
                 <div class="p-1 text-center bg-slate-800 border-t border-slate-700 flex flex-col items-center justify-center">
                     <span class="text-[9px] font-bold text-white truncate w-full">${p.model}</span>
@@ -1369,10 +1356,7 @@
   }
 
   /* --- MANTENIMIENTO --- */
-  function runGlobalAudit() {
-    Swal.fire({ title: '¿Auditoría Global?', text: 'Esto reestaura todo el catálogo basándose en los productos maestros. Proceso Pesado.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', background: 'var(--bg-secondary)', color: '#fff' })
-      .then(r => { if (r.isConfirmed) { openLogsPanel(); log("Iniciando auditoría global...", "info"); callBackend('generarInventarioInicial', '', ''); } });
-  }
+
 
   function runProductAudit() {
     if (!currentSelectedSKU) return;
@@ -1518,6 +1502,35 @@
     out.append(`<div class="log-line ${cls}"><span class="opacity-50">[${new Date().toLocaleTimeString([], { hour12: false })}]</span> > ${msg}</div>`);
     out.scrollTop(out[0].scrollHeight);
   }
+  window.openProductNotification = function(sku, category) {
+    console.log(`[Inventory] openProductNotification called for SKU: ${sku}, Category: ${category}`);
+    
+    const prod = catalogData.find(p => p.sku === sku);
+    if (prod) {
+      selectProduct(sku);
+      
+      if (category) {
+        const catEl = document.querySelector(`.category-card[data-category="${category}"]`);
+        if (catEl) {
+          $('.category-card').removeClass('active border-accent').addClass('border-slate-700').find('span').removeClass('text-white').addClass('text-slate-400');
+          $(catEl).addClass('active border-accent').removeClass('border-slate-700').find('span').addClass('text-white');
+        }
+      }
+      
+      setTimeout(() => {
+        const prodEl = document.querySelector(`.product-card[data-sku="${sku}"]`);
+        if (prodEl) {
+          prodEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          $(prodEl).addClass('active border-accent');
+        }
+      }, 500);
+    } else {
+      if (tableInstance) {
+        $('#custom-sku-search').val(sku);
+        tableInstance.column(1).search('').search(sku).draw();
+      }
+    }
+  };
   function clearConsole() { $('#console-output').html('<p class="text-slate-600 italic font-medium">Esperando instrucciones...</p>'); }
 
 </script>

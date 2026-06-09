@@ -11,11 +11,6 @@
             <p class="text-slate-400 text-sm mt-1">Hola <span id="home-user-name"
                     class="text-indigo-400 font-semibold">...</span>, esto esta pasando hoy en el sistema.</p>
         </div>
-        <button onclick="limpiarCacheGlobal()"
-            class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition"
-            title="Forzar limpieza de cache">
-            <i class="ph-bold ph-broom text-xl"></i>
-        </button>
     </div>
 
     <!-- Grid de KPIs -->
@@ -189,6 +184,39 @@
                         <p class="text-[10px] text-slate-500">Asegura que la web tenga las últimas fotos.</p>
                     </div>
                     <i class="ph ph-caret-right text-slate-600 group-hover:text-indigo-400 transition"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <i class="ph-bold ph-globe"></i> Procesos Globales
+            </h3>
+            <div class="space-y-4">
+                <!-- Sincronización Global de Imágenes -->
+                <div onclick="ejecutarSincronizacionGlobalImagenes()"
+                    class="flex items-center gap-4 p-3 bg-slate-900 rounded-xl border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition group">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition flex-shrink-0">
+                        <i class="ph-bold ph-image text-lg"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-white group-hover:text-indigo-400 transition">Sincronización Global de Imágenes</p>
+                        <p class="text-[10px] text-slate-500 truncate">Sincroniza todas las fotos de Drive con el ERP (Proceso Largo).</p>
+                    </div>
+                    <i class="ph ph-caret-right text-slate-600 group-hover:text-indigo-400 transition"></i>
+                </div>
+                
+                <!-- Auditoría Global de Inventario -->
+                <div onclick="ejecutarAuditoriaGlobalInventario()"
+                    class="flex items-center gap-4 p-3 bg-slate-900 rounded-xl border border-slate-800 hover:border-rose-500/50 cursor-pointer transition group">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition flex-shrink-0">
+                        <i class="ph-bold ph-check-circle text-lg"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-white group-hover:text-rose-400 transition">Auditoría Global de Inventario</p>
+                        <p class="text-[10px] text-slate-500 truncate">Inicializa todo el inventario basado en productos activos.</p>
+                    </div>
+                    <i class="ph ph-caret-right text-slate-600 group-hover:text-rose-400 transition"></i>
                 </div>
             </div>
         </div>
@@ -428,5 +456,140 @@
         };
         reader.readAsText(file);
         input.value = ""; // Reset
+    }
+
+    function ejecutarSincronizacionGlobalImagenes() {
+        Swal.fire({
+            title: '¿Sincronizar Imágenes Globales?',
+            text: "Este proceso sincroniza las imágenes en Drive con la base de datos del ERP. Puede tardar varios minutos y se ejecuta en segundo plano.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, sincronizar',
+            cancelButtonText: 'Cancelar',
+            background: '#1e293b',
+            color: '#fff',
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#334155'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setGlobalStatus(true, "Sincronizando imágenes...");
+                
+                Swal.fire({
+                    title: 'Procesando Sincronización',
+                    text: 'Iniciando la sincronización global de imágenes. Revisa el estado del sistema en la barra superior.',
+                    icon: 'info',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+
+                google.script.run
+                    .withSuccessHandler(res => {
+                        setGlobalStatus(false);
+                        if (res.success) {
+                            let logsHtml = '';
+                            if (res.logs && res.logs.length > 0) {
+                                logsHtml = `<div class="text-left max-h-48 overflow-y-auto text-[10px] font-mono bg-slate-955 p-2.5 rounded-lg border border-slate-800 mt-2 custom-scrollbar text-slate-300">` +
+                                    res.logs.map(l => `• ${l}`).join('<br>') +
+                                    `</div>`;
+                            }
+                            Swal.fire({
+                                title: '¡Sincronización Completada!',
+                                html: `<p class="text-sm">El proceso ha concluido: <b>${res.message}</b></p>${logsHtml}`,
+                                icon: 'success',
+                                background: '#1e293b',
+                                color: '#fff',
+                                confirmButtonColor: '#4f46e5'
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: res.message || 'Error desconocido en sincronización.',
+                                icon: 'error',
+                                background: '#1e293b',
+                                color: '#fff',
+                                confirmButtonColor: '#4f46e5'
+                            });
+                        }
+                    })
+                    .withFailureHandler(err => {
+                        setGlobalStatus(false);
+                        Swal.fire({
+                            title: 'Error Crítico',
+                            text: err.message,
+                            icon: 'error',
+                            background: '#1e293b',
+                            color: '#fff',
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    })
+                    .ejecutarSincronizacionGlobal();
+            }
+        });
+    }
+
+    function ejecutarAuditoriaGlobalInventario() {
+        Swal.fire({
+            title: '¿Auditoría Global de Inventario?',
+            text: "Este proceso audita y reconstruye toda la tabla de inventario basándose en los productos activos. Es un proceso pesado.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, auditar',
+            cancelButtonText: 'Cancelar',
+            background: '#1e293b',
+            color: '#fff',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#334155'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setGlobalStatus(true, "Auditando inventario...");
+                
+                Swal.fire({
+                    title: 'Auditoría en Curso',
+                    text: 'El ERP está recalculando el inventario global de productos. Por favor, espera.',
+                    icon: 'info',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+
+                google.script.run
+                    .withSuccessHandler(res => {
+                        setGlobalStatus(false);
+                        let logsHtml = '';
+                        if (res.logs && res.logs.length > 0) {
+                            logsHtml = `<div class="text-left max-h-48 overflow-y-auto text-[10px] font-mono bg-slate-955 p-2.5 rounded-lg border border-slate-800 mt-2 custom-scrollbar text-slate-300">` +
+                                res.logs.map(l => `• ${l}`).join('<br>') +
+                                `</div>`;
+                        }
+                        Swal.fire({
+                            title: '¡Auditoría Completada!',
+                            html: `<p class="text-sm">El proceso ha concluido: <b>${res.message || 'Éxito'}</b></p>${logsHtml}`,
+                            icon: 'success',
+                            background: '#1e293b',
+                            color: '#fff',
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    })
+                    .withFailureHandler(err => {
+                        setGlobalStatus(false);
+                        Swal.fire({
+                            title: 'Error Crítico',
+                            text: err.message,
+                            icon: 'error',
+                            background: '#1e293b',
+                            color: '#fff',
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    })
+                    .procesarAccionInventario("generarInventarioInicial", "", "");
+            }
+        });
     }
 </script>

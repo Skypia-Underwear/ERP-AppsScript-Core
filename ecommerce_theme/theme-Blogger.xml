@@ -5465,7 +5465,7 @@
                 const botonAgencias = `<button class="btn btn-outline-success btn-sm" onclick="abrirModalAgencias()">Ver Agencias</button>`;
 
                 const htmlHeader = `
-                    <h1 class="store-title">${tienda.tienda_id}</h1>
+                    <h1 class="store-title" id="store-title-trigger" style="user-select: none; -webkit-user-select: none; cursor: pointer;">${tienda.tienda_id}</h1>
                     <div class="store-description">${tienda.descripcion}</div>
                     
                     <div class="presentation-header-inner">
@@ -6984,7 +6984,7 @@
             <div class="carousel-inner h-100">
                 ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                     <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
-                        <a href="${img.url}" data-fancybox="gallery-${producto.codigo}" class="h-100 d-block">
+                        <a href="${img.url}" data-fancybox="gallery-${producto.codigo}" data-carpeta-id="${producto.carpeta_id || ''}" class="h-100 d-block">
                             <img src="${img.url}" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="${producto.nombre}" loading="lazy" width="300" height="300">
                         </a>
                         ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
@@ -7111,7 +7111,7 @@
                 <div class="carousel-inner h-100">
                     ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                         <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
-                            <a href="${img.url}" data-fancybox="gallery-compact-${producto.codigo}">
+                            <a href="${img.url}" data-fancybox="gallery-compact-${producto.codigo}" data-carpeta-id="${producto.carpeta_id || ''}">
                                 <img src="${img.url}" class="d-block w-100 h-100" style="object-fit: cover;">
                             </a>
                             ${img.portada ? `<span class="sticker-portada" style="font-size: 0.6rem; padding: 3px 8px;">⭐ Portada</span>` : ''}
@@ -8181,6 +8181,52 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
         });
 
+        // Habilitar apertura del modal de configuración por parámetro en la URL (?reseller_config=true)
+        // O manteniendo pulsado el título de la tienda (ej. CASTFER) en la página por 2 segundos (Modo Desarrollador)
+        window.addEventListener('load', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('reseller_config') === 'true') {
+                abrirConfiguracionReventa();
+            }
+
+            const paginaTituloContainer = document.getElementById('pagina_titulo');
+            if (paginaTituloContainer) {
+                let pressTimer;
+
+                const startPress = function (e) {
+                    if (e.target && e.target.id === 'store-title-trigger') {
+                        clearTimeout(pressTimer);
+                        pressTimer = setTimeout(() => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            abrirConfiguracionReventa();
+                        }, 2000); // 2 segundos manteniendo pulsado
+                    }
+                };
+
+                const cancelPress = function () {
+                    clearTimeout(pressTimer);
+                };
+
+                // Eventos táctiles (celulares y tablets)
+                paginaTituloContainer.addEventListener('touchstart', startPress, { passive: false });
+                paginaTituloContainer.addEventListener('touchend', cancelPress);
+                paginaTituloContainer.addEventListener('touchmove', cancelPress);
+
+                // Eventos de mouse (computadoras)
+                paginaTituloContainer.addEventListener('mousedown', startPress);
+                paginaTituloContainer.addEventListener('mouseup', cancelPress);
+                paginaTituloContainer.addEventListener('mouseleave', cancelPress);
+
+                // Desactivar el menú contextual en el título para evitar que interfiera en el long-press
+                paginaTituloContainer.addEventListener('contextmenu', function (e) {
+                    if (e.target && e.target.id === 'store-title-trigger') {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+
         function abrirConfiguracionReventa() {
             const currentUrl = localStorage.getItem('reseller_erp_url') || '';
             const currentPin = localStorage.getItem('reseller_pin') || '';
@@ -8230,7 +8276,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const pin = localStorage.getItem('reseller_pin');
 
             if (!erpUrl || !pin) {
-                Swal.fire('Error', 'Configura primero tu ERP con Ctrl+Shift+R', 'error');
+                Swal.fire('Error', 'Configura primero tu ERP. (Modo oculto tocando 7 veces el Logo)', 'error');
                 return;
             }
 
@@ -8288,9 +8334,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 MODELO: desc.modelo?.valor || producto.nombre,
                 MARCA: desc.marca?.valor || "BlogShop",
                 GENERO: desc.genero?.valor || "Unisex",
+                ESTILO: desc.estilo?.valor || "",
                 MATERIAL: desc.material?.valor || "N/A",
                 TEMPORADA: desc.temporada?.valor || "SIN-TEMPORADA",
-                SKU: String(producto.nombre).trim().toUpperCase(),
+                SKU: String(producto.codigo).trim(),
                 CATEGORIA_PADRE: categoria.nombre_padre || "",
                 CATEGORIA: categoria.nombre || "",
                 TALLES: tallesList,

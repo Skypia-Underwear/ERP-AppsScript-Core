@@ -59,10 +59,10 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
 
     const mapCategoriasHtml = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.HTML]]));
     const mapCategoriasIconos = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.ICONO]]));
-    
+
     // --- MAPEO DE ICONOS A CDN (v16.0) ---
     const svgIdToNameMap = {};
-    rowsSvg.forEach(s => { 
+    rowsSvg.forEach(s => {
         const sid = s[mS.SVG_ID] || s[mS.NOMBRE]; // Llave: ID o Nombre (fallback)
         if (sid) {
             const nombreLimpio = s[mS.NOMBRE] ? String(s[mS.NOMBRE]).trim().toLowerCase().replace(/\s+/g, "_") : String(sid).trim().toLowerCase();
@@ -208,6 +208,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
                 codigo: j + 1,
                 categoria: categoriaActual,
                 nombre: productoId,
+                carpeta_id: productosMap[productoId] ? productosMap[productoId][mP.CARPETA_ID] || "" : "",
                 descripcion: desc,
                 imagen: imagenes,
                 variedad: [variedad],
@@ -240,7 +241,6 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
         categorias: dataArrayPadre[p].sort((a, b) => a.nombre.localeCompare(b.nombre))
     })).sort((a, b) => a.nombre_padre.localeCompare(b.nombre_padre));
 
-    // Agencias y Config Final
     // Agencias y Config Final
     const dataArrayAgencia = rowsAgencias.map(r => ({
         codigo: r[mA.ID] || r[mA.CODIGO] || "",
@@ -300,7 +300,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
             nombreTiendaData.horario = nombreTiendaData.horario || {};
             nombreTiendaData.horario.apertura = tiendaLive.APERTURA || nombreTiendaData.horario.apertura;
             nombreTiendaData.horario.cierre = tiendaLive.CIERRE || nombreTiendaData.horario.cierre;
-            
+
             // Enriquecer datos de ubicación y reseñas
             nombreTiendaData.google_review = nombreTiendaData.google_review || { place_id: "" };
             nombreTiendaData.google_review.place_id = tiendaLive.ID_GOOGLE_MAPS || nombreTiendaData.google_review.place_id;
@@ -406,6 +406,7 @@ function blogger_generarDescripcionProductoCompleta({ pId, tipoRegistroProducto,
             valor: p[mP.GENERO] || "-",
             icono: blogger_getGeneroIcono(p[mP.GENERO])
         },
+        estilo: { label: "Estilo", valor: p[mP.ESTILO] || "-" },
         material: { label: "Material", valor: p[mP.MATERIAL] || "-" },
         temporada: {
             label: "Temporada",
@@ -428,21 +429,21 @@ function blogger_esVerdadero(v) {
 function blogger_safeParse(v) {
     if (!v) return {};
     let str = String(v).trim();
-    
+
     // Si está envuelto en comillas simples externas por Sheets, las removemos
     if (str.startsWith("'") && str.endsWith("'") && str.length > 1) {
         str = str.substring(1, str.length - 1).trim();
     }
-    
+
     // Reemplazar comillas tipográficas (curvas/curly/smart quotes) por comillas rectas estándar
     str = str.replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
-             .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
-             
-    try { 
-        return JSON.parse(str); 
-    } catch (e) { 
+        .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
+
+    try {
+        return JSON.parse(str);
+    } catch (e) {
         console.warn("⚠️ [Blogger safeParse] Error al parsear JSON: " + e.message + " | Valor: " + str);
-        return {}; 
+        return {};
     }
 }
 
@@ -521,9 +522,9 @@ function blogger_cargar_venta(venta) {
             // --- HIDRATACIÓN DINÁMICA ---
             // Reconstruimos imágenes y descripciones desde el catálogo maestro
             pedido = blogger_rehidratar_pedido(pedido);
-            
+
             jo.status = '0'; jo.message = 'OK';
-            jo.pedido = pedido; 
+            jo.pedido = pedido;
             jo.pedido.idpedido = idBusqueda;
         } else {
             jo.status = '1'; jo.message = 'No se encontró el pedido ' + idBusqueda;
@@ -593,20 +594,20 @@ function blogger_completarCamposFaltantesDesdeClientes(venta, datosClientes) {
             const partes = [];
             const calleNum = `${clean(cliente[mC.CALLE])} ${clean(cliente[mC.NUMERO])}`.trim();
             if (calleNum) partes.push(calleNum);
-            
+
             const pisoDepto = `${clean(cliente[mC.PISO]) ? "Piso " + clean(cliente[mC.PISO]) : ""} ${clean(cliente[mC.DEPARTAMENTO]) ? "Depto " + clean(cliente[mC.DEPARTAMENTO]) : ""}`.trim();
             if (pisoDepto) partes.push(pisoDepto);
 
             const cp = clean(cliente[mC.CODIGO_POSTAL]);
             const loc = clean(cliente[mC.LOCALIDAD]);
             const prov = clean(cliente[mC.PROVINCIA]);
-            
+
             let zona = `${cp ? "CP" + cp : ""} ${loc}`.trim();
             if (prov) zona += (zona ? " - " : "") + prov;
             if (zona) partes.push(zona);
 
             dirFinal = partes.join(", ");
-            
+
             // Solo añadir observación si es relevante
             const obs = clean(cliente[mC.OBSERVACION]);
             if (obs) dirFinal += ` (Obs: ${obs})`;
@@ -815,7 +816,7 @@ function blogger_registrar_venta(venta) {
         const idEnviado = (venta.id_cliente || "").toString().trim();
         const nombreEnviado = (venta.nombre_enviado || "").trim();
         const esClientePublico = (idEnviado === "CLI001" || (!idEnviado && !correo));
-        
+
         debugLog("📋 [BRV-2] Tipo cliente | esPublico: " + esClientePublico + " | ID: '" + idEnviado + "' | Nombre: '" + nombreEnviado + "'", true);
 
         const actualizarDatos = venta.actualizar_datos === true || venta.actualizar_datos === "true";
@@ -836,7 +837,7 @@ function blogger_registrar_venta(venta) {
         } else if (idEnviado && correo && rut && telefono) {
             // Caso: Registro o Validación con Hidratación/Edición
             const idx = blogger_buscarClienteExistente(datosClientes, correo, rut, telefono);
-            
+
             if (idx !== -1 && idx > 0) {
                 const clienteID = datosClientes[idx][mC.CLIENTE_ID];
                 venta.nombre_entrega = clienteID;
@@ -880,7 +881,7 @@ function blogger_registrar_venta(venta) {
 
                 if (mC.PROVINCIA !== undefined) nuevaFilaCliente[mC.PROVINCIA] = (venta.provincia || "").trim();
                 if (mC.LOCALIDAD !== undefined) nuevaFilaCliente[mC.LOCALIDAD] = (venta.localidad || "").trim();
-                
+
                 hojaClientes.appendRow(nuevaFilaCliente);
                 venta.nombre_entrega = clienteID;
                 venta.nombre_para_json = nombreEnviado;
@@ -1071,12 +1072,12 @@ function generarMensajeWhatsApp(venta, codigoventa, fecha, hora, detalle_pedido)
 
         // 1. Datos del Cliente e Identidad
         const esRetiro = (venta.agencia_entrega || "").toUpperCase() === "RETIRO TIENDA";
-        
+
         mensaje += `*FECHA DEL PEDIDO:* ${fechaPedidoFormateada}\n`;
         mensaje += `*NOMBRE Y APELLIDOS:* ${venta.nombre_para_json || venta.nombre_enviado || venta.nombre_entrega}\n`;
         mensaje += `*CELULAR:* ${venta.telefono_entrega || "n/a"}\n`;
         mensaje += `*CONDICION FISCAL:* ${venta.condicion_fiscal || "Consumidor Final"}\n`;
-        
+
         if (!esRetiro) {
             mensaje += `*DIRECCION:* ${venta.direccion_entrega || "n/a"}\n`;
         }
@@ -1529,7 +1530,7 @@ function blogger_router(data) {
 
             case "configuracion":
                 let resConfig = blogger_obtenerConfiguracionDesdeDrive();
-                
+
                 // Parsear a objeto si la caché viene serializada como string desde Drive
                 if (resConfig && typeof resConfig === "string") {
                     try {

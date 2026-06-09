@@ -365,7 +365,8 @@ function generarCatalogoJsonTPV() {
                         carpeta_id: p.CARPETA_ID || "",
                         woo_id: p.WOO_ID || "",
                         varieties: pVarieties,     // Variedades de precio (BD_VARIEDAD_PRODUCTOS)
-                        variations: pVariations    // Variaciones de inventario (color/talle)
+                        variations: pVariations,   // Variaciones de inventario (color/talle)
+                        fecha_creacion: p.FECHA_CREACION ? (p.FECHA_CREACION instanceof Date ? p.FECHA_CREACION.toISOString() : String(p.FECHA_CREACION)) : ""
                     };
                 });
         }

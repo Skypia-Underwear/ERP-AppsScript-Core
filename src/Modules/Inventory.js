@@ -245,7 +245,8 @@ function generarInventarioInicial(logArray = null) {
   masterInventoryIds.forEach(id => {
     if (!inventarioActualIds.has(id)) {
       const [productoId, color, talle, tiendaId] = id.split('-');
-      nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, 0, 0, 0, 0, 0, 0, fechaHoy, 0]);
+      const stockInicial = (color === "Surtido" && talle === "Surtido") ? 144 : 0;
+      nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, stockInicial, 0, 0, 0, 0, 0, fechaHoy, 0]);
     }
   });
   if (nuevasFilasInventario.length > 0) {
@@ -403,7 +404,8 @@ function generarInventarioPorProducto(PRODUCTO_ID, logArray = null) {
   masterProductInventoryIds.forEach(id => {
     if (!inventarioActualDeProducto.has(id)) {
       const [, productoId, color, talle, tiendaId] = id.match(/(.*?)-(.*?)-(.*?)-(.*)/);
-      nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, 0, 0, 0, 0, 0, 0, fechaHoy, 0]);
+      const stockInicial = (color === "Surtido" && talle === "Surtido") ? 144 : 0;
+      nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, stockInicial, 0, 0, 0, 0, 0, fechaHoy, 0]);
     }
   });
 

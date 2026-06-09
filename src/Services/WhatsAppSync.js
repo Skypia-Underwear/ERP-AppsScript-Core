@@ -275,7 +275,7 @@ function importarWhatsAppCatalogDesdeCSV() {
         rowInv[mappingInv.PRODUCTO_ID] = sku;
         rowInv[mappingInv.COLOR] = "Surtido";
         rowInv[mappingInv.TALLE] = "Surtido";
-        rowInv[mappingInv.STOCK_INICIAL] = 0;
+        rowInv[mappingInv.STOCK_INICIAL] = 144;
         rowInv[mappingInv.ENTRADAS] = 0;
         rowInv[mappingInv.SALIDAS] = 0;
         rowInv[mappingInv.VENTAS_WEB] = 0;

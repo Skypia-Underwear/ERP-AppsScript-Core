@@ -111,72 +111,34 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Mobile Bottom Navigation (Glassmorphism & Premium Design) */
-    #mobile-bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: calc(64px + env(safe-area-inset-bottom));
-      background: rgba(15, 23, 42, 0.85); /* slate-900 with transparency */
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(51, 65, 85, 0.5); /* slate-700/50 */
+    /* Mobile Menu Floating Action Button (FAB) */
+    #mobile-menu-fab {
       display: none;
-      z-index: 100;
-      align-items: center;
-      justify-content: space-around;
-      padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.3);
-    }
-
-    .nav-item-mobile {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #94a3b8;
-      font-size: 10px;
-      gap: 2px;
-      width: 20%;
-      height: 100%;
-      background: none;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-    }
-
-    .nav-item-mobile i {
-      font-size: 20px;
-      transition: transform 0.2s ease;
-    }
-
-    .nav-item-mobile.active {
-      color: #818cf8;
-    }
-
-    .nav-item-mobile.active i {
-      transform: translateY(-2px);
-      color: #818cf8;
-    }
-
-    .nav-item-mobile.active::after {
-      content: '';
-      position: absolute;
-      top: 10px;
-      width: 4px;
-      height: 4px;
-      background: #818cf8;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #818cf8;
     }
 
     @media (max-width: 768px) {
-      #mobile-bottom-nav { 
-        display: flex !important; 
+      #mobile-menu-fab {
+        display: flex;
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: white;
+        border: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4), 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
       }
-      
+      #mobile-menu-fab:active {
+        transform: scale(0.92);
+      }
+
       #main-sidebar { 
         position: fixed;
         height: 100vh;
@@ -194,7 +156,7 @@
       }
 
       main { 
-        padding-bottom: calc(64px + env(safe-area-inset-bottom)); 
+        padding-bottom: 0 !important; 
       }
 
       #main-content { 
@@ -266,12 +228,32 @@
       </button>
     </nav>
 
-    <div class="p-4 border-t border-slate-800 bg-slate-900">
-      <div class="flex items-center gap-3">
-        <div id="user-avatar" class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-indigo-400">U</div>
-        <div class="flex-1 min-w-0 user-info-text overflow-hidden transition-all duration-300">
-          <p id="user-name" class="text-sm font-medium text-white truncate">Usuario</p>
-          <button onclick="logout()" class="text-[10px] text-slate-500 hover:text-red-400 transition uppercase font-bold tracking-wider">Cerrar Sesion</button>
+    <div class="p-4 border-t border-slate-800 bg-slate-900 flex flex-col gap-3">
+      <!-- Fila 1: Perfil de Usuario -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div id="user-avatar" class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-indigo-400 flex-shrink-0">U</div>
+        <div class="min-w-0 user-info-text overflow-hidden transition-all duration-300 flex-1">
+          <p id="user-name" class="text-sm font-semibold text-slate-200 truncate">Usuario</p>
+          <button onclick="logout()" class="text-[10px] text-slate-500 hover:text-red-400 transition uppercase font-bold tracking-wider block mt-0.5">Cerrar Sesion</button>
+        </div>
+      </div>
+      
+      <!-- Fila 2: Botones de Acción (Notificaciones y Limpiar Caché) -->
+      <div class="user-info-text transition-all duration-300 border-t border-slate-800/60 pt-2.5">
+        <div class="flex items-center gap-2">
+          <!-- Botón de Notificaciones -->
+          <div class="relative flex-1">
+            <button onclick="window.showNotificationsModal()" class="w-full cursor-pointer py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-2 transition shadow-md relative text-xs font-medium" title="Notificaciones de Reventa">
+              <i class="ph-bold ph-bell text-sm"></i>
+              <span>Novedades</span>
+              <span id="notification-badge" class="hidden absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-md border border-slate-900">0</span>
+            </button>
+          </div>
+          
+          <!-- Botón de Limpiar Caché -->
+          <button id="sidebar-clear-cache-btn" class="cursor-pointer p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition shadow-md h-8 w-8 flex-shrink-0" title="Forzar limpieza de caché del ERP">
+            <i class="ph-bold ph-broom text-base"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -279,7 +261,7 @@
 
   <main class="flex-1 flex flex-col min-w-0 bg-slate-900 relative transition-all duration-300">
     <div id="shell-status-container" class="absolute top-4 right-4 sm:top-6 sm:right-8 z-[60] flex items-center gap-4">
-      <div id="shell-status" class="hidden px-4 py-2 rounded-xl text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 animate-fade-in shadow-2xl backdrop-blur-xl">
+      <div id="shell-status" class="hidden px-4 py-2 rounded-xl text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 animate-fade-in shadow-2xl backdrop-blur-xl h-9">
         <div class="relative flex h-2.5 w-2.5">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
@@ -398,6 +380,9 @@
 
         // Si obtuvimos datos de Donweb/Github, hacemos la sincronización con Drive en segundo plano de forma segura
         if (initialData) {
+          if (typeof processNewProductsNotifications === 'function') {
+            processNewProductsNotifications(initialData.products);
+          }
           setTimeout(() => {
             console.log("[Global Fetch] Sincronizando con Drive en segundo plano...");
             google.script.run
@@ -430,6 +415,9 @@
               if (res && res.success && res.catalog) {
                 console.log("[Global Fetch] Catalogo cargado exitosamente desde Drive Fast.");
                 window.cachedCatalogData = res.catalog;
+                if (typeof processNewProductsNotifications === 'function') {
+                  processNewProductsNotifications(res.catalog.products);
+                }
                 resolve(res.catalog);
               } else {
                 const errMsg = (res && res.message) ? res.message : "Error desconocido recuperando catalogo de Drive.";
@@ -450,19 +438,23 @@
     function navigate(viewName) { loadView(viewName, '', '', ''); }
 
     function loadView(view, accion, codigo, fecha, activeBtnId, customTitle) {
+      window.currentView = view;
       if (isNavigating) return;
       isNavigating = true;
       showLoader();
 
-      // Control de visibilidad de Sidebar y Navegaci\u00f3n seg\u00fan la vista
+      // Control de visibilidad de Sidebar y Navegación según la vista
       const sidebar = document.getElementById('main-sidebar');
       const mobileNav = document.getElementById('mobile-bottom-nav');
+      const mobileMenuFab = document.getElementById('mobile-menu-fab');
       if (view === 'login') {
         sidebar.classList.add('hidden');
         if (mobileNav) mobileNav.classList.add('hidden');
+        if (mobileMenuFab) mobileMenuFab.classList.add('hidden');
       } else {
         sidebar.classList.remove('hidden');
         if (mobileNav) mobileNav.classList.remove('hidden');
+        if (mobileMenuFab) mobileMenuFab.classList.remove('hidden');
       }
       
       document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
@@ -572,30 +564,309 @@
     }
 
     window.onload = handleInitialRoute;
+
+    // --- GESTIÓN DE NOTIFICACIONES DE PRODUCTOS NUEVOS (RESELLER) ---
+    const STORAGE_KEY = 'erp_reseller_notifications';
+
+    function getNotifications() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveNotifications(notifications) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
+      renderNotifications();
+    }
+
+    window.addNotification = function(product) {
+      const sku = product.sku || product.id;
+      const nombre = product.nombre || product.model || "Sin Nombre";
+      const category = product.category || product.category_id || "";
+      
+      const notifications = getNotifications();
+      const dismissed = JSON.parse(localStorage.getItem('erp_dismissed_notifications')) || [];
+      
+      if (!notifications.some(n => n.sku === sku) && !dismissed.includes(sku)) {
+        notifications.unshift({
+          sku: sku,
+          nombre: nombre,
+          category: category,
+          timestamp: Date.now(),
+          read: false
+        });
+        saveNotifications(notifications);
+        
+        // Alerta visual discreta (Toast)
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            title: '¡Producto Nuevo!',
+            text: `Se detectó el ingreso de ${sku} al sistema.`,
+            icon: 'info',
+            toast: true,
+            position: 'top-end',
+            timer: 6000,
+            showConfirmButton: false,
+            background: '#1e293b',
+            color: '#fff'
+          });
+        }
+      }
+    };
+
+    function processNewProductsNotifications(products) {
+      if (!products || !Array.isArray(products)) return;
+      
+      const notifications = getNotifications();
+      const dismissed = JSON.parse(localStorage.getItem('erp_dismissed_notifications')) || [];
+      const dismissedSet = new Set(dismissed);
+      const notificationsSet = new Set(notifications.map(n => n.sku));
+      
+      let addedAny = false;
+      const now = Date.now();
+      const maxAgeMs = 48 * 60 * 60 * 1000; // 48 horas (margen amplio)
+
+      products.forEach(p => {
+        const pid = p.sku || p.id;
+        if (!pid) return;
+        
+        let isRecent = false;
+        if (p.fecha_creacion) {
+          try {
+            const createTime = new Date(p.fecha_creacion).getTime();
+            if (!isNaN(createTime) && (now - createTime) < maxAgeMs) {
+              isRecent = true;
+            }
+          } catch(e) {}
+        }
+
+        if (isRecent && !notificationsSet.has(pid) && !dismissedSet.has(pid)) {
+          notifications.unshift({
+            sku: pid,
+            nombre: p.model || p.nombre || "Sin Nombre",
+            category: p.category_id || p.category || "",
+            timestamp: p.fecha_creacion ? new Date(p.fecha_creacion).getTime() : now,
+            read: false
+          });
+          notificationsSet.add(pid);
+          addedAny = true;
+        }
+      });
+
+      if (addedAny) {
+        saveNotifications(notifications);
+      }
+    }
+
+    function renderNotifications() {
+      const notifications = getNotifications();
+      const badgeEl = document.getElementById('notification-badge');
+      
+      const unreadCount = notifications.filter(n => !n.read).length;
+      if (badgeEl) {
+        if (unreadCount > 0) {
+          badgeEl.innerText = unreadCount;
+          badgeEl.classList.remove('hidden');
+        } else {
+          badgeEl.classList.add('hidden');
+        }
+      }
+
+      // Si el modal de notificaciones está visible, actualizar su contenido dinámicamente
+      if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+        const titleEl = Swal.getTitle();
+        if (titleEl && titleEl.innerText.includes('Novedades')) {
+          const htmlContainer = Swal.getHtmlContainer();
+          if (htmlContainer) {
+            htmlContainer.innerHTML = buildNotificationsHtml(notifications);
+          }
+        }
+      }
+    }
+
+    function buildNotificationsHtml(notifications) {
+      if (notifications.length === 0) {
+        return `
+          <div class="text-center py-6 text-slate-400 text-xs">
+            <i class="ph-duotone ph-bell-simple text-3xl mb-2 block text-slate-500"></i>
+            Sin novedades registradas
+          </div>`;
+      }
+      
+      return `
+        <div class="flex flex-col gap-2 max-h-80 overflow-y-auto text-left pr-1 scrollbar-thin scrollbar-thumb-slate-700">
+          ${notifications.map((n, idx) => `
+            <div class="p-2.5 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 transition-all duration-200 cursor-pointer flex items-start gap-2.5 relative ${n.read ? 'opacity-50' : ''}" 
+                 onclick="window.openNotifiedProduct('${n.sku}', '${n.category || ''}', ${idx})">
+              <div class="mt-0.5 p-1 rounded-md bg-indigo-500/10 text-indigo-400">
+                <i class="ph-bold ph-package text-sm"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 justify-between">
+                  <span class="font-bold text-xs text-slate-200 truncate">${n.sku}</span>
+                  <span class="text-[9px] text-slate-500">${new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <p class="text-[10px] text-slate-400 truncate mt-0.5">${n.nombre}</p>
+              </div>
+              ${!n.read ? '<span class="absolute top-3 right-3 h-2 w-2 rounded-full bg-rose-500"></span>' : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    window.showNotificationsModal = function() {
+      const notifications = getNotifications();
+      const contentHtml = buildNotificationsHtml(notifications);
+      
+      Swal.fire({
+        title: 'Novedades de Reventa',
+        html: contentHtml,
+        showCancelButton: notifications.length > 0,
+        showConfirmButton: true,
+        confirmButtonText: 'Cerrar',
+        cancelButtonText: 'Limpiar todo',
+        confirmButtonColor: '#4f46e5',
+        cancelButtonColor: '#ef4444',
+        background: '#1e293b',
+        color: '#fff',
+        customClass: {
+          popup: 'rounded-xl border border-slate-700',
+          title: 'text-lg font-bold text-white border-b border-slate-800 pb-3',
+          htmlContainer: 'py-4',
+        }
+      }).then((result) => {
+        if (result.dismiss === Swal.DismissReason.cancel) {
+          window.clearNotifications();
+          // Volver a abrir para mostrar el estado vacío
+          window.showNotificationsModal();
+        }
+      });
+    };
+
+    window.openNotifiedProduct = function(sku, category, index) {
+      const notifications = getNotifications();
+      if (notifications[index]) {
+        notifications[index].read = true;
+        saveNotifications(notifications);
+      }
+      
+      if (typeof Swal !== 'undefined') {
+        Swal.close();
+      }
+
+      let targetView = window.currentView || 'inventory_dashboard';
+      if (targetView !== 'inventory_dashboard' && targetView !== 'imagenes_manager') {
+        targetView = 'inventory_dashboard';
+      }
+
+      console.log(`[Notification] Dirigiendo a la vista ${targetView} para el SKU ${sku}`);
+
+      const triggerSearchInView = () => {
+        setTimeout(() => {
+          if (typeof window.openProductNotification === 'function') {
+            window.openProductNotification(sku, category);
+          } else {
+            console.warn("[Notification] window.openProductNotification no está definida en la vista.");
+          }
+        }, 850);
+      };
+
+      if (window.currentView !== targetView) {
+        navigate(targetView);
+        triggerSearchInView();
+      } else {
+        if (typeof window.openProductNotification === 'function') {
+          window.openProductNotification(sku, category);
+        } else {
+          triggerSearchInView();
+        }
+      }
+    };
+
+    window.clearNotifications = function() {
+      const notifications = getNotifications();
+      const dismissed = JSON.parse(localStorage.getItem('erp_dismissed_notifications')) || [];
+      notifications.forEach(n => {
+        if (!dismissed.includes(n.sku)) {
+          dismissed.push(n.sku);
+        }
+      });
+      localStorage.setItem('erp_dismissed_notifications', JSON.stringify(dismissed));
+      saveNotifications([]);
+    };
+
+    // Inicializar listeners del panel de notificaciones
+    document.addEventListener('DOMContentLoaded', () => {
+      renderNotifications();
+      
+      // Limpiar caché desde menú lateral
+      const clearCacheBtn = document.getElementById('sidebar-clear-cache-btn');
+      if (clearCacheBtn) {
+        clearCacheBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          
+          Swal.fire({
+            title: '¿Limpiar Caché del ERP?',
+            text: "Esta acción borrará la caché local de productos y reiniciará la sesión con los datos más recientes del servidor.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#334155',
+            confirmButtonText: 'Sí, limpiar caché',
+            cancelButtonText: 'Cancelar',
+            background: '#1e293b',
+            color: '#fff'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              showLoader();
+              setGlobalStatus(true, "Limpiando caché...");
+              
+              google.script.run
+                .withSuccessHandler(res => {
+                  hideLoader();
+                  setGlobalStatus(false);
+                  
+                  // Limpiar almacenamiento local y recargar
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  
+                  Swal.fire({
+                    title: '¡Caché Limpiado!',
+                    text: 'El sistema se reiniciará para cargar los datos limpios.',
+                    icon: 'success',
+                    confirmButtonColor: '#4f46e5',
+                    background: '#1e293b',
+                    color: '#fff'
+                  }).then(() => {
+                    window.location.replace("<?= ScriptApp.getService().getUrl() ?>");
+                  });
+                })
+                .withFailureHandler(err => {
+                  hideLoader();
+                  setGlobalStatus(false);
+                  Swal.fire({
+                    title: 'Error',
+                    text: 'No se pudo limpiar la caché: ' + err.message,
+                    icon: 'error',
+                    confirmButtonColor: '#4f46e5',
+                    background: '#1e293b',
+                    color: '#fff'
+                  });
+                })
+                .clearSystemCache();
+            }
+          });
+        });
+      }
+    });
   </script>
-  <!-- Mobile Bottom Navigation -->
-  <div id="mobile-bottom-nav" class="hidden">
-    <button onclick="navigate('welcome')" class="nav-item-mobile" id="m-btn-welcome">
-      <i class="ph-duotone ph-house"></i>
-      <span>Inicio</span>
-    </button>
-    <button onclick="loadView('pos_manager', '', '', '')" class="nav-item-mobile" id="m-btn-pos_manager">
-      <i class="ph-duotone ph-calculator"></i>
-      <span>POS</span>
-    </button>
-    <button onclick="navigate('inventory_dashboard')" class="nav-item-mobile" id="m-btn-inventory_dashboard">
-      <i class="ph-duotone ph-check-circle"></i>
-      <span>Inv</span>
-    </button>
-    <button onclick="loadView('imagenes_manager', '', '', '')" class="nav-item-mobile" id="m-btn-imagenes_manager">
-      <i class="ph-duotone ph-image"></i>
-      <span>Fotos</span>
-    </button>
-    <button onclick="toggleSidebar()" class="nav-item-mobile" id="m-btn-menu">
-      <i class="ph-duotone ph-list"></i>
-      <span>Menú</span>
-    </button>
-  </div>
+  <!-- Mobile Menu Floating Action Button (FAB) -->
+  <button onclick="toggleSidebar()" id="mobile-menu-fab" title="Abrir Menú">
+    <i class="ph-bold ph-list text-2xl"></i>
+  </button>
 
   <!-- Sidebar Backdrop overlay for mobile drawer -->
   <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[105] hidden transition-all duration-300"></div>
