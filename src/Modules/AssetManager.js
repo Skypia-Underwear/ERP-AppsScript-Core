@@ -499,6 +499,223 @@ const ASSET_CATALOG_CARD_TEMPLATE_CSS = `/* ====================================
     }
 }`;
 
+// =====================================================================================
+// CONSTANTE DE PLANTILLA DE CATÁLOGO ADAPTADA PARA BOT DE APPSHEET (PDF/HTML)
+// =====================================================================================
+
+const ASSET_CATALOG_CARD_TEMPLATE_APPSHEET = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ficha de Producto - <<[CODIGO_ID]>></title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Outfit', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #2d3748;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .catalog-card {
+            display: table;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 20px;
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .catalog-card-details {
+            display: table-cell;
+            width: 55%;
+            vertical-align: middle;
+            padding: 10px;
+        }
+        
+        .catalog-card-header {
+            margin-bottom: 20px;
+        }
+        
+        .catalog-card-title {
+            font-size: 24px;
+            font-weight: 700;
+            font-style: italic;
+            color: #002b5c;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.02em;
+        }
+        
+        .catalog-sku-container {
+            margin-bottom: 10px;
+        }
+        
+        .catalog-sku-label {
+            background: rgba(0, 43, 92, 0.05);
+            color: #002b5c;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            border: 1px solid rgba(0, 43, 92, 0.1);
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        
+        .catalog-sku-badge {
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            border: 1px solid #e2e8f0;
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .catalog-rating-stars {
+            color: #f5a623;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        
+        .catalog-specs {
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .catalog-spec-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        
+        .catalog-spec-label {
+            font-weight: 600;
+            color: #2d3748;
+            display: inline-block;
+            width: 100px;
+        }
+        
+        .catalog-spec-value {
+            color: #4a5568;
+        }
+        
+        .catalog-card-gallery {
+            display: table-cell;
+            width: 45%;
+            vertical-align: middle;
+            text-align: center;
+        }
+        
+        .gallery-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .gallery-main-img {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .gallery-sticker-portada {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #ffd700;
+            color: #000000;
+            font-weight: 800;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+<div class="catalog-card">
+    <div class="catalog-card-details">
+        <div class="catalog-card-header">
+            <h1 class="catalog-card-title">
+                <<[CODIGO_ID]>>
+            </h1>
+            <div class="catalog-sku-container">
+                <span class="catalog-sku-label">Código SKU</span>
+                <span class="catalog-sku-badge"><<[SKU]>></span>
+            </div>
+            
+            <div class="catalog-rating-stars">
+                ⭐ ⭐ ⭐ ⭐ ⭐
+            </div>
+        </div>
+
+        <div class="catalog-specs">
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Modelo:</span>
+                <span class="catalog-spec-value"><<[MODELO]>></span>
+            </div>
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Marca:</span>
+                <span class="catalog-spec-value"><<[MARCA]>></span>
+            </div>
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Género:</span>
+                <span class="catalog-spec-value"><<[GENERO]>></span>
+            </div>
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Estilo:</span>
+                <span class="catalog-spec-value"><<[ESTILO]>></span>
+            </div>
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Material:</span>
+                <span class="catalog-spec-value"><<[MATERIAL]>></span>
+            </div>
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Temporada:</span>
+                <span class="catalog-spec-value"><<[TEMPORADA]>></span>
+            </div>
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Talles:</span>
+                <span class="catalog-spec-value"><<[TALLES]>></span>
+            </div>
+            <div class="catalog-spec-item">
+                <span class="catalog-spec-label">Colores:</span>
+                <span class="catalog-spec-value"><<[COLORES]>></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="catalog-card-gallery">
+        <div class="gallery-wrapper">
+            <<If: NOT(ISBLANK(ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], AND([PRODUCTO_ID] = [_THISROW].[CODIGO_ID], [PORTADA] = TRUE)))))>>
+                <img class="gallery-main-img" src="<<ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], AND([PRODUCTO_ID] = [_THISROW].[CODIGO_ID], [PORTADA] = TRUE)))>>" alt="<<[CODIGO_ID]>>">
+                <span class="gallery-sticker-portada">⭐ PORTADA</span>
+            <<Else>>
+                <img class="gallery-main-img" src="<<ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], [PRODUCTO_ID] = [_THISROW].[CODIGO_ID]))>>" alt="<<[CODIGO_ID]>>">
+            <<EndIf>>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>`;
+
 /**
  * Sincroniza las plantillas del catálogo de revendedores (HTML y CSS) con el repositorio compartido.
  * @returns {{ success: boolean, message: string }} Resultado de la sincronización.
@@ -519,15 +736,23 @@ function asset_syncCatalogTemplateToGitHub() {
         }
         console.log("✅ [AssetManager] CSS de catálogo sincronizado con éxito.");
 
+        const appsheetRes = asset_subirArchivoFisicoAGitHub(ASSET_CATALOG_CARD_TEMPLATE_APPSHEET, "assets/templates/catalog-card-appsheet.html");
+        if (!appsheetRes.success) {
+            throw new Error("Error al subir el template de AppSheet: " + appsheetRes.message);
+        }
+        console.log("✅ [AssetManager] Template HTML de AppSheet sincronizado con éxito.");
+
         return { 
             success: true, 
-            message: "Plantillas de catálogo sincronizadas correctamente.",
+            message: "Plantillas de catálogo (incluyendo AppSheet) sincronizadas correctamente.",
             htmlSkipped: !!htmlRes.skipped,
-            cssSkipped: !!cssRes.skipped
+            cssSkipped: !!cssRes.skipped,
+            appsheetSkipped: !!appsheetRes.skipped
         };
     } catch (e) {
         console.error("❌ [AssetManager] Error al sincronizar plantillas: " + e.message);
         return { success: false, message: e.message };
     }
 }
+
 
