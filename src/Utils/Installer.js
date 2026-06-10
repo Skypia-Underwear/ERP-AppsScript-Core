@@ -19,8 +19,7 @@ function onOpen() {
     .addItem('📊 Preparar BigQuery (Dataset/Tabla)', 'setupBigQueryStructure')
     .addSeparator()
     .addItem('🔑 Reparar Autorización (Auth Reset)', 'forceAuthReset')
-    .addSeparator()
-    .addItem('🔄 Sincronizar Plantillas de Catálogo (GitHub)', 'asset_syncCatalogTemplateToGitHub')
+    .addItem('🔓 Limpiar Bloqueo GitHub (Reset Circuit Breakers)', 'resetearCircuitBreakers')
     .addToUi();
 }
 
@@ -99,18 +98,18 @@ function inicializarEntorno() {
       // Si la hoja ya existe, validar y limpiar cabeceras de CLAVE y VALOR para evitar romper fórmulas de AppSheet
       const lastCol = sheet.getLastColumn();
       const headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
-      
-       for (let c = 0; c < headers.length; c++) {
-         let hName = String(headers[c]).trim();
-         if (hName.toUpperCase().includes("TIPO_CLAVE (NO TOCAR)")) {
-           sheet.getRange(1, c + 1).setValue("TIPO_CLAVE");
-         } else if (hName.toUpperCase().includes("CLAVE (NO TOCAR)")) {
-           sheet.getRange(1, c + 1).setValue("CLAVE");
-         } else if (hName.toUpperCase().includes("VALOR (EDITABLE)")) {
-           sheet.getRange(1, c + 1).setValue("VALOR");
-         }
-       }
-      
+
+      for (let c = 0; c < headers.length; c++) {
+        let hName = String(headers[c]).trim();
+        if (hName.toUpperCase().includes("TIPO_CLAVE (NO TOCAR)")) {
+          sheet.getRange(1, c + 1).setValue("TIPO_CLAVE");
+        } else if (hName.toUpperCase().includes("CLAVE (NO TOCAR)")) {
+          sheet.getRange(1, c + 1).setValue("CLAVE");
+        } else if (hName.toUpperCase().includes("VALOR (EDITABLE)")) {
+          sheet.getRange(1, c + 1).setValue("VALOR");
+        }
+      }
+
       const updatedHeaders = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
       const hasGrupo = updatedHeaders.some(h => String(h).toUpperCase().includes("GRUPO"));
       if (!hasGrupo) {
@@ -312,7 +311,7 @@ function inicializarEntorno() {
       ScriptApp.getProjectTriggers()
         .filter(t => triggersToClean.includes(t.getHandlerFunction()))
         .forEach(t => ScriptApp.deleteTrigger(t));
-      
+
       triggerLog.push("⛔ AUTOMATIZACIÓN DESACTIVADA: Base de datos limpia o sin productos.");
       triggerLog.push("   (Los triggers no se crearán hasta que cargues productos para evitar errores).");
     } else {
@@ -367,7 +366,7 @@ function inicializarEntorno() {
         ]);
       }
       formatBDAppScriptSheet(sheet);
-      
+
       // Limpiar caché de configuración global para asegurar la recarga inmediata de los nuevos valores
       try {
         _cacheConfig = null;
@@ -789,22 +788,22 @@ function formatBDAppScriptSheet(sheet) {
     .setFontFamily("Inter")
     .setHorizontalAlignment("center")
     .setVerticalAlignment("middle");
-    
+
   sheet.setColumnWidth(macroIdIdx + 1, 100);  // MACRO_ID
   sheet.setColumnWidth(grupoIdx + 1, 220);    // GRUPO
   sheet.setColumnWidth(claveIdx + 1, 260);    // CLAVE (NO TOCAR)
   sheet.setColumnWidth(valorIdx + 1, 380);    // VALOR (EDITABLE)
   sheet.setColumnWidth(descIdx + 1, 340);     // DESCRIPCION
-  
+
   sheet.setFrozenRows(1);
-  
+
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return;
-  
+
   // 4. Rango de Datos
   const dataRange = sheet.getRange(2, 1, lastRow - 1, 5);
   dataRange.clearFormat();
-  
+
   // Paleta de colores pastel HSL en hex
   const groupColors = {
     "📁 GOOGLE DRIVE CORE": "#F0F4F8",      // Soft Slate Grey
@@ -818,31 +817,31 @@ function formatBDAppScriptSheet(sheet) {
     "🔌 INTEGRACIÓN RESELLER": "#F7FAFC",   // Neutral Grey
     "📊 INDUSTRIALES (BIGQUERY)": "#EDF2F7" // Industrial Blue-Grey
   };
-  
+
   const values = dataRange.getValues();
-  
+
   for (let i = 0; i < values.length; i++) {
     const rowNum = i + 2;
     const clave = String(values[i][claveIdx]).trim();
     const grupo = String(values[i][grupoIdx]).trim() || "⚙️ CONFIGURACIÓN GENERAL";
     const bgColor = groupColors[grupo] || "#FFFFFF";
-    
+
     // Fila completa
     const rowRange = sheet.getRange(rowNum, 1, 1, 5);
     rowRange.setBackground(bgColor)
-             .setFontFamily("Inter")
-             .setFontSize(10)
-             .setVerticalAlignment("middle");
-             
+      .setFontFamily("Inter")
+      .setFontSize(10)
+      .setVerticalAlignment("middle");
+
     // MACRO_ID y CLAVE (Estilo Monospace protegido)
     sheet.getRange(rowNum, macroIdIdx + 1).setFontFamily("Courier New").setFontColor("#94A3B8").setHorizontalAlignment("center");
     sheet.getRange(rowNum, claveIdx + 1).setFontFamily("Courier New").setFontWeight("bold").setFontColor("#475569");
-    
+
     // Campo editable VALOR (Enmarcado suave verde menta)
     const valorCell = sheet.getRange(rowNum, valorIdx + 1);
     valorCell.setBackground("#ECFDF5")
-             .setBorder(true, true, true, true, false, false, "#A7F3D0", SpreadsheetApp.BorderStyle.SOLID);
-             
+      .setBorder(true, true, true, true, false, false, "#A7F3D0", SpreadsheetApp.BorderStyle.SOLID);
+
     // Inyectar menús desplegables de opciones válidas para evitar mistypes
     applyDataValidation(clave, valorCell);
   }
@@ -853,7 +852,7 @@ function formatBDAppScriptSheet(sheet) {
  */
 function applyDataValidation(clave, range) {
   let rule = null;
-  
+
   const options = {
     "TPV_PUBLICATION_TARGET": ["DRIVE", "DONWEB", "GITHUB", "AMBOS"],
     "BLOGGER_PUBLICATION_TARGET": ["DONWEB", "GITHUB", "AMBOS", "NONE", "DRIVE"],
@@ -863,7 +862,7 @@ function applyDataValidation(clave, range) {
     "TELEGRAM_MODE": ["DEV", "CLIENT"],
     "NOTIFICATION_PROVIDER": ["TELEGRAM", "EMAIL", "NONE"]
   };
-  
+
   if (options[clave]) {
     rule = SpreadsheetApp.newDataValidation()
       .requireValueInList(options[clave], true)
@@ -871,7 +870,7 @@ function applyDataValidation(clave, range) {
       .setHelpText("Elige una opción válida: " + options[clave].join(", "))
       .build();
   }
-  
+
   if (rule) {
     range.setDataValidation(rule);
   } else {
