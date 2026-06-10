@@ -19,6 +19,8 @@ function onOpen() {
     .addItem('📊 Preparar BigQuery (Dataset/Tabla)', 'setupBigQueryStructure')
     .addSeparator()
     .addItem('🔑 Reparar Autorización (Auth Reset)', 'forceAuthReset')
+    .addSeparator()
+    .addItem('🔄 Sincronizar Plantillas de Catálogo (GitHub)', 'asset_syncCatalogTemplateToGitHub')
     .addToUi();
 }
 
