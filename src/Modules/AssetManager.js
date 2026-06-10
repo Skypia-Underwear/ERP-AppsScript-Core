@@ -507,7 +507,7 @@ const ASSET_CATALOG_CARD_TEMPLATE_APPSHEET = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Ficha de Producto - <<[CODIGO_ID]>></title>
+    <title>Ficha de Producto - &lt;&lt;[CODIGO_ID]&gt;&gt;</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
         
@@ -653,11 +653,11 @@ const ASSET_CATALOG_CARD_TEMPLATE_APPSHEET = `<!DOCTYPE html>
     <div class="catalog-card-details">
         <div class="catalog-card-header">
             <h1 class="catalog-card-title">
-                <<[CODIGO_ID]>>
+                &lt;&lt;[CODIGO_ID]&gt;&gt;
             </h1>
             <div class="catalog-sku-container">
                 <span class="catalog-sku-label">Código SKU</span>
-                <span class="catalog-sku-badge"><<[SKU]>></span>
+                <span class="catalog-sku-badge">&lt;&lt;[SKU]&gt;&gt;</span>
             </div>
             
             <div class="catalog-rating-stars">
@@ -668,47 +668,47 @@ const ASSET_CATALOG_CARD_TEMPLATE_APPSHEET = `<!DOCTYPE html>
         <div class="catalog-specs">
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Modelo:</span>
-                <span class="catalog-spec-value"><<[MODELO]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[MODELO]&gt;&gt;</span>
             </div>
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Marca:</span>
-                <span class="catalog-spec-value"><<[MARCA]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[MARCA]&gt;&gt;</span>
             </div>
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Género:</span>
-                <span class="catalog-spec-value"><<[GENERO]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[GENERO]&gt;&gt;</span>
             </div>
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Estilo:</span>
-                <span class="catalog-spec-value"><<[ESTILO]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[ESTILO]&gt;&gt;</span>
             </div>
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Material:</span>
-                <span class="catalog-spec-value"><<[MATERIAL]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[MATERIAL]&gt;&gt;</span>
             </div>
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Temporada:</span>
-                <span class="catalog-spec-value"><<[TEMPORADA]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[TEMPORADA]&gt;&gt;</span>
             </div>
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Talles:</span>
-                <span class="catalog-spec-value"><<[TALLES]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[TALLES]&gt;&gt;</span>
             </div>
             <div class="catalog-spec-item">
                 <span class="catalog-spec-label">Colores:</span>
-                <span class="catalog-spec-value"><<[COLORES]>></span>
+                <span class="catalog-spec-value">&lt;&lt;[COLORES]&gt;&gt;</span>
             </div>
         </div>
     </div>
 
     <div class="catalog-card-gallery">
         <div class="gallery-wrapper">
-            <<If: NOT(ISBLANK(ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], AND([PRODUCTO_ID] = [_THISROW].[CODIGO_ID], [PORTADA] = TRUE)))))>>
-                <img class="gallery-main-img" src="<<ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], AND([PRODUCTO_ID] = [_THISROW].[CODIGO_ID], [PORTADA] = TRUE)))>>" alt="<<[CODIGO_ID]>>">
+            &lt;&lt;If: NOT(ISBLANK(ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], AND([PRODUCTO_ID] = [_THISROW].[CODIGO_ID], [PORTADA] = TRUE)))))&gt;&gt;
+                <img class="gallery-main-img" src="&lt;&lt;ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], AND([PRODUCTO_ID] = [_THISROW].[CODIGO_ID], [PORTADA] = TRUE)))&gt;&gt;" alt="&lt;&lt;[CODIGO_ID]&gt;&gt;">
                 <span class="gallery-sticker-portada">⭐ PORTADA</span>
-            <<Else>>
-                <img class="gallery-main-img" src="<<ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], [PRODUCTO_ID] = [_THISROW].[CODIGO_ID]))>>" alt="<<[CODIGO_ID]>>">
-            <<EndIf>>
+            &lt;&lt;Else&gt;&gt;
+                <img class="gallery-main-img" src="&lt;&lt;ANY(SELECT(BD_PRODUCTO_IMAGENES[URL], [PRODUCTO_ID] = [_THISROW].[CODIGO_ID]))&gt;&gt;" alt="&lt;&lt;[CODIGO_ID]&gt;&gt;">
+            &lt;&lt;EndIf&gt;&gt;
         </div>
     </div>
 </div>
