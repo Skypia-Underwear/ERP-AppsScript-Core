@@ -5388,6 +5388,42 @@
                         success: function(response) {
                             console.log(`✅ [${f.nombre}] Cargado con éxito.`);
                             const config = typeof response === 'string' ? JSON.parse(response) : response;
+                            
+                            // Validación inteligente de frescura para Donweb (evita desactualización silenciosa)
+                            if (f.nombre === 'Donweb') {
+                                const MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 horas (tolera horario nocturno)
+                                const age = Date.now() - (config.timestamp_ms || 0);
+                                if (age > MAX_AGE_MS) {
+                                    console.warn(`⏳ [Donweb] Datos antiguos detectados (${Math.round(age / 3600000)} horas). Verificando si GitHub tiene una versión más nueva...`);
+                                    $.ajax({
+                                        url: GITHUB_BLOGGER_URL,
+                                        method: "GET",
+                                        dataType: "json",
+                                        cache: false,
+                                        timeout: 6000,
+                                        success: function(gitResponse) {
+                                            const gitConfig = typeof gitResponse === 'string' ? JSON.parse(gitResponse) : gitResponse;
+                                            const gitTime = gitConfig.timestamp_ms || 0;
+                                            const donwebTime = config.timestamp_ms || 0;
+                                            if (gitTime > donwebTime) {
+                                                console.log(`✅ [GitHub] Versión más nueva detectada en GitHub (${Math.round((gitTime - donwebTime)/60000)} min de diferencia). Usando GitHub.`);
+                                                procesarConfiguracion(gitConfig, idpedido, operacion);
+                                            } else {
+                                                console.log(`⏭️ [Donweb] GitHub no tiene datos más nuevos. Usando datos de Donweb.`);
+                                                procesarConfiguracion(config, idpedido, operacion);
+                                            }
+                                            finalizeUI();
+                                        },
+                                        error: function() {
+                                            console.warn(`⚠️ [GitHub] Falló verificación de versión. Usando datos de Donweb como fallback.`);
+                                            procesarConfiguracion(config, idpedido, operacion);
+                                            finalizeUI();
+                                        }
+                                    });
+                                    return;
+                                }
+                            }
+                            
                             procesarConfiguracion(config, idpedido, operacion);
                             finalizeUI();
                         },

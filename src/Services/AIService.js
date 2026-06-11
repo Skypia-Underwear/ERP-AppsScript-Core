@@ -1567,8 +1567,15 @@ ${directiva.exampleBlock}
           if (isConjunto) {
             return "- TWO-PIECE SET OPENINGS: Show subtle, natural, and shallow 3D hollow depth at all openings (neck, sleeves, waistband, and leg openings) naturally, keeping them elegant, symmetrical, and realistic.";
           }
-          const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
           const focus = extraSpecs.focus || "";
+          const angle = String(extraSpecs.angle || "").toLowerCase();
+          const isBackView = angle.includes("back") || angle.includes("trasera") || angle.includes("espalda");
+
+          if (focus === "none" || isBackView) {
+            return "";
+          }
+
+          const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
           if (clasif === "PRENDA_SUPERIOR") {
             if (focus === "waist") {
               return "- USER FOCUS REQUEST: Upper Neck/Collar opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the top collar/neck opening. Keep it shallow and clean. The bottom hem and sleeve openings MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";

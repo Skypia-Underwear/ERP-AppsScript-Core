@@ -3522,7 +3522,7 @@
                             <label class="text-[10px] uppercase font-bold text-indigo-400 flex items-center gap-1">
                                 <span class="material-icons text-[12px]">straighten</span> Posicion / Angulo a Generar
                             </label>
-                            <select id="swal-input-angle" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner">
+                            <select id="swal-input-angle" class="w-full text-sm bg-slate-800 text-white border-slate-600 rounded p-2 mt-1 shadow-inner" onchange="handleAngleChange(this.value)">
                                 <option value="" ${defaultAngleValue === "" ? 'selected' : ''}>Auto (Deducir del Master)</option>
                                 <option value="Frontal View / Frente">Vista Frontal (Frontal)</option>
                                 <option value="Back View / Espalda">Vista Trasera (Back)</option>
@@ -3566,6 +3566,7 @@
                                 <option value="">General (Todas las aberturas)</option>
                                 <option value="waist">Cintura (Interior superior)</option>
                                 <option value="legs">Piernas (Interior inferior)</option>
+                                <option value="none">Sin enfoque prioritario</option>
                             </select>
                             <p class="text-[9px] text-slate-500 mt-1 italic">Dara prioridad visual a la abertura seleccionada para mostrar el efecto hueco.</p>
                         </div>
@@ -3864,7 +3865,17 @@
             }
 
             if (estilo === 'ghost') {
-                ghostFocus.classList.remove('hidden');
+                const angleSelect = document.getElementById('swal-input-angle');
+                const angleVal = angleSelect ? angleSelect.value.toLowerCase() : "";
+                const isBackView = angleVal.includes('back') || angleVal.includes('trasera') || angleVal.includes('espalda');
+                
+                if (isBackView) {
+                    ghostFocus.classList.add('hidden');
+                    const focusSelect = document.getElementById('swal-input-focus');
+                    if (focusSelect) focusSelect.value = 'none';
+                } else {
+                    ghostFocus.classList.remove('hidden');
+                }
                 document.getElementById('opt-living-garment').classList.remove('hidden');
             } else {
                 // Still Life / Hero / Collage: Mostrar SOLO el selector de superficie de producto
@@ -3930,6 +3941,25 @@
             const isBottom = categoriasInferiores.some(c => cat.includes(c));
             if (isBottom) footSection.classList.add('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
             else footSection.classList.remove('ring-1', 'ring-indigo-500/30', 'bg-indigo-500/5');
+        }
+    }
+
+    function handleAngleChange(angleVal) {
+        const styleVal = document.getElementById('swal-input-style')?.value;
+        const focusContainer = document.getElementById('ghost-focus-selection');
+        const focusSelect = document.getElementById('swal-input-focus');
+        
+        if (styleVal === 'ghost') {
+            const isBackView = angleVal.toLowerCase().includes('back') || angleVal.toLowerCase().includes('trasera') || angleVal.toLowerCase().includes('espalda');
+            if (isBackView) {
+                if (focusContainer) focusContainer.classList.add('hidden');
+                if (focusSelect) focusSelect.value = 'none';
+            } else {
+                if (focusContainer) focusContainer.classList.remove('hidden');
+                if (focusSelect && focusSelect.value === 'none') {
+                    focusSelect.value = ''; // Reset to General
+                }
+            }
         }
     }
 

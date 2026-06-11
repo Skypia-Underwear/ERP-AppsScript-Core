@@ -1571,9 +1571,15 @@ function generarVideoPrompt(imageIds, estiloSolicitado, opciones = {}) {
     switch ((estiloSolicitado || '').toLowerCase()) {
       case 'ghost':
         let focusMandateVideo = "";
-        if (extraSpecs.focus === 'waist') focusMandateVideo = " Priority Focus: Waist interior with a gentle, realistic angle.";
-        else if (extraSpecs.focus === 'legs') focusMandateVideo = " Priority Focus: Natural leg interior openings.";
-        else focusMandateVideo = " Priority Focus: Balanced, natural 3D volume.";
+        const focusVal = extraSpecs.focus || "";
+        const angleVal = String(extraSpecs.angle || "").toLowerCase();
+        const isBack = angleVal.includes("back") || angleVal.includes("trasera") || angleVal.includes("espalda");
+
+        if (focusVal !== "none" && !isBack) {
+          if (extraSpecs.focus === 'waist') focusMandateVideo = " Priority Focus: Waist interior with a gentle, realistic angle.";
+          else if (extraSpecs.focus === 'legs') focusMandateVideo = " Priority Focus: Natural leg interior openings.";
+          else focusMandateVideo = " Priority Focus: Balanced, natural 3D volume.";
+        }
         visualStyle = `Style: Ghost Mannequin / Invisible 3D. Clean, white background, hollow garment.${focusMandateVideo} (MANDATE: PERFECTLY CENTERED. REMOVE ALL mannequins, residual shadows, tags, and hangers. Ensure internal fabric at openings like sleeves and legs shows a clean perspective-correct cut, avoiding elongated back effects and gaping hollow voids).`;
         break;
       case 'lifestyle': visualStyle = `Style: High-End Lifestyle. Dynamic ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} fit model, cinematic lighting, urban context. (MANDATE: REMOVE ALL retail tags/hangers).`; break;
