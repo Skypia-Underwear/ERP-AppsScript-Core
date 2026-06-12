@@ -118,7 +118,7 @@
 
     @media (max-width: 768px) {
       #mobile-menu-fab {
-        display: flex;
+        display: none !important;
         position: fixed;
         bottom: 16px;
         left: 16px;
@@ -310,7 +310,7 @@
     function toggleSidebar() {
       const sidebar = document.getElementById('main-sidebar');
       const backdrop = document.getElementById('sidebar-backdrop');
-      if (window.innerWidth < 768) {
+      if (window.innerWidth <= 768) {
         const isOpen = sidebar.classList.toggle('open');
         if (backdrop) {
           backdrop.classList.toggle('hidden', !isOpen);
@@ -450,11 +450,11 @@
       if (view === 'login') {
         sidebar.classList.add('hidden');
         if (mobileNav) mobileNav.classList.add('hidden');
-        if (mobileMenuFab) mobileMenuFab.classList.add('hidden');
+        if (mobileMenuFab) mobileMenuFab.style.setProperty('display', 'none', 'important');
       } else {
         sidebar.classList.remove('hidden');
         if (mobileNav) mobileNav.classList.remove('hidden');
-        if (mobileMenuFab) mobileMenuFab.classList.remove('hidden');
+        if (mobileMenuFab) mobileMenuFab.style.setProperty('display', 'none', 'important');
       }
       
       document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
@@ -467,7 +467,7 @@
       if (mobileBtn) mobileBtn.classList.add('active');
 
       // Cerrar sidebar en movil tras navegar
-      if (window.innerWidth < 768) {
+      if (window.innerWidth <= 768) {
         document.getElementById('main-sidebar').classList.remove('open');
         const backdrop = document.getElementById('sidebar-backdrop');
         if (backdrop) backdrop.classList.add('hidden');
@@ -864,7 +864,7 @@
     });
   </script>
   <!-- Mobile Menu Floating Action Button (FAB) -->
-  <button onclick="toggleSidebar()" id="mobile-menu-fab" title="Abrir Menú">
+  <button onclick="toggleSidebar()" id="mobile-menu-fab" title="Abrir Menú" style="display: none !important;">
     <i class="ph-bold ph-list text-2xl"></i>
   </button>
 

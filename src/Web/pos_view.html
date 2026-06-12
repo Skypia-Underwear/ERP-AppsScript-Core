@@ -1,4 +1,4 @@
-﻿<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
+<? if (typeof isEmbedded === 'undefined' || !isEmbedded) { ?>
 <?!= HtmlService.createHtmlOutputFromFile('Web/_shared_assets').getContent(); ?>
 <? } ?>
 
@@ -996,6 +996,10 @@
 
   <header class="tpv-header">
     <div class="flex items-center gap-4">
+      <!-- Botón de Menú del ERP (visible en móvil y tablet) -->
+      <button onclick="toggleSidebar()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition md:hidden" title="Menú de Navegación" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+        <i class="ph-bold ph-list text-2xl" style="color: #cbd5e1;"></i>
+      </button>
       <div id="tpv-user-status"
         class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-full border border-slate-700 text-xs font-semibold text-slate-300">
         <div class="w-2 h-2 rounded-full bg-slate-500"></div>
