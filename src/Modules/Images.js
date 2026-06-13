@@ -1497,268 +1497,13 @@ function listarModelosDisponibles() {
 }
 // 🔍¥ NUEVA FUNCIÓN: GENERACIÓN DE GUION DE VIDEO (REELS/TIKTOK/VEO)
 function generarVideoPrompt(imageIds, estiloSolicitado, opciones = {}) {
-  const logPrefix = `🎬 [generarVideoPrompt]`;
-  const estructura = opciones.structure || 'multi_shot'; // 'single_shot' o 'multi_shot'
-  const conAudio = opciones.audio === true;
-  const conVoz = opciones.vo === true;
-
-  console.log(`${logPrefix} ${imageIds.length} imgs. Estilo: ${estiloSolicitado}. Estructura: ${estructura}`);
-
+  const logPrefix = `🎬 [generarVideoPrompt Wrapper]`;
+  console.log(`${logPrefix} Delegando generación de Prompt de Video a AIService...`);
   try {
-    const ss = getImagesSpreadsheet();
-    const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
-    const dataImg = convertirRangoAObjetos_IMAGENES(sheetImg);
-
-    // 1. OBTENER IMÁGENES Y VALIDAR
-    const selectedRows = dataImg.filter(r => imageIds.includes(String(r.IMAGEN_ID)));
-
-    if (selectedRows.length === 0) throw new Error("No se encontraron registros de las imágenes seleccionadas.");
-
-    const refRow = selectedRows[0];
-    const sku = refRow.PRODUCTO_ID;
-
-    // Validación de seguridad: Â¿Son todos del mismo SKU?
-    const distintosSkus = [...new Set(selectedRows.map(r => r.PRODUCTO_ID))];
-    if (distintosSkus.length > 1) {
-      console.warn(`${logPrefix} ⚠️ Advertencia: Se seleccionaron imágenes de distintos SKUs: ${distintosSkus.join(", ")}. Usando contexto de: ${sku}`);
-    }
-
-    // 2. DATOS DE PRODUCTO (Contexto Técnico)
-    const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
-    const dataProd = convertirRangoAObjetos_IMAGENES(sheetProd);
-    const prodRow = dataProd.find(p => String(p.CODIGO_ID).trim() === String(sku).trim());
-
-    let contextoTecnico = "Product: Retail item.";
-
-    if (prodRow) {
-      let coloresDb = prodRow.COLORES || "";
-      if (coloresDb.toLowerCase().includes("surtido")) coloresDb = "Various (Focus ONLY on the visible color)";
-
-      contextoTecnico = `
-        DATA SPECS:
-        - Brand: ${prodRow.MARCA || "Generic"}
-        - Parent Category: ${prodRow.CATEGORIA_PADRE || "General"}
-        - Specific Category: ${prodRow.CATEGORIA || "General"}
-        - Name: ${prodRow.MODELO || prodRow.PRODUCTO || "Product"}
-        - Material: ${prodRow.MATERIAL || "Standard"}
-        - Colors from DB: ${coloresDb}
-        - Description: ${prodRow.DESCRIPCION || "Modern style"}
-        `;
-    }
-
-    // 3. PREPARAR IMÁGENES (Multimodal) Y DETECTAR MASTER PIVOTE
-    const contentsParts = [];
-
-    // Identificamos si entre las seleccionadas hay una "Master" (Generada por IA y aprobada)
-    const masterImgs = selectedRows.filter(r => r.FUENTE === 'IA_Gemini' || (r.PROMPT && r.FUENTE === 'Sistema Web'));
-    const nonMasterImgs = selectedRows.filter(r => !masterImgs.includes(r));
-
-    // Ordenamos para que las Master vayan al PRINCIPIO (como anclas visuales) o al FINAL según el prompt
-    // Pero para VEO y Scripts, la última imagen suele tener más peso semántico en algunos modelos.
-    // Decidimos poner las Originales primero y las Master DESPUÉS para "corregir" la visión de la IA.
-    const orderedRows = [...nonMasterImgs, ...masterImgs].slice(0, 5);
-
-    // Si hay una Master, extraemos su prompt para consistencia
-    const masterPromptRef = masterImgs.length > 0 ? masterImgs[0].PROMPT : "";
-
-    // 3. PREPARAR SYSTEM PROMPT DINÁMICO
-    let systemPrompt = "";
-
-    // Reglas de Estilo (Visuales)
-    let visualStyle = "";
-    const extraSpecs = opciones.extraSpecs || {};
-
-    switch ((estiloSolicitado || '').toLowerCase()) {
-      case 'ghost':
-        let focusMandateVideo = "";
-        const focusVal = extraSpecs.focus || "";
-        const angleVal = String(extraSpecs.angle || "").toLowerCase();
-        const isBack = angleVal.includes("back") || angleVal.includes("trasera") || angleVal.includes("espalda");
-
-        if (focusVal !== "none" && !isBack) {
-          if (extraSpecs.focus === 'waist') focusMandateVideo = " Priority Focus: Waist interior with a gentle, realistic angle.";
-          else if (extraSpecs.focus === 'legs') focusMandateVideo = " Priority Focus: Natural leg interior openings.";
-          else focusMandateVideo = " Priority Focus: Balanced, natural 3D volume.";
-        }
-        visualStyle = `Style: Ghost Mannequin / Invisible 3D. Clean, white background, hollow garment.${focusMandateVideo} (MANDATE: PERFECTLY CENTERED. REMOVE ALL mannequins, residual shadows, tags, and hangers. Ensure internal fabric at openings like sleeves and legs shows a clean perspective-correct cut, avoiding elongated back effects and gaping hollow voids).`;
-        break;
-      case 'lifestyle': visualStyle = `Style: High-End Lifestyle. Dynamic ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} fit model, cinematic lighting, urban context. (MANDATE: REMOVE ALL retail tags/hangers).`; break;
-      default: visualStyle = `Style: Professional E-commerce Studio. Vertical format, clean grey background, ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model. (MANDATE: REMOVE ALL retail tags/hangers).`; break;
-    }
-
-    if (extraSpecs.skinTone) visualStyle += ` Model Skin Tone: ${extraSpecs.skinTone}.`;
-    if (extraSpecs.footwear) visualStyle += ` Footwear: ${extraSpecs.footwear.type} in ${extraSpecs.footwear.color} color.`;
-
-    if (estructura === 'living_garment') {
-      visualStyle = "Style: 3D Living Garment Animation. The garment is worn by an invisible body but it is MOVING naturally, walking or posing as if a human was wearing it. Fluid fabric simulation, dynamic wrinkles, and realistic 3D volume.";
-    }
-
-    const pivotInstructions = masterImgs.length > 0
-      ? `PIVOT REFERENCE: The LAST image(s) provided are 'MASTER' references (already approved by user). Use them as your ABSOLUTE anchor for model appearance, environment, and garment fit. The other images are for secondary texture details only. DO NOT BLEND them into a hybrid product. Follow the MASTER style perfectly.`
-      : `GENERAL REFERENCE: Maintain visual consistency across all provided reference images. Identify the core product DNA.`;
-
-    if (estructura === 'single_shot' || estructura === 'living_garment') {
-      // --- MODO 8 SEGUNDOS (VEO 3.1) ---
-      const voMandate = conVoz ? "MANDATORY: You MUST provide a Spanish Slogan/Script in the 'VOICEOVER' field." : "VOICEOVER: Leave empty or very brief.";
-      const audioMandate = conAudio ? "MANDATORY: Suggest a specific musical genre or sound effect in 'MUSICA_RECOMENDADA'." : "";
-
-      systemPrompt = `
-      ROLE: Expert AI Video Prompt Engineer (1:1 Pixel Fidelity).
-      INPUT: Product Context (${contextoTecnico}) + Reference Image Pixels.
-      ${pivotInstructions}
-      
-      CRITICAL FIDELITY RULES:
-      1. **SEMANTIC VS VISUAL**: Use pixels as the ONLY VISUAL AUTHORITY.
-      2. **CAMERA MOVEMENT**: 
-         - If style is 'Lifestyle' or 'Ecommerce': Use a dynamic cinematic tracking shot or crane shot. Stable, high-end movement.
-         - Otherwise (e.g., 'Ghost'): Perform a smooth, continuous 360-degree orbital rotation to reveal technical volume.
-      3. **PHYSICS & SAFETY**: Focus strictly on cloth tension, fabric drape, and silhouette. Use clinical, non-anatomical terms.
-      4. **NO HYBRIDS**: If the reference is a Split-View, pick only the most prominent side as the pivot.
-      5. **TAG/HANGER REMOVAL**: Strictly command the absolute removal of all retail attachments.
-      6. **VO/AUDIO**: ${voMandate} ${audioMandate}
-
-      CONSTRAINT: **NO CUTS. NO SCENE NUMBERS. NO TEXT OVERLAY. NO HUMAN SKIN FOCUS.**
-      
-      INSTRUCTIONS:
-      1. **DNA LOCK**: Describe a single continuous shot.
-      2. **LANGUAGE** (OUTPUT JSON): 
-         - **VOICEOVER**: MUST BE IN SPANISH (Short, catchy).
-         - **MUSICA_RECOMENDADA**: MUST BE IN SPANISH.
-         - **PROMPT_FOR_VIDEO_AI**: TECHNICAL ENGLISH.
-      
-      OUTPUT FORMAT (JSON):
-      {
-        "TEMA_DETECTADO": "...",
-        "MUSICA_RECOMENDADA": "...",
-        "PERFIL_DE_VOZ": "...",
-        "PROMPT_FOR_VIDEO_AI": "A technical description for VEO. Start with the camera movement [Orbital or Cinematic Tracking]. Focus on technical drape and lighting. [Clinical terms only, no anatomy].",
-        "VOICEOVER": "...",
-        "EXPLANATION": "..."
-      }
-      `;
-    } else {
-      // --- MODO GUION COMPLETO (MULTI-SCENE) ---
-      systemPrompt = `
-      ROLE: Expert Social Media Content Director.
-      GOAL: Create a short Video Script (Reels/TikTok) ensuring 100% visual consistency.
-      ${pivotInstructions}
-      SELECTED STYLE: ${visualStyle}
-      
-      INSTRUCTIONS:
-      1. **SCENE STRUCTURE**: Create 3-5 distinct scenes (TOMAS).
-      2. **NO HYBRIDS**: Ensure the garment looks identical in every scene.
-      3. **TAG/HANGER REMOVAL**: Mandate removal of all retail attachments.
-      4. **LANGUAGE**: EVERY field (HOOK, SCENES, VOICEOVER, EXPLANATION, MUSIC, THEME) MUST be in **SPANISH**. Only "visual_prompt" remains in English.
-
-      OUTPUT FORMAT (JSON):
-      {
-        "TEMA_DETECTADO": "...",
-        "MUSICA_RECOMENDADA": "...",
-        "PERFIL_DE_VOZ": "...",
-        "HOOK": "...",
-        "TOMAS": [
-          { 
-            "id_toma": 1, 
-            "duracion": "0-3s", 
-            "descripcion_español": "...",
-            "visual_prompt": "DEEP TECHNICAL PROMPT IN ENGLISH based on Master pivot..." 
-          }
-        ],
-        "VOICEOVER": "...",
-        "EXPLANATION": "..."
-      }
-      `;
-    }
-
-    // Separamos system prompt de las partes de imagen
-    const imageVideoParts = [];
-
-    // Añadir las imágenes seleccionadas en el orden de PIVOTE
-    orderedRows.forEach(row => {
-      try {
-        const fileDataPart = prepararBlobOptimizado(row.ARCHIVO_ID, `video_${row.IMAGEN_ID}`);
-        imageVideoParts.push(fileDataPart);
-      } catch (err) {
-        console.warn(`Error subiendo imagen ID ${row.IMAGEN_ID}: ${err.message}`);
-      }
-    });
-
-    if (imageVideoParts.length === 0) throw new Error("No se pudieron cargar las imágenes del Drive.");
-
-    const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY;
-
-    // 4. LISTA DE MODELOS (Respetando orden usuario y excluyendo 1.5-flash)
-    const modelos = [
-      "gemma-3-27b-it",    // PRIORIDAD 1: Visión potente + 14k cupo
-      "gemma-3-12b-it",    // PRIORIDAD 2: Rápido
-      "gemini-2.5-flash"   // PRIORIDAD 3: Emergencia
-    ];
-
-    let erroresAcumulados = [];
-
-    // 5. BUCLE DE INTENTOS
-    for (let i = 0; i < modelos.length; i++) {
-      const modelo = modelos[i];
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-
-      // Payload condicional: Gemini soporta systemInstruction, Gemma no
-      let payload;
-      if (modelo.startsWith('gemini')) {
-        payload = {
-          "systemInstruction": { "parts": [{ "text": systemPrompt }] },
-          "contents": [{ "parts": [{ "text": contextoTecnico }, ...imageVideoParts] }],
-          "safetySettings": GEMINI_SAFETY_SETTINGS
-        };
-      } else {
-        payload = {
-          "contents": [{ "parts": [{ "text": systemPrompt }, ...imageVideoParts] }],
-          "safetySettings": GEMINI_SAFETY_SETTINGS
-        };
-      }
-
-      const options = {
-        "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true
-      };
-
-      try {
-        const response = UrlFetchApp.fetch(url, options);
-        const code = response.getResponseCode();
-        const text = response.getContentText();
-
-        if (code === 200) {
-          const json = JSON.parse(text);
-          if (json.candidates && json.candidates.length > 0) {
-            const promptGenerado = json.candidates[0].content.parts[0].text;
-
-            // GUARDAR EN BASE DE DATOS (Para que aparezca el icono de IA en la galería)
-            imageIds.forEach(id => {
-              try { actualizarCeldaPorHeader(id, 'PROMPT', promptGenerado); } catch (e) { }
-            });
-
-            return JSON.stringify({
-              success: true,
-              text: promptGenerado,
-              model: modelo,
-              imageIds: imageIds // Pasamos los IDs de vuelta para preservar el contexto
-            });
-          }
-        } else {
-          let errDetail = text;
-          try { errDetail = JSON.parse(text).error.message; } catch (e) { }
-          Logger.log(`⚠️ Falló Video Gen ${modelo}: ${errDetail}`);
-          erroresAcumulados.push(`${modelo}: ${errDetail}`);
-          if (String(errDetail).includes("Quota exceeded") || code === 429) {
-            Utilities.sleep((i + 1) * 4000);
-          }
-        }
-      } catch (err) {
-        erroresAcumulados.push(`${modelo} Error: ${err.message}`);
-        if (String(err.message).includes("429")) Utilities.sleep(5000);
-      }
-    }
-    throw new Error(`Error Total IA (Video): ${erroresAcumulados.join(" | ")}`);
-
+    const result = AIService.ejecutarGeneracionPromptVideo(imageIds, estiloSolicitado, opciones);
+    return JSON.stringify(result);
   } catch (e) {
+    console.error(`${logPrefix} Error delegando a AIService: ${e.message}`);
     return JSON.stringify({ success: false, error: e.message });
   }
 }
@@ -2314,7 +2059,7 @@ function rowMatchesSku_IMAGENES(row, sku) {
  * 🎬 EJECUTAR RENDERIZADO DE VIDEO VEO (FASE 6)
  * Llama a la API de VEO 3.1 para generar un video MP4.
  */
-function ejecutarRenderizadoVideoVEO(idOrIds, promptVideo, pin) {
+function ejecutarRenderizadoVideoVEO(idOrIds, promptVideo, pin, opciones = {}) {
   const logPrefix = `🎬 [VEO RENDER]`;
   try {
     if (String(pin) !== String(GLOBAL_CONFIG.GEMINI.PAID_PIN)) {
@@ -2347,7 +2092,7 @@ function ejecutarRenderizadoVideoVEO(idOrIds, promptVideo, pin) {
       return getScore(b) - getScore(a);
     });
 
-    if (candidates.length === 0) throw new Error(`No se encontraros imágenes de referencia.`);
+    if (candidates.length === 0) throw new Error(`No se encontraron imágenes de referencia.`);
 
     // Tomar hasta 3 imágenes (VEO 3.1 Preview limit)
     const topCandidates = candidates.slice(0, 3);
@@ -2363,18 +2108,66 @@ function ejecutarRenderizadoVideoVEO(idOrIds, promptVideo, pin) {
       };
     });
 
-    // 2. Construir Payload Multimodal (Standard VEO 3.1 Preview)
-    const payload = {
-      "instances": [
-        {
-          "prompt": promptVideo,
-          "image": imageParts[0]
-        }
-      ],
-      "parameters": {}
+    // 2. Construir Parámetros Técnicos de VEO 3.1
+    const opts = opciones || {};
+    const parameters = {};
+
+    // Mapear Relación de aspecto (16:9 y 9:16 admitidos)
+    let ratioToUse = "16:9";
+    const rawRatio = opts.aspectRatio || (opts.extraSpecs && opts.extraSpecs.aspectRatio) || "";
+    if (rawRatio) {
+      const ar = String(rawRatio).trim().toLowerCase();
+      if (ar === "9:16" || ar === "3:4" || ar === "1:4" || ar === "vertical") {
+        ratioToUse = "9:16";
+      }
+    }
+    parameters.aspectRatio = ratioToUse;
+
+    // Duración: 8s es el estándar para uso con referencias
+    let duration = 8;
+    const rawDuration = opts.durationSeconds || (opts.extraSpecs && opts.extraSpecs.durationSeconds) || "";
+    if (rawDuration) {
+      const parsedDur = parseInt(rawDuration, 10);
+      if ([4, 6, 8].includes(parsedDur)) duration = parsedDur;
+    }
+    parameters.durationSeconds = duration; // Enviar como número (int) según especificaciones de la API VEO
+
+    // Resolución: "720p", "1080p", "4k"
+    let resolution = "720p";
+    const rawRes = opts.resolution || (opts.extraSpecs && opts.extraSpecs.resolution) || "";
+    if (rawRes) {
+      const resVal = String(rawRes).trim().toLowerCase();
+      if (["720p", "1080p", "4k"].includes(resVal)) resolution = resVal;
+    }
+    parameters.resolution = resolution;
+
+    // Person Generation: "allow_adult" requerido al usar imágenes de referencia
+    parameters.personGeneration = "allow_adult";
+
+    // 3. Construir Payload Multimodal (Standard VEO 3.1 Preview)
+    const instance = {
+      "prompt": promptVideo
     };
 
-    console.log(`${logPrefix} Iniciando renderizado para Ref: ${row.IMAGEN_ID}...`);
+    if (imageParts.length > 0) {
+      if (imageParts.length > 1) {
+        // Multi-referencia con referenceImages
+        instance.referenceImages = imageParts.map(part => ({
+          "image": part,
+          "referenceType": "asset"
+        }));
+      } else {
+        // Referencia única con image-to-video
+        instance.image = imageParts[0];
+      }
+    }
+
+    const payload = {
+      "instances": [instance],
+      "parameters": parameters
+    };
+
+    console.log(`${logPrefix} Iniciando renderizado para Ref: ${row.IMAGEN_ID} con params: ${JSON.stringify(parameters)}...`);
 
     const response = UrlFetchApp.fetch(url, {
       "method": "post",

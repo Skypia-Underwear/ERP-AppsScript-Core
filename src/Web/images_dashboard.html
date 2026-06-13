@@ -4482,7 +4482,7 @@
                                     if (d.imagenId && !idsContext.includes(d.imagenId)) idsContext.push(d.imagenId);
                                     if (currentImageId && !idsContext.includes(currentImageId)) idsContext.push(currentImageId);
 
-                                    iniciarRenderVEO(idsContext, promptVeo);
+                                    iniciarRenderVEO(idsContext, promptVeo, opciones);
                                 } else {
                                     log("No se encontro un prompt técnico de video en el guion.", "error");
                                 }
@@ -4525,7 +4525,12 @@
             const envVal = isStillLife ? (stillLifeEnvEl ? stillLifeEnvEl.value : "") : (envEl ? envEl.value : "");
             const ids = selectedImages.size > 0 ? Array.from(selectedImages) : [currentImageId];
             // Inyectamos extraSpecs en opciones para el video (VEO usa una estructura distinta)
-            opciones.extraSpecs = { ...extraSpecs, focus: opciones.focus, environment: envVal };
+            opciones.extraSpecs = { 
+                ...extraSpecs, 
+                focus: opciones.focus, 
+                environment: envVal,
+                analysisModel: document.getElementById('dashboard-analysis-model') ? document.getElementById('dashboard-analysis-model').value : 'gemini-3.5-flash'
+            };
             google.script.run.withSuccessHandler(onSuccess).generarVideoPrompt(ids, estilo, opciones);
         } else {
             log("Generando Prompt de Imagen...", "info");
@@ -5244,7 +5249,7 @@
     }
 
     // --- LÓGICA DE AUTOMATIZACIÓN VEO (PHASE 6) ---
-    function iniciarRenderVEO(masterId, prompt) {
+    function iniciarRenderVEO(masterId, prompt, opciones = {}) {
         Swal.fire({
             title: 'Iniciando VEO...',
             text: 'Contactando al motor de renderizado de Google.',
@@ -5267,7 +5272,7 @@
             } else {
                 Swal.fire('Error VEO', d.error, 'error');
             }
-        }).ejecutarRenderizadoVideoVEO(masterId, prompt, currentPaidPin);
+        }).ejecutarRenderizadoVideoVEO(masterId, prompt, currentPaidPin, opciones);
     }
 
     function monitorizarVideoVEO(opId, sku, carpetaId) {
@@ -5323,13 +5328,16 @@
             const d = JSON.parse(cleanJson);
             let out = "";
             if (d.TEMA_DETECTADO) out += `TEMA: ${d.TEMA_DETECTADO}\n`;
+
+            // Determinar estilo de forma segura (para el formateador del visor de prompts)
+            const estilo = window.currentEstiloSeleccionado || (document.getElementById('swal-input-estilo') ? document.getElementById('swal-input-estilo').value : "");
+            
             // 2. Prefix Mandate (To anchor the IA's intention)
             // These are in Spanish because they are part of the bilingual prompt structure
             let prefix = '[Descripcion narrativa fotografica definitiva en ESPAÑOL, enfocada puramente en lo visual].';
             if (estilo === 'folded') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment perfectly folded on a professional surface, focusing entirely on texture and material, with NO human presence."';
             else if (estilo === 'hanger') prefix = 'Usted DEBE iniciar su respuesta con la frase: "High-end Still Life commercial product photography, showcasing the garment professionally hanging on a luxury hanger, with NO human presence."';
 
-            return { promptRules, modelAdaptation, prefix };
             if (d.MUSICA_RECOMENDADA || d.AUDIO_SUGGESTION) out += `MUSIC: ${d.MUSICA_RECOMENDADA || d.AUDIO_SUGGESTION}\n`;
             if (d.PERFIL_DE_VOZ) out += `VOZ: ${d.PERFIL_DE_VOZ}\n`;
             if (d.HOOK) out += `\nHOOK:\n${d.HOOK}\n`;

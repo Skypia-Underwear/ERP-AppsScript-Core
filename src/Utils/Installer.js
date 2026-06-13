@@ -11,8 +11,6 @@ function onOpen() {
     .addItem('🧹 Optimizar Espacio (Limpiar)', 'optimizarEspacioHojas')
     .addItem('⚡ Instalar Automatización (IA)', 'instalarTriggersIA')
     .addSeparator()
-    .addItem('🧹 Importar Catálogo desde WhatsApp CSV', 'importarWhatsAppCatalogDesdeCSV')
-    .addSeparator()
     .addItem('🤖 Configurar Webhook Telegram', 'instalarWebhookTelegram')
     .addItem('🔄 Resetear Webhook (Forzado)', 'resetearWebhookTelegramTotalmente')
     .addSeparator()
@@ -856,7 +854,7 @@ function applyDataValidation(clave, range) {
   const options = {
     "TPV_PUBLICATION_TARGET": ["DRIVE", "DONWEB", "GITHUB", "AMBOS"],
     "BLOGGER_PUBLICATION_TARGET": ["DONWEB", "GITHUB", "AMBOS", "NONE", "DRIVE"],
-    "PUBLICATION_TARGET": ["DONWEB", "GITHUB"],
+    "PUBLICATION_TARGET": ["DONWEB", "GITHUB", "AMBOS"],
     "ASSETS_ENABLE_GITHUB_SYNC": ["TRUE", "FALSE"],
     "BQ_ENABLE": ["TRUE", "FALSE"],
     "TELEGRAM_MODE": ["DEV", "CLIENT"],

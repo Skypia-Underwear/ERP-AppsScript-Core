@@ -629,10 +629,21 @@ TIPO_PRENDA: ROPA INTERIOR
       }
       if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
 
-      // Priorizar modelo forzado si existe
-      let modelosATratar = [...this.MODELS_FREE];
+      // Priorizar modelo forzado si existe, de lo contrario usar la escalera (escalonamiento)
+      const modelosATratar = [];
       if (modeloForzado) {
-        modelosATratar = [modeloForzado, ...modelosATratar.filter(m => m !== modeloForzado)];
+        modelosATratar.push(modeloForzado);
+      }
+      const escaleraModelos = [
+        "gemini-3.5-flash",
+        "gemini-3.1-pro-preview",
+        "gemma-4-26b-a4b-it",
+        "gemini-2.5-flash"
+      ];
+      for (const model of escaleraModelos) {
+        if (!modelosATratar.includes(model)) {
+          modelosATratar.push(model);
+        }
       }
 
       // EJECUCIÓN CON FALLBACK DINÁMICO (SOT: consultarGemma)
@@ -1050,15 +1061,20 @@ ${directiva.exampleBlock}
       let resumenEspanolDeGemini = ""; // Guardar traducción nativa de Gemini
       let rawResponseGeminiRaw = ""; // Guardar el JSON crudo retornado por Gemini
 
-      // Construir lista dinámica de modelos priorizando el seleccionado por el usuario
+      // Construir lista dinámica de modelos priorizando el seleccionado por el usuario o usando la escalera
       const modelosATratar = [];
       if (extraSpecs.analysisModel) {
         modelosATratar.push(extraSpecs.analysisModel);
       }
-      const fallbacks = ["gemma-4-26b-a4b-it"];
-      for (const fb of fallbacks) {
-        if (!modelosATratar.includes(fb)) {
-          modelosATratar.push(fb);
+      const escaleraModelos = [
+        "gemini-3.5-flash",
+        "gemini-3.1-pro-preview",
+        "gemma-4-26b-a4b-it",
+        "gemini-2.5-flash"
+      ];
+      for (const model of escaleraModelos) {
+        if (!modelosATratar.includes(model)) {
+          modelosATratar.push(model);
         }
       }
 
@@ -1101,15 +1117,15 @@ ${directiva.exampleBlock}
               payload.generationConfig.responseSchema = {
                 type: "OBJECT",
                 properties: {
-                  reasoning: { 
+                  reasoning: {
                     type: "STRING",
                     description: "Reasoning and composition choices in English."
                   },
-                  visual_audit: { 
+                  visual_audit: {
                     type: "STRING",
                     description: "Detailed visual audit of clothing components in English."
                   },
-                  master_prompt_en: { 
+                  master_prompt_en: {
                     type: "STRING",
                     description: "The final technical prompt in English (minimum 40 words, rich description of subject, details, environment, lighting, and style)."
                   }
@@ -1129,12 +1145,12 @@ ${directiva.exampleBlock}
               const resJson = JSON.parse(response.getContentText());
               if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
                 const textOutput = resJson.candidates[0].content.parts[0].text;
-                
+
                 if (modelo.startsWith("gemini-")) {
                   rawResponseGeminiRaw = textOutput;
                   try {
                     const parsedJson = JSON.parse(textOutput);
-                    
+
                     // 1. Traducir el prompt maestro de inglés a español nativamente
                     if (parsedJson.master_prompt_en) {
                       try {
@@ -1161,7 +1177,7 @@ ${directiva.exampleBlock}
                 } else {
                   rawResponse = textOutput;
                 }
-                
+
                 modeloUsado = modelo;
                 console.log(`✅ [Lab-IA] Éxito con ${modelo} usando API Key ${keyObj.label}`);
                 break;
@@ -1257,34 +1273,379 @@ ${directiva.exampleBlock}
       };
 
     } catch (e) {
-      console.error("❌ [Lab-IA] Error fatal: " + e.message);
+      console.error("❌ [Lab-IA] Error fatal en Prompt Maestro: " + e.message);
       return { success: false, error: e.message };
     }
   },
 
-  /**
-   * FASE 2.5: REFINAMIENTO DE PROMPT POR VOZ (Multimodal)
-   * Escucha el audio dictado por el usuario y refina semánticamente el Prompt Maestro.
-   */
-  ejecutarRefinamientoPromptPorVoz: function (imagenId, currentPrompt, base64Audio, mimeType, isAudio = true, estilo = null, extraSpecs = {}) {
-    try {
-      console.log(`🧠 [Lab-IA] Refinando Prompt Maestro por ${isAudio ? 'voz' : 'texto'} para imagen: ${imagenId}`);
-      if (!base64Audio) throw new Error(isAudio ? "Falta el audio en Base64." : "Falta la instrucción de texto.");
+    /**
+     * FASE 6: GENERACIÓN DE PROMPT Y GUION DE VIDEO (VEO 3.1)
+     * Centraliza la lógica de prompts de video, inyectando el análisis forense como SOT.
+     */
+    ejecutarGeneracionPromptVideo: function (imagenIds, estilo, opciones = {}) {
+      const logPrefix = `🎬 [AIService Video Gen]`;
+      try {
+        if (!Array.isArray(imagenIds)) imagenIds = [imagenIds];
+        const masterId = imagenIds[0];
 
-      // Definir juego de API Keys para fallback
-      const apiKeysToTry = [];
-      if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
-      if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
-        apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+        console.log(`${logPrefix} Generando Prompt/Guion de Video para imágenes: ${imagenIds.join(', ')} (Estilo: ${estilo})`);
+
+        const ss = getActiveSS();
+        const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+        const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+
+        // 1. Obtener filas y validar
+        const selectedRows = [];
+        for (const id of imagenIds) {
+          const row = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", id);
+          if (row) selectedRows.push(row);
+        }
+
+        if (selectedRows.length === 0) throw new Error("Imágenes de referencia no encontradas.");
+        const masterRow = selectedRows[0];
+        const sku = masterRow.PRODUCTO_ID;
+
+        const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", sku);
+
+        // 2. Compilar Ficha Forense (ANALISIS_FORENSE) como SOT para el realce de la prenda
+        const forensicSOT = selectedRows.map((r, i) => {
+          const typeLabel = i === 0 ? "MASTER" : `REFERENCE ${i}`;
+          return `[FORENSIC AUDIT FOR IMAGE ${r.IMAGEN_ID} (${typeLabel})]:\n${r.ANALISIS_FORENSE || "N/A"}`;
+        }).join('\n\n');
+
+        // 3. Contexto Técnico del Producto
+        let contextoTecnico = "Product: Retail item.";
+        if (prodRow) {
+          let coloresDb = prodRow.COLORES || "";
+          if (coloresDb.toLowerCase().includes("surtido")) coloresDb = "Various (Focus ONLY on the visible color)";
+
+          contextoTecnico = `
+        DATA SPECS:
+        - Brand: ${prodRow.MARCA || "Generic"}
+        - Parent Category: ${prodRow.CATEGORIA_PADRE || "General"}
+        - Specific Category: ${prodRow.CATEGORIA || "General"}
+        - Name: ${prodRow.MODELO || prodRow.PRODUCTO || "Product"}
+        - Material: ${prodRow.MATERIAL || "Standard"}
+        - Colors from DB: ${coloresDb}
+        - Description: ${prodRow.DESCRIPCION || "Modern style"}
+        `;
+        }
+
+        // 4. Parámetros del Video
+        const estructura = opciones.structure || 'multi_shot'; // 'single_shot', 'multi_shot', 'living_garment'
+        const conAudio = opciones.audio === true;
+        const conVoz = opciones.vo === true;
+        const extraSpecs = opciones.extraSpecs || opciones || {};
+
+        // Estilo Visual
+        let visualStyle = "";
+        switch ((estilo || '').toLowerCase()) {
+          case 'ghost':
+            let focusMandateVideo = "";
+            const focusVal = extraSpecs.focus || "";
+            const angleVal = String(extraSpecs.angle || "").toLowerCase();
+            const isBack = angleVal.includes("back") || angleVal.includes("trasera") || angleVal.includes("espalda");
+
+            if (focusVal !== "none" && !isBack) {
+              if (focusVal === 'waist') focusMandateVideo = " Priority Focus: Waist interior with a gentle, realistic angle.";
+              else if (focusVal === 'legs') focusMandateVideo = " Priority Focus: Natural leg interior openings.";
+              else focusMandateVideo = " Priority Focus: Balanced, natural 3D volume.";
+            }
+            visualStyle = `Style: Ghost Mannequin / Invisible 3D. Clean, white background, hollow garment.${focusMandateVideo} (MANDATE: PERFECTLY CENTERED. REMOVE ALL mannequins, residual shadows, tags, and hangers. Ensure internal fabric at openings like sleeves and legs shows a clean perspective-correct cut, avoiding elongated back effects and gaping hollow voids).`;
+            break;
+          case 'lifestyle': visualStyle = `Style: High-End Lifestyle. Dynamic ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} fit model, cinematic lighting, urban context. (MANDATE: REMOVE ALL retail tags/hangers).`; break;
+          default: visualStyle = `Style: Professional E-commerce Studio. Vertical format, clean grey background, ${prodRow ? prodRow.GENERO || 'UNISEX' : 'UNISEX'} model. (MANDATE: REMOVE ALL retail tags/hangers).`; break;
+        }
+
+        if (extraSpecs.skinTone) visualStyle += ` Model Skin Tone: ${extraSpecs.skinTone}.`;
+        if (extraSpecs.footwear) visualStyle += ` Footwear: ${extraSpecs.footwear.type} in ${extraSpecs.footwear.color} color.`;
+
+        if (estructura === 'living_garment') {
+          visualStyle = "Style: 3D Living Garment Animation. The garment is worn by an invisible body but it is MOVING naturally, walking or posing as if a human was wearing it. Fluid fabric simulation, dynamic wrinkles, and realistic 3D volume.";
+        }
+
+        const pivotInstructions = selectedRows.length > 1
+          ? `PIVOT REFERENCE: The LAST image(s) provided are 'MASTER' references (already approved by user). Use them as your ABSOLUTE anchor for model appearance, environment, and garment fit. The other images are for secondary texture details only. DO NOT BLEND them into a hybrid product. Follow the MASTER style perfectly.`
+          : `GENERAL REFERENCE: Maintain visual consistency across all provided reference images. Identify the core product DNA.`;
+
+        // 5. System Prompt Dinámico
+        let systemPrompt = "";
+        const voMandate = conVoz ? "MANDATORY: You MUST provide a Spanish Slogan/Script in the 'VOICEOVER' field." : "VOICEOVER: Leave empty or very brief.";
+        const audioMandate = conAudio ? "MANDATORY: Suggest a specific musical genre or sound effect in 'MUSICA_RECOMENDADA'." : "";
+
+        // Instrucción crítica para incorporar audio en el prompt de VEO
+        const nativeAudioDirectives = `
+      NATIVE AUDIO GENERATION PROTOCOL (VEO 3.1):
+      - If 'conVoz' (VOICEOVER) or 'conAudio' (MUSICA_RECOMENDADA) is enabled, you MUST append a technical audio generation instruction at the end of the 'PROMPT_FOR_VIDEO_AI' (or 'visual_prompt') string value.
+      - The instruction must be in English and specify the exact speech or sound effects. E.g.: 
+        * For Voiceover: "The video is accompanied by a native, high-quality Spanish voiceover speaking exactly these words: '[insert here the exact Spanish VOICEOVER text]'"
+        * For Music/Sound Effects: "Accompanied by a synchronized background audio soundscape of [insert here the recommended music/sound style in English], blended naturally with the voiceover."
+      - If both are enabled, combine them at the end of the visual prompt description. E.g.: "Audio: A clean Spanish voiceover speaking: '...' with a background of ambient electronic music."
+      `;
+
+        if (estructura === 'single_shot' || estructura === 'living_garment') {
+          systemPrompt = `
+        ROLE: Expert AI Video Prompt Engineer (1:1 Pixel Fidelity).
+        INPUT: Product Context (${contextoTecnico}) + Reference Image Pixels.
+        ${pivotInstructions}
+        
+        [FORENSIC AUDITS - SOURCE OF TRUTH (SOT)]
+        ${forensicSOT}
+        
+        CRITICAL FIDELITY RULES:
+        1. **SEMANTIC VS VISUAL**: Use pixels as the ONLY VISUAL AUTHORITY.
+        2. **CAMERA MOVEMENT**: 
+           - If style is 'Lifestyle' or 'Ecommerce': Use a dynamic cinematic tracking shot or crane shot. Stable, high-end movement.
+           - Otherwise (e.g., 'Ghost'): Perform a smooth, continuous 360-degree orbital rotation to reveal technical volume.
+        3. **PHYSICS & SAFETY**: Focus strictly on cloth tension, fabric drape, and silhouette. Use clinical, non-anatomical terms.
+        4. **NO HYBRIDS**: If the reference is a Split-View, pick only the most prominent side as the pivot.
+        5. **TAG/HANGER REMOVAL**: Strictly command the absolute removal of all retail attachments.
+        6. **VO/AUDIO**: ${voMandate} ${audioMandate}
+        7. **GARMENT ENHANCEMENT**: You MUST strictly align the visual details in the final VEO prompt with the forensic audits provided. Preserve the specific materials, pockets, stitch patterns, logos, and closures described in the audit. The video MUST focus on enhancing these physical properties of the garment.
+
+        ${nativeAudioDirectives}
+
+        CONSTRAINT: **NO CUTS. NO SCENE NUMBERS. NO TEXT OVERLAY. NO HUMAN SKIN FOCUS.**
+        
+        INSTRUCTIONS:
+        1. **DNA LOCK**: Describe a single continuous shot.
+        2. **LANGUAGE** (OUTPUT JSON): 
+           - **VOICEOVER**: MUST BE IN SPANISH (Short, catchy).
+           - **MUSICA_RECOMENDADA**: MUST BE IN SPANISH.
+           - **PROMPT_FOR_VIDEO_AI**: TECHNICAL ENGLISH.
+        
+        OUTPUT FORMAT (JSON):
+        {
+          "TEMA_DETECTADO": "...",
+          "MUSICA_RECOMENDADA": "...",
+          "PERFIL_DE_VOZ": "...",
+          "PROMPT_FOR_VIDEO_AI": "A technical description for VEO. Start with the camera movement [Orbital or Cinematic Tracking]. Focus on technical drape and lighting. [Clinical terms only, no anatomy]. Incorporate native audio/voiceover directives at the end.",
+          "VOICEOVER": "...",
+          "EXPLANATION": "..."
+        }
+        `;
+        } else {
+          systemPrompt = `
+        ROLE: Expert Social Media Content Director.
+        GOAL: Create a short Video Script (Reels/TikTok) ensuring 100% visual consistency.
+        ${pivotInstructions}
+        SELECTED STYLE: ${visualStyle}
+        
+        [FORENSIC AUDITS - SOURCE OF TRUTH (SOT)]
+        ${forensicSOT}
+        
+        INSTRUCTIONS:
+        1. **SCENE STRUCTURE**: Create 3-5 distinct scenes (TOMAS).
+        2. **NO HYBRIDS**: Ensure the garment looks identical in every scene.
+        3. **TAG/HANGER REMOVAL**: Mandate removal of all retail attachments.
+        4. **GARMENT ENHANCEMENT**: You MUST strictly align the visual details in the final prompts with the forensic audits provided. Preserve the specific materials, pockets, stitch patterns, logos, and closures described in the audit. The video MUST focus on enhancing these physical properties of the garment.
+        5. **LANGUAGE**: EVERY field (HOOK, SCENES, VOICEOVER, EXPLANATION, MUSIC, THEME) MUST be in **SPANISH**. Only "visual_prompt" remains in English.
+
+        ${nativeAudioDirectives}
+
+        OUTPUT FORMAT (JSON):
+        {
+          "TEMA_DETECTADO": "...",
+          "MUSICA_RECOMENDADA": "...",
+          "PERFIL_DE_VOZ": "...",
+          "HOOK": "...",
+          "TOMAS": [
+            { 
+              "id_toma": 1, 
+              "duracion": "0-3s", 
+              "descripcion_español": "...",
+              "visual_prompt": "DEEP TECHNICAL PROMPT IN ENGLISH based on Master pivot... Incorporate native audio/voiceover directives at the end." 
+            }
+          ],
+          "VOICEOVER": "...",
+          "EXPLANATION": "..."
+        }
+        `;
+        }
+
+        // 6. Preparar API Keys
+        const apiKeysToTry = [];
+        if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+        if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+          apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+        }
+        if (apiKeysToTry.length === 0) throw new Error("Falta API Key para IA.");
+
+        // Priorizar el modelo seleccionado o usar la escalera
+        const modelosATratar = [];
+        if (extraSpecs.analysisModel) {
+          modelosATratar.push(extraSpecs.analysisModel);
+        }
+        const escaleraModelos = [
+          "gemini-3.5-flash",
+          "gemini-3.1-pro-preview",
+          "gemma-4-26b-a4b-it",
+          "gemini-2.5-flash"
+        ];
+        for (const model of escaleraModelos) {
+          if (!modelosATratar.includes(model)) {
+            modelosATratar.push(model);
+          }
+        }
+
+        let rawResponse = "";
+        let modeloUsado = "";
+
+        for (const modelo of modelosATratar) {
+          for (const keyObj of apiKeysToTry) {
+            const apiKey = keyObj.key;
+            console.log(`🧠 [AIService Video Gen] Intentando con modelo ${modelo} y API Key ${keyObj.label}`);
+
+            let timeoutInSeconds = 60;
+            if (modelo === "gemma-4-26b-a4b-it") {
+              timeoutInSeconds = (keyObj.label === "Gratuita") ? 120 : 60;
+            } else if (modelo.includes("flash")) {
+              timeoutInSeconds = 30;
+            }
+
+            try {
+              // Preparar blobs
+              const imagePartsArray = [];
+              for (const r of selectedRows) {
+                if (!r.ARCHIVO_ID) continue;
+                const fileDataPart = prepararBlobOptimizado(r.ARCHIVO_ID, `video_ref_${r.IMAGEN_ID}`, 'alta', apiKey);
+                if (fileDataPart) imagePartsArray.push(fileDataPart);
+              }
+
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+
+              let partsData = [];
+              if (modelo.startsWith('gemini')) {
+                partsData = [{ text: contextoTecnico }].concat(imagePartsArray);
+              } else {
+                partsData = [{ text: systemPrompt }, { text: contextoTecnico }].concat(imagePartsArray);
+              }
+
+              const payload = {
+                contents: [{ parts: partsData }],
+                generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
+              };
+
+              if (modelo.startsWith('gemini')) {
+                payload.systemInstruction = { "parts": [{ "text": systemPrompt }] };
+                payload.generationConfig.responseMimeType = "application/json";
+
+                if (estructura === 'single_shot' || estructura === 'living_garment') {
+                  payload.generationConfig.responseSchema = {
+                    type: "OBJECT",
+                    properties: {
+                      TEMA_DETECTADO: { type: "STRING" },
+                      MUSICA_RECOMENDADA: { type: "STRING" },
+                      PERFIL_DE_VOZ: { type: "STRING" },
+                      PROMPT_FOR_VIDEO_AI: { type: "STRING" },
+                      VOICEOVER: { type: "STRING" },
+                      EXPLANATION: { type: "STRING" }
+                    },
+                    required: ["TEMA_DETECTADO", "MUSICA_RECOMENDADA", "PERFIL_DE_VOZ", "PROMPT_FOR_VIDEO_AI", "VOICEOVER", "EXPLANATION"]
+                  };
+                } else {
+                  payload.generationConfig.responseSchema = {
+                    type: "OBJECT",
+                    properties: {
+                      TEMA_DETECTADO: { type: "STRING" },
+                      MUSICA_RECOMENDADA: { type: "STRING" },
+                      PERFIL_DE_VOZ: { type: "STRING" },
+                      HOOK: { type: "STRING" },
+                      TOMAS: {
+                        type: "ARRAY",
+                        items: {
+                          type: "OBJECT",
+                          properties: {
+                            id_toma: { type: "INTEGER" },
+                            duracion: { type: "STRING" },
+                            descripcion_español: { type: "STRING" },
+                            visual_prompt: { type: "STRING" }
+                          },
+                          required: ["id_toma", "duracion", "descripcion_español", "visual_prompt"]
+                        }
+                      },
+                      VOICEOVER: { type: "STRING" },
+                      EXPLANATION: { type: "STRING" }
+                    },
+                    required: ["TEMA_DETECTADO", "MUSICA_RECOMENDADA", "PERFIL_DE_VOZ", "HOOK", "TOMAS", "VOICEOVER", "EXPLANATION"]
+                  };
+                }
+              }
+
+              const response = UrlFetchApp.fetch(url, {
+                method: "post",
+                contentType: "application/json",
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true,
+                timeoutInSeconds: timeoutInSeconds
+              });
+
+              if (response.getResponseCode() === 200) {
+                const resJson = JSON.parse(response.getContentText());
+                if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
+                  const promptGenerado = resJson.candidates[0].content.parts[0].text;
+                  rawResponse = promptGenerado;
+                  modeloUsado = modelo;
+
+                  imagenIds.forEach(id => {
+                    try {
+                      actualizarCeldaPorHeader(id, 'PROMPT', promptGenerado);
+                    } catch (e) {
+                      console.warn(`Error guardando prompt en fila ${id}: ${e.message}`);
+                    }
+                  });
+
+                  console.log(`✅ [AIService Video Gen] Éxito con ${modelo} usando API Key ${keyObj.label}`);
+                  break;
+                }
+              } else {
+                console.warn(`⚠️ [AIService Video Gen] Falló ${modelo} (${keyObj.label}) -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`);
+              }
+            } catch (e) {
+              console.warn(`[AIService Video Gen] Falló en ${modelo} (${keyObj.label}): ${e.message}`);
+            }
+          }
+          if (rawResponse) break;
+        }
+
+        if (!rawResponse) throw new Error("No se pudo generar el guion o prompt de video.");
+
+        return {
+          success: true,
+          text: rawResponse,
+          model: modeloUsado,
+          imageIds: imagenIds
+        };
+
+      } catch (e) {
+        console.error(`❌ [AIService Video Gen] Error: ${e.message}`);
+        return { success: false, error: e.message };
       }
-      if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
+    },
 
-      let cleanedInstruction = "";
+    /**
+     * FASE 2.5: REFINAMIENTO DE PROMPT POR VOZ (Multimodal)
+     * Escucha el audio dictado por el usuario y refina semánticamente el Prompt Maestro.
+     */
+    ejecutarRefinamientoPromptPorVoz: function (imagenId, currentPrompt, base64Audio, mimeType, isAudio = true, estilo = null, extraSpecs = {}) {
+      try {
+        console.log(`🧠 [Lab-IA] Refinando Prompt Maestro por ${isAudio ? 'voz' : 'texto'} para imagen: ${imagenId}`);
+        if (!base64Audio) throw new Error(isAudio ? "Falta el audio en Base64." : "Falta la instrucción de texto.");
 
-      // 1. FASE DE TRADUCCIÓN / LIMPIEZA CON GEMINI 2.5 FLASH
-      console.log(`🧠 [Lab-IA] Fase 2.5: Traducción y limpieza de instrucción con gemini-2.5-flash`);
+        // Definir juego de API Keys para fallback
+        const apiKeysToTry = [];
+        if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+        if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+          apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+        }
+        if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
 
-      const systemPromptTraductor = `
+        let cleanedInstruction = "";
+
+        // 1. FASE DE TRADUCCIÓN / LIMPIEZA CON GEMINI 2.5 FLASH
+        console.log(`🧠 [Lab-IA] Fase 2.5: Traducción y limpieza de instrucción con gemini-2.5-flash`);
+
+        const systemPromptTraductor = `
         [SYSTEM]: You are a translation and transcription assistant for a fashion design system.
         [MISSION]: Analyze the designer's instructions (which may be a spoken audio file in Spanish or a typed text in Spanish/English, potentially with pronunciation errors, typos, or slang).
         Your job is to translate and clean this instruction into a clear, concise design update instruction in English.
@@ -1295,251 +1656,251 @@ ${directiva.exampleBlock}
         - Keep it extremely concise and direct.
       `;
 
-      let rawTransResp = "";
-      const modelosATratar = ["gemini-2.5-flash"];
+        let rawTransResp = "";
+        const modelosATratar = ["gemini-2.5-flash"];
 
-      for (const modelo of modelosATratar) {
-        for (const keyObj of apiKeysToTry) {
-          const apiKey = keyObj.key;
-          try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+        for (const modelo of modelosATratar) {
+          for (const keyObj of apiKeysToTry) {
+            const apiKey = keyObj.key;
+            try {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
 
-            let inputPart;
-            if (isAudio) {
-              inputPart = {
-                inlineData: {
-                  mimeType: mimeType || "audio/webm",
-                  data: base64Audio
+              let inputPart;
+              if (isAudio) {
+                inputPart = {
+                  inlineData: {
+                    mimeType: mimeType || "audio/webm",
+                    data: base64Audio
+                  }
+                };
+              } else {
+                inputPart = { text: `INSTRUCCIÓN EN ESPAÑOL DEL USUARIO: "${base64Audio}"` };
+              }
+
+              const payload = {
+                systemInstruction: { parts: [{ text: systemPromptTraductor }] },
+                contents: [{ parts: [inputPart] }],
+                generationConfig: {
+                  temperature: 0.1,
+                  maxOutputTokens: 256
                 }
               };
-            } else {
-              inputPart = { text: `INSTRUCCIÓN EN ESPAÑOL DEL USUARIO: "${base64Audio}"` };
-            }
 
-            const payload = {
-              systemInstruction: { parts: [{ text: systemPromptTraductor }] },
-              contents: [{ parts: [inputPart] }],
-              generationConfig: {
-                temperature: 0.1,
-                maxOutputTokens: 256
+              const response = UrlFetchApp.fetch(url, {
+                method: "post",
+                contentType: "application/json",
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true,
+                timeoutInSeconds: 45
+              });
+
+              if (response.getResponseCode() === 200) {
+                const resJson = JSON.parse(response.getContentText());
+                if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
+                  rawTransResp = resJson.candidates[0].content.parts[0].text;
+                  console.log("✅ [Lab-IA] Instrucción limpia obtenida con " + modelo + ": \"" + rawTransResp.trim() + "\"");
+                  break;
+                }
               }
-            };
-
-            const response = UrlFetchApp.fetch(url, {
-              method: "post",
-              contentType: "application/json",
-              payload: JSON.stringify(payload),
-              muteHttpExceptions: true,
-              timeoutInSeconds: 45
-            });
-
-            if (response.getResponseCode() === 200) {
-              const resJson = JSON.parse(response.getContentText());
-              if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content) {
-                rawTransResp = resJson.candidates[0].content.parts[0].text;
-                console.log("✅ [Lab-IA] Instrucción limpia obtenida con " + modelo + ": \"" + rawTransResp.trim() + "\"");
-                break;
-              }
+              console.warn("⚠️ [Lab-IA] Fallo traduciendo con " + modelo + ": " + response.getResponseCode());
+            } catch (e) {
+              console.warn("❌ [Lab-IA] Excepción traduciendo con " + modelo + ": " + e.message);
             }
-            console.warn("⚠️ [Lab-IA] Fallo traduciendo con " + modelo + ": " + response.getResponseCode());
-          } catch (e) {
-            console.warn("❌ [Lab-IA] Excepción traduciendo con " + modelo + ": " + e.message);
           }
+          if (rawTransResp) break;
         }
-        if (rawTransResp) break;
-      }
 
-      if (rawTransResp) {
-        cleanedInstruction = rawTransResp.trim();
-      } else {
-        if (!isAudio) {
-          cleanedInstruction = base64Audio;
+        if (rawTransResp) {
+          cleanedInstruction = rawTransResp.trim();
         } else {
-          throw new Error("No se pudo transcribir o traducir la instrucción de voz.");
-        }
-      }
-
-      // 2. FASE DE RE-GENERACIÓN CON EL MODELO DE ALTA POTENCIA
-      console.log("🧠 [Lab-IA] Ejecutando regeneración de prompt con la instrucción limpia: \"" + cleanedInstruction + "\"");
-
-      const cache = this.obtenerCacheLab(imagenId);
-      let estiloFinal = estilo;
-      let specsFinal = { ...extraSpecs };
-
-      if (cache) {
-        if (!estiloFinal && cache.estilo && cache.estilo !== "FORENSIC_ONLY") {
-          estiloFinal = cache.estilo;
-        }
-        if (cache.configParams && Object.keys(cache.configParams).length > 0) {
-          // Fusionar las especificaciones guardadas en caché con las nuevas
-          specsFinal = { ...cache.configParams, ...specsFinal };
-        }
-      }
-      if (!estiloFinal) estiloFinal = "ecommerce";
-
-      const resultMaestro = this.ejecutarGeneracionPromptMaestro(
-        [imagenId],
-        estiloFinal,
-        {
-          ...specsFinal,
-          refinementInstruction: cleanedInstruction,
-          originalPrompt: currentPrompt
-        },
-        true // Forzar regeneración
-      );
-
-      if (resultMaestro.success && resultMaestro.clean) {
-        // Persistir en la columna de la hoja comercial BD_PRODUCTO_IMAGENES
-        actualizarCeldaPorHeader(imagenId, 'PROMPT', resultMaestro.clean);
-      }
-
-      return resultMaestro;
-
-    } catch (e) {
-      console.error("❌ [Lab-IA] Error en refinamiento de prompt: " + e.message);
-      return { success: false, error: e.message };
-    }
-  },
-
-  transcribirAudio: function (base64Audio, mimeType) {
-    try {
-      console.log(`🧠 [Lab-IA] Transcribiendo audio para refinamiento pago.`);
-      if (!base64Audio) throw new Error("Falta el audio en Base64.");
-
-      // Definir juego de API Keys para fallback
-      const apiKeysToTry = [];
-      if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
-      if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
-        apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
-      }
-      if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
-
-      const promptSistema = "Transcribe el siguiente audio exactamente a texto en español. Devuelve únicamente la transcripción limpia, sin comentarios, sin introducciones y sin formateos extras.";
-
-      let rawResponse = "";
-      for (const keyObj of apiKeysToTry) {
-        for (const modelo of ["gemini-2.5-flash"]) {
-          try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${keyObj.key}`;
-            const payload = {
-              contents: [{
-                parts: [
-                  { text: promptSistema },
-                  {
-                    inlineData: {
-                      mimeType: mimeType || "audio/webm",
-                      data: base64Audio
-                    }
-                  }
-                ]
-              }]
-            };
-
-            const response = UrlFetchApp.fetch(url, {
-              method: "post",
-              contentType: "application/json",
-              payload: JSON.stringify(payload),
-              muteHttpExceptions: true
-            });
-
-            if (response.getResponseCode() === 200) {
-              const resJson = JSON.parse(response.getContentText());
-              if (resJson.candidates && resJson.candidates[0].content.parts[0].text) {
-                rawResponse = resJson.candidates[0].content.parts[0].text.trim();
-                break;
-              }
-            }
-          } catch (e) {
-            console.warn(`Error en transcripción con ${modelo}: ${e.message}`);
+          if (!isAudio) {
+            cleanedInstruction = base64Audio;
+          } else {
+            throw new Error("No se pudo transcribir o traducir la instrucción de voz.");
           }
         }
-        if (rawResponse) break;
+
+        // 2. FASE DE RE-GENERACIÓN CON EL MODELO DE ALTA POTENCIA
+        console.log("🧠 [Lab-IA] Ejecutando regeneración de prompt con la instrucción limpia: \"" + cleanedInstruction + "\"");
+
+        const cache = this.obtenerCacheLab(imagenId);
+        let estiloFinal = estilo;
+        let specsFinal = { ...extraSpecs };
+
+        if (cache) {
+          if (!estiloFinal && cache.estilo && cache.estilo !== "FORENSIC_ONLY") {
+            estiloFinal = cache.estilo;
+          }
+          if (cache.configParams && Object.keys(cache.configParams).length > 0) {
+            // Fusionar las especificaciones guardadas en caché con las nuevas
+            specsFinal = { ...cache.configParams, ...specsFinal };
+          }
+        }
+        if (!estiloFinal) estiloFinal = "ecommerce";
+
+        const resultMaestro = this.ejecutarGeneracionPromptMaestro(
+          [imagenId],
+          estiloFinal,
+          {
+            ...specsFinal,
+            refinementInstruction: cleanedInstruction,
+            originalPrompt: currentPrompt
+          },
+          true // Forzar regeneración
+        );
+
+        if (resultMaestro.success && resultMaestro.clean) {
+          // Persistir en la columna de la hoja comercial BD_PRODUCTO_IMAGENES
+          actualizarCeldaPorHeader(imagenId, 'PROMPT', resultMaestro.clean);
+        }
+
+        return resultMaestro;
+
+      } catch (e) {
+        console.error("❌ [Lab-IA] Error en refinamiento de prompt: " + e.message);
+        return { success: false, error: e.message };
+      }
+    },
+
+    transcribirAudio: function (base64Audio, mimeType) {
+      try {
+        console.log(`🧠 [Lab-IA] Transcribiendo audio para refinamiento pago.`);
+        if (!base64Audio) throw new Error("Falta el audio en Base64.");
+
+        // Definir juego de API Keys para fallback
+        const apiKeysToTry = [];
+        if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+        if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+          apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+        }
+        if (apiKeysToTry.length === 0) throw new Error("No hay API Keys configuradas.");
+
+        const promptSistema = "Transcribe el siguiente audio exactamente a texto en español. Devuelve únicamente la transcripción limpia, sin comentarios, sin introducciones y sin formateos extras.";
+
+        let rawResponse = "";
+        for (const keyObj of apiKeysToTry) {
+          for (const modelo of ["gemini-2.5-flash"]) {
+            try {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${keyObj.key}`;
+              const payload = {
+                contents: [{
+                  parts: [
+                    { text: promptSistema },
+                    {
+                      inlineData: {
+                        mimeType: mimeType || "audio/webm",
+                        data: base64Audio
+                      }
+                    }
+                  ]
+                }]
+              };
+
+              const response = UrlFetchApp.fetch(url, {
+                method: "post",
+                contentType: "application/json",
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true
+              });
+
+              if (response.getResponseCode() === 200) {
+                const resJson = JSON.parse(response.getContentText());
+                if (resJson.candidates && resJson.candidates[0].content.parts[0].text) {
+                  rawResponse = resJson.candidates[0].content.parts[0].text.trim();
+                  break;
+                }
+              }
+            } catch (e) {
+              console.warn(`Error en transcripción con ${modelo}: ${e.message}`);
+            }
+          }
+          if (rawResponse) break;
+        }
+
+        if (!rawResponse) throw new Error("No se pudo transcribir el audio.");
+        return { success: true, text: rawResponse };
+
+      } catch (e) {
+        console.error("❌ [Lab-IA] Error transcribiendo audio: " + e.message);
+        return { success: false, error: e.message };
+      }
+    },
+
+    /**
+     * 🏭 FÁBRICA DE DIRECCIÓN DE ARTE (Industrializada con Referencia SOT)
+     * Integra meses de desarrollo de Images.js con la flexibilidad del Laboratorio.
+     */
+    _getAiArtDirectionRules: function (estiloSolicitado, extraSpecs = {}, environment = 'Studio', prodRow = null) {
+      const estilo = String(estiloSolicitado || 'ecommerce').toLowerCase();
+      const genero = String(prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
+
+      // Detección Inteligente de "Conjunto" (Prendas de dos o más piezas)
+      const category = String(prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
+      const modelName = String(prodRow ? prodRow.MODELO || '' : '').toLowerCase();
+      const styleName = String(prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
+      const skuCode = String(prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
+      const specsCategory = String(extraSpecs.categoria || '').toLowerCase();
+      const specsSku = String(extraSpecs.sku || '').toLowerCase();
+
+      let hasForensicConjunto = false;
+      if (extraSpecs.fichaForense && (
+        String(extraSpecs.fichaForense).toLowerCase().includes("conjunto") ||
+        String(extraSpecs.fichaForense).toLowerCase().includes("2 piezas") ||
+        String(extraSpecs.fichaForense).toLowerCase().includes("dos piezas") ||
+        String(extraSpecs.fichaForense).toLowerCase().includes("piezas")
+      )) {
+        hasForensicConjunto = true;
       }
 
-      if (!rawResponse) throw new Error("No se pudo transcribir el audio.");
-      return { success: true, text: rawResponse };
+      let isConjunto = category.includes("conjunto") ||
+        modelName.includes("conjunto") ||
+        styleName.includes("conjunto") ||
+        skuCode.includes("conj") ||
+        specsCategory.includes("conjunto") ||
+        specsSku.includes("conj") ||
+        hasForensicConjunto;
 
-    } catch (e) {
-      console.error("❌ [Lab-IA] Error transcribiendo audio: " + e.message);
-      return { success: false, error: e.message };
-    }
-  },
+      // Salvaguarda técnica para lote de 1 referencia (evitar alucinaciones de conjunto si solo se muestra 1 prenda)
+      if (isConjunto && (extraSpecs.referenceCount === 1 || !extraSpecs.referenceCount)) {
+        const masterForensic = extraSpecs.fichaForense || "";
+        const forensicUpper = String(masterForensic).toUpperCase();
+        const hasUpper = forensicUpper.includes("PRENDA_SUPERIOR");
+        const hasLower = forensicUpper.includes("PRENDA_INFERIOR");
+        const hasConjuntoText = forensicUpper.includes("CONJUNTO") ||
+          forensicUpper.includes("2 PIEZAS") ||
+          forensicUpper.includes("DOS PIEZAS") ||
+          forensicUpper.includes("PIEZAS");
 
-  /**
-   * 🏭 FÁBRICA DE DIRECCIÓN DE ARTE (Industrializada con Referencia SOT)
-   * Integra meses de desarrollo de Images.js con la flexibilidad del Laboratorio.
-   */
-  _getAiArtDirectionRules: function (estiloSolicitado, extraSpecs = {}, environment = 'Studio', prodRow = null) {
-    const estilo = String(estiloSolicitado || 'ecommerce').toLowerCase();
-    const genero = String(prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
-
-    // Detección Inteligente de "Conjunto" (Prendas de dos o más piezas)
-    const category = String(prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
-    const modelName = String(prodRow ? prodRow.MODELO || '' : '').toLowerCase();
-    const styleName = String(prodRow ? prodRow.ESTILO || '' : '').toLowerCase();
-    const skuCode = String(prodRow ? prodRow.SKU || prodRow.CODIGO_ID || '' : '').toLowerCase();
-    const specsCategory = String(extraSpecs.categoria || '').toLowerCase();
-    const specsSku = String(extraSpecs.sku || '').toLowerCase();
-
-    let hasForensicConjunto = false;
-    if (extraSpecs.fichaForense && (
-      String(extraSpecs.fichaForense).toLowerCase().includes("conjunto") ||
-      String(extraSpecs.fichaForense).toLowerCase().includes("2 piezas") ||
-      String(extraSpecs.fichaForense).toLowerCase().includes("dos piezas") ||
-      String(extraSpecs.fichaForense).toLowerCase().includes("piezas")
-    )) {
-      hasForensicConjunto = true;
-    }
-
-    let isConjunto = category.includes("conjunto") ||
-      modelName.includes("conjunto") ||
-      styleName.includes("conjunto") ||
-      skuCode.includes("conj") ||
-      specsCategory.includes("conjunto") ||
-      specsSku.includes("conj") ||
-      hasForensicConjunto;
-
-    // Salvaguarda técnica para lote de 1 referencia (evitar alucinaciones de conjunto si solo se muestra 1 prenda)
-    if (isConjunto && (extraSpecs.referenceCount === 1 || !extraSpecs.referenceCount)) {
-      const masterForensic = extraSpecs.fichaForense || "";
-      const forensicUpper = String(masterForensic).toUpperCase();
-      const hasUpper = forensicUpper.includes("PRENDA_SUPERIOR");
-      const hasLower = forensicUpper.includes("PRENDA_INFERIOR");
-      const hasConjuntoText = forensicUpper.includes("CONJUNTO") ||
-        forensicUpper.includes("2 PIEZAS") ||
-        forensicUpper.includes("DOS PIEZAS") ||
-        forensicUpper.includes("PIEZAS");
-
-      if ((hasUpper && !hasLower && !hasConjuntoText) || (hasLower && !hasUpper && !hasConjuntoText)) {
-        isConjunto = false;
+        if ((hasUpper && !hasLower && !hasConjuntoText) || (hasLower && !hasUpper && !hasConjuntoText)) {
+          isConjunto = false;
+        }
       }
-    }
 
-    // 1. LÓGICA DE SUPERFICIES Y PROPS (De Images.js)
-    const surfaces = {
-      'studio_minimalist': "a high-end photography studio surface (Neutral Soft Gray or Professional Off-White)",
-      'luxury_marble': "a polished luxury white marble surface with soft, realistic reflections",
-      'dark_oak': "a textured natural dark oak wood surface with a warm boutique feel",
-      'industrial_concrete': "a matte industrial concrete surface for a modern, high-contrast look",
-      'soft_linen': "a soft, organic linen fabric background with natural folds"
-    };
-    const surfaceInstruction = surfaces[environment] || "a professional studio surface";
+      // 1. LÓGICA DE SUPERFICIES Y PROPS (De Images.js)
+      const surfaces = {
+        'studio_minimalist': "a high-end photography studio surface (Neutral Soft Gray or Professional Off-White)",
+        'luxury_marble': "a polished luxury white marble surface with soft, realistic reflections",
+        'dark_oak': "a textured natural dark oak wood surface with a warm boutique feel",
+        'industrial_concrete': "a matte industrial concrete surface for a modern, high-contrast look",
+        'soft_linen': "a soft, organic linen fabric background with natural folds"
+      };
+      const surfaceInstruction = surfaces[environment] || "a professional studio surface";
 
-    let genderProps = "";
-    if (genero === 'FEMENINO' || genero === 'MUJER') {
-      genderProps = "- GENDER CONTEXT: Subtly signal a feminine target audience with soft-focus props in the distance, like a minimalist vase or a high-end fashion Lookbook.";
-    } else if (genero === 'MASCULINO' || genero === 'HOMBRE') {
-      genderProps = "- GENDER CONTEXT: Subtly signal a masculine target audience using sober industrial surfaces or minimalist dark accents in the distance.";
-    }
+      let genderProps = "";
+      if (genero === 'FEMENINO' || genero === 'MUJER') {
+        genderProps = "- GENDER CONTEXT: Subtly signal a feminine target audience with soft-focus props in the distance, like a minimalist vase or a high-end fashion Lookbook.";
+      } else if (genero === 'MASCULINO' || genero === 'HOMBRE') {
+        genderProps = "- GENDER CONTEXT: Subtly signal a masculine target audience using sober industrial surfaces or minimalist dark accents in the distance.";
+      }
 
-    // 2. CONFIGURACIÓN MAESTRA DE ESTILOS (Integración SOT con Legado de Images.js)
-    const STYLE_CONFIG = {
-      'ghost': {
-        base: isConjunto
-          ? "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction of a two-piece set (invisible body effect)."
-          : "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction. Invisible body effect.",
-        rules: isConjunto
-          ? `
+      // 2. CONFIGURACIÓN MAESTRA DE ESTILOS (Integración SOT con Legado de Images.js)
+      const STYLE_CONFIG = {
+        'ghost': {
+          base: isConjunto
+            ? "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction of a two-piece set (invisible body effect)."
+            : "GHOST MANNEQUIN EFFECT: Professional 3D volumetric reconstruction. Invisible body effect.",
+          rules: isConjunto
+            ? `
           - NOISE REMOVAL MANDATE: ABSOLUTELY NO HANGERS, NO RETAIL TAGS, NO PLASTIC HOOKS. The garments must be completely clean of any retail attachments.
           - TWO-PIECE VOLUME COMPOSITION: Both the upper garment and lower garment must be arranged together in a natural, cohesive, floating 3D set showing full volume.
           - CENTRALIZATION: The entire two-piece set MUST be PERFECTLY CENTERED on the canvas.
@@ -1551,7 +1912,7 @@ ${directiva.exampleBlock}
           - TEXTURE FIDELITY: Maintain all technical fabric details (mesh, stitching, prints) for both garments.
           - Background: Pure solid white #FFFFFF. 
           - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.`
-          : `
+            : `
           - NOISE REMOVAL MANDATE: ABSOLUTELY NO HANGERS, NO RETAIL TAGS, NO PLASTIC HOOKS. The garment must be completely clean of any retail attachments.
           - LIGHTING: High-end multi-point studio setup to define shape and volume. Uniform Softbox lighting.
           - CENTRALIZATION: The garment MUST be PERFECTLY CENTERED on the canvas.
@@ -1563,716 +1924,716 @@ ${directiva.exampleBlock}
           - TEXTURE FIDELITY: Maintain all technical fabric details (mesh, stitching, prints).
           - Background: Pure solid white #FFFFFF. 
           - ABSOLUTELY NO MODELS, HUMAN BODIES, OR VISIBLE MANNEQUINS.`,
-        focus: (() => {
-          if (isConjunto) {
-            return "- TWO-PIECE SET OPENINGS: Show subtle, natural, and shallow 3D hollow depth at all openings (neck, sleeves, waistband, and leg openings) naturally, keeping them elegant, symmetrical, and realistic.";
-          }
-          const focus = extraSpecs.focus || "";
-          const angle = String(extraSpecs.angle || "").toLowerCase();
-          const isBackView = angle.includes("back") || angle.includes("trasera") || angle.includes("espalda");
-
-          if (focus === "none" || isBackView) {
-            return "";
-          }
-
-          const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
-          if (clasif === "PRENDA_SUPERIOR") {
-            if (focus === "waist") {
-              return "- USER FOCUS REQUEST: Upper Neck/Collar opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the top collar/neck opening. Keep it shallow and clean. The bottom hem and sleeve openings MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
-            } else if (focus === "legs") {
-              return "- USER FOCUS REQUEST: Bottom Hem/Sleeve openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the sleeve openings and the bottom hem. The upper collar/neck opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
-            } else {
-              return "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at all openings naturally (neck, sleeves, and bottom hem), keeping them elegant and realistic.";
+          focus: (() => {
+            if (isConjunto) {
+              return "- TWO-PIECE SET OPENINGS: Show subtle, natural, and shallow 3D hollow depth at all openings (neck, sleeves, waistband, and leg openings) naturally, keeping them elegant, symmetrical, and realistic.";
             }
-          } else { // PRENDA_INFERIOR
-            if (focus === "waist") {
-              return "- USER FOCUS REQUEST: Waistband opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the waistband. The leg openings/bottom cuffs MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
-            } else if (focus === "legs") {
-              return "- USER FOCUS REQUEST: Leg openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the leg openings showing realistic depth. The waistband/top opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
-            } else {
-              return "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at both openings (waistband and leg openings) naturally, keeping them elegant and realistic.";
+            const focus = extraSpecs.focus || "";
+            const angle = String(extraSpecs.angle || "").toLowerCase();
+            const isBackView = angle.includes("back") || angle.includes("trasera") || angle.includes("espalda");
+
+            if (focus === "none" || isBackView) {
+              return "";
             }
-          }
-        })(),
-        example: isConjunto
-          ? `        **REASONING:** Ghost Mannequin style is applied to the two-piece set by removing the physical support and visible mannequin. Volumetric 3D shape and symmetry of both the upper and lower garments are highlighted.
+
+            const clasif = extraSpecs.clasificacionEstructural || "PRENDA_INFERIOR";
+            if (clasif === "PRENDA_SUPERIOR") {
+              if (focus === "waist") {
+                return "- USER FOCUS REQUEST: Upper Neck/Collar opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the top collar/neck opening. Keep it shallow and clean. The bottom hem and sleeve openings MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+              } else if (focus === "legs") {
+                return "- USER FOCUS REQUEST: Bottom Hem/Sleeve openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the sleeve openings and the bottom hem. The upper collar/neck opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+              } else {
+                return "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at all openings naturally (neck, sleeves, and bottom hem), keeping them elegant and realistic.";
+              }
+            } else { // PRENDA_INFERIOR
+              if (focus === "waist") {
+                return "- USER FOCUS REQUEST: Waistband opening.\n- EXCLUSIVITY MANDATE: Show a subtle, elegant, shallow 3D hollow volume showing realistic depth strictly at the waistband. The leg openings/bottom cuffs MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+              } else if (focus === "legs") {
+                return "- USER FOCUS REQUEST: Leg openings.\n- EXCLUSIVITY MANDATE: Show subtle, clean, shallow 3D hollow volumes strictly at the leg openings showing realistic depth. The waistband/top opening MUST be strictly flat, closed, solid, and sealed (no hollow opening or internal fabric showing).";
+              } else {
+                return "- USER FOCUS REQUEST: Balanced/General.\n- MANDATE: Show subtle, natural, and shallow 3D hollow depth at both openings (waistband and leg openings) naturally, keeping them elegant and realistic.";
+              }
+            }
+          })(),
+          example: isConjunto
+            ? `        **REASONING:** Ghost Mannequin style is applied to the two-piece set by removing the physical support and visible mannequin. Volumetric 3D shape and symmetry of both the upper and lower garments are highlighted.
         **VISUAL AUDIT:** [X] Brand, [X] Color, [X] No Humans, [X] White Background.
         **MASTER PROMPT:** High-end studio photography, ghost mannequin effect, 3D volumetric shape of a two-piece set in [COLOR], perfectly centered, symmetrical, pure white background #FFFFFF, 8k.`
-          : `        **REASONING:** Ghost Mannequin style is applied by removing the physical support and visible mannequin. 3D volume and symmetry are highlighted.
+            : `        **REASONING:** Ghost Mannequin style is applied by removing the physical support and visible mannequin. 3D volume and symmetry are highlighted.
         **VISUAL AUDIT:** [X] Brand, [X] Color, [X] No Humans, [X] White Background.
         **MASTER PROMPT:** High-end studio photography, ghost mannequin effect, 3D volumetric shape of [GARMENT] in [COLOR], centered, symmetrical, pure white background #FFFFFF, 8k.`
-      },
-      'lifestyle': {
-        base: isConjunto
-          ? "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the full two-piece set in a natural environment."
-          : "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the garment in a natural environment.",
-        rules: isConjunto
-          ? "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Strict full-body portrait shot from head to toe, showing the model's entire silhouette and the full length of both garments down to the ankles."
-          : "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Medium or full-body shot with soft bokeh depth of field.",
-        model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
-        example: isConjunto
-          ? "        **REASONING:** The two-piece set is adapted to a natural lifestyle environment with a model, aiming for a cinematic full-body framing showing both garments naturally, with natural draping.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, full-body portrait shot of a [GENDER] model wearing a two-piece set, [ENVIRONMENT/CONTEXT], cinematic natural lighting, 8k, editorial style."
-          : "        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, [GENDER] model wearing [GARMENT], [ENVIRONMENT/CONTEXT], cinematic natural lighting, soft bokeh depth of field, 8k, editorial style."
-      },
-      'ecommerce': {
-        base: isConjunto
-          ? "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography of a full two-piece set."
-          : "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography.",
-        rules: isConjunto
-          ? "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional full-body portrait shot showing the model from head to toe. NO \"flat lay\" or \"flat surface\" mentions allowed."
-          : "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional on-body shot. NO \"flat lay\" or \"flat surface\" mentions allowed.",
-        model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
-        example: isConjunto
-          ? "        **REASONING:** Transitioning from flat-laid garments to a professional full-body catalog shot with a female model. The garments are styled with natural layering where the hoodie draping overlaps the pants.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional full-body portrait shot of a model wearing a two-piece set, showing the full length of the garments from head to toe, frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
-          : "        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender mandate. Tags are removed and catalog lighting is applied.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional on-body shot of a model wearing [GARMENT], [TEXTURE/COLOR DETAILS], frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
-      },
-      'hanger': {
-        base: "STILL LIFE - PROFESSIONAL HANGER: Garment professionally hanging on a luxury minimalist hanger.",
-        rules: "\n          - Surface/Background: " + surfaceInstruction + ".\n          - Lighting: Softbox multi-point lighting. Highlight technical fabric details.\n          - REALISM MANDATE: Maintain realistic garment characteristics like seams and natural drape.\n          - ABSOLUTELY NO MODELS OR HUMAN BODIES.",
-        example: "        **REASONING:** The garment is adapted to a Still Life style hanging from a professional hanger, removing humans and distracting elements.\n        **VISUAL AUDIT:** [X] Brand, [X] Hanger Style, [X] No Humans, [X] Surface.\n        **MASTER PROMPT:** High-end Still Life commercial product photography, garment professionally hanging on a luxury hanger, [GARMENT/DETAILS], softbox lighting, [SURFACE], 8k."
-      },
-      'folded': {
-        base: "STILL LIFE - STACKED/FOLDED: Garment professionally folded on a surface, focusing entirely on texture.",
-        rules: "\n          - Surface: " + surfaceInstruction + ".\n          " + genderProps + "\n          - BOUTIQUE QUALITY: The garment MUST appear professionally steamed and neatly arranged.\n          - ABSOLUTELY NO MODELS OR HUMAN BODIES.",
-        example: "        **REASONING:** The garment is presented in a Still Life style, professionally folded on a surface, highlighting texture and removing humans.\n        **VISUAL AUDIT:** [X] Brand, [X] Folded Style, [X] Texture, [X] No Humans.\n        **MASTER PROMPT:** High-end Still Life commercial product photography, garment perfectly folded on a professional surface, [GARMENT/TEXTURES], softbox lighting, [SURFACE], 8k."
-      },
-      'collage': {
-        base: "COLLAGE CATALOG MANDATE: Professional multi-image grid (2x2 or 1+2).",
-        rules: "\n          - Layout: Harmonious assembly of all provided reference views.\n          - Aesthetic: Consistent lighting and color grading across all grid elements.\n          - Background: " + surfaceInstruction + ".",
-        example: "        **REASONING:** A professional multi-image collage is generated, ensuring consistent lighting and colors across all views.\n        **VISUAL AUDIT:** [X] Multiple Views, [X] Consistency, [X] Surface.\n        **MASTER PROMPT:** High-end commercial collage photography, multi-image grid showing [GARMENT], consistent lighting, [SURFACE], 8k."
-      },
-      'hero': {
-        base: "HERO COMPOSITION MANDATE: Commercial split-view or offset arrangement.",
-        rules: "\n          - Primary Focus: One large, clear representation of the garment (The Hero).\n          - Secondary Focus: Neatly arranged color variants or detail swatches.\n          - Balance: Use clean negative space between the Hero and variants.\n          - Surface: " + surfaceInstruction + ".",
-        example: "        **REASONING:** A Hero composition is generated with a prominent main view and secondary details, ensuring a balance of negative space.\n        **VISUAL AUDIT:** [X] Hero Focus, [X] Variants, [X] Balance, [X] Surface.\n        **MASTER PROMPT:** High-end commercial split-view photography, main hero shot of [GARMENT] with secondary detail swatches, clean negative space, [SURFACE], 8k."
-      }
-    };
-
-    const config = STYLE_CONFIG[estilo] || STYLE_CONFIG['ecommerce'];
-
-    // 3. PARÁMETROS TRANSVERSALES DEL LABORATORIO
-    let extraDirectives = [];
-
-    // --- NUEVO: Directivas Estacionales y Encuadre Trimodal Generalizado ---
-    if ((estilo === 'ecommerce' || estilo === 'lifestyle') && !isConjunto) {
-      const clasif = String(extraSpecs.clasificacionEstructural || "").toUpperCase();
-      const temporada = prodRow ? (prodRow.TEMPORADA || "") : (extraSpecs.temporada || "");
-      const tempLower = String(temporada).toLowerCase();
-      const esFrio = tempLower.includes("invierno") || tempLower.includes("otoño") || tempLower.includes("winter") || tempLower.includes("autumn") || tempLower.includes("frio") || tempLower.includes("frío");
-      const esFemenino = (genero === 'FEMENINO' || genero === 'MUJER');
-      const tempDesc = temporada ? "season: " + temporada : "season: auto-detect based on context";
-
-      let complementoTexto = "";
-      if (clasif === "PRENDA_INFERIOR") {
-        const topType = esFrio
-          ? (esFemenino ? "a long-sleeve neutral knit sweater or long-sleeve cotton shirt" : "a plain long-sleeve crewneck shirt or simple solid hoodie")
-          : (esFemenino ? "a basic short-sleeve solid cotton t-shirt or crop top" : "a plain neutral short-sleeve cotton t-shirt");
-        complementoTexto = "UPPER BODY COMPLEMENT MANDATE: The model MUST wear " + topType + " to ensure the torso is fully covered and realistic, preventing safety filters from rendering a plastic mannequin. The upper garment must be in a solid neutral color (e.g., plain white, gray, or black) and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the lower garment).";
-      } else if (clasif === "PRENDA_SUPERIOR") {
-        const bottomType = esFrio
-          ? "classic long dark denim jeans or solid heavy-cotton trousers"
-          : (esFemenino ? "classic simple denim shorts or light cotton trousers" : "classic neutral chino shorts or light trousers");
-        complementoTexto = "LOWER BODY COMPLEMENT MANDATE: The model MUST wear " + bottomType + " to ensure the outfit is complete and realistic. The lower garment must be in a simple, solid neutral color and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the upper garment).";
-      }
-
-      if (complementoTexto) {
-        extraDirectives.push(complementoTexto);
-      }
-
-      // Control de encuadre trimodal (Cuerpo Completo vs Enfoque de Prenda vs Auto)
-      const cuerpoCompletoVal = extraSpecs.cuerpoCompleto !== undefined ? String(extraSpecs.cuerpoCompleto).toLowerCase() : "";
-      const isFull = cuerpoCompletoVal === "true" || cuerpoCompletoVal === "cuerpo_completo" || cuerpoCompletoVal === "full_body" || extraSpecs.framing === "full_body";
-      const isProductFocus = cuerpoCompletoVal === "false" || cuerpoCompletoVal === "enfoque_prenda" || extraSpecs.framing === "enfoque_prenda";
-
-      if (isFull) {
-        extraDirectives.push("FRAMING MANDATE: Professional full-body fashion shot showing the model from head to toe. Ensure the entire silhouette and both garments (main product and complement) are fully visible in the frame, including footwear.");
-      } else if (isProductFocus) {
-        if (clasif === "PRENDA_INFERIOR") {
-          extraDirectives.push("FRAMING MANDATE: Professional mid-shot focused strictly on the lower body from the waist down. The shot must frame the main lower garment prominently. The upper body garment serves only as a secondary neutral background complement and may be partially cropped.");
-        } else {
-          extraDirectives.push("FRAMING MANDATE: Professional upper-body portrait shot focused strictly on the upper body, framing the main upper garment prominently from chest/head down to the waist. The lower body garment serves only as a secondary neutral background complement and may be partially cropped.");
+        },
+        'lifestyle': {
+          base: isConjunto
+            ? "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the full two-piece set in a natural environment."
+            : "HIGH-END LIFESTYLE EDITORIAL: High-quality fashion model wearing the garment in a natural environment.",
+          rules: isConjunto
+            ? "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Strict full-body portrait shot from head to toe, showing the model's entire silhouette and the full length of both garments down to the ankles."
+            : "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Medium or full-body shot with soft bokeh depth of field.",
+          model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
+          example: isConjunto
+            ? "        **REASONING:** The two-piece set is adapted to a natural lifestyle environment with a model, aiming for a cinematic full-body framing showing both garments naturally, with natural draping.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, full-body portrait shot of a [GENDER] model wearing a two-piece set, [ENVIRONMENT/CONTEXT], cinematic natural lighting, 8k, editorial style."
+            : "        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, [GENDER] model wearing [GARMENT], [ENVIRONMENT/CONTEXT], cinematic natural lighting, soft bokeh depth of field, 8k, editorial style."
+        },
+        'ecommerce': {
+          base: isConjunto
+            ? "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography of a full two-piece set."
+            : "PREMIUM E-COMMERCE CATALOG: Commercial catalog photography.",
+          rules: isConjunto
+            ? "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional full-body portrait shot showing the model from head to toe. NO \"flat lay\" or \"flat surface\" mentions allowed."
+            : "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional on-body shot. NO \"flat lay\" or \"flat surface\" mentions allowed.",
+          model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
+          example: isConjunto
+            ? "        **REASONING:** Transitioning from flat-laid garments to a professional full-body catalog shot with a female model. The garments are styled with natural layering where the hoodie draping overlaps the pants.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional full-body portrait shot of a model wearing a two-piece set, showing the full length of the garments from head to toe, frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
+            : "        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender mandate. Tags are removed and catalog lighting is applied.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional on-body shot of a model wearing [GARMENT], [TEXTURE/COLOR DETAILS], frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
+        },
+        'hanger': {
+          base: "STILL LIFE - PROFESSIONAL HANGER: Garment professionally hanging on a luxury minimalist hanger.",
+          rules: "\n          - Surface/Background: " + surfaceInstruction + ".\n          - Lighting: Softbox multi-point lighting. Highlight technical fabric details.\n          - REALISM MANDATE: Maintain realistic garment characteristics like seams and natural drape.\n          - ABSOLUTELY NO MODELS OR HUMAN BODIES.",
+          example: "        **REASONING:** The garment is adapted to a Still Life style hanging from a professional hanger, removing humans and distracting elements.\n        **VISUAL AUDIT:** [X] Brand, [X] Hanger Style, [X] No Humans, [X] Surface.\n        **MASTER PROMPT:** High-end Still Life commercial product photography, garment professionally hanging on a luxury hanger, [GARMENT/DETAILS], softbox lighting, [SURFACE], 8k."
+        },
+        'folded': {
+          base: "STILL LIFE - STACKED/FOLDED: Garment professionally folded on a surface, focusing entirely on texture.",
+          rules: "\n          - Surface: " + surfaceInstruction + ".\n          " + genderProps + "\n          - BOUTIQUE QUALITY: The garment MUST appear professionally steamed and neatly arranged.\n          - ABSOLUTELY NO MODELS OR HUMAN BODIES.",
+          example: "        **REASONING:** The garment is presented in a Still Life style, professionally folded on a surface, highlighting texture and removing humans.\n        **VISUAL AUDIT:** [X] Brand, [X] Folded Style, [X] Texture, [X] No Humans.\n        **MASTER PROMPT:** High-end Still Life commercial product photography, garment perfectly folded on a professional surface, [GARMENT/TEXTURES], softbox lighting, [SURFACE], 8k."
+        },
+        'collage': {
+          base: "COLLAGE CATALOG MANDATE: Professional multi-image grid (2x2 or 1+2).",
+          rules: "\n          - Layout: Harmonious assembly of all provided reference views.\n          - Aesthetic: Consistent lighting and color grading across all grid elements.\n          - Background: " + surfaceInstruction + ".",
+          example: "        **REASONING:** A professional multi-image collage is generated, ensuring consistent lighting and colors across all views.\n        **VISUAL AUDIT:** [X] Multiple Views, [X] Consistency, [X] Surface.\n        **MASTER PROMPT:** High-end commercial collage photography, multi-image grid showing [GARMENT], consistent lighting, [SURFACE], 8k."
+        },
+        'hero': {
+          base: "HERO COMPOSITION MANDATE: Commercial split-view or offset arrangement.",
+          rules: "\n          - Primary Focus: One large, clear representation of the garment (The Hero).\n          - Secondary Focus: Neatly arranged color variants or detail swatches.\n          - Balance: Use clean negative space between the Hero and variants.\n          - Surface: " + surfaceInstruction + ".",
+          example: "        **REASONING:** A Hero composition is generated with a prominent main view and secondary details, ensuring a balance of negative space.\n        **VISUAL AUDIT:** [X] Hero Focus, [X] Variants, [X] Balance, [X] Surface.\n        **MASTER PROMPT:** High-end commercial split-view photography, main hero shot of [GARMENT] with secondary detail swatches, clean negative space, [SURFACE], 8k."
         }
-      } else {
-        // Modo Auto: IA decide según el estilo
-        if (estilo === 'lifestyle') {
-          extraDirectives.push("FRAMING MANDATE: Professional and balanced fashion composition. You have the sovereignty to choose the optimal framing (full-body or medium shot) that best complements the environment while keeping the main product (" + clasif + ") as the core visual anchor.");
-        } else {
-          // En ecommerce el foco es el producto por defecto
+      };
+
+      const config = STYLE_CONFIG[estilo] || STYLE_CONFIG['ecommerce'];
+
+      // 3. PARÁMETROS TRANSVERSALES DEL LABORATORIO
+      let extraDirectives = [];
+
+      // --- NUEVO: Directivas Estacionales y Encuadre Trimodal Generalizado ---
+      if ((estilo === 'ecommerce' || estilo === 'lifestyle') && !isConjunto) {
+        const clasif = String(extraSpecs.clasificacionEstructural || "").toUpperCase();
+        const temporada = prodRow ? (prodRow.TEMPORADA || "") : (extraSpecs.temporada || "");
+        const tempLower = String(temporada).toLowerCase();
+        const esFrio = tempLower.includes("invierno") || tempLower.includes("otoño") || tempLower.includes("winter") || tempLower.includes("autumn") || tempLower.includes("frio") || tempLower.includes("frío");
+        const esFemenino = (genero === 'FEMENINO' || genero === 'MUJER');
+        const tempDesc = temporada ? "season: " + temporada : "season: auto-detect based on context";
+
+        let complementoTexto = "";
+        if (clasif === "PRENDA_INFERIOR") {
+          const topType = esFrio
+            ? (esFemenino ? "a long-sleeve neutral knit sweater or long-sleeve cotton shirt" : "a plain long-sleeve crewneck shirt or simple solid hoodie")
+            : (esFemenino ? "a basic short-sleeve solid cotton t-shirt or crop top" : "a plain neutral short-sleeve cotton t-shirt");
+          complementoTexto = "UPPER BODY COMPLEMENT MANDATE: The model MUST wear " + topType + " to ensure the torso is fully covered and realistic, preventing safety filters from rendering a plastic mannequin. The upper garment must be in a solid neutral color (e.g., plain white, gray, or black) and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the lower garment).";
+        } else if (clasif === "PRENDA_SUPERIOR") {
+          const bottomType = esFrio
+            ? "classic long dark denim jeans or solid heavy-cotton trousers"
+            : (esFemenino ? "classic simple denim shorts or light cotton trousers" : "classic neutral chino shorts or light trousers");
+          complementoTexto = "LOWER BODY COMPLEMENT MANDATE: The model MUST wear " + bottomType + " to ensure the outfit is complete and realistic. The lower garment must be in a simple, solid neutral color and serve strictly as a subtle background complement. The focus of the shot must remain 100% on the main product (the upper garment).";
+        }
+
+        if (complementoTexto) {
+          extraDirectives.push(complementoTexto);
+        }
+
+        // Control de encuadre trimodal (Cuerpo Completo vs Enfoque de Prenda vs Auto)
+        const cuerpoCompletoVal = extraSpecs.cuerpoCompleto !== undefined ? String(extraSpecs.cuerpoCompleto).toLowerCase() : "";
+        const isFull = cuerpoCompletoVal === "true" || cuerpoCompletoVal === "cuerpo_completo" || cuerpoCompletoVal === "full_body" || extraSpecs.framing === "full_body";
+        const isProductFocus = cuerpoCompletoVal === "false" || cuerpoCompletoVal === "enfoque_prenda" || extraSpecs.framing === "enfoque_prenda";
+
+        if (isFull) {
+          extraDirectives.push("FRAMING MANDATE: Professional full-body fashion shot showing the model from head to toe. Ensure the entire silhouette and both garments (main product and complement) are fully visible in the frame, including footwear.");
+        } else if (isProductFocus) {
           if (clasif === "PRENDA_INFERIOR") {
-            extraDirectives.push("FRAMING MANDATE: Focus the camera primarily on the main product (" + clasif + ") from the waist down, using the upper body complement strictly as a secondary neutral background element.");
+            extraDirectives.push("FRAMING MANDATE: Professional mid-shot focused strictly on the lower body from the waist down. The shot must frame the main lower garment prominently. The upper body garment serves only as a secondary neutral background complement and may be partially cropped.");
           } else {
-            extraDirectives.push("FRAMING MANDATE: Focus the camera primarily on the main product (" + clasif + ") from chest/head down to the waist, using the lower body complement strictly as a secondary neutral background element.");
+            extraDirectives.push("FRAMING MANDATE: Professional upper-body portrait shot focused strictly on the upper body, framing the main upper garment prominently from chest/head down to the waist. The lower body garment serves only as a secondary neutral background complement and may be partially cropped.");
+          }
+        } else {
+          // Modo Auto: IA decide según el estilo
+          if (estilo === 'lifestyle') {
+            extraDirectives.push("FRAMING MANDATE: Professional and balanced fashion composition. You have the sovereignty to choose the optimal framing (full-body or medium shot) that best complements the environment while keeping the main product (" + clasif + ") as the core visual anchor.");
+          } else {
+            // En ecommerce el foco es el producto por defecto
+            if (clasif === "PRENDA_INFERIOR") {
+              extraDirectives.push("FRAMING MANDATE: Focus the camera primarily on the main product (" + clasif + ") from the waist down, using the upper body complement strictly as a secondary neutral background element.");
+            } else {
+              extraDirectives.push("FRAMING MANDATE: Focus the camera primarily on the main product (" + clasif + ") from chest/head down to the waist, using the lower body complement strictly as a secondary neutral background element.");
+            }
           }
         }
+
+        // Mandato de realismo humano explícito
+        extraDirectives.push("REAL HUMAN MODEL MANDATE: The model must be a real, natural human model with highly realistic facial features, head, and hair (e.g., 'highly realistic human model with natural skin texture, showing face and head clearly'). Absolutely forbid any plastic mannequin structures, hollow mannequin necks, cropped headless bodies, or faceless plastic textures.");
       }
 
-      // Mandato de realismo humano explícito
-      extraDirectives.push("REAL HUMAN MODEL MANDATE: The model must be a real, natural human model with highly realistic facial features, head, and hair (e.g., 'highly realistic human model with natural skin texture, showing face and head clearly'). Absolutely forbid any plastic mannequin structures, hollow mannequin necks, cropped headless bodies, or faceless plastic textures.");
-    }
-
-    if (extraSpecs.angle) {
-      extraDirectives.push("CAMERA ANGLE: " + extraSpecs.angle + ". Perfect alignment.");
-      const angleStr = String(extraSpecs.angle).toLowerCase();
-      if (angleStr.includes("split") || angleStr.includes("front and back")) {
-        extraDirectives.push("COMPOSITION MANDATE: Create a clean split-view layout (diptych). On one side, show the frontal view of the model wearing the garment. On the other side, show the back view of the model wearing the garment. Both sides must feature the identical model, clothing fit, background, and lighting for absolute visual continuity. There must be no visible black line or seam separating the panels, keeping a clean, continuous neutral background.");
+      if (extraSpecs.angle) {
+        extraDirectives.push("CAMERA ANGLE: " + extraSpecs.angle + ". Perfect alignment.");
+        const angleStr = String(extraSpecs.angle).toLowerCase();
+        if (angleStr.includes("split") || angleStr.includes("front and back")) {
+          extraDirectives.push("COMPOSITION MANDATE: Create a clean split-view layout (diptych). On one side, show the frontal view of the model wearing the garment. On the other side, show the back view of the model wearing the garment. Both sides must feature the identical model, clothing fit, background, and lighting for absolute visual continuity. There must be no visible black line or seam separating the panels, keeping a clean, continuous neutral background.");
+        }
       }
-    }
-    if (extraSpecs.accessories && extraSpecs.accessories !== "Ninguno") extraDirectives.push("STYLING: Add " + extraSpecs.accessories + " to complement.");
-    if (extraSpecs.footwear?.type) extraDirectives.push("FOOTWEAR: Pair with " + extraSpecs.footwear.type + " (" + (extraSpecs.footwear.color || 'neutral') + ").");
+      if (extraSpecs.accessories && extraSpecs.accessories !== "Ninguno") extraDirectives.push("STYLING: Add " + extraSpecs.accessories + " to complement.");
+      if (extraSpecs.footwear?.type) extraDirectives.push("FOOTWEAR: Pair with " + extraSpecs.footwear.type + " (" + (extraSpecs.footwear.color || 'neutral') + ").");
 
-    if (isConjunto) {
-      extraDirectives.push("TWO-PIECE SET LAYERING: The upper garment (hoodie/jacket/t-shirt) must be worn loose, natural, and draped over the lower garment (pants/joggers/shorts). The bottom hem of the upper garment sits on top of and naturally covers the waistband of the lower garment. The upper garment must NOT be tucked into the pants, and the waistband of the pants must NOT be visible or superimposed over the upper garment.");
-      extraDirectives.push("FULL-BODY PORTRAIT COMPOSITION: The shot must be a professional full-body portrait showing the model from head to toe, ensuring the full length of the pants is fully visible down to the ankles with absolutely no cropping of the legs.");
-    }
+      if (isConjunto) {
+        extraDirectives.push("TWO-PIECE SET LAYERING: The upper garment (hoodie/jacket/t-shirt) must be worn loose, natural, and draped over the lower garment (pants/joggers/shorts). The bottom hem of the upper garment sits on top of and naturally covers the waistband of the lower garment. The upper garment must NOT be tucked into the pants, and the waistband of the pants must NOT be visible or superimposed over the upper garment.");
+        extraDirectives.push("FULL-BODY PORTRAIT COMPOSITION: The shot must be a professional full-body portrait showing the model from head to toe, ensuring the full length of the pants is fully visible down to the ankles with absolutely no cropping of the legs.");
+      }
 
-    if (extraSpecs.formato === 'video') {
-      const vStruct = extraSpecs.videoOptions?.structure || 'single_shot';
-      const structs = {
-        'single_shot': "VIDEO: 8-second slow-motion cinematic pan.",
-        'multi_shot': "VIDEO: 30-second multi-scene sequence with editorial cuts.",
-        'living_garment': "VIDEO: 3D Living Garment effect with subtle fabric movement."
-      };
-      extraDirectives.push(structs[vStruct]);
-    }
+      if (extraSpecs.formato === 'video') {
+        const vStruct = extraSpecs.videoOptions?.structure || 'single_shot';
+        const structs = {
+          'single_shot': "VIDEO: 8-second slow-motion cinematic pan.",
+          'multi_shot': "VIDEO: 30-second multi-scene sequence with editorial cuts.",
+          'living_garment': "VIDEO: 3D Living Garment effect with subtle fabric movement."
+        };
+        extraDirectives.push(structs[vStruct]);
+      }
 
-    // 4. ENSAMBLAJE FINAL (Preservando Prefijos Mandatorios de Images.js)
-    let promptRules = 
-      "\n      [TECHNICAL DIRECTIVES]:\n" +
-      "      * STYLE BASE: " + config.base + "\n" +
-      "      * COMPOSITION: " + config.rules + "\n" +
-      (config.focus ? "      * FOCUS: " + config.focus + "\n" : "") +
-      extraDirectives.map(d => "      * " + d).join('\n      ') + "\n    ";
+      // 4. ENSAMBLAJE FINAL (Preservando Prefijos Mandatorios de Images.js)
+      let promptRules =
+        "\n      [TECHNICAL DIRECTIVES]:\n" +
+        "      * STYLE BASE: " + config.base + "\n" +
+        "      * COMPOSITION: " + config.rules + "\n" +
+        (config.focus ? "      * FOCUS: " + config.focus + "\n" : "") +
+        extraDirectives.map(d => "      * " + d).join('\n      ') + "\n    ";
 
-    let modelAdaptation = config.model ? config.model : "- GENDER MANDATE: NO HUMANS, MODELS, OR VISIBLE MANNEQUINS.";
+      let modelAdaptation = config.model ? config.model : "- GENDER MANDATE: NO HUMANS, MODELS, OR VISIBLE MANNEQUINS.";
 
-    // SOT Prefixes (Anchoring the AI's intent in English)
-    let prefix = '[Definitive photographic narrative description, focused purely on visuals].';
-    if (estilo === 'folded') prefix = 'You MUST start your response with the phrase: "High-end Still Life commercial product photography, showcasing the garment perfectly folded on a professional surface, focusing entirely on texture and material, with NO human presence."';
-    else if (estilo === 'hanger') prefix = 'You MUST start your response with the phrase: "High-end Still Life commercial product photography, showcasing the garment professionally hanging on a luxury hanger, with NO human presence."';
+      // SOT Prefixes (Anchoring the AI's intent in English)
+      let prefix = '[Definitive photographic narrative description, focused purely on visuals].';
+      if (estilo === 'folded') prefix = 'You MUST start your response with the phrase: "High-end Still Life commercial product photography, showcasing the garment perfectly folded on a professional surface, focusing entirely on texture and material, with NO human presence."';
+      else if (estilo === 'hanger') prefix = 'You MUST start your response with the phrase: "High-end Still Life commercial product photography, showcasing the garment professionally hanging on a luxury hanger, with NO human presence."';
 
-    if (extraSpecs.formato === 'video') prefix = `[Narrative Video Script]. ${prefix}`;
+      if (extraSpecs.formato === 'video') prefix = `[Narrative Video Script]. ${prefix}`;
 
-    let exampleBlock = config.example || 
+      let exampleBlock = config.example ||
         "        **REASONING:** [Explanation of directive adaptation].\n" +
         "        **VISUAL AUDIT:** [X] Validations.\n" +
         "        **MASTER PROMPT:** [Final prompt in English].";
 
-    return { promptRules, modelAdaptation, prefix, exampleBlock };
-  },
+      return { promptRules, modelAdaptation, prefix, exampleBlock };
+    },
 
-  /**
-   * Helper para buscar una fila por valor en una hoja mapeada.
-   */
-  buscarFilaPorValor: function (sheet, sheetAlias, headerName, valor) {
-    if (!sheet) return null;
-    const map = HeaderManager.getMapping(sheetAlias);
-    if (!map || map[headerName] === undefined) return null;
+    /**
+     * Helper para buscar una fila por valor en una hoja mapeada.
+     */
+    buscarFilaPorValor: function (sheet, sheetAlias, headerName, valor) {
+      if (!sheet) return null;
+      const map = HeaderManager.getMapping(sheetAlias);
+      if (!map || map[headerName] === undefined) return null;
 
-    const data = sheet.getDataRange().getValues();
-    const colIdx = map[headerName];
-    const target = String(valor).trim().toLowerCase();
+      const data = sheet.getDataRange().getValues();
+      const colIdx = map[headerName];
+      const target = String(valor).trim().toLowerCase();
 
-    const row = data.find(r => String(r[colIdx]).trim().toLowerCase() === target);
-    if (!row) return null;
+      const row = data.find(r => String(r[colIdx]).trim().toLowerCase() === target);
+      if (!row) return null;
 
-    // Convertir fila a objeto usando el mapa
-    const obj = {};
-    Object.keys(map).forEach(key => {
-      obj[key] = row[map[key]];
-    });
-    return obj;
-  },
-
-  generarLogDiferencial: function (raw, clean) {
-    const rawLines = raw.split('\n');
-    const cleanLines = clean.split('\n').map(l => l.trim().toLowerCase());
-    return rawLines.map(line => {
-      const l = line.trim();
-      if (!l) return null;
-      const isKept = cleanLines.some(c => l.toLowerCase().includes(c));
-      return { text: l, status: isKept ? 'KEPT' : 'DISCARDED' };
-    }).filter(Boolean);
-  },
-
-  /**
-   * Diagnóstico autónomo e inteligente de fallos de generación o bloqueos de políticas.
-   * Utiliza Gemini 2.5 Flash de forma rápida y concisa.
-   */
-  generarExplicacionBloqueoIA: function (promptTexto, detallesErrores) {
-    try {
-      console.log("🧠 [Lab-IA] Generando explicación inteligente de bloqueo con IA...");
-      const promptDiagnostico = 
-        "\nEres Antigravity, un perito experto en inteligencia artificial y políticas de generación de imágenes de Google Vertex AI (Imagen 3, Imagen 4, Gemini 3.1/3-Pro).\n" +
-        "El sistema de generación de imágenes publicitarias ha fallado o ha sido bloqueado al intentar renderizar un producto.\n\n" +
-        "Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo y en español, que ayude al usuario (diseñador/operador de ERP) a entender exactamente por qué falló la generación y qué acciones puede tomar para evitarlo.\n\n" +
-        "[INFORMACIÓN DEL RENDERIZADO]\n" +
-        "- Prompt Maestro Enviado:\n" +
-        "\"" + promptTexto + "\"\n\n" +
-        "- Mensaje/Detalle del Error Capturado:\n" +
-        "\"" + detallesErrores + "\"\n\n" +
-        "[REGLAS DE RESPUESTA]\n" +
-        "1. Explica la causa probable del error en español de manera profesional y amable (sin jerga excesivamente técnica pero con precisión).\n" +
-        "2. Si el error menciona \"SAFETY\", \"NO_IMAGE\", \"400\" o bloqueos similares, analiza si se debe a:\n" +
-        "   - Presencia de marcas comerciales o personajes protegidos por derechos de autor (ej. Dragon Ball, Goku, Marvel, etc.).\n" +
-        "   - Clasificación sensible de la prenda (ropa interior, bóxers) que pueda ser interpretada por los filtros de seguridad/desnudez de Google como contenido no permitido.\n" +
-        "   - Restricciones multimodales por las referencias de entrada.\n" +
-        "3. Da 2 o 3 recomendaciones accionables y concisas para corregir el problema en el prompt o en las configuraciones (ej: \"Evitar mencionar nombres específicos de franquicias protegidas\", \"Reemplazar estampados con patrones genéricos de color\", \"Ajustar el encuadre a estilo Ghost\").\n" +
-        "4. Mantén la respuesta breve (máximo 3-4 párrafos bien estructurados), sin rodeos, sin monólogos ni introducciones robóticas.\n";
-
-      const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
-      if (!apiKey) return "Error: No se pudo iniciar el análisis de diagnóstico porque no hay una API Key configurada.";
-
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-      const response = UrlFetchApp.fetch(url, {
-        method: "post",
-        contentType: "application/json",
-        payload: JSON.stringify({
-          contents: [{ parts: [{ text: promptDiagnostico }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 1024
-          }
-        }),
-        muteHttpExceptions: true,
-        timeoutInSeconds: 20
+      // Convertir fila a objeto usando el mapa
+      const obj = {};
+      Object.keys(map).forEach(key => {
+        obj[key] = row[map[key]];
       });
+      return obj;
+    },
 
-      if (response.getResponseCode() === 200) {
-        const json = JSON.parse(response.getContentText());
-        const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawText) return rawText.trim();
-      }
-      return `No se pudo obtener el diagnóstico del servidor de IA (HTTP ${response.getResponseCode()}).`;
-    } catch (e) {
-      return "Excepción durante el diagnóstico autónomo: " + e.message;
-    }
-  },
+    generarLogDiferencial: function (raw, clean) {
+      const rawLines = raw.split('\n');
+      const cleanLines = clean.split('\n').map(l => l.trim().toLowerCase());
+      return rawLines.map(line => {
+        const l = line.trim();
+        if (!l) return null;
+        const isKept = cleanLines.some(c => l.toLowerCase().includes(c));
+        return { text: l, status: isKept ? 'KEPT' : 'DISCARDED' };
+      }).filter(Boolean);
+    },
 
-  /**
-   * FASE 3: RENDERIZADO VISUAL DESDE LABORATORIO
-   * Hace de puente con el motor de pago en Images.js, manteniendo separadas las responsabilidades de la UI.
-   */
-  ejecutarRenderizadoDesdeLaboratorio: function (imagenIds, promptTexto, pin, extraSpecs = {}) {
-    try {
-      console.log("🎨 [Lab-IA] Iniciando Fase 3 (Renderizado) para: " + imagenIds.join(', '));
+    /**
+     * Diagnóstico autónomo e inteligente de fallos de generación o bloqueos de políticas.
+     * Utiliza Gemini 2.5 Flash de forma rápida y concisa.
+     */
+    generarExplicacionBloqueoIA: function (promptTexto, detallesErrores) {
+      try {
+        console.log("🧠 [Lab-IA] Generando explicación inteligente de bloqueo con IA...");
+        const promptDiagnostico =
+          "\nEres Antigravity, un perito experto en inteligencia artificial y políticas de generación de imágenes de Google Vertex AI (Imagen 3, Imagen 4, Gemini 3.1/3-Pro).\n" +
+          "El sistema de generación de imágenes publicitarias ha fallado o ha sido bloqueado al intentar renderizar un producto.\n\n" +
+          "Necesitamos un diagnóstico técnico explicativo, extremadamente claro, directo y en español, que ayude al usuario (diseñador/operador de ERP) a entender exactamente por qué falló la generación y qué acciones puede tomar para evitarlo.\n\n" +
+          "[INFORMACIÓN DEL RENDERIZADO]\n" +
+          "- Prompt Maestro Enviado:\n" +
+          "\"" + promptTexto + "\"\n\n" +
+          "- Mensaje/Detalle del Error Capturado:\n" +
+          "\"" + detallesErrores + "\"\n\n" +
+          "[REGLAS DE RESPUESTA]\n" +
+          "1. Explica la causa probable del error en español de manera profesional y amable (sin jerga excesivamente técnica pero con precisión).\n" +
+          "2. Si el error menciona \"SAFETY\", \"NO_IMAGE\", \"400\" o bloqueos similares, analiza si se debe a:\n" +
+          "   - Presencia de marcas comerciales o personajes protegidos por derechos de autor (ej. Dragon Ball, Goku, Marvel, etc.).\n" +
+          "   - Clasificación sensible de la prenda (ropa interior, bóxers) que pueda ser interpretada por los filtros de seguridad/desnudez de Google como contenido no permitido.\n" +
+          "   - Restricciones multimodales por las referencias de entrada.\n" +
+          "3. Da 2 o 3 recomendaciones accionables y concisas para corregir el problema en el prompt o en las configuraciones (ej: \"Evitar mencionar nombres específicos de franquicias protegidas\", \"Reemplazar estampados con patrones genéricos de color\", \"Ajustar el encuadre a estilo Ghost\").\n" +
+          "4. Mantén la respuesta breve (máximo 3-4 párrafos bien estructurados), sin rodeos, sin monólogos ni introducciones robóticas.\n";
 
-      // Llamada directa a la pasarela Core en Images.js
-      // Esto reutiliza todo el sistema de Fallbacks, Upload a Drive y Registro de Costos.
-      const resultado = generarImagenDesdePrompt(imagenIds, promptTexto, pin, null, null, extraSpecs);
+        const apiKey = GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY;
+        if (!apiKey) return "Error: No se pudo iniciar el análisis de diagnóstico porque no hay una API Key configurada.";
 
-      if (resultado && !resultado.success) {
-        console.warn(`⚠️ [Lab-IA] El renderizado reportó fallo. Ejecutando diagnóstico inteligente...`);
-        const explicacion = this.generarExplicacionBloqueoIA(promptTexto, resultado.error || "Fallo de renderizado general");
-        resultado.explicacionBloqueo = explicacion;
-      }
-
-      return resultado;
-    } catch (e) {
-      console.error("❌ [Lab-IA] Error Fase 3 Render: " + e.message);
-      const explicacion = this.generarExplicacionBloqueoIA(promptTexto, e.message);
-      return { success: false, error: e.message, explicacionBloqueo: explicacion };
-    }
-  },
-
-  /**
-   * 💾 COLA BATCH: Obtiene la hoja BD_COLA_BATCH, creándola si no existe.
-   */
-  _obtenerHojaColaBatch: function () {
-    const ss = getActiveSS();
-    let sheet = ss.getSheetByName(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
-    const expectedHeaders = SHEET_SCHEMA.LAB_BATCH_QUEUE || ["TIMESTAMP", "BATCH_ID", "MODELO", "IMAGEN_IDS", "ESTADO", "ERROR_DETALLE"];
-
-    if (!sheet) {
-      sheet = ss.insertSheet(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
-      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders])
-        .setBackground("#4B0082").setFontColor("white").setFontWeight("bold");
-      sheet.setFrozenRows(1);
-    }
-    return sheet;
-  },
-
-  /**
-   * 📦 BATCH API: Encola un lote asíncrono en los servidores de Google Gemini.
-   * Utiliza el método Inline para lotes de hasta 50 imágenes (<20MB totales).
-   */
-  ejecutarCreacionBatchLote: function (imagenIds, modeloForzado = 'gemini-3.1-pro-preview') {
-    try {
-      console.log(`📦 [Batch-IA] Iniciando encolamiento asíncrono para ${imagenIds.length} imágenes...`);
-      if (!imagenIds || !imagenIds.length) throw new Error("Lista de imágenes vacía.");
-
-      // Forzar un modelo Gemini si por error se envía Gemma (Batch API requiere Gemini en v1beta)
-      const modelo = modeloForzado.startsWith("gemini-") ? modeloForzado : "gemini-3.1-pro-preview";
-
-      const ss = getActiveSS();
-      const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
-      const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
-
-      // Usar llave principal (Pago) o Free para el lote asíncrono
-      const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY || GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
-      if (!apiKey) throw new Error("Falta API Key para IA.");
-
-      // 1. Preparar las directivas y el esquema comunes
-      const forensicWhitelist = [
-        "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
-        "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
-        "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
-        "MATERIAL_ESTIMADO",
-        "LOGO_O_MARCA", "VISIBLE", "DETALLE",
-        "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
-        "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
-      ];
-
-      const schema = {
-        type: "OBJECT",
-        properties: {
-          MARCA: { type: "STRING" },
-          MODELO: { type: "STRING" },
-          CATEGORIA: { type: "STRING" },
-          MATERIAL: { type: "STRING" },
-          GENERO: { type: "STRING" },
-          CLASIFICACION_ESTRUCTURAL: { type: "STRING", enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"] },
-          TIPO_PRENDA: { type: "STRING" },
-          POSICION_DETECTADA: { type: "STRING", enum: ["FRENTE", "ESPALDA", "LATERAL", "PLANO", "GHOST_MANNEQUIN", "PILA_O_DOBLADO", "INDETERMINADO"] },
-          SOPORTE_O_CONTEXTO: { type: "STRING", enum: ["FOTO_ESTUDIO", "COLGADA_EN_PERCHA", "DOBLADA_EN_SUPERFICIE", "SOBRE_MANIQUÍ", "EN_PERCHERO_MULTIPLE"] },
-          COLOR_PRINCIPAL: {
-            type: "OBJECT",
-            properties: {
-              NOMBRE_TECNICO: { type: "STRING" },
-              CODIGO_HEX: { type: "STRING" },
-              TIPO: { type: "STRING", enum: ["LISO", "ESTAMPADO", "SUBLIMADO", "RAYADO", "JASPEADO"] },
-              PATRON: { type: "STRING" }
-            },
-            required: ["NOMBRE_TECNICO", "CODIGO_HEX", "TIPO", "PATRON"]
-          },
-          MATERIAL_ESTIMADO: { type: "STRING" },
-          LOGO_O_MARCA: {
-            type: "OBJECT",
-            properties: {
-              VISIBLE: { type: "STRING", enum: ["SÍ", "NO"] },
-              DETALLE: { type: "STRING" }
-            },
-            required: ["VISIBLE", "DETALLE"]
-          },
-          DETALLES_CONSTRUCTIVOS: {
-            type: "OBJECT",
-            properties: {
-              COSTURAS: { type: "STRING" },
-              CIERRES: { type: "STRING" },
-              BOLSILLOS: { type: "STRING" },
-              ELASTICOS: { type: "STRING" }
-            },
-            required: ["COSTURAS", "CIERRES", "BOLSILLOS", "ELASTICOS"]
-          },
-          AVISOS_DE_LIMPIEZA_VISIBLES: { type: "STRING", enum: ["SÍ", "NO"] },
-          ESTADO_VISUAL: { type: "STRING" },
-          DETALLES_VISUALES: { type: "STRING" }
-        },
-        required: [
-          "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO",
-          "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA",
-          "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO",
-          "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES",
-          "ESTADO_VISUAL", "DETALLES_VISUALES"
-        ]
-      };
-
-      const safetySettings = typeof GEMINI_SAFETY_SETTINGS !== 'undefined' ? GEMINI_SAFETY_SETTINGS : [
-        { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
-        { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
-        { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
-        { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" }
-      ];
-
-      // 2. Construir lista de peticiones (requests) individuales inlined
-      const requests = [];
-      const imageIdsExitosos = [];
-
-      for (const id of imagenIds) {
-        try {
-          const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", id);
-          if (!imgRow || !imgRow.ARCHIVO_ID) {
-            console.warn("⚠️ [Batch-IA] Imagen " + id + " omitida: Faltan datos o ARCHIVO_ID.");
-            continue;
-          }
-
-          const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
-          const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) : "";
-
-          const promptForense = "Forensic Clothing Analyst for a high-precision ERP.\n" +
-            "Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).\n" +
-            "Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).\n" +
-            "Plain text, one line per field, no bold, no markdown, no introductions.\n\n" +
-            "* Context Reference (ERP): " + contextoProducto + "\n" +
-            "* Analysis Request: Technical forensic breakdown in SPANISH.\n" +
-            "* Schema: \n" +
-            "MARCA: [Heredar de Context Reference]\n" +
-            "MODELO: [Heredar de Context Reference]\n" +
-            "CATEGORÍA: [Heredar de Context Reference]\n" +
-            "... (resto de campos) ...";
-
-          // Subir a la File API para asociarlo temporalmente a la API Key
-          const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `batch_${id}`, 'alta', apiKey, false);
-
-          requests.push({
-            model: `models/${modelo}`,
-            contents: [{
-              parts: [
-                { text: promptForense },
-                fileDataRef
-              ]
-            }],
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const response = UrlFetchApp.fetch(url, {
+          method: "post",
+          contentType: "application/json",
+          payload: JSON.stringify({
+            contents: [{ parts: [{ text: promptDiagnostico }] }],
             generationConfig: {
-              temperature: 0.1,
-              maxOutputTokens: 2048,
-              responseMimeType: "application/json",
-              responseSchema: schema
-            },
-            safetySettings: safetySettings
-          });
+              temperature: 0.2,
+              maxOutputTokens: 1024
+            }
+          }),
+          muteHttpExceptions: true,
+          timeoutInSeconds: 20
+        });
 
-          imageIdsExitosos.push(id);
-        } catch (errImg) {
-          console.error("❌ [Batch-IA] Error preparando imagen " + id + " para el lote: " + errImg.message);
+        if (response.getResponseCode() === 200) {
+          const json = JSON.parse(response.getContentText());
+          const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) return rawText.trim();
         }
+        return `No se pudo obtener el diagnóstico del servidor de IA (HTTP ${response.getResponseCode()}).`;
+      } catch (e) {
+        return "Excepción durante el diagnóstico autónomo: " + e.message;
       }
+    },
 
-      if (requests.length === 0) throw new Error("No se pudo preparar ninguna imagen para el lote.");
+    /**
+     * FASE 3: RENDERIZADO VISUAL DESDE LABORATORIO
+     * Hace de puente con el motor de pago en Images.js, manteniendo separadas las responsabilidades de la UI.
+     */
+    ejecutarRenderizadoDesdeLaboratorio: function (imagenIds, promptTexto, pin, extraSpecs = {}) {
+      try {
+        console.log("🎨 [Lab-IA] Iniciando Fase 3 (Renderizado) para: " + imagenIds.join(', '));
 
-      // 3. Crear el Lote Asíncrono llamando a Google AI Studio
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:batchGenerateContent?key=${apiKey}`;
-      const payload = {
-        model: `models/${modelo}`,
-        displayName: `Lote_Forense_${new Date().getTime()}`,
-        inputConfig: {
-          inlinedRequests: {
-            requests: requests
-          }
+        // Llamada directa a la pasarela Core en Images.js
+        // Esto reutiliza todo el sistema de Fallbacks, Upload a Drive y Registro de Costos.
+        const resultado = generarImagenDesdePrompt(imagenIds, promptTexto, pin, null, null, extraSpecs);
+
+        if (resultado && !resultado.success) {
+          console.warn(`⚠️ [Lab-IA] El renderizado reportó fallo. Ejecutando diagnóstico inteligente...`);
+          const explicacion = this.generarExplicacionBloqueoIA(promptTexto, resultado.error || "Fallo de renderizado general");
+          resultado.explicacionBloqueo = explicacion;
         }
-      };
 
-      const response = UrlFetchApp.fetch(url, {
-        method: "post",
-        contentType: "application/json",
-        payload: JSON.stringify(payload),
-        muteHttpExceptions: true,
-        timeoutInSeconds: 60
-      });
-
-      if (response.getResponseCode() !== 200) {
-        throw new Error(`Google API HTTP ${response.getResponseCode()}: ${response.getContentText()}`);
+        return resultado;
+      } catch (e) {
+        console.error("❌ [Lab-IA] Error Fase 3 Render: " + e.message);
+        const explicacion = this.generarExplicacionBloqueoIA(promptTexto, e.message);
+        return { success: false, error: e.message, explicacionBloqueo: explicacion };
       }
+    },
 
-      const resBody = JSON.parse(response.getContentText());
-      const batchId = resBody.name; // Ej. "batches/12345xyz"
-      if (!batchId) throw new Error("Google no devolvió un ID de Lote válido.");
-
-      // 4. Registrar en la Cola de Sheets
-      const sheetCola = this._obtenerHojaColaBatch();
-      sheetCola.appendRow([
-        new Date(),
-        batchId,
-        modelo,
-        imageIdsExitosos.join(','),
-        "PENDIENTE",
-        ""
-      ]);
-
-      console.log("✅ [Batch-IA] Lote encolado correctamente. ID de Lote: " + batchId);
-      return { success: true, batchId: batchId };
-
-    } catch (e) {
-      console.error("❌ [Batch-IA] Error encolando lote: " + e.message);
-      return { success: false, error: e.message };
-    }
-  },
-
-  /**
-   * 🔎 BATCH API: Consulta el estado de un lote asíncrono.
-   */
-  obtenerEstadoBatch: function (batchId) {
-    try {
-      const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY || GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
-      if (!apiKey) throw new Error("Falta API Key configurada.");
-
-      const url = `https://generativelanguage.googleapis.com/v1beta/${batchId}?key=${apiKey}`;
-      const response = UrlFetchApp.fetch(url, {
-        method: "get",
-        muteHttpExceptions: true,
-        timeoutInSeconds: 15
-      });
-
-      if (response.getResponseCode() === 200) {
-        const json = JSON.parse(response.getContentText());
-        return {
-          success: true,
-          state: json.state || "JOB_STATE_PENDING", // JOB_STATE_SUCCEEDED, JOB_STATE_FAILED, etc.
-          raw: json
-        };
-      }
-      return { success: false, error: "HTTP " + response.getResponseCode() + ": " + response.getContentText() };
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
-  },
-
-  /**
-   * 📥 BATCH API: Descarga e ingiere las respuestas de un lote completado con éxito.
-   */
-  descargarResultadosBatch: function (batchId, imagenIdsString) {
-    try {
-      console.log("📥 [Batch-IA] Procesando resultados del lote finalizado: " + batchId);
-      const estadoObj = this.obtenerEstadoBatch(batchId);
-      if (!estadoObj.success || estadoObj.state !== "JOB_STATE_SUCCEEDED") {
-        throw new Error("El lote no está listo o falló. Estado: " + estadoObj.state);
-      }
-
-      const results = estadoObj.raw.response?.results;
-      if (!results || !results.length) throw new Error("El lote completado no contiene resultados.");
-
-      const imagenIds = String(imagenIdsString).split(',');
-      if (results.length !== imagenIds.length) {
-        console.warn("⚠️ [Batch-IA] Desajuste de conteo: Resultados=" + results.length + ", Imágenes=" + imagenIds.length + ". Intentando mapeo secuencial.");
-      }
-
+    /**
+     * 💾 COLA BATCH: Obtiene la hoja BD_COLA_BATCH, creándola si no existe.
+     */
+    _obtenerHojaColaBatch: function () {
       const ss = getActiveSS();
-      const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+      let sheet = ss.getSheetByName(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
+      const expectedHeaders = SHEET_SCHEMA.LAB_BATCH_QUEUE || ["TIMESTAMP", "BATCH_ID", "MODELO", "IMAGEN_IDS", "ESTADO", "ERROR_DETALLE"];
 
-      let correctos = 0;
-      let fallados = 0;
+      if (!sheet) {
+        sheet = ss.insertSheet(SHEETS.LAB_BATCH_QUEUE || "BD_COLA_BATCH");
+        sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders])
+          .setBackground("#4B0082").setFontColor("white").setFontWeight("bold");
+        sheet.setFrozenRows(1);
+      }
+      return sheet;
+    },
 
-      for (let idx = 0; idx < results.length; idx++) {
-        const imgId = imagenIds[idx];
-        if (!imgId) continue;
+    /**
+     * 📦 BATCH API: Encola un lote asíncrono en los servidores de Google Gemini.
+     * Utiliza el método Inline para lotes de hasta 50 imágenes (<20MB totales).
+     */
+    ejecutarCreacionBatchLote: function (imagenIds, modeloForzado = 'gemini-3.1-pro-preview') {
+      try {
+        console.log(`📦 [Batch-IA] Iniciando encolamiento asíncrono para ${imagenIds.length} imágenes...`);
+        if (!imagenIds || !imagenIds.length) throw new Error("Lista de imágenes vacía.");
 
-        try {
-          const resultNode = results[idx];
-          const candidate = resultNode.response?.candidates?.[0];
-          const text = candidate?.content?.parts?.[0]?.text;
+        // Forzar un modelo Gemini si por error se envía Gemma (Batch API requiere Gemini en v1beta)
+        const modelo = modeloForzado.startsWith("gemini-") ? modeloForzado : "gemini-3.1-pro-preview";
 
-          if (!text) {
-            console.warn("⚠️ [Batch-IA] Sin respuesta para imagen " + imgId + " en índice " + idx);
-            fallados++;
-            continue;
+        const ss = getActiveSS();
+        const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+        const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+
+        // Usar llave principal (Pago) o Free para el lote asíncrono
+        const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY || GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
+        if (!apiKey) throw new Error("Falta API Key para IA.");
+
+        // 1. Preparar las directivas y el esquema comunes
+        const forensicWhitelist = [
+          "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
+          "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
+          "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
+          "MATERIAL_ESTIMADO",
+          "LOGO_O_MARCA", "VISIBLE", "DETALLE",
+          "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
+          "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
+        ];
+
+        const schema = {
+          type: "OBJECT",
+          properties: {
+            MARCA: { type: "STRING" },
+            MODELO: { type: "STRING" },
+            CATEGORIA: { type: "STRING" },
+            MATERIAL: { type: "STRING" },
+            GENERO: { type: "STRING" },
+            CLASIFICACION_ESTRUCTURAL: { type: "STRING", enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"] },
+            TIPO_PRENDA: { type: "STRING" },
+            POSICION_DETECTADA: { type: "STRING", enum: ["FRENTE", "ESPALDA", "LATERAL", "PLANO", "GHOST_MANNEQUIN", "PILA_O_DOBLADO", "INDETERMINADO"] },
+            SOPORTE_O_CONTEXTO: { type: "STRING", enum: ["FOTO_ESTUDIO", "COLGADA_EN_PERCHA", "DOBLADA_EN_SUPERFICIE", "SOBRE_MANIQUÍ", "EN_PERCHERO_MULTIPLE"] },
+            COLOR_PRINCIPAL: {
+              type: "OBJECT",
+              properties: {
+                NOMBRE_TECNICO: { type: "STRING" },
+                CODIGO_HEX: { type: "STRING" },
+                TIPO: { type: "STRING", enum: ["LISO", "ESTAMPADO", "SUBLIMADO", "RAYADO", "JASPEADO"] },
+                PATRON: { type: "STRING" }
+              },
+              required: ["NOMBRE_TECNICO", "CODIGO_HEX", "TIPO", "PATRON"]
+            },
+            MATERIAL_ESTIMADO: { type: "STRING" },
+            LOGO_O_MARCA: {
+              type: "OBJECT",
+              properties: {
+                VISIBLE: { type: "STRING", enum: ["SÍ", "NO"] },
+                DETALLE: { type: "STRING" }
+              },
+              required: ["VISIBLE", "DETALLE"]
+            },
+            DETALLES_CONSTRUCTIVOS: {
+              type: "OBJECT",
+              properties: {
+                COSTURAS: { type: "STRING" },
+                CIERRES: { type: "STRING" },
+                BOLSILLOS: { type: "STRING" },
+                ELASTICOS: { type: "STRING" }
+              },
+              required: ["COSTURAS", "CIERRES", "BOLSILLOS", "ELASTICOS"]
+            },
+            AVISOS_DE_LIMPIEZA_VISIBLES: { type: "STRING", enum: ["SÍ", "NO"] },
+            ESTADO_VISUAL: { type: "STRING" },
+            DETALLES_VISUALES: { type: "STRING" }
+          },
+          required: [
+            "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO",
+            "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA",
+            "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO",
+            "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES",
+            "ESTADO_VISUAL", "DETALLES_VISUALES"
+          ]
+        };
+
+        const safetySettings = typeof GEMINI_SAFETY_SETTINGS !== 'undefined' ? GEMINI_SAFETY_SETTINGS : [
+          { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
+          { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
+          { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
+          { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" }
+        ];
+
+        // 2. Construir lista de peticiones (requests) individuales inlined
+        const requests = [];
+        const imageIdsExitosos = [];
+
+        for (const id of imagenIds) {
+          try {
+            const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", id);
+            if (!imgRow || !imgRow.ARCHIVO_ID) {
+              console.warn("⚠️ [Batch-IA] Imagen " + id + " omitida: Faltan datos o ARCHIVO_ID.");
+              continue;
+            }
+
+            const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
+            const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) : "";
+
+            const promptForense = "Forensic Clothing Analyst for a high-precision ERP.\n" +
+              "Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).\n" +
+              "Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).\n" +
+              "Plain text, one line per field, no bold, no markdown, no introductions.\n\n" +
+              "* Context Reference (ERP): " + contextoProducto + "\n" +
+              "* Analysis Request: Technical forensic breakdown in SPANISH.\n" +
+              "* Schema: \n" +
+              "MARCA: [Heredar de Context Reference]\n" +
+              "MODELO: [Heredar de Context Reference]\n" +
+              "CATEGORÍA: [Heredar de Context Reference]\n" +
+              "... (resto de campos) ...";
+
+            // Subir a la File API para asociarlo temporalmente a la API Key
+            const fileDataRef = prepararBlobOptimizado(imgRow.ARCHIVO_ID, `batch_${id}`, 'alta', apiKey, false);
+
+            requests.push({
+              model: `models/${modelo}`,
+              contents: [{
+                parts: [
+                  { text: promptForense },
+                  fileDataRef
+                ]
+              }],
+              generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 2048,
+                responseMimeType: "application/json",
+                responseSchema: schema
+              },
+              safetySettings: safetySettings
+            });
+
+            imageIdsExitosos.push(id);
+          } catch (errImg) {
+            console.error("❌ [Batch-IA] Error preparando imagen " + id + " para el lote: " + errImg.message);
           }
+        }
 
-          // Parsear JSON e interpolar al formato plano compatible
-          const parsedJson = JSON.parse(text);
-          const colorPrincipal = parsedJson.COLOR_PRINCIPAL || {};
-          const logoOMarca = parsedJson.LOGO_O_MARCA || {};
-          const detallesConstructivos = parsedJson.DETALLES_CONSTRUCTIVOS || {};
+        if (requests.length === 0) throw new Error("No se pudo preparar ninguna imagen para el lote.");
 
-          const rawResponse = [
-            "MARCA: " + (parsedJson.MARCA || ""),
-            "MODELO: " + (parsedJson.MODELO || ""),
-            "CATEGORÍA: " + (parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""),
-            "MATERIAL: " + (parsedJson.MATERIAL || ""),
-            "GÉNERO: " + (parsedJson.GENERO || parsedJson.GÉNERO || ""),
-            "CLASIFICACION_ESTRUCTURAL: " + (parsedJson.CLASIFICACION_ESTRUCTURAL || ""),
-            "TIPO_PRENDA: " + (parsedJson.TIPO_PRENDA || ""),
-            "POSICIÓN_DETECTADA: " + (parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""),
-            "SOPORTE_O_CONTEXTO: " + (parsedJson.SOPORTE_O_CONTEXTO || ""),
-            "COLOR_PRINCIPAL:",
-            "  - NOMBRE TÉCNICO: " + (colorPrincipal.NOMBRE_TECNICO || colorPrincipal.NOMBRE_TÉCNICO || ""),
-            "  - CÓDIGO HEX: " + (colorPrincipal.CODIGO_HEX || colorPrincipal.CÓDIGO_HEX || ""),
-            "  - TIPO: " + (colorPrincipal.TIPO || ""),
-            "  - PATRÓN: " + (colorPrincipal.PATRON || colorPrincipal.PATRÓN || ""),
-            "MATERIAL_ESTIMADO: " + (parsedJson.MATERIAL_ESTIMADO || ""),
-            "LOGO_O_MARCA:",
-            "  - VISIBLE: " + (logoOMarca.VISIBLE || ""),
-            "  - DETALLE: " + (logoOMarca.DETALLE || ""),
-            "DETALLES_CONSTRUCTIVOS:",
-            "  - COSTURAS: " + (detallesConstructivos.COSTURAS || ""),
-            "  - CIERRES: " + (detallesConstructivos.CIERRES || ""),
-            "  - BOLSILLOS: " + (detallesConstructivos.BOLSILLOS || ""),
-            "  - ELÁSTICOS: " + (detallesConstructivos.ELASTICOS || detallesConstructivos.ELÁSTICOS || ""),
-            "AVISOS_DE_LIMPIEZA_VISIBLES: " + (parsedJson.AVISOS_DE_LIMPIEZA_VISIBLES || ""),
-            "ESTADO_VISUAL: " + (parsedJson.ESTADO_VISUAL || ""),
-            "DETALLES_VISUALES: " + (parsedJson.DETALLES_VISUALES || "")
-          ].join('\n');
-
-          const forensicWhitelist = [
-            "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
-            "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
-            "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
-            "MATERIAL_ESTIMADO",
-            "LOGO_O_MARCA", "VISIBLE", "DETALLE",
-            "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
-            "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
-          ];
-          const cleanResponse = this.extraerContenido(rawResponse, forensicWhitelist);
-          const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, forensicWhitelist, false);
-
-          // 1. Guardar en BD_PRODUCTO_IMAGENES (Sincronización en Caliente)
-          const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", imgId);
-          if (imgRow) {
-            const map = HeaderManager.getMapping("PRODUCT_IMAGES");
-            const rIdx = this.buscarFilaIndicePorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", imgId);
-            if (rIdx > 0 && map.ANALISIS_FORENSE !== undefined) {
-              sheetImg.getRange(rIdx, map.ANALISIS_FORENSE + 1).setValue(cleanResponse);
+        // 3. Crear el Lote Asíncrono llamando a Google AI Studio
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:batchGenerateContent?key=${apiKey}`;
+        const payload = {
+          model: `models/${modelo}`,
+          displayName: `Lote_Forense_${new Date().getTime()}`,
+          inputConfig: {
+            inlinedRequests: {
+              requests: requests
             }
           }
+        };
 
-          // 2. Guardar en BD_LABORATORIO_IA (Cache persistente)
-          this.guardarResultadoLab({
-            imagenId: imgId,
-            estilo: "FORENSIC_ONLY",
-            sku: imgRow ? imgRow.PRODUCTO_ID : "",
-            analisisForense: cleanResponse,
-            analisisForenseRaw: rawConMarcas,
-            modelo: estadoObj.raw.model ? estadoObj.raw.model.replace("models/", "") : "gemini-3.1-pro-preview"
-          });
+        const response = UrlFetchApp.fetch(url, {
+          method: "post",
+          contentType: "application/json",
+          payload: JSON.stringify(payload),
+          muteHttpExceptions: true,
+          timeoutInSeconds: 60
+        });
 
-          correctos++;
-        } catch (errItem) {
-          console.error("❌ [Batch-IA] Error ingiriendo resultados de imagen " + imgId + ": " + errItem.message);
-          fallados++;
+        if (response.getResponseCode() !== 200) {
+          throw new Error(`Google API HTTP ${response.getResponseCode()}: ${response.getContentText()}`);
         }
+
+        const resBody = JSON.parse(response.getContentText());
+        const batchId = resBody.name; // Ej. "batches/12345xyz"
+        if (!batchId) throw new Error("Google no devolvió un ID de Lote válido.");
+
+        // 4. Registrar en la Cola de Sheets
+        const sheetCola = this._obtenerHojaColaBatch();
+        sheetCola.appendRow([
+          new Date(),
+          batchId,
+          modelo,
+          imageIdsExitosos.join(','),
+          "PENDIENTE",
+          ""
+        ]);
+
+        console.log("✅ [Batch-IA] Lote encolado correctamente. ID de Lote: " + batchId);
+        return { success: true, batchId: batchId };
+
+      } catch (e) {
+        console.error("❌ [Batch-IA] Error encolando lote: " + e.message);
+        return { success: false, error: e.message };
       }
+    },
 
-      console.log("✅ [Batch-IA] Ingesta de Lote " + batchId + " finalizada. Éxito: " + correctos + ", Fallados: " + fallados);
-
-      // Intentar alertar por Telegram si el puente de notificaciones está disponible
+    /**
+     * 🔎 BATCH API: Consulta el estado de un lote asíncrono.
+     */
+    obtenerEstadoBatch: function (batchId) {
       try {
-        if (typeof TelegramService !== 'undefined' && TelegramService.enviarMensajeAI) {
-          TelegramService.enviarMensajeAI("📦 *Lote Forense Finalizado*\n\n*Lote ID:* `" + batchId + "`\n*Total:* " + imagenIds.length + "\n*Procesadas:* " + correctos + " OK / " + fallados + " ERR");
-        }
-      } catch (eTelegram) {
-        console.warn("⚠️ No se pudo enviar alerta de Telegram.");
-      }
+        const apiKey = GLOBAL_CONFIG.GEMINI.API_KEY || GLOBAL_CONFIG.GEMINI.FREE_API_KEY;
+        if (!apiKey) throw new Error("Falta API Key configurada.");
 
-      return { success: true, correctos: correctos, fallados: fallados };
-    } catch (e) {
-      console.error("❌ [Batch-IA] Error en ingesta de lote: " + e.message);
-      return { success: false, error: e.message };
+        const url = `https://generativelanguage.googleapis.com/v1beta/${batchId}?key=${apiKey}`;
+        const response = UrlFetchApp.fetch(url, {
+          method: "get",
+          muteHttpExceptions: true,
+          timeoutInSeconds: 15
+        });
+
+        if (response.getResponseCode() === 200) {
+          const json = JSON.parse(response.getContentText());
+          return {
+            success: true,
+            state: json.state || "JOB_STATE_PENDING", // JOB_STATE_SUCCEEDED, JOB_STATE_FAILED, etc.
+            raw: json
+          };
+        }
+        return { success: false, error: "HTTP " + response.getResponseCode() + ": " + response.getContentText() };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    },
+
+    /**
+     * 📥 BATCH API: Descarga e ingiere las respuestas de un lote completado con éxito.
+     */
+    descargarResultadosBatch: function (batchId, imagenIdsString) {
+      try {
+        console.log("📥 [Batch-IA] Procesando resultados del lote finalizado: " + batchId);
+        const estadoObj = this.obtenerEstadoBatch(batchId);
+        if (!estadoObj.success || estadoObj.state !== "JOB_STATE_SUCCEEDED") {
+          throw new Error("El lote no está listo o falló. Estado: " + estadoObj.state);
+        }
+
+        const results = estadoObj.raw.response?.results;
+        if (!results || !results.length) throw new Error("El lote completado no contiene resultados.");
+
+        const imagenIds = String(imagenIdsString).split(',');
+        if (results.length !== imagenIds.length) {
+          console.warn("⚠️ [Batch-IA] Desajuste de conteo: Resultados=" + results.length + ", Imágenes=" + imagenIds.length + ". Intentando mapeo secuencial.");
+        }
+
+        const ss = getActiveSS();
+        const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+
+        let correctos = 0;
+        let fallados = 0;
+
+        for (let idx = 0; idx < results.length; idx++) {
+          const imgId = imagenIds[idx];
+          if (!imgId) continue;
+
+          try {
+            const resultNode = results[idx];
+            const candidate = resultNode.response?.candidates?.[0];
+            const text = candidate?.content?.parts?.[0]?.text;
+
+            if (!text) {
+              console.warn("⚠️ [Batch-IA] Sin respuesta para imagen " + imgId + " en índice " + idx);
+              fallados++;
+              continue;
+            }
+
+            // Parsear JSON e interpolar al formato plano compatible
+            const parsedJson = JSON.parse(text);
+            const colorPrincipal = parsedJson.COLOR_PRINCIPAL || {};
+            const logoOMarca = parsedJson.LOGO_O_MARCA || {};
+            const detallesConstructivos = parsedJson.DETALLES_CONSTRUCTIVOS || {};
+
+            const rawResponse = [
+              "MARCA: " + (parsedJson.MARCA || ""),
+              "MODELO: " + (parsedJson.MODELO || ""),
+              "CATEGORÍA: " + (parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""),
+              "MATERIAL: " + (parsedJson.MATERIAL || ""),
+              "GÉNERO: " + (parsedJson.GENERO || parsedJson.GÉNERO || ""),
+              "CLASIFICACION_ESTRUCTURAL: " + (parsedJson.CLASIFICACION_ESTRUCTURAL || ""),
+              "TIPO_PRENDA: " + (parsedJson.TIPO_PRENDA || ""),
+              "POSICIÓN_DETECTADA: " + (parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""),
+              "SOPORTE_O_CONTEXTO: " + (parsedJson.SOPORTE_O_CONTEXTO || ""),
+              "COLOR_PRINCIPAL:",
+              "  - NOMBRE TÉCNICO: " + (colorPrincipal.NOMBRE_TECNICO || colorPrincipal.NOMBRE_TÉCNICO || ""),
+              "  - CÓDIGO HEX: " + (colorPrincipal.CODIGO_HEX || colorPrincipal.CÓDIGO_HEX || ""),
+              "  - TIPO: " + (colorPrincipal.TIPO || ""),
+              "  - PATRÓN: " + (colorPrincipal.PATRON || colorPrincipal.PATRÓN || ""),
+              "MATERIAL_ESTIMADO: " + (parsedJson.MATERIAL_ESTIMADO || ""),
+              "LOGO_O_MARCA:",
+              "  - VISIBLE: " + (logoOMarca.VISIBLE || ""),
+              "  - DETALLE: " + (logoOMarca.DETALLE || ""),
+              "DETALLES_CONSTRUCTIVOS:",
+              "  - COSTURAS: " + (detallesConstructivos.COSTURAS || ""),
+              "  - CIERRES: " + (detallesConstructivos.CIERRES || ""),
+              "  - BOLSILLOS: " + (detallesConstructivos.BOLSILLOS || ""),
+              "  - ELÁSTICOS: " + (detallesConstructivos.ELASTICOS || detallesConstructivos.ELÁSTICOS || ""),
+              "AVISOS_DE_LIMPIEZA_VISIBLES: " + (parsedJson.AVISOS_DE_LIMPIEZA_VISIBLES || ""),
+              "ESTADO_VISUAL: " + (parsedJson.ESTADO_VISUAL || ""),
+              "DETALLES_VISUALES: " + (parsedJson.DETALLES_VISUALES || "")
+            ].join('\n');
+
+            const forensicWhitelist = [
+              "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
+              "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
+              "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
+              "MATERIAL_ESTIMADO",
+              "LOGO_O_MARCA", "VISIBLE", "DETALLE",
+              "DETALLES_CONSTRUCTIVOS", "COSTURAS", "CIERRES", "BOLSILLOS", "ELÁSTICOS",
+              "AVISOS_DE_LIMPIEZA_VISIBLES", "ESTADO_VISUAL", "DETALLES_VISUALES"
+            ];
+            const cleanResponse = this.extraerContenido(rawResponse, forensicWhitelist);
+            const rawConMarcas = this.generarMenteRawConMarcas(rawResponse, forensicWhitelist, false);
+
+            // 1. Guardar en BD_PRODUCTO_IMAGENES (Sincronización en Caliente)
+            const imgRow = this.buscarFilaPorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", imgId);
+            if (imgRow) {
+              const map = HeaderManager.getMapping("PRODUCT_IMAGES");
+              const rIdx = this.buscarFilaIndicePorValor(sheetImg, "PRODUCT_IMAGES", "IMAGEN_ID", imgId);
+              if (rIdx > 0 && map.ANALISIS_FORENSE !== undefined) {
+                sheetImg.getRange(rIdx, map.ANALISIS_FORENSE + 1).setValue(cleanResponse);
+              }
+            }
+
+            // 2. Guardar en BD_LABORATORIO_IA (Cache persistente)
+            this.guardarResultadoLab({
+              imagenId: imgId,
+              estilo: "FORENSIC_ONLY",
+              sku: imgRow ? imgRow.PRODUCTO_ID : "",
+              analisisForense: cleanResponse,
+              analisisForenseRaw: rawConMarcas,
+              modelo: estadoObj.raw.model ? estadoObj.raw.model.replace("models/", "") : "gemini-3.1-pro-preview"
+            });
+
+            correctos++;
+          } catch (errItem) {
+            console.error("❌ [Batch-IA] Error ingiriendo resultados de imagen " + imgId + ": " + errItem.message);
+            fallados++;
+          }
+        }
+
+        console.log("✅ [Batch-IA] Ingesta de Lote " + batchId + " finalizada. Éxito: " + correctos + ", Fallados: " + fallados);
+
+        // Intentar alertar por Telegram si el puente de notificaciones está disponible
+        try {
+          if (typeof TelegramService !== 'undefined' && TelegramService.enviarMensajeAI) {
+            TelegramService.enviarMensajeAI("📦 *Lote Forense Finalizado*\n\n*Lote ID:* `" + batchId + "`\n*Total:* " + imagenIds.length + "\n*Procesadas:* " + correctos + " OK / " + fallados + " ERR");
+          }
+        } catch (eTelegram) {
+          console.warn("⚠️ No se pudo enviar alerta de Telegram.");
+        }
+
+        return { success: true, correctos: correctos, fallados: fallados };
+      } catch (e) {
+        console.error("❌ [Batch-IA] Error en ingesta de lote: " + e.message);
+        return { success: false, error: e.message };
+      }
+    },
+
+    /**
+     * Helper para buscar el índice de fila física por valor.
+     */
+    buscarFilaIndicePorValor: function (sheet, sheetAlias, headerName, valor) {
+      if (!sheet) return -1;
+      const map = HeaderManager.getMapping(sheetAlias);
+      if (!map || map[headerName] === undefined) return -1;
+
+      const data = sheet.getDataRange().getValues();
+      const colIdx = map[headerName];
+      const target = String(valor).trim().toLowerCase();
+
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][colIdx]).trim().toLowerCase() === target) {
+          return i + 1; // 1-indexed y saltando encabezado
+        }
+      }
+      return -1;
     }
-  },
+  };
 
   /**
-   * Helper para buscar el índice de fila física por valor.
+   * WRAPPERS GLOBALES (Exposición para google.script.run)
    */
-  buscarFilaIndicePorValor: function (sheet, sheetAlias, headerName, valor) {
-    if (!sheet) return -1;
-    const map = HeaderManager.getMapping(sheetAlias);
-    if (!map || map[headerName] === undefined) return -1;
-
-    const data = sheet.getDataRange().getValues();
-    const colIdx = map[headerName];
-    const target = String(valor).trim().toLowerCase();
-
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][colIdx]).trim().toLowerCase() === target) {
-        return i + 1; // 1-indexed y saltando encabezado
-      }
-    }
-    return -1;
-  }
-};
-
-/**
- * WRAPPERS GLOBALES (Exposición para google.script.run)
- */
-function ejecutarCreacionBatchLote(imagenIds, modeloForzado) {
-  return AIService.ejecutarCreacionBatchLote(imagenIds, modeloForzado);
+  function ejecutarCreacionBatchLote(imagenIds, modeloForzado) {
+    return AIService.ejecutarCreacionBatchLote(imagenIds, modeloForzado);
 }
 function ejecutarPruebaLaboratorio(imagenId, metadata, forzar = false, modeloForzado = null) {
   return AIService.ejecutarPruebaLaboratorio(imagenId, metadata, forzar, modeloForzado);
@@ -2280,6 +2641,10 @@ function ejecutarPruebaLaboratorio(imagenId, metadata, forzar = false, modeloFor
 
 function ejecutarGeneracionPromptMaestro(imagenId, estilo, extraSpecs, forzar = false) {
   return AIService.ejecutarGeneracionPromptMaestro(imagenId, estilo, extraSpecs, forzar);
+}
+
+function ejecutarGeneracionPromptVideo(imagenIds, estilo, opciones) {
+  return AIService.ejecutarGeneracionPromptVideo(imagenIds, estilo, opciones);
 }
 
 function ejecutarRenderizadoDesdeLaboratorio(imagenIds, promptTexto, pin, extraSpecs) {

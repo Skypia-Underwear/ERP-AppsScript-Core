@@ -2131,16 +2131,17 @@
     placeholder.innerText = "Iniciando motor VEO (GCP Long Running)...";
 
     const masterId = selectedImageIds[0];
+    const aspect = document.getElementById('lab-aspect') ? document.getElementById('lab-aspect').value : "3:4";
 
     google.script.run.withSuccessHandler(res => {
       let d;
-      try { d = typeof res === 'string' ? JSON.parse(res) : res; } catch (e) { d = { success: false, error: "Respuesta inv\u00e1lida" }; }
+      try { d = typeof res === 'string' ? JSON.parse(res) : res; } catch (e) { d = { success: false, error: "Respuesta inválida" }; }
 
       if (d.success && d.operationId) {
         placeholder.innerText = "Video VEO en proceso en la nube... Esperando el primer chequeo (30s).";
         Swal.fire({
-          title: 'VEO: Operaci\u00f3n Larga',
-          html: `<div class="text-xs">Video gener\u00e1ndose as\u00edncronamente en GCP.</div><div class="mt-4 p-2 bg-slate-950 rounded text-[9px] font-mono text-indigo-400">${d.operationId}</div>`,
+          title: 'VEO: Operación Larga',
+          html: `<div class="text-xs">Video generándose asíncronamente en GCP.</div><div class="mt-4 p-2 bg-slate-950 rounded text-[9px] font-mono text-indigo-400">${d.operationId}</div>`,
           icon: 'info', background: '#1e293b', color: '#fff',
           timer: 8000, timerProgressBar: true
         });
@@ -2151,7 +2152,7 @@
         placeholder.innerText = "Error: " + d.error;
         Swal.fire('Error VEO', d.error, 'error');
       }
-    }).ejecutarRenderizadoVideoVEO(masterId, prompt, pin);
+    }).ejecutarRenderizadoVideoVEO(masterId, prompt, pin, { aspectRatio: aspect });
   }
 
   function monitorizarVideoVEOLab(opId, sku, carpetaId) {
