@@ -349,6 +349,7 @@ function generarCatalogoJsonTPV() {
 
                     return {
                         id: pid,
+                        sku: p.SKU || "",
                         model: p.MODELO || "",
                         price: parseFloat(p.PRECIO_COSTO || 0),      // Precio costo base (ESTANDAR/PERSONALIZADO)
                         display_price: displayPrice,                  // Precio a mostrar en tarjeta

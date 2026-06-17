@@ -997,7 +997,10 @@
   <header class="tpv-header">
     <div class="flex items-center gap-4">
       <!-- Botón de Menú del ERP (visible en móvil y tablet) -->
-      <button onclick="toggleSidebar()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition md:hidden" title="Menú de Navegación" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+      <button onclick="toggleSidebar()"
+        class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition md:hidden"
+        title="Menú de Navegación"
+        style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
         <i class="ph-bold ph-list text-2xl" style="color: #cbd5e1;"></i>
       </button>
       <div id="tpv-user-status"
@@ -2662,6 +2665,8 @@
           cart.push({
             variation_id: varId,
             product_id: product.id,
+            sku: product.sku || "",
+            gender: product.gender || "",
             model: product.model,
             color: variation.color,
             size: variation.size,
@@ -2935,7 +2940,10 @@
         t += "--------------------------------\n";
 
         sale.cart.forEach(function (item) {
-          t += item.quantity + " x " + item.product_id + " " + item.color + " " + item.size + " $" + (item.price * item.quantity).toLocaleString() + "\n";
+          const skuStr = item.sku ? " (SKU:" + item.sku + ")" : "";
+          t += item.categoryName + " M. " + item.model + " de " + item.gender + skuStr + "\n";
+          t += "Cant: " + item.quantity + "  x  $" + item.price.toLocaleString() + "  =  $" + (item.price * item.quantity).toLocaleString() + "\n";
+          t += "-\n";
         });
         t += "\n";
 
@@ -2974,7 +2982,7 @@
           }
         }
 
-        t += "\n     GRACIAS POR SU COMPRA      ";
+        t += "\n     ^^::GRACIAS POR SU COMPRA      ";
 
         return {
           printer_ip: posMetadata.printerIp || "127.0.0.1",
@@ -3062,6 +3070,7 @@
           id: p.venta_id,
           texto: p.texto_ticket,
           qr: p.qr_info,
+          barra: p.venta_id,
           copias: p.copias,
           sonido: p.sonido,
           caja: p.abrir_caja,

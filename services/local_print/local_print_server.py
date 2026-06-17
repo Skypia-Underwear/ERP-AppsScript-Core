@@ -60,9 +60,10 @@ sys.stderr = LoggerWriter()
 # ==========================================
 LISTA_TIENDAS = []
 SCRIPT_URL = ""
+CORTE_DEFECTO = 1
 
 def cargar_config():
-    global LISTA_TIENDAS, SCRIPT_URL
+    global LISTA_TIENDAS, SCRIPT_URL, CORTE_DEFECTO
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -70,6 +71,7 @@ def cargar_config():
                 if "TIENDAS_IDS" in c and isinstance(c["TIENDAS_IDS"], list): LISTA_TIENDAS = c["TIENDAS_IDS"]
                 elif "TIENDA_ID" in c: LISTA_TIENDAS = [c["TIENDA_ID"]]
                 SCRIPT_URL = c.get("SCRIPT_URL", "")
+                CORTE_DEFECTO = int(c.get("corte", 1))
         except: pass
 
 def get_local_ip():
@@ -136,6 +138,7 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         try:
             parsed_url = urllib.parse.urlparse(self.path)
+            
             if parsed_url.path != '/print_ticket':
                 self.send_error(404)
                 return
@@ -154,6 +157,10 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
             sonido_str = query_params.get('sonido', ['0'])[0]
             msj_marketing = query_params.get('extra', [''])[0]
             force_reprint = query_params.get('force', ['0'])[0]
+            
+            corte_str = query_params.get('corte', [str(CORTE_DEFECTO)])[0]
+            try: habilitar_corte = int(corte_str)
+            except: habilitar_corte = CORTE_DEFECTO
 
             if not texto_ticket:
                 self.responder_cierre("ERROR", "#ff0000", "No hay texto")
@@ -179,12 +186,13 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
             p = Dummy()
             p.hw("INIT")
 
-            texto_decodificado = urllib.parse.unquote(texto_ticket)
+            texto_decodificado = urllib.parse.unquote(texto_ticket).rstrip()
             msj_mkt_clean = urllib.parse.unquote(msj_marketing) if msj_marketing else ""
             u_qr = limpiar_url_qr(urllib.parse.unquote(datos_qr)) if datos_qr else ""
 
             # BUCLE DE COPIAS
             for i in range(num_copias):
+                p._raw(b'\x1b\x4d\x00')  # ESC M 0 (Forzar selección de Fuente A - más grande y gruesa)
                 # 1. Logo
                 if os.path.exists(ARCHIVO_LOGO):
                     try: p.set(align='center'); p.image(ARCHIVO_LOGO, impl="bitImageColumn"); p.text("\n"); p.set(align='left')
@@ -194,28 +202,40 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
                 for linea in texto_decodificado.split('\n'):
                     linea = linea.rstrip()
                     if linea.startswith('^^'):
-                        p.set(align='left', font='a', text_type='NORMAL', width=1, height=1)
-                        p.set(align='center', text_type='B', width=2, height=2)
-                        p.text(linea[2:] + "\n")
-                        p.set(align='left', font='a', text_type='NORMAL', width=1, height=1)
+                        # Quitar ^^ y también :: si viene inmediatamente después (ej. ^^::)
+                        texto_linea = linea[2:]
+                        if texto_linea.startswith('::'):
+                            texto_linea = texto_linea[2:]
+                        
+                        p.set(align='center')
+                        p._raw(b'\x1b\x21\x18')  # ESC ! 24 (Doble ancho + Doble alto) - Sin \x1a (Ctrl+Z) ni \x11 (XON)
+                        p._raw(b'\x1b\x45\x01')  # ESC E 1 (Negrita activada)
+                        p.text(texto_linea + "\n")
+                        p._raw(b'\x1b\x45\x00')  # ESC E 0 (Negrita desactivada)
+                        p._raw(b'\x1b\x21\x00')  # ESC ! 0 (Restaurar)
+                        p.set(align='left')
                     elif linea.startswith('::'):
-                        p.set(align='left', text_type='B')
+                        p.set(align='left')
+                        p._raw(b'\x1b\x45\x01')  # ESC E 1 (Negrita activada)
                         p.text(linea[2:] + "\n")
-                        p.set(align='left', text_type='NORMAL')
+                        p._raw(b'\x1b\x45\x00')  # ESC E 0 (Negrita desactivada)
                     elif '---' in linea:
-                        p.set(align='center'); p.text(linea + "\n"); p.set(align='left')
+                        p.set(align='center')
+                        p.text(linea + "\n")
+                        p.set(align='left')
                     else:
                         p.text(linea + "\n")
                 
-                p.text("\n")
-                
                 # 3. Mkt
                 if msj_mkt_clean:
-                    p.set(align='center', text_type='B')
+                    p.text("\n")
+                    p.set(align='center')
+                    p._raw(b'\x1b\x45\x01')  # ESC E 1 (Negrita activada)
                     p.text("********************************\n")
                     p.text(msj_mkt_clean + "\n")
-                    p.text("********************************\n\n")
-                    p.set(align='left', text_type='NORMAL')
+                    p.text("********************************\n")
+                    p._raw(b'\x1b\x45\x00')  # ESC E 0 (Negrita desactivada)
+                    p.set(align='left')
 
                 # 4. Barra y QR
                 if datos_barra:
@@ -223,29 +243,35 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
                         bc = barcode.get_barcode_class('code128')(urllib.parse.unquote(datos_barra), writer=ImageWriter())
                         fn = os.path.join(CARPETA_SERVER, 'temp_files', f"bar_{safe_id}")
                         img = bc.save(fn, options={"module_height":8.0, "quiet_zone":1.0, "write_text":True, "font_size":0})
-                        p.set(align='center'); p.text("ID Venta:\n"); p.image(img, impl="bitImageColumn"); p.text("\n"); p.set(align='left')
+                        p.text("\n")
+                        p.set(align='center'); p.text("ID Venta:\n"); p.image(img, impl="bitImageColumn"); p.set(align='left')
                         try: os.remove(img)
                         except: pass
                     except: pass
                 
                 if u_qr:
-                    try: p.set(align='center'); p.text("Info:\n"); p.qr(u_qr, native=False, size=6); p.text("\n\n"); p.set(align='left')
+                    try:
+                        p.text("\n")
+                        p.set(align='center'); p.text("Info:\n"); p.qr(u_qr, native=False, size=6); p.set(align='left')
                     except: pass
 
-                # 6. CAJON Y SONIDO (CORREGIDO: Usando comandos RAW para evitar errores)
+                # 6. CAJON Y SONIDO (CORREGIDO: Usando bytes no imprimibles para evitar caracteres "22")
                 if i == 0:
                     if abrir_caja == "1":
-                        # Intenta metodo nativo, si falla usa RAW (ESC p 0 50 50)
-                        try: p.cashdraw(2)
-                        except: p._raw(b'\x1b\x70\x00\x32\x32')
+                        p._raw(b'\x1b\x70\x00\x14\x14')
                     
                     if sonido_str == "1":
-                        # Intenta metodo nativo, si falla usa RAW (ESC B 4 1)
                         try: p.buzzer()
                         except: p._raw(b'\x1b\x42\x04\x01')
 
-                # CORTE Y FEED
-                p.text("\n"); p.set(align='center'); p.text(".\n"); p.text("\n" * 5); p.cut()
+                # CORTE Y FEED CONDICIONAL
+                if habilitar_corte == 1:
+                    p.text("\n" * 3)
+                    try: p.cut()
+                    except: pass
+                else:
+                    p.text("\n") # Avance corto de cortesía para etiquetas sin corte
+                
                 if i < (num_copias - 1): p.text("\n- - - - - CORTAR AQUI - - - - -\n\n")
 
             # Enviar a impresora

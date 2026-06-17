@@ -192,11 +192,11 @@
 
 <!-- Scripts del Lado del Cliente -->
 <script>
-  let CATEGORIES_DB = [];
-  let EXISTING_CODES = new Set();
-  let EXISTING_PRODUCTS_MAP = new Map(); // Mapa de SKU (WhatsApp ID) -> { codigoId, categoriaId, modelo }
-  let EXISTING_PRODUCTS_BY_MODEL_MAP = new Map(); // Mapa de Modelo Normalizado -> { codigoId, categoriaId, sku }
-  let PRODUCT_ROWS = [];
+  var CATEGORIES_DB = [];
+  var EXISTING_CODES = new Set();
+  var EXISTING_PRODUCTS_MAP = new Map(); // Mapa de SKU (WhatsApp ID) -> { codigoId, categoriaId, modelo }
+  var EXISTING_PRODUCTS_BY_MODEL_MAP = new Map(); // Mapa de Modelo Normalizado -> { codigoId, categoriaId, sku }
+  var PRODUCT_ROWS = [];
 
   // Limpia comillas simples iniciales, espacios y convierte SKU a string limpio
   function cleanSku(sku) {

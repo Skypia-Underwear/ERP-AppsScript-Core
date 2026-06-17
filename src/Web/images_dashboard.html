@@ -4640,13 +4640,13 @@
     function generarPromptMasivo() { generarPromptModal(); }
 
     // --- LÓGICA DE REFINAMIENTO DE PROMPT POR VOZ / TEXTO (FASE 2.5 - GRATIS) ---
-    let promptMediaRecorder = null;
-    let promptAudioChunks = [];
-    let promptRecordingTimer = null;
-    let promptRecordingSeconds = 0;
-    let promptAudioStream = null;
-    let microfonoVerificado = false;
-    let microfonoDisponible = false;
+    var promptMediaRecorder = null;
+    var promptAudioChunks = [];
+    var promptRecordingTimer = null;
+    var promptRecordingSeconds = 0;
+    var promptAudioStream = null;
+    var microfonoVerificado = false;
+    var microfonoDisponible = false;
 
     function extraerResumenEspanol(promptText) {
         if (!promptText) return "";
@@ -4962,11 +4962,11 @@
     }
 
     // --- LÓGICA DE REFINAMIENTO DE IMAGEN POR VOZ (MODO PAGO) ---
-    let paidMediaRecorder = null;
-    let paidAudioChunks = [];
-    let paidRecordingTimer = null;
-    let paidRecordingSeconds = 0;
-    let paidAudioStream = null;
+    var paidMediaRecorder = null;
+    var paidAudioChunks = [];
+    var paidRecordingTimer = null;
+    var paidRecordingSeconds = 0;
+    var paidAudioStream = null;
 
     async function togglePaidVoiceRecording() {
         const isRecording = paidMediaRecorder && paidMediaRecorder.state === "recording";
