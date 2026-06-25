@@ -1403,3 +1403,47 @@ function getStoreSessionData(storeId, userId) {
         return { success: false, message: e.message };
     }
 }
+
+/**
+ * UNIFICADOR: Obtiene datos de inicialización para el Home Dashboard.
+ * Retorna telemetría y stock de la tienda en una sola llamada de red.
+ */
+function getHomeInitializationData(storeId) {
+    try {
+        const telemetry = getHomeDashboardData();
+        let stockResult = null;
+        if (storeId) {
+            stockResult = getAllStockFromCache(storeId);
+        }
+        return {
+            success: true,
+            telemetry: telemetry,
+            stockMap: (stockResult && stockResult.success) ? stockResult.stockMap : null
+        };
+    } catch (e) {
+        console.error("Error en getHomeInitializationData: " + e.message);
+        return { success: false, message: e.message };
+    }
+}
+
+/**
+ * UNIFICADOR: Obtiene datos de inicialización para el POS / TPV.
+ * Retorna estado dinámico de caja/sesión y stock de la tienda en una sola llamada.
+ */
+function getPosInitializationData(storeId, userId) {
+    try {
+        const dynamicStatus = getStoreDynamicStatus(storeId, userId);
+        const stockResult = getAllStockFromCache(storeId);
+        
+        return {
+            success: true,
+            activeCashRegisterId: dynamicStatus.success ? dynamicStatus.activeCashRegisterId : null,
+            session: (dynamicStatus.success && dynamicStatus.session) ? dynamicStatus.session : null,
+            stockMap: stockResult.success ? stockResult.stockMap : null
+        };
+    } catch (e) {
+        console.error("Error en getPosInitializationData: " + e.message);
+        return { success: false, message: e.message };
+    }
+}
+

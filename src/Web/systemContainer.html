@@ -402,7 +402,7 @@
               })
               .withFailureHandler(err => console.warn("[Global Fetch] Advertencia en sincronizacion de Drive:", err.message))
               .tpv_obtenerCatalogoDesdeDrive();
-          }, 1000); // Margen de seguridad de 1 segundo para evitar competencia
+          }, 6000); // Margen de seguridad de 6 segundos para evitar competencia con la carga inicial de telemetría/stock
           
           return initialData;
         }

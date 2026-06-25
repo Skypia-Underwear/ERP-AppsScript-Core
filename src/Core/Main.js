@@ -1178,23 +1178,29 @@ function getPageContent(view, accion, codigo, fecha, isEmbedded = false) {
   if (view === 'login') {
     const template = HtmlService.createTemplateFromFile('Web/login_view');
 
-    // Obtener Logo de la Tienda Principal (BD_TIENDAS, Fila 2)
-    let logoUrl = "";
-    try {
-      const ss = getActiveSS();
-      const sheetTiendas = ss.getSheetByName(SHEETS.STORES || "BD_TIENDAS");
-      const mapping = HeaderManager.getMapping("STORES");
-      const colLogo = mapping ? mapping["LOGOTIPO"] : -1;
+    // Obtener Logo de la Tienda Principal con caché de 6 horas
+    const cache = CacheService.getScriptCache();
+    let logoUrl = cache.get("STORE_LOGIN_LOGO");
+    
+    if (!logoUrl) {
+      logoUrl = "";
+      try {
+        const ss = getActiveSS();
+        const sheetTiendas = ss.getSheetByName(SHEETS.STORES || "BD_TIENDAS");
+        const mapping = HeaderManager.getMapping("STORES");
+        const colLogo = mapping ? mapping["LOGOTIPO"] : -1;
 
-      if (sheetTiendas && colLogo !== -1) {
-        const logoPath = sheetTiendas.getRange(2, colLogo + 1).getValue();
-        if (logoPath) {
-          const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME;
-          logoUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${appName}&tableName=BD_TIENDAS&fileName=${encodeURIComponent(logoPath)}`;
+        if (sheetTiendas && colLogo !== -1) {
+          const logoPath = sheetTiendas.getRange(2, colLogo + 1).getValue();
+          if (logoPath) {
+            const appName = GLOBAL_CONFIG.APPSHEET.APP_NAME;
+            logoUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${appName}&tableName=BD_TIENDAS&fileName=${encodeURIComponent(logoPath)}`;
+            cache.put("STORE_LOGIN_LOGO", logoUrl, 21600); // 6 horas
+          }
         }
+      } catch (e) {
+        console.error("Error al cargar logo para login: " + e.message);
       }
-    } catch (e) {
-      console.error("Error al cargar logo para login: " + e.message);
     }
 
     template.STORE_LOGO = logoUrl;

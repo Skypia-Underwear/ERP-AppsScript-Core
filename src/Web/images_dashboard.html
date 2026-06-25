@@ -3248,11 +3248,51 @@
 
     function accionMasiva(accion) {
         const ids = Array.from(selectedImages); if (!ids.length) return;
-        const msg = accion === 'eliminar' ? "\u00bfBorrar definitivamente?" : `\u00bf${accion.toUpperCase()} ${ids.length} im\u00e1genes?`;
+        const msg = accion === 'eliminar' ? "¿Borrar definitivamente?" : `¿${accion.toUpperCase()} ${ids.length} imágenes?`;
         if (!confirm(msg)) return;
         log(`Procesando ${ids.length}...`, 'info');
-        if (accion === 'eliminar') google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).eliminarImagenesDefinitivo(ids);
-        else google.script.run.withSuccessHandler(res => { log(res.message, 'success'); recargar(); }).cambiarEstadoMasivo(ids, accion === 'mostrar');
+        
+        if (accion === 'eliminar') {
+            // Eliminar del DOM y del cache de forma optimista
+            ids.forEach(id => {
+                const card = document.getElementById(`card-${id}`);
+                if (card) card.remove();
+                
+                const idx = CURRENT_IMAGES.findIndex(i => i.IMAGEN_ID === id);
+                if (idx !== -1) CURRENT_IMAGES.splice(idx, 1);
+            });
+            
+            // Actualizar contadores
+            const cA = CURRENT_IMAGES.filter(i => i.ESTADO).length;
+            const cH = CURRENT_IMAGES.length - cA;
+            const elCountA = document.getElementById('countActivas');
+            const elCountH = document.getElementById('countOcultas');
+            if (elCountA) elCountA.innerText = cA;
+            if (elCountH) elCountH.innerText = cH;
+            
+            const idsParaEliminar = [...ids];
+            limpiarSeleccion();
+            
+            google.script.run.withSuccessHandler(res => {
+                log(res.message, 'success');
+            }).withFailureHandler(err => {
+                Swal.fire('Error', 'No se pudo eliminar: ' + err.message, 'error').then(() => recargar());
+            }).eliminarImagenesDefinitivo(idsParaEliminar);
+        } else {
+            const nuevoEstado = accion === 'mostrar';
+            // Mover optimistamente en el DOM y cache
+            ids.forEach(id => {
+                optimisticMoveCard(id, nuevoEstado);
+            });
+            const idsParaActualizar = [...ids];
+            limpiarSeleccion();
+            
+            google.script.run.withSuccessHandler(res => {
+                log(res.message, 'success');
+            }).withFailureHandler(err => {
+                Swal.fire('Error', 'No se pudo actualizar el estado: ' + err.message, 'error').then(() => recargar());
+            }).cambiarEstadoMasivo(idsParaActualizar, nuevoEstado);
+        }
     }
 
     function descargarSeleccionMasiva() {
@@ -3534,7 +3574,7 @@
         else {
             btnDel.classList.add('hidden');
             if (btnAi) btnAi.parentElement.classList.remove('hidden');
-            if (btnCover) btnCover.classList.remove('hidden');
+            if (btnCover) btnCover.classList.add('hidden');
         }
 
         // AUTO-DISPLAY PROMPT IF EXISTS
@@ -3670,9 +3710,39 @@
     function optimisticMoveCard(id, nuevoEstado) {
         const card = document.getElementById(`card-${id}`); if (!card) return;
         const targetGrid = nuevoEstado ? document.getElementById('imageGridActive') : document.getElementById('imageGridHidden');
+        
+        // Actualizar en caché local
+        const imgObj = CURRENT_IMAGES.find(i => i.IMAGEN_ID === id);
+        if (imgObj) imgObj.ESTADO = nuevoEstado;
         if (currentImgObj && currentImgObj.IMAGEN_ID === id) currentImgObj.ESTADO = nuevoEstado;
+        
         card.style.transform = 'scale(0.9)'; card.style.opacity = '0';
-        setTimeout(() => { targetGrid.appendChild(card); const badge = card.querySelector('.status-badge'); if (badge) { badge.className = `status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${nuevoEstado ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/80 text-slate-400'}`; badge.innerText = nuevoEstado ? 'ACTIVA' : 'OCULTA'; } card.style.transform = 'scale(1)'; card.style.opacity = '1'; }, 200);
+        setTimeout(() => { 
+            targetGrid.appendChild(card); 
+            const badge = card.querySelector('.status-badge'); 
+            if (badge) { 
+                badge.className = `status-badge text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${nuevoEstado ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/80 text-slate-400'}`; 
+                badge.innerText = nuevoEstado ? 'ACTIVA' : 'OCULTA'; 
+            } 
+            
+            // Actualizar contadores de las pestañas
+            const cA = CURRENT_IMAGES.filter(i => i.ESTADO).length;
+            const cH = CURRENT_IMAGES.length - cA;
+            const elCountA = document.getElementById('countActivas');
+            const elCountH = document.getElementById('countOcultas');
+            if (elCountA) elCountA.innerText = cA;
+            if (elCountH) elCountH.innerText = cH;
+
+            card.style.transform = 'scale(1)'; card.style.opacity = '1'; 
+        }, 200);
+    }
+
+    function reenumerarTarjetas() {
+        const allCards = document.querySelectorAll('.img-card');
+        allCards.forEach((card, index) => {
+            const badge = card.querySelector('.index-badge-mini');
+            if (badge) badge.innerText = index + 1;
+        });
     }
 
     function cambiarEstadoModalToggle() {
@@ -3682,8 +3752,70 @@
     }
 
     function cambiarEstadoModal(nuevoEstado) { const id = currentImageId; closeModal(); optimisticMoveCard(id, nuevoEstado); google.script.run.withSuccessHandler(() => log("Estado guardado.", "success")).withFailureHandler(err => { Swal.fire('Error', 'No se pudo guardar.', 'error').then(() => recargar()); }).cambiarEstadoImagen(id, nuevoEstado); }
-    function hacerPortadaModal() { closeModal(); log("Estableciendo portada...", "info"); google.script.run.withSuccessHandler(() => recargar()).establecerPortada(currentImageId, currentProduct.sku); }
-    function borrarImagenModal() { const id = currentImageId; Swal.fire({ title: '\u00bfEliminar Definitivamente?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Borrar' }).then((result) => { if (result.isConfirmed) { closeModal(); const card = document.getElementById(`card-${id}`); if (card) card.remove(); google.script.run.withSuccessHandler(res => log(res.message, 'success')).withFailureHandler(err => { Swal.fire('Error', 'Fallo al eliminar.', 'error').then(() => recargar()); }).eliminarImagenesDefinitivo([id]); } }); }
+    
+    function hacerPortadaModal() { 
+        closeModal(); 
+        log("Estableciendo portada...", "info"); 
+        google.script.run.withSuccessHandler(() => {
+            log("Portada establecida correctamente.", "success");
+            
+            // 1. Quitar la portada vieja de la UI y del cache
+            document.querySelectorAll('.mini-badge.portada').forEach(el => el.remove());
+            CURRENT_IMAGES.forEach(img => {
+                img.PORTADA = false;
+            });
+            
+            // 2. Asignar la nueva portada en la UI
+            const newCoverCard = document.getElementById(`card-${currentImageId}`);
+            if (newCoverCard) {
+                const badgeContainer = newCoverCard.querySelector('.status-badges-container');
+                if (badgeContainer) {
+                    badgeContainer.insertAdjacentHTML('afterbegin', '<div class="mini-badge portada" title="Portada"><span class="material-icons">star</span></div>');
+                }
+            }
+            
+            // 3. Asignar la nueva portada en el cache
+            const targetImg = CURRENT_IMAGES.find(img => img.IMAGEN_ID === currentImageId);
+            if (targetImg) targetImg.PORTADA = true;
+            
+        }).withFailureHandler(err => {
+            Swal.fire('Error', 'No se pudo establecer como portada: ' + err.message, 'error');
+        }).establecerPortada(currentImageId, currentProduct.sku); 
+    }
+
+    function borrarImagenModal() { 
+        const id = currentImageId; 
+        Swal.fire({ 
+            title: '¿Eliminar Definitivamente?', 
+            icon: 'warning', 
+            showCancelButton: true, 
+            confirmButtonColor: '#dc2626', 
+            confirmButtonText: 'Borrar' 
+        }).then((result) => { 
+            if (result.isConfirmed) { 
+                closeModal(); 
+                const card = document.getElementById(`card-${id}`); 
+                if (card) card.remove(); 
+                
+                // Actualizar cache y contadores
+                const idx = CURRENT_IMAGES.findIndex(i => i.IMAGEN_ID === id);
+                if (idx !== -1) CURRENT_IMAGES.splice(idx, 1);
+                
+                const cA = CURRENT_IMAGES.filter(i => i.ESTADO).length;
+                const cH = CURRENT_IMAGES.length - cA;
+                const elCountA = document.getElementById('countActivas');
+                const elCountH = document.getElementById('countOcultas');
+                if (elCountA) elCountA.innerText = cA;
+                if (elCountH) elCountH.innerText = cH;
+
+                google.script.run.withSuccessHandler(res => {
+                    log(res.message, 'success');
+                }).withFailureHandler(err => { 
+                    Swal.fire('Error', 'Fallo al eliminar.', 'error').then(() => recargar()); 
+                }).eliminarImagenesDefinitivo([id]); 
+            } 
+        }); 
+    }
 
     // --- AI PROMPTING ---
     function ejecutarAuditoriaForense() {
@@ -5456,7 +5588,7 @@
     function reenumerarTarjetas() {
         const cards = document.querySelectorAll('#imageGridActive .img-card:not(#wp-upload-card):not([id^="prev-"])');
         cards.forEach((card, index) => {
-            const badge = card.querySelector('.index-badge');
+            const badge = card.querySelector('.index-badge') || card.querySelector('.index-badge-mini');
             if (badge) badge.innerText = index + 1;
         });
     }
@@ -5479,7 +5611,19 @@
                 btn.classList.add('hidden');
                 hasUnsavedChanges = false;
                 gridSnapshot = null; // Limpiar snapshot al guardar
-                recargar(); // Refrescar para ver nueva portada
+                
+                // Actualizar orden en caché local y badges DOM sin recargar toda la galería
+                reenumerarTarjetas();
+                cards.forEach((card, index) => {
+                    const id = card.getAttribute('data-id');
+                    const imgObj = CURRENT_IMAGES.find(img => img.IMAGEN_ID === id);
+                    if (imgObj) imgObj.ORDEN = index + 1;
+                });
+                CURRENT_IMAGES.sort((a, b) => {
+                    if (a.ESTADO !== b.ESTADO) return b.ESTADO - a.ESTADO;
+                    return a.ORDEN - b.ORDEN;
+                });
+
                 if (isReorderMode) toggleReorderMode(); // --- NUEVO: Salir de modo ordenar al guardar ---
                 if (callback) callback(true);
             } else {

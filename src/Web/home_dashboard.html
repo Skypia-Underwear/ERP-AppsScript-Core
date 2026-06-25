@@ -255,39 +255,47 @@
             window.getGlobalCatalog();
         }
 
-        // --- PRECARGA DE STOCK CACHE (OPCIONAL) ---
+        // --- INICIALIZACIÓN UNIFICADA DE HOME (V5.4) ---
         const userStockRaw = sessionStorage.getItem('loggedInUser');
         const user = (userStockRaw && userStockRaw !== 'undefined') ? JSON.parse(userStockRaw) : {};
-        if (user.managedStore && typeof google !== 'undefined') {
-            console.log(`[Home] Pre-cargando stock para tienda: ${user.managedStore}`);
+        
+        if (typeof google !== 'undefined') {
+            console.log(`[Home] Iniciando carga unificada (Stock + Telemetría) para: ${user.managedStore || "Ninguna"}`);
             google.script.run
                 .withSuccessHandler(res => {
-                    if (res.success) window.fullStockCache = res.stockMap;
+                    setGlobalStatus(false);
+                    if (res && res.success) {
+                        // 1. Asignar caché de stock si corresponde
+                        if (res.stockMap) {
+                            window.fullStockCache = res.stockMap;
+                            console.log(`[Home] Stock cargado en caché: ${Object.keys(res.stockMap).length} items.`);
+                        }
+                        
+                        // 2. Procesar telemetría
+                        const telemetry = res.telemetry || {};
+                        const elTotal = document.getElementById('kpi-ventas-total');
+                        const elCantidad = document.getElementById('kpi-ventas-cantidad');
+                        const elStock = document.getElementById('kpi-stock-bajo');
+
+                        if (telemetry.ventas) {
+                            if (elTotal) elTotal.innerText = '$' + telemetry.ventas.total.toLocaleString("es-AR");
+                            if (elCantidad) elCantidad.innerText = telemetry.ventas.cantidad + (telemetry.ventas.cantidad === 1 ? ' operaci\u00f3n' : ' operaciones');
+                        }
+                        if (telemetry.stock) {
+                            if (elStock) elStock.innerText = telemetry.stock.bajo;
+                        }
+                    } else {
+                        console.error("Fallo al inicializar Home:", res ? res.message : "Sin respuesta");
+                    }
                 })
-                .getAllStockFromCache(user.managedStore);
+                .withFailureHandler(err => {
+                    setGlobalStatus(false);
+                    console.error("Fallo crítico al cargar telemetr\u00eda:", err);
+                })
+                .getHomeInitializationData(user.managedStore);
+        } else {
+            setGlobalStatus(false);
         }
-
-        google.script.run
-            .withSuccessHandler(data => {
-                setGlobalStatus(false);
-                const elTotal = document.getElementById('kpi-ventas-total');
-                const elCantidad = document.getElementById('kpi-ventas-cantidad');
-                const elStock = document.getElementById('kpi-stock-bajo');
-
-                if (data.ventas) {
-                    if (elTotal) elTotal.innerText = '$' + data.ventas.total.toLocaleString("es-AR");
-                    if (elCantidad) elCantidad.innerText = data.ventas.cantidad + (data.ventas.cantidad === 1 ? ' operaci\u00f3n' : ' operaciones');
-                }
-                if (data.stock) {
-                    if (elStock) elStock.innerText = data.stock.bajo;
-                }
-                // Otros datos de salud si es necesario
-            })
-            .withFailureHandler(err => {
-                setGlobalStatus(false);
-                console.error("Fallo al cargar telemetr\u00eda:", err);
-            })
-            .getHomeDashboardData();
     })();
 
     function limpiarCacheGlobal() {

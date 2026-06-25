@@ -153,7 +153,7 @@ function getHomeDashboardData() {
             system: { mode: GLOBAL_CONFIG.TELEGRAM.MODE || "PROD", target: GLOBAL_CONFIG.PUBLICATION_TARGET || "DONWEB" }
         };
 
-        try { cache.put('TELEMETRY_DASHBOARD', JSON.stringify(returnObj), 60); } catch(e) {} // 60 segundos cache
+        try { cache.put('TELEMETRY_DASHBOARD', JSON.stringify(returnObj), 600); } catch(e) {} // 10 minutos cache
         return returnObj;
     } catch (e) {
         console.error("Error en getHomeDashboardData: " + e.message);

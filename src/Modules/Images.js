@@ -410,6 +410,8 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
     const filasBorrar = [];
     const existingRoutesMap = new Set();
     const dbFilesMap = new Map();
+    const dbRoutesMap = new Map(); // NUEVO: Mapeo de ruta original para asociar registros de AppSheet
+    const filasProcesadas = new Set(); // NUEVO: Registro de filas actualizadas/asociadas
 
     // --- NUEVO: Asegurar columnas de metadatos ---
     if (col['PESO_ARCHIVO'] === undefined || col['FORMATO_ARCHIVO'] === undefined) {
@@ -426,13 +428,17 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
     }
 
     for (let i = 1; i < dataImg.length; i++) {
-      const fId = String(dataImg[i][col['ARCHIVO_ID']]);
+      const fId = String(dataImg[i][col['ARCHIVO_ID']]).trim();
       const pId = String(dataImg[i][col['PRODUCTO_ID']]).trim();
-      const ruta = String(dataImg[i][col['IMAGEN_RUTA']]);
+      const ruta = String(dataImg[i][col['IMAGEN_RUTA']]).trim();
 
       if (productoIdFiltro && pId !== String(productoIdFiltro)) continue;
 
-      if (fId) dbFilesMap.set(fId, i + 1);
+      if (fId) {
+        dbFilesMap.set(fId, i + 1);
+      } else if (pId && ruta) {
+        dbRoutesMap.set(`${pId}|${ruta}`, i + 1); // Guardar fila que no tiene ARCHIVO_ID
+      }
       if (pId && ruta) existingRoutesMap.add(`${pId}|${ruta}`);
     }
 
@@ -463,8 +469,12 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
             if (oldPrompt && !u.rowData[col['PROMPT']]) setValU('PROMPT', oldPrompt);
             if (oldCosto && !u.rowData[col['COSTO']]) setValU('COSTO', oldCosto);
             if (oldFuente && (oldFuente.includes('AI') || oldFuente.includes('Gemini'))) setValU('FUENTE', oldFuente);
-            sheetImg.getRange(u.rowIndex, 1, 1, headersImg.length).setValues([u.rowData]);
+            
+            // Actualizar la matriz en memoria
+            dataImg[u.rowIndex - 1] = u.rowData;
           });
+          // Escribir todas las actualizaciones del lote parcial de golpe
+          sheetImg.getRange(1, 1, dataImg.length, headersImg.length).setValues(dataImg);
           log(`🔄 ${actualizaciones.length} actualizadas en batch parcial.`);
         }
         SpreadsheetApp.flush();
@@ -525,7 +535,8 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         archivosEnCarpeta.forEach(file => {
           const fileId = file.getId();
           const mime = file.getMimeType();
-          let fileName = file.getName();
+          let originalFileName = file.getName(); // Guardamos el nombre original para buscar por ruta
+          let fileName = originalFileName;
 
           if (fileName.toLowerCase().includes('_thumb.jpg')) {
             archivosVistosEnDrive.add(fileId);
@@ -550,11 +561,9 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
               }
               if (fileName !== nuevoNombreBase) {
                 file.setName(nuevoNombreBase);
-                log(`   📄 Archivo ${contadorImagenes}: ${nuevoNombreBase} (Estable)`);
               }
               fileName = nuevoNombreBase;
             } catch (e) { log(`   ⚠️ Error renombrando ${fileName}: ${e.message}`); }
-            contadorImagenes++;
           }
 
           let publicUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${encodeURIComponent(appName)}&tableName=${encodeURIComponent(sheetName)}&fileName=${encodeURIComponent(`${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${fileName}`)}`;
@@ -591,11 +600,14 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
           const relativePath = `${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${fileName}`;
           const yaExistePorId = dbFilesMap.has(fileId);
-          const rowIndex = yaExistePorId ? dbFilesMap.get(fileId) : null;
+          // NUEVO: Intentar coincidir por la ruta original del archivo (ej. el registro creado por AppSheet sin ID de archivo)
+          const rutaOriginal = `${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${originalFileName}`;
+          const yaExistePorRuta = !yaExistePorId && dbRoutesMap.has(`${prod.sku}|${rutaOriginal}`);
+          const rowIndex = yaExistePorId ? dbFilesMap.get(fileId) : (yaExistePorRuta ? dbRoutesMap.get(`${prod.sku}|${rutaOriginal}`) : null);
 
           // RECUPERAR ORDEN EXISTENTE O ASIGNAR UNO SECUENCIAL
           let ordenFinal = contadorImagenes;
-          if (yaExistePorId && rowIndex) {
+          if (rowIndex) {
             const ordenDB = parseInt(dataImg[rowIndex - 1][col['ORDEN']]);
             if (!isNaN(ordenDB) && ordenDB !== 999 && ordenDB !== 0) {
               ordenFinal = ordenDB;
@@ -611,12 +623,12 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           setVal('ARCHIVO_ID', fileId);
           setVal('URL', publicUrl);
           setVal('FECHA_CARGA', timestamp);
-          setVal('FUENTE', 'Sistema Web');
+          setVal('FUENTE', yaExistePorRuta ? 'AppSheet Sync' : 'Sistema Web');
 
           // REGLA: Conservar el estado de PORTADA preexistente, 
           // O marcar el primer archivo nuevo (contadorImagenes===1) como portada SOLO si no existía el registro.
           let esPortada = false;
-          if (yaExistePorId && rowIndex) {
+          if (rowIndex) {
             esPortada = String(dataImg[rowIndex - 1][col['PORTADA']]).toUpperCase() === 'TRUE';
           } else if (ordenFinal === 1) {
             esPortada = true;
@@ -633,12 +645,24 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           setVal('FORMATO_ARCHIVO', extension.toUpperCase());
           setVal('THUMBNAIL_URL', thumbnailUrl);
 
-          if (yaExistePorId) {
+          // Metadatos para log completo
+          const pesoKB = (file.getSize() / 1024).toFixed(1);
+          const formato = extension.toUpperCase();
+          const descPortada = esPortada ? " [PORTADA]" : "";
+
+          if (rowIndex) {
             actualizaciones.push({ rowIndex: rowIndex, rowData: row });
+            filasProcesadas.add(rowIndex);
+            if (yaExistePorRuta) {
+              log(`   🔗 Archivo ${contadorImagenes}: ${fileName} (Asociado a registro de AppSheet) - ${pesoKB} KB - ${formato}${descPortada}`);
+            } else {
+              log(`   🔄 Archivo ${contadorImagenes}: ${fileName} (Actualizado en base de datos) - ${pesoKB} KB - ${formato}${descPortada}`);
+            }
           } else {
             setVal('IMAGEN_ID', `IMG-${Date.now()}-${contadorImagenes}-${Math.floor(Math.random() * 1000)}`);
             setVal('ESTADO', true);
             nuevasFilas.push(row);
+            log(`   ✅ Archivo ${contadorImagenes}: ${fileName} (Nuevo registro) - ${pesoKB} KB - ${formato}${descPortada}`);
           }
           contadorImagenes++;
         });
@@ -658,10 +682,9 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
       for (let i = 1; i < dataImg.length; i++) {
         const pId = String(dataImg[i][col['PRODUCTO_ID']]).trim();
         if (pId === String(productoIdFiltro)) {
-          const fId = String(dataImg[i][col['ARCHIVO_ID']]);
           const rowIndex = i + 1;
-          // Si el ID de archivo no se vio en Drive (o si no tiene ID), es un huérfano
-          if (!archivosVistosEnDrive.has(fId)) {
+          // Si la fila del SKU no fue procesada (actualizada o asociada), significa que no corresponde a ningún archivo en Drive
+          if (!filasProcesadas.has(rowIndex)) {
             filasBorrar.push(rowIndex);
           }
         }
@@ -686,20 +709,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
     // APLICAR ACTUALIZACIONES (Lote o Individual)
     if (actualizaciones.length > 0) {
-      // Optimizacion: Escribir uno por uno es lento, pero seguro para mantener indices.
-      // Dado que filasBorrar se hace al final, los indices son validos.
       actualizaciones.forEach(u => {
-        // Solo actualizamos columnas criticas, preservando IMAGEN_ID (Col A / Index 0 generalmente)
-        // Para simplificar: Sobreescribimos todo MENOS IMAGEN_ID y ESTADO si queremos preservar.
-        // Pero nuestra 'row' tiene vacio en IMAGEN_ID.
-        // Estrategia: Leer fila actual? Lento.
-        // Estrategia Mejor: 'row' tiene todo calculado. Solo IMAGEN_ID falta.
-        // No es vital actualizar IMAGEN_ID. Lo dejamos.
-        // Mapeamos row a columnas reales.
-
-        // Vamos a actualizar celdas especificas para ser eficientes? No, setValues es row-based.
-        // Hack: Leer el IMAGEN_ID de la hoja es costoso en bucle.
-        // Como 'dataImg' ya tiene los valores, podemos recuperar el IMAGEN_ID viejo de memoria!
         const originalRowData = dataImg[u.rowIndex - 1];
         const oldID = originalRowData[col['IMAGEN_ID']];
         const oldEstado = originalRowData[col['ESTADO']];
@@ -730,8 +740,12 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         // Si la fuente era Gemini, la respetamos. Si era manual, el sync pone 'Sistema Web' por defecto pero podemos ser más listos
         if (oldFuente && (oldFuente.includes('AI') || oldFuente.includes('Gemini'))) setVal('FUENTE', oldFuente);
 
-        sheetImg.getRange(u.rowIndex, 1, 1, headersImg.length).setValues([u.rowData]);
+        // Modificar en la matriz de memoria
+        dataImg[u.rowIndex - 1] = u.rowData;
       });
+
+      // Escribir todas las actualizaciones consolidadas en una sola operación de lote
+      sheetImg.getRange(1, 1, dataImg.length, headersImg.length).setValues(dataImg);
       log(`🔄 ${actualizaciones.length} actualizadas.`);
     }
     // REGLA DE SEGURIDAD PARA ELIMINACIÓN:
@@ -741,8 +755,12 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
     if (esSeguroBorrar) {
       filasBorrar.sort((a, b) => b - a);
-      filasBorrar.forEach(r => sheetImg.deleteRow(r));
-      log(`🗑️ -${filasBorrar.length} borradas.`);
+      filasBorrar.forEach(r => {
+        const deletedRoute = dataImg[r - 1][col['IMAGEN_RUTA']];
+        sheetImg.deleteRow(r);
+        log(`🗑️ Registro huérfano eliminado: ${deletedRoute}`);
+      });
+      log(`🗑️ -${filasBorrar.length} registros huérfanos borrados.`);
     }
 
     // FORZAR ESCRITURA INMEDIATA EN LA HOJA DE CÁLCULO
@@ -771,6 +789,7 @@ function procesarGeneracionCarpetas() {
 
     const parent = DriveApp.getFolderById(GLOBAL_CONFIG.DRIVE.PARENT_FOLDER_ID);
     let count = 0;
+    let cambiado = false;
     for (let i = 1; i < data.length; i++) {
       const sku = String(data[i][idxSku]).trim();
       const fid = String(data[i][idxFolder]).trim();
@@ -779,9 +798,13 @@ function procesarGeneracionCarpetas() {
         const fs = parent.getFoldersByName(sku);
         if (fs.hasNext()) f = fs.next();
         else f = parent.createFolder(sku);
-        sheet.getRange(i + 1, idxFolder + 1).setValue(f.getId());
+        data[i][idxFolder] = f.getId();
         count++;
+        cambiado = true;
       }
+    }
+    if (cambiado) {
+      sheet.getRange(1, 1, data.length, headers.length).setValues(data);
     }
     return { success: true, message: `Carpetas: ${count}`, logs: logArray };
   } catch (e) { return { success: false, message: e.message }; }
@@ -957,19 +980,30 @@ function establecerPortada(imgId, sku) {
   const idxPortada = headers.indexOf('PORTADA');
   const idxId = headers.indexOf('IMAGEN_ID');
 
-  if (idxProd === -1 || idxPortada === -1) return { success: false };
+  if (idxProd === -1 || idxPortada === -1 || idxId === -1) return { success: false };
 
+  let cambiado = false;
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idxProd]) === String(sku)) {
-      if (String(data[i][idxPortada]).toUpperCase() === 'TRUE') sheet.getRange(i + 1, idxPortada + 1).setValue(false);
+      const isPortada = String(data[i][idxPortada]).toUpperCase() === 'TRUE' || data[i][idxPortada] === true;
+      if (isPortada) {
+        data[i][idxPortada] = false;
+        cambiado = true;
+      }
     }
   }
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idxId]) === String(imgId)) {
-      sheet.getRange(i + 1, idxPortada + 1).setValue(true);
-      return { success: true };
+      data[i][idxPortada] = true;
+      cambiado = true;
+      break;
     }
   }
+
+  if (cambiado) {
+    sheet.getRange(1, 1, data.length, headers.length).setValues(data);
+  }
+  return { success: true };
 }
 
 /**
@@ -987,7 +1021,6 @@ function guardarNuevoOrdenImagenes(sku, idsOrdenados) {
 
   const colId = headers.indexOf('IMAGEN_ID');
   const colOrden = headers.indexOf('ORDEN');
-  const colPortada = headers.indexOf('PORTADA');
   const colSku = headers.indexOf('PRODUCTO_ID');
 
   if (colId === -1 || colOrden === -1) {
@@ -995,26 +1028,27 @@ function guardarNuevoOrdenImagenes(sku, idsOrdenados) {
     return { success: false, message: "No se encontró la columna ORDEN en la base de datos." };
   }
 
-  // Mapeo rápido de fila por ID
+  // Mapeo rápido de índice de fila en data (base 0) por ID de imagen
   const mapIds = {};
-  const skuRows = [];
   for (let i = 1; i < data.length; i++) {
     const rowId = String(data[i][colId]);
-    const rowSku = String(data[i][colSku]);
-    mapIds[rowId] = i + 1;
-    if (rowSku === String(sku)) {
-      skuRows.push(i + 1);
-    }
+    mapIds[rowId] = i;
   }
 
   try {
-    // Aplicar nuevo ORDEN. NO tocamos la columna PORTADA. El usuario la selecciona aparte.
+    // Aplicar nuevo ORDEN en la matriz en memoria
+    let cambiado = false;
     idsOrdenados.forEach((id, index) => {
-      const rowNum = mapIds[String(id)];
-      if (rowNum) {
-        sheet.getRange(rowNum, colOrden + 1).setValue(index + 1);
+      const rowIdx = mapIds[String(id)];
+      if (rowIdx !== undefined) {
+        data[rowIdx][colOrden] = index + 1;
+        cambiado = true;
       }
     });
+
+    if (cambiado) {
+      sheet.getRange(1, 1, data.length, headers.length).setValues(data);
+    }
 
     return { success: true, message: "Orden actualizado correctamente. Portada preservada." };
   } catch (e) {
@@ -1052,13 +1086,18 @@ function cambiarEstadoMasivo(ids, nuevoEstado) {
   const idxId = headers.indexOf('IMAGEN_ID');
   const idxEstado = headers.indexOf('ESTADO');
 
-  if (idxId === -1) return { success: false };
+  if (idxId === -1 || idxEstado === -1) return { success: false };
   let count = 0;
+  let cambiado = false;
   for (let i = 1; i < data.length; i++) {
     if (ids.includes(String(data[i][idxId]))) {
-      sheet.getRange(i + 1, idxEstado + 1).setValue(nuevoEstado);
+      data[i][idxEstado] = nuevoEstado;
       count++;
+      cambiado = true;
     }
+  }
+  if (cambiado) {
+    sheet.getRange(1, 1, data.length, headers.length).setValues(data);
   }
   return { success: true, message: `${count} actualizados.` };
 }
@@ -2399,6 +2438,7 @@ function subirImagenesProductoWP(sku) {
 
     logArray.push(`🚀 Iniciando subida de ${imagenes.length} imágenes para SKU: ${sku}`);
 
+    let cambiado = false;
     imagenes.forEach(img => {
       try {
         const file = DriveApp.getFileById(img.ARCHIVO_ID);
@@ -2425,10 +2465,10 @@ function subirImagenesProductoWP(sku) {
         try { resJson = JSON.parse(resText); } catch (e) { resJson = { status: 'error', message: resText }; }
 
         // Mapeo de fila en la hoja real para actualización
-        let rowIndex = -1;
+        let rowIndexInArray = -1;
         for (let i = 1; i < dataRows.length; i++) {
           if (String(dataRows[i][colId]) === String(img.IMAGEN_ID)) {
-            rowIndex = i + 1;
+            rowIndexInArray = i;
             break;
           }
         }
@@ -2436,11 +2476,17 @@ function subirImagenesProductoWP(sku) {
         if (resJson.status === 'success') {
           subidas.push(file.getName());
           logArray.push(`✅ ${file.getName()}: ${resJson.message}`);
-          if (rowIndex !== -1 && colSync !== -1) sheetImg.getRange(rowIndex, colSync + 1).setValue(true);
+          if (rowIndexInArray !== -1 && colSync !== -1) {
+            dataRows[rowIndexInArray][colSync] = true;
+            cambiado = true;
+          }
         } else if (resJson.status === 'skip' || (resJson.message && resJson.message.toLowerCase().includes('existe'))) {
           omitidas.push(file.getName());
           logArray.push(`ℹ️ ${file.getName()}: Ya existe en servidor.`);
-          if (rowIndex !== -1 && colSync !== -1) sheetImg.getRange(rowIndex, colSync + 1).setValue(true);
+          if (rowIndexInArray !== -1 && colSync !== -1) {
+            dataRows[rowIndexInArray][colSync] = true;
+            cambiado = true;
+          }
         } else {
           errores.push(file.getName());
           logArray.push(`❌ ${file.getName()}: ${resJson.message}`);
@@ -2449,6 +2495,10 @@ function subirImagenesProductoWP(sku) {
         logArray.push(`❌ Error en archivo ${img.ARCHIVO_ID}: ${e.message}`);
       }
     });
+
+    if (cambiado) {
+      sheetImg.getRange(1, 1, dataRows.length, headers.length).setValues(dataRows);
+    }
 
     // Lógica de Sincronización Automática (Ahora 100% fondo)
     if (subidas.length > 0 || omitidas.length > 0 || imagenes.length > 0) {
@@ -2584,7 +2634,7 @@ function asignarPortadasAleatorias() {
   const groupedProducts = {};
   for (let i = 1; i < data.length; i++) {
     const sku = String(data[i][colSku]).trim();
-    const isPortada = String(data[i][colPortada]).toUpperCase() === 'TRUE';
+    const isPortada = String(data[i][colPortada]).toUpperCase() === 'TRUE' || data[i][colPortada] === true;
 
     if (sku) {
       if (!groupedProducts[sku]) {
@@ -2593,7 +2643,7 @@ function asignarPortadasAleatorias() {
           rows: []
         };
       }
-      groupedProducts[sku].rows.push(i + 1); // 1-indexed for the sheet row
+      groupedProducts[sku].rows.push(i); // Guardar índice 0-based
       if (isPortada) {
         groupedProducts[sku].hasPortada = true;
       }
@@ -2601,6 +2651,7 @@ function asignarPortadasAleatorias() {
   }
 
   let countModificados = 0;
+  let cambiado = false;
 
   // Analizar y asignar una portada aleatoria si es necesario
   for (const sku in groupedProducts) {
@@ -2609,12 +2660,17 @@ function asignarPortadasAleatorias() {
     if (!productData.hasPortada && productData.rows.length > 0) {
       // Seleccionar una fila al azar de la galería
       const randomIndex = Math.floor(Math.random() * productData.rows.length);
-      const targetRow = productData.rows[randomIndex];
+      const targetRowIdx = productData.rows[randomIndex];
 
-      // Asignar el valor TRUE a esa nueva fila
-      sheetImg.getRange(targetRow, colPortada + 1).setValue(true);
+      // Asignar el valor TRUE a esa nueva fila en memoria
+      data[targetRowIdx][colPortada] = true;
       countModificados++;
+      cambiado = true;
     }
+  }
+
+  if (cambiado) {
+    sheetImg.getRange(1, 1, data.length, headers.length).setValues(data);
   }
 
   const resultMsg = countModificados > 0

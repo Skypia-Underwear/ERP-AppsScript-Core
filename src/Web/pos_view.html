@@ -33,7 +33,7 @@
 
   .tpv-main-layout {
     display: grid;
-    grid-template-columns: 200px 1fr 500px;
+    grid-template-columns: 220px 1fr 500px;
     /* Mas espacio al carrito */
     flex: 1;
     overflow: hidden;
@@ -113,11 +113,11 @@
   .filter-btn-tpv {
     width: 100%;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 0.15rem;
-    padding: 0.5rem 0.25rem;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
     /* Mas compacto */
     margin-bottom: 0.4rem;
     background: #1e293b;
@@ -130,16 +130,16 @@
   .filter-btn-tpv i {
     font-size: 1.25rem;
     color: #94a3b8;
+    flex-shrink: 0;
   }
 
   .filter-btn-tpv span {
-    font-size: 0.58rem;
-    /* Mas pequeño */
+    font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
     color: #94a3b8;
-    text-align: center;
-    line-height: 1.1;
+    text-align: left;
+    line-height: 1.2;
     display: block;
     max-width: 100%;
     overflow: hidden;
@@ -214,7 +214,7 @@
 
   .filters-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 0.5rem;
   }
 
@@ -617,7 +617,7 @@
   }
 
   .checkout-header {
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     background: var(--bg-panel);
     border-bottom: 1px solid var(--border-color);
     display: flex;
@@ -626,15 +626,15 @@
   }
 
   .checkout-body {
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     overflow-y: auto;
     display: grid;
     grid-template-columns: 1fr 340px;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
   .checkout-footer {
-    padding: 1.25rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     background: var(--bg-panel);
     border-top: 1px solid var(--border-color);
     display: flex;
@@ -656,12 +656,12 @@
   .tpv-select-checkout,
   .tpv-input-checkout {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
     border: 1px solid var(--border-color);
     background: var(--bg-panel);
     color: white;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     outline: none;
     transition: border-color 0.2s;
   }
@@ -674,7 +674,7 @@
   .payment-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   .payment-btn {
@@ -682,14 +682,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-    padding: 0.75rem 0.5rem;
+    gap: 0.2rem;
+    padding: 0.5rem 0.25rem;
     background: var(--bg-panel);
     border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     cursor: pointer;
     transition: all 0.2s;
     color: var(--text-muted);
+  }
+
+  .payment-btn span {
+    font-size: 0.7rem;
   }
 
   .payment-btn:hover {
@@ -708,12 +712,12 @@
   .checkout-summary-panel,
   .checkout-summary-box {
     background: var(--bg-main);
-    padding: 1.5rem;
+    padding: 1rem;
     border-radius: 1rem;
     border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
   /* Buttons */
@@ -998,9 +1002,8 @@
     <div class="flex items-center gap-4">
       <!-- Botón de Menú del ERP (visible en móvil y tablet) -->
       <button onclick="toggleSidebar()"
-        class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition md:hidden"
-        title="Menú de Navegación"
-        style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+        class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition md:hidden flex items-center justify-center"
+        title="Menú de Navegación" style="border: none; background: transparent; cursor: pointer; padding: 4px;">
         <i class="ph-bold ph-list text-2xl" style="color: #cbd5e1;"></i>
       </button>
       <div id="tpv-user-status"
@@ -1072,8 +1075,8 @@
             <thead>
               <tr>
                 <th>Producto</th>
-                <th>Precio</th>
                 <th>Variante</th>
+                <th>Precio</th>
                 <th>Cant.</th>
                 <th>Subtotal</th>
                 <th></th>
@@ -1098,7 +1101,7 @@
         </div>
 
         <div
-          style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text-muted); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+          style="display: flex; justify-content: space-between; font-size: 1rem; color: var(--text-muted); border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.75rem; padding-left: 10px;">
           <span class="font-bold text-white">SUBTOTAL:</span>
           <span id="tpv-sidebar-subtotal" style="font-weight: 900; color: white; font-size: 1.25rem;">$0</span>
         </div>
@@ -1115,8 +1118,8 @@
           <div>
             <label
               style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cliente</label>
-            <select id="qr-tpv-customer" class="tpv-select-checkout">
-              <option value="CLIENTE_GENERAL">Cliente General</option>
+            <select id="qr-tpv-customer" class="tpv-select-checkout" onchange="updateTpvTotals()">
+              <option value="CLI001">Cliente General</option>
             </select>
           </div>
           <div>
@@ -1125,7 +1128,7 @@
               de Pago</label>
             <div id="qr-payment-methods-grid" class="payment-grid mt-2"></div>
             <select id="qr-tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
-            <div class="mt-4 flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700">
+            <div class="mt-2 flex items-center gap-2 bg-slate-800/50 py-1.5 px-3 rounded-lg border border-slate-700">
               <input type="checkbox" id="qr-tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()"
                 class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-primary focus:ring-primary">
               <label for="qr-tpv-modal-deactivate-surcharge"
@@ -1161,6 +1164,11 @@
             </div>
             <div class="flex justify-between text-xs border-t border-dashed border-slate-700 pt-2 font-bold text-white">
               <span>Subtotal:</span> <span id="qr-tpv-modal-subtotal">$0</span>
+            </div>
+            <div id="qr-tpv-modal-payment-row" style="display: none;"
+              class="flex justify-between text-xs mb-2 text-yellow-500 pt-1">
+              <span>Recargo <span id="qr-tpv-modal-pm-name">Método</span>:</span> <span
+                id="qr-tpv-modal-payment-surcharge" class="font-bold">+$0</span>
             </div>
             <div
               style="text-align: right; border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">
@@ -1228,7 +1236,7 @@
           </div>
           <button id="btn-confirm-curva" onclick="confirmCurvaSelection()"
             class="tpv-btn-success-large py-3 px-8 opacity-50 cursor-not-allowed" disabled>
-            AANADIR AL CARRITO
+            ANADIR AL CARRITO
           </button>
         </div>
       </div>
@@ -1252,6 +1260,15 @@
                 class="ph-bold ph-qr-code text-2xl"></i><span>Lector QR</span></button>
           </div>
         </div>
+        <div>
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Opciones de Impresión</label>
+          <div class="mt-3 flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+            <input type="checkbox" id="tpv-config-hide-surcharge-ticket" onchange="toggleHideSurchargeTicket()"
+              class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+            <label for="tpv-config-hide-surcharge-ticket"
+              class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Ocultar recargo de pago en ticket</label>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1264,22 +1281,22 @@
             class="ph-bold ph-x text-2xl"></i></button>
       </div>
       <div class="checkout-body">
-        <div class="space-y-6">
+        <div class="space-y-3">
           <div>
             <label class="tpv-label-checkout">Cliente</label>
-            <select id="tpv-customer" class="tpv-select-checkout">
-              <option value="CLIENTE_GENERAL">Cliente General</option>
+            <select id="tpv-customer" class="tpv-select-checkout" onchange="updateTpvTotals()">
+              <option value="CLI001">Cliente General</option>
             </select>
           </div>
           <div>
             <label class="tpv-label-checkout">Metodo de Pago</label>
             <div id="payment-methods-grid" class="payment-grid"></div>
             <select id="tpv-payment-method" style="display: none;" onchange="updateTpvTotals()"></select>
-            <div class="mt-4 flex items-center gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+            <div class="mt-2 flex items-center gap-2 bg-slate-800/50 py-1.5 px-3 rounded-lg border border-slate-700">
               <input type="checkbox" id="tpv-modal-deactivate-surcharge" onchange="updateTpvTotals()"
-                class="w-5 h-5 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
               <label for="tpv-modal-deactivate-surcharge"
-                class="text-xs font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo (Cli001 /
+                class="text-[0.7rem] font-bold text-slate-400 uppercase cursor-pointer">Desactivar Recargo (Cli001 /
                 Especial)</label>
             </div>
           </div>
@@ -1311,10 +1328,15 @@
               class="flex justify-between text-base font-bold text-white border-t border-dashed border-slate-700 pt-3">
               <span>Subtotal:</span> <span id="tpv-modal-subtotal">$0</span>
             </div>
+            <div id="tpv-modal-payment-row" style="display: none;"
+              class="flex justify-between text-sm text-yellow-500 pt-1">
+              <span>Recargo <span id="tpv-modal-pm-name">Método</span>:</span> <span id="tpv-modal-payment-surcharge"
+                class="font-bold">+$0</span>
+            </div>
           </div>
           <div class="mt-auto text-right">
             <p class="text-[0.65rem] font-bold text-slate-500 uppercase mb-1">Total Final</p>
-            <p id="tpv-modal-final-total" class="text-4xl font-black text-primary">$0</p>
+            <p id="tpv-modal-final-total" class="text-2xl font-black text-primary">$0</p>
           </div>
         </div>
       </div>
@@ -1453,6 +1475,8 @@
         renderPaymentMethods('payment-methods-grid');
         renderPaymentMethods('qr-payment-methods-grid');
 
+        setSelectedPaymentMethod('Efectivo');
+
         if (isQr) {
           console.log("Modo QR: El panel de checkout ya deber a estar visible.");
           updateTpvTotals();
@@ -1486,7 +1510,7 @@
           let iconHtml = "";
 
           if (iconData && iconData.iconUrl) {
-            const bgStyle = `background-image: url('${iconData.iconUrl}'); background-size: contain; background-repeat: no-repeat; background-position: center; width: 32px; height: 32px;`;
+            const bgStyle = `background-image: url('${iconData.iconUrl}'); background-size: contain; background-repeat: no-repeat; background-position: center; width: 24px; height: 24px;`;
             iconHtml = `<div class='payment-svg-wrapper'><div style="${bgStyle}"></div></div>`;
           } else {
             var icon = "ph-money";
@@ -1494,7 +1518,7 @@
             if (idLower.includes('transf')) icon = "ph-bank";
             if (idLower.includes('qr') || idLower.includes('mercado')) icon = "ph-qr-code";
             if (idLower.includes('tarjeta')) icon = "ph-credit-card";
-            iconHtml = "<i class='ph-bold " + icon + "'></i>";
+            iconHtml = "<i class='ph-bold " + icon + " text-lg'></i>";
           }
 
           return (
@@ -1638,11 +1662,41 @@
       async function finalizeTpvInit(storeId) {
         posMetadata.managedStoreId = storeId;
 
-        // 1. Obtener Datos VOLÁTILES (Caja, Sesión) - Nueva función ligera
+        // 1. Aplicar Modo de Venta (desde Catálogo)
+        var rawMode = (posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
+        setTpvMode(rawMode);
+
+        // 2. Popular UI con Metadatos del Catálogo
+        const transSel = document.getElementById('tpv-transfer-account');
+        if (posMetadata.transferAccounts && transSel) {
+          transSel.innerHTML = posMetadata.transferAccounts.map(a => `<option value="${a.id}">${a.alias} - ${a.name}</option>`).join('');
+        }
+
+        // Popular clientes y seleccionar CLI001 por defecto
+        const custSel = document.getElementById('tpv-customer');
+        const qrCustSel = document.getElementById('qr-tpv-customer');
+        if (posMetadata.customers) {
+          const custOptions = posMetadata.customers.map(c => `<option value="${c.id}">${c.name} (${c.id})</option>`).join('');
+          if (custSel) {
+            custSel.innerHTML = custOptions;
+            if (posMetadata.customers.some(c => c.id === "CLI001")) custSel.value = "CLI001";
+          }
+          if (qrCustSel) {
+            qrCustSel.innerHTML = custOptions;
+            if (posMetadata.customers.some(c => c.id === "CLI001")) qrCustSel.value = "CLI001";
+          }
+        }
+
+        // 3. Inicialización Unificada del TPV (Sesión + Stock)
         google.script.run
-          .withFailureHandler(err => { console.warn("Fallo DynamicStatus:", err); })
+          .withFailureHandler(err => { 
+            console.error("Fallo crítico en inicialización unificada del TPV:", err); 
+            hideTpvLoader();
+            alert("Error al cargar datos del TPV: " + err.message);
+          })
           .withSuccessHandler(res => {
             if (res && res.success) {
+              // Rehidratar datos dinámicos (Caja, Sesión)
               posMetadata.activeCashRegisterId = res.activeCashRegisterId;
               if (res.session) {
                 updateTpvSessionStatus(res.session);
@@ -1652,33 +1706,22 @@
                   console.log("IP de Impresora actualizada dinamicamente:", posMetadata.printerIp);
                 }
               }
-            }
-          })
-          .getStoreDynamicStatus(storeId, posMetadata.sellerId);
 
-        // 2. Aplicar Modo de Venta (desde Catálogo)
-        var rawMode = (posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
-        setTpvMode(rawMode);
+              // Rehidratar stock
+              if (res.stockMap) {
+                realStockCache.map = res.stockMap;
+                realStockCache.lastUpdate = new Date();
+                console.log("[Stock Cache] Tienda " + storeId + ":", Object.keys(res.stockMap).length, "items");
+              }
 
-        // 3. Popular UI con Metadatos del Catálogo
-        const transSel = document.getElementById('tpv-transfer-account');
-        if (posMetadata.transferAccounts && transSel) {
-          transSel.innerHTML = posMetadata.transferAccounts.map(a => `<option value="${a.id}">${a.alias} - ${a.name}</option>`).join('');
-        }
-
-        // 4. Stock Específico de Tienda (Carga rápida desde Caché)
-        google.script.run
-          .withFailureHandler(err => { console.warn("Fallo StockCache:", err); })
-          .withSuccessHandler(data => {
-            if (data && data.success) {
-              realStockCache.map = data.stockMap;
-              realStockCache.lastUpdate = new Date();
-              console.log("[Stock Cache] Tienda " + storeId + ":", Object.keys(data.stockMap).length, "items");
+              // Renderizar UI
               renderTpvUI();
+            } else {
+              console.warn("Fallo unificado:", res ? res.message : "Sin respuesta");
+              hideTpvLoader();
             }
           })
-          .withUserObject(storeId)
-          .getAllStockFromCache(storeId);
+          .getPosInitializationData(storeId, posMetadata.sellerId);
 
         // 5. Procesar Catálogo de Productos (Local)
         if (catalog) {
@@ -1703,10 +1746,30 @@
             }
           }
 
+          // Priority for sorting varieties: Mayor (1), Menor (2), then others
+          const varietyPriorityMap = {
+            'mayor': 1,
+            'menor': 2,
+            'docena': 3,
+            'curva': 4,
+            'combo': 5,
+            'packx3': 6
+          };
+
           // Filtrado estricto por tienda y enriquecimiento de variedades
           catalog.products = catalog.products.map(p => {
             if (posMetadata.allVarieties && posMetadata.allVarieties[p.id]) {
-              p.varieties = posMetadata.allVarieties[p.id];
+              const rawVars = posMetadata.allVarieties[p.id] || [];
+              p.varieties = rawVars.slice().sort((a, b) => {
+                const nameA = (a.nombre || '').toLowerCase().trim();
+                const nameB = (b.nombre || '').toLowerCase().trim();
+                const prioA = varietyPriorityMap[nameA] !== undefined ? varietyPriorityMap[nameA] : 999;
+                const prioB = varietyPriorityMap[nameB] !== undefined ? varietyPriorityMap[nameB] : 999;
+                if (prioA !== prioB) {
+                  return prioA - prioB;
+                }
+                return (a.precio_unitario || 0) - (b.precio_unitario || 0);
+              });
             }
             var filtered = (p.variations || []).filter(v => String(v.store_id) === String(resolvedStoreId));
             return Object.assign({}, p, { variations: filtered });
@@ -1714,6 +1777,12 @@
 
           renderTpvUI();
           initCartDataTable();
+
+          // Renderizar métodos de pago e inicializar por defecto en "Efectivo"
+          renderPaymentMethods('payment-methods-grid');
+          renderPaymentMethods('qr-payment-methods-grid');
+          setSelectedPaymentMethod('Efectivo');
+
           hideTpvLoader();
         }
       }
@@ -2136,6 +2205,19 @@
           const variation = product.variations.find(v => v.store_id === managedStore) || product.variations[0];
           addTpvToCart(product, variation, variety);
         } else {
+          // Si tiene una sola variación de color y talle en esta tienda, la seleccionamos automáticamente si hay stock
+          const activeVariations = product.variations.filter(v => !managedStore || v.store_id === managedStore);
+          if (activeVariations.length === 1) {
+            const onlyVar = activeVariations[0];
+            const varId = onlyVar.variation_id;
+            const currentStock = (realStockCache.map && realStockCache.map[varId] !== undefined)
+              ? realStockCache.map[varId]
+              : 0;
+            if (currentStock > 0) {
+              addTpvToCart(product, onlyVar, variety);
+              return; // Evita abrir el modal
+            }
+          }
           // Si es variable, abrimos modal preseleccionando la variedad
           window.openTpvVariations(product, null, variety);
         }
@@ -2692,8 +2774,8 @@
         cart.forEach(function (item, index) {
           dt.row.add([
             "<div style='font-weight:600'>" + item.model + "</div>",
-            "<span style='font-size:0.75rem; font-weight:700; color:#2563eb;'>" + (item.tipoPrecio || '—') + "</span>",
             "<div style='font-size:0.85rem;'>" + item.color + " / " + item.size + "</div>",
+            "<div style='display:flex; flex-direction:column; align-items:flex-start;'><span style='font-size:0.75rem; font-weight:700; color:#3b82f6;'>" + (item.tipoPrecio || '—') + "</span><span style='font-size:0.8rem; font-weight:600; color:#cbd5e1;'>$" + (item.price || 0).toLocaleString() + "</span></div>",
             "<input type='number' class='qty-input' value='" + item.quantity + "' min='" + (item.min_qty || 1) + "' step='" + (item.min_qty || 1) + "' onchange='updateTpvQty(" + index + ", this.value)'>",
             "$" + (item.price * item.quantity).toLocaleString(),
             "<button onclick='removeTpvItem(" + index + ")' style='color:#ef4444;background:none;border:none;cursor:pointer'><i class='ph-bold ph-trash'></i></button>"
@@ -2791,7 +2873,7 @@
         const noPaymentSurcharge = document.getElementById(noPaymentSurchargeId)?.checked || false;
 
         const customerIdEl = isQr ? document.getElementById('qr-tpv-customer') : document.getElementById('tpv-customer');
-        const customerId = customerIdEl ? customerIdEl.value : '';
+        const customerId = customerIdEl ? customerIdEl.value : 'CLI001';
 
         let paymentSurcharge = 0;
 
@@ -2838,7 +2920,7 @@
         const modalPayRow = document.getElementById(preModal + 'payment-row');
         if (modalPayRow) {
           modalPayRow.style.display = paymentSurcharge > 0 ? 'flex' : 'none';
-          const pmNameEl = document.getElementById('qr-pm-name'); // This ID is specific to QR mode
+          const pmNameEl = document.getElementById(preModal + 'pm-name');
           if (pmNameEl) pmNameEl.innerText = method;
           const psLabel = document.getElementById(preModal + 'payment-surcharge');
           if (psLabel) psLabel.innerText = '+$' + Math.round(paymentSurcharge).toLocaleString();
@@ -2863,7 +2945,7 @@
 
         const subtotalProductos = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
         const method = document.getElementById(pre + 'tpv-payment-method')?.value || 'Efectivo';
-        const customerId = document.getElementById(pre + 'tpv-customer')?.value || 'CLIENTE_GENERAL';
+        const customerId = document.getElementById(pre + 'tpv-customer')?.value || 'CLI001';
         const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount')?.value) || 0;
         const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account')?.value : '';
 
@@ -2906,7 +2988,7 @@
         // PERSISTENCIA
         saveToLocalQueue(saleData);
 
-        // IMPRESI \u201cN OPTIMISTA
+        // IMPRESIÓN OPTIMISTA
         try {
           var printData = generateTicketLocal(saleData);
           sendToTpvPrinter(printData);
@@ -2920,10 +3002,15 @@
         syncLocalQueue();
       };
 
+      function formatCurrencyTpv(val) {
+        return '$' + Math.round(val || 0).toLocaleString('es-AR');
+      }
+
       function generateTicketLocal(sale) {
         if (!catalog || !catalog.stores) throw new Error("Catálogo no disponible para impresión");
         const store = catalog.stores[sale.storeId] || { name: "SHOP", address: "", phone: "" };
         const settings = posMetadata.printSettings || { copias: 1, sonido: "0", marketing: "" };
+        const hideSurchargeTicket = localStorage.getItem('tpv_hide_surcharge_ticket') === 'true';
 
         let t = "";
         t += "^^" + store.name.toUpperCase() + "\n";
@@ -2936,13 +3023,16 @@
         const d = now.toLocaleDateString('es-AR');
         const h = now.toLocaleTimeString('es-AR', { hour12: false });
         t += "Fecha y Hora: " + d + " " + h + "\n";
-        t += "Cliente: CLIENTE GENERAL\n";
+        const client = (catalog.clients || []).find(c => c.id === sale.customerId) || (catalog.clients || []).find(c => c.id === "CLI001");
+        const clientName = client ? client.name : "Publico General";
+        const clientId = client ? client.id : (sale.customerId || "CLI001");
+        t += "Cliente: " + clientName + " (" + clientId + ")\n";
         t += "--------------------------------\n";
 
         sale.cart.forEach(function (item) {
           const skuStr = item.sku ? " (SKU:" + item.sku + ")" : "";
           t += item.categoryName + " M. " + item.model + " de " + item.gender + skuStr + "\n";
-          t += "Cant: " + item.quantity + "  x  $" + item.price.toLocaleString() + "  =  $" + (item.price * item.quantity).toLocaleString() + "\n";
+          t += "Cant: " + item.quantity + "  x  " + formatCurrencyTpv(item.price) + "  =  " + formatCurrencyTpv(item.price * item.quantity) + "\n";
           t += "-\n";
         });
         t += "\n";
@@ -2950,25 +3040,33 @@
         if (sale.isMixedPayment) {
           t += "--------------------------------\n";
           t += "*** PAGO MIXTO ***\n";
-          t += "::Monto Productos: " + sale.totalProductAmount.toLocaleString() + "\n";
-          if (sale.minorSurcharge > 0) t += "::Recargo Minorista: +" + sale.minorSurcharge.toLocaleString() + "\n";
-          t += "::Pago Efectivo: -" + sale.cashPaymentAmount.toLocaleString() + "\n";
-          t += "--------------------------------\n";
-          t += "::Subtotal: " + sale.subtotal.toLocaleString() + "\n";
-          if (sale.transferSurcharge > 0) t += "::Recargo " + sale.paymentMethod + ": +" + Math.round(sale.transferSurcharge).toLocaleString() + "\n";
+          t += "::Monto Productos: " + formatCurrencyTpv(sale.totalProductAmount) + "\n";
+          if (sale.minorSurcharge > 0) t += "::Recargo Minorista: +" + formatCurrencyTpv(sale.minorSurcharge) + "\n";
+          t += "::Pago Efectivo: -" + formatCurrencyTpv(sale.cashPaymentAmount) + "\n";
+
+          if (!hideSurchargeTicket) {
+            t += "--------------------------------\n";
+            t += "::Subtotal: " + formatCurrencyTpv(sale.subtotal) + "\n";
+            if (sale.transferSurcharge > 0) t += "::Recargo " + sale.paymentMethod + ": +" + formatCurrencyTpv(sale.transferSurcharge) + "\n";
+          }
+
           t += "--------------------------------\n";
           t += "::RESTANTE A PAGAR:\n";
-          t += "^^::" + sale.totalAmount.toLocaleString() + "\n";
+          t += "^^::" + formatCurrencyTpv(sale.totalAmount) + "\n";
         } else {
           t += "--------------------------------\n";
-          t += "::Monto Productos: " + sale.totalProductAmount.toLocaleString() + "\n";
-          if (sale.minorSurcharge > 0) t += "::Recargo Minorista: +" + sale.minorSurcharge.toLocaleString() + "\n";
+          t += "::Monto Productos: " + formatCurrencyTpv(sale.totalProductAmount) + "\n";
+          if (sale.minorSurcharge > 0) t += "::Recargo Minorista: +" + formatCurrencyTpv(sale.minorSurcharge) + "\n";
+
+          if (sale.paymentMethod !== 'Efectivo' && !hideSurchargeTicket) {
+            t += "--------------------------------\n";
+            t += "::Subtotal: " + formatCurrencyTpv(sale.subtotal) + "\n";
+            if (sale.transferSurcharge > 0) t += "::Recargo " + sale.paymentMethod + ": +" + formatCurrencyTpv(sale.transferSurcharge) + "\n";
+          }
+
           t += "--------------------------------\n";
-          t += "::Subtotal: " + sale.subtotal.toLocaleString() + "\n";
-          if (sale.transferSurcharge > 0) t += "::Recargo " + sale.paymentMethod + ": +" + Math.round(sale.transferSurcharge).toLocaleString() + "\n";
-          t += "\n";
           t += "::TOTAL A PAGAR:\n";
-          t += "^^::" + sale.totalAmount.toLocaleString() + "\n";
+          t += "^^::" + formatCurrencyTpv(sale.totalAmount) + "\n";
         }
 
         t += "--------------------------------\n";
@@ -2982,7 +3080,7 @@
           }
         }
 
-        t += "\n     ^^::GRACIAS POR SU COMPRA      ";
+        t += "\n^^::GRACIAS POR SU COMPRA\n";
 
         return {
           printer_ip: posMetadata.printerIp || "127.0.0.1",
@@ -3116,6 +3214,8 @@
         const noSurcharge = document.getElementById('tpv-modal-deactivate-surcharge');
         if (noSurcharge) noSurcharge.checked = false;
 
+        setSelectedPaymentMethod('Efectivo');
+
         renderTpvCart();
         hideTpvLoader();
       }
@@ -3146,6 +3246,18 @@
           modal.style.display = 'flex';
           const rawMode = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
           updateConfigModeButtons(rawMode);
+
+          // Cargar preferencia de ocultar recargo en ticket
+          const hideSurcharge = localStorage.getItem('tpv_hide_surcharge_ticket') === 'true';
+          const cb = document.getElementById('tpv-config-hide-surcharge-ticket');
+          if (cb) cb.checked = hideSurcharge;
+        }
+      };
+
+      window.toggleHideSurchargeTicket = function () {
+        const cb = document.getElementById('tpv-config-hide-surcharge-ticket');
+        if (cb) {
+          localStorage.setItem('tpv_hide_surcharge_ticket', cb.checked ? 'true' : 'false');
         }
       };
 

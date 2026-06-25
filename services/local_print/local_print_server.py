@@ -8,6 +8,7 @@ import time
 import socket
 import json
 import sys
+import threading
 from datetime import datetime
 from escpos.printer import Dummy
 import barcode
@@ -93,6 +94,33 @@ def sincronizar_ip_nube():
             print(f"   ✅ Sync OK: {t}")
         except Exception as e:
             print(f"   ❌ Error Sync {t}: {e}")
+
+ultimo_registro = {
+    'ip': '',
+    'tiempo': 0.0
+}
+
+def bucle_sincronizacion_ip():
+    global ultimo_registro
+    # Esperar unos segundos iniciales para permitir el arranque
+    time.sleep(5)
+    while True:
+        try:
+            ip_actual = get_local_ip()
+            tiempo_actual = time.time()
+            tiempo_transcurrido = tiempo_actual - ultimo_registro['tiempo']
+            
+            # Sincronizar si cambió la IP o pasaron 2 horas (7200 segundos)
+            if ip_actual != ultimo_registro['ip'] or tiempo_transcurrido >= 7200:
+                print(f"[{datetime.now()}] 🔄 Detectado cambio o timeout de IP. Sincronizando (IP anterior: {ultimo_registro['ip']} | IP actual: {ip_actual})")
+                sincronizar_ip_nube()
+                ultimo_registro['ip'] = ip_actual
+                ultimo_registro['tiempo'] = tiempo_actual
+        except Exception as e:
+            print(f"⚠️ Error en bucle de sincronizacion: {e}")
+        
+        # Dormir 60 segundos antes de volver a verificar la IP
+        time.sleep(60)
 
 def limpiar_url_qr(qr_raw):
     if not qr_raw: return ""
@@ -184,7 +212,10 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
             print(f"\n[{datetime.now()}] --- PROCESANDO: {safe_id} (Copias: {num_copias}) ---")
 
             p = Dummy()
+            p.encoding = 'cp850'
             p.hw("INIT")
+            p._raw(b'\x1c\x2e')      # Desactivar modo Kanji/Chino para evitar letras chinas con las tildes
+            p._raw(b'\x1b\x74\x02')  # Seleccionar la tabla de caracteres CP850 (Latin-1 / Español)
 
             texto_decodificado = urllib.parse.unquote(texto_ticket).rstrip()
             msj_mkt_clean = urllib.parse.unquote(msj_marketing) if msj_marketing else ""
@@ -192,50 +223,52 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
 
             # BUCLE DE COPIAS
             for i in range(num_copias):
-                p._raw(b'\x1b\x4d\x00')  # ESC M 0 (Forzar selección de Fuente A - más grande y gruesa)
                 # 1. Logo
                 if os.path.exists(ARCHIVO_LOGO):
-                    try: p.set(align='center'); p.image(ARCHIVO_LOGO, impl="bitImageColumn"); p.text("\n"); p.set(align='left')
-                    except: pass 
+                    try:
+                        p._raw(b'\x1b\x61\x01')  # Centrar
+                        p.image(ARCHIVO_LOGO, impl="bitImageColumn")
+                        p.text("\n")
+                        p._raw(b'\x1b\x61\x00')  # Izquierda
+                    except:
+                        pass 
                 
                 # 2. Texto
                 for linea in texto_decodificado.split('\n'):
-                    linea = linea.rstrip()
-                    if linea.startswith('^^'):
+                    linea_stripped = linea.lstrip()
+                    if linea_stripped.startswith('^^'):
                         # Quitar ^^ y también :: si viene inmediatamente después (ej. ^^::)
-                        texto_linea = linea[2:]
+                        texto_linea = linea_stripped[2:]
                         if texto_linea.startswith('::'):
                             texto_linea = texto_linea[2:]
                         
-                        p.set(align='center')
-                        p._raw(b'\x1b\x21\x18')  # ESC ! 24 (Doble ancho + Doble alto) - Sin \x1a (Ctrl+Z) ni \x11 (XON)
-                        p._raw(b'\x1b\x45\x01')  # ESC E 1 (Negrita activada)
-                        p.text(texto_linea + "\n")
-                        p._raw(b'\x1b\x45\x00')  # ESC E 0 (Negrita desactivada)
+                        p._raw(b'\x1b\x61\x01')  # Centrar
+                        p._raw(b'\x1b\x21\x38')  # ESC ! 56 (Doble ancho + Doble alto + Negrita) - Byte seguro 0x38 ('8')
+                        p.text(texto_linea.strip() + "\n")
                         p._raw(b'\x1b\x21\x00')  # ESC ! 0 (Restaurar)
-                        p.set(align='left')
-                    elif linea.startswith('::'):
-                        p.set(align='left')
+                        p._raw(b'\x1b\x61\x00')  # Izquierda
+                    elif linea_stripped.startswith('::'):
+                        p._raw(b'\x1b\x61\x00')  # Izquierda
                         p._raw(b'\x1b\x45\x01')  # ESC E 1 (Negrita activada)
-                        p.text(linea[2:] + "\n")
+                        p.text(linea_stripped[2:].strip() + "\n")
                         p._raw(b'\x1b\x45\x00')  # ESC E 0 (Negrita desactivada)
                     elif '---' in linea:
-                        p.set(align='center')
+                        p._raw(b'\x1b\x61\x01')  # Centrar
                         p.text(linea + "\n")
-                        p.set(align='left')
+                        p._raw(b'\x1b\x61\x00')  # Izquierda
                     else:
                         p.text(linea + "\n")
                 
                 # 3. Mkt
                 if msj_mkt_clean:
                     p.text("\n")
-                    p.set(align='center')
+                    p._raw(b'\x1b\x61\x01')  # Centrar
                     p._raw(b'\x1b\x45\x01')  # ESC E 1 (Negrita activada)
                     p.text("********************************\n")
                     p.text(msj_mkt_clean + "\n")
                     p.text("********************************\n")
                     p._raw(b'\x1b\x45\x00')  # ESC E 0 (Negrita desactivada)
-                    p.set(align='left')
+                    p._raw(b'\x1b\x61\x00')  # Izquierda
 
                 # 4. Barra y QR
                 if datos_barra:
@@ -244,7 +277,11 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
                         fn = os.path.join(CARPETA_SERVER, 'temp_files', f"bar_{safe_id}")
                         img = bc.save(fn, options={"module_height":8.0, "quiet_zone":1.0, "write_text":True, "font_size":0})
                         p.text("\n")
-                        p.set(align='center'); p.text("ID Venta:\n"); p.image(img, impl="bitImageColumn"); p.set(align='left')
+                        p._raw(b'\x1b\x61\x01')  # Centrar
+                        p.text("ID Venta:\n")
+                        p.image(img, impl="bitImageColumn")
+                        p.text("\n")
+                        p._raw(b'\x1b\x61\x00')  # Izquierda
                         try: os.remove(img)
                         except: pass
                     except: pass
@@ -252,7 +289,11 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
                 if u_qr:
                     try:
                         p.text("\n")
-                        p.set(align='center'); p.text("Info:\n"); p.qr(u_qr, native=False, size=6); p.set(align='left')
+                        p._raw(b'\x1b\x61\x01')  # Centrar
+                        p.text("Info:\n")
+                        p.qr(u_qr, native=False, size=6)
+                        p.text("\n")
+                        p._raw(b'\x1b\x61\x00')  # Izquierda
                     except: pass
 
                 # 6. CAJON Y SONIDO (CORREGIDO: Usando bytes no imprimibles para evitar caracteres "22")
@@ -282,6 +323,23 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
 
             print(f"[{datetime.now()}] ID: {safe_id} - {stat_txt}")
             
+            # Guardar backup del ticket en archivo local
+            try:
+                backup_filename = f"ticket_{safe_id}_{int(time.time())}.txt"
+                backup_path = os.path.join(CARPETA_BACKUP, backup_filename)
+                with open(backup_path, 'w', encoding='utf-8') as backup_file:
+                    backup_file.write(f"--- RESPALDO DE TICKET DE VENTA ---\n")
+                    backup_file.write(f"ID Venta: {id_venta}\n")
+                    backup_file.write(f"Fecha Impresion: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    backup_file.write(f"Estado Impresion: {stat_txt}\n")
+                    backup_file.write(f"-----------------------------------\n\n")
+                    backup_file.write(texto_decodificado)
+                    if msj_mkt_clean:
+                        backup_file.write(f"\n\n===================================\nMensaje Publicitario:\n{msj_mkt_clean}\n")
+                print(f"[{datetime.now()}] 💾 Backup guardado en: {backup_path}")
+            except Exception as e_backup:
+                print(f"[{datetime.now()}] ⚠️ Error guardando backup de ticket: {e_backup}")
+            
             if "ERROR" in stat_txt:
                 self.responder_cierre("ERROR IMPRESION", "#F44336", "Fallo driver Windows.")
             else:
@@ -303,14 +361,29 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(html.encode('utf-8'))
 
 if __name__ == "__main__":
-    for d in [CARPETA_SERVER, os.path.join(CARPETA_SERVER, 'temp_files'), CARPETA_BACKUP]:
-        if not os.path.exists(d): 
-            try: os.makedirs(d)
-            except: pass
-    print(f"[{datetime.now()}] --- INICIANDO SERVIDOR MEJORADO ---")
-    sincronizar_ip_nube()
     try:
-        with socketserver.TCPServer(("", PUERTO), PrintHandler) as httpd:
-            print(f"[{datetime.now()}] Servidor escuchando en puerto {PUERTO}")
-            httpd.serve_forever()
-    except KeyboardInterrupt: pass
+        for d in [CARPETA_SERVER, os.path.join(CARPETA_SERVER, 'temp_files'), CARPETA_BACKUP]:
+            if not os.path.exists(d): 
+                try: os.makedirs(d)
+                except: pass
+        print(f"[{datetime.now()}] --- INICIANDO SERVIDOR MEJORADO ---")
+        
+        # 1. Sincronización inicial al arrancar
+        sincronizar_ip_nube()
+        ultimo_registro['ip'] = get_local_ip()
+        ultimo_registro['tiempo'] = time.time()
+        
+        # 2. Iniciar bucle de monitoreo en segundo plano
+        hilo_sync = threading.Thread(target=bucle_sincronizacion_ip, daemon=True)
+        hilo_sync.start()
+        
+        try:
+            with socketserver.TCPServer(("", PUERTO), PrintHandler) as httpd:
+                print(f"[{datetime.now()}] Servidor escuchando en puerto {PUERTO}")
+                httpd.serve_forever()
+        except KeyboardInterrupt: pass
+    except Exception as main_err:
+        import traceback
+        with open(os.path.join(CARPETA_SERVER, 'crash.log'), 'a', encoding='utf-8') as crash_f:
+            crash_f.write(f"\n[{datetime.now()}] --- CRASH DETECTADO ---\n")
+            traceback.print_exc(file=crash_f)
