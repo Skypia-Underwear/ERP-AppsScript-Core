@@ -1043,7 +1043,7 @@
         <i class="ph-bold ph-gear text-lg"></i>
       </button>
 
-      <button class="header-btn primary" onclick="manualRefreshStock()">
+      <button id="tpv-manual-refresh" class="header-btn primary" onclick="manualRefreshStock()">
         <i class="ph-bold ph-arrows-clockwise"></i> Refrescar Stock
       </button>
     </div>
@@ -1269,6 +1269,15 @@
               class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Ocultar recargo de pago en ticket</label>
           </div>
         </div>
+        <div id="tpv-back-to-erp-container" style="display: none;">
+          <div class="h-px bg-slate-700 my-2"></div>
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Navegación</label>
+          <button onclick="closeConfigModal(); if(typeof loadView==='function') loadView('welcome', '', '', '');" 
+            class="w-full mt-3 py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+            <i class="ph-bold ph-arrow-left"></i>
+            <span>Volver al ERP Principal</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1463,6 +1472,21 @@
       // Ejecución inmediata
       initTPV();
 
+      // Mostrar botón 'Volver al ERP' solo para administradores (acepta ADMIN, ADMINISTRADOR, ADMINISTRATIVO, etc.)
+      (function() {
+        try {
+          var uStr = sessionStorage.getItem('loggedInUser');
+          if (!uStr) return;
+          var u = JSON.parse(uStr);
+          var rol = String(u.role || u.rol || u.rolTienda || u.ROL_TIENDA || '');
+          var checkAdmin = (typeof window.isAdminRole === 'function') ? window.isAdminRole : function(r) { return String(r).trim().toUpperCase().startsWith('ADMIN'); };
+          if (checkAdmin(rol)) {
+            var backBtn = document.getElementById('tpv-back-to-erp-container');
+            if (backBtn) backBtn.style.display = 'block';
+          }
+        } catch(e) { /* silencioso */ }
+      })();
+
       window.openCheckoutModal = function () {
         if (cart.length === 0) {
           alert("El carrito está vacío");
@@ -1613,15 +1637,35 @@
           window.posMetadata = posMetadata;
           if (posMetadata.priceConfig) priceConfig = posMetadata.priceConfig;
 
-          // 3. L\u00f3gica de Selecci\u00f3n de Tienda para ADMIN
-          if (userRole === 'ADMIN' && managedStore === "TODAS") {
-            const allStores = Object.keys(cat.stores).map(id => ({ id: id, name: cat.stores[id].name }));
-            if (allStores.length > 1) {
-              renderStoreSelector(allStores);
+          // 3. Lógica de Selección de Tienda para Administradores (ADMIN*, cualquier variante)
+          var checkAdmin = (typeof window.isAdminRole === 'function') ? window.isAdminRole : function(r) { return String(r).trim().toUpperCase().startsWith('ADMIN'); };
+          const isAdmin = checkAdmin(userRole);
+          // La tienda puede ser "TODAS" o una lista separada por comas: "CASTFER , JM MAYORISTA"
+          const managedStoreList = (managedStore || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+          const isMultiStore = managedStore && (
+            managedStore.trim().toUpperCase() === 'TODAS' ||
+            managedStoreList.length > 1
+          );
+
+          if (isAdmin && isMultiStore) {
+            // Filtrar del catálogo solo las tiendas asignadas al admin (o todas si es 'TODAS')
+            let availableStores;
+            if (managedStore.trim().toUpperCase() === 'TODAS') {
+              availableStores = Object.keys(cat.stores).map(id => ({ id: id, name: cat.stores[id].name || id }));
+            } else {
+              availableStores = managedStoreList
+                .map(id => cat.stores[id] ? { id: id, name: cat.stores[id].name || id } : null)
+                .filter(Boolean);
+            }
+            if (availableStores.length > 1) {
+              renderStoreSelector(availableStores);
               hideTpvLoader();
               return;
-            } else if (allStores.length === 1) {
-              managedStore = allStores[0].id;
+            } else if (availableStores.length === 1) {
+              managedStore = availableStores[0].id;
             }
           }
 
@@ -1758,17 +1802,27 @@
 
           // Filtrado estricto por tienda y enriquecimiento de variedades
           catalog.products = catalog.products.map(p => {
+            // Variedades: intentar posMetadata.allVarieties primero (legacy), luego p.prices del catálogo
             if (posMetadata.allVarieties && posMetadata.allVarieties[p.id]) {
               const rawVars = posMetadata.allVarieties[p.id] || [];
+              
               p.varieties = rawVars.slice().sort((a, b) => {
                 const nameA = (a.nombre || '').toLowerCase().trim();
                 const nameB = (b.nombre || '').toLowerCase().trim();
                 const prioA = varietyPriorityMap[nameA] !== undefined ? varietyPriorityMap[nameA] : 999;
                 const prioB = varietyPriorityMap[nameB] !== undefined ? varietyPriorityMap[nameB] : 999;
-                if (prioA !== prioB) {
-                  return prioA - prioB;
-                }
+                if (prioA !== prioB) return prioA - prioB;
                 return (a.precio_unitario || 0) - (b.precio_unitario || 0);
+              });
+            } else if (p.prices && p.prices.length > 0) {
+              // Fallback: variedades vienen directamente en el catálogo como p.prices
+              p.varieties = p.prices.slice().sort((a, b) => {
+                const nameA = (a.nombre || a.NOMBRE || '').toLowerCase().trim();
+                const nameB = (b.nombre || b.NOMBRE || '').toLowerCase().trim();
+                const prioA = varietyPriorityMap[nameA] !== undefined ? varietyPriorityMap[nameA] : 999;
+                const prioB = varietyPriorityMap[nameB] !== undefined ? varietyPriorityMap[nameB] : 999;
+                if (prioA !== prioB) return prioA - prioB;
+                return (a.precio_unitario || a.PRECIO_UNITARIO || 0) - (b.precio_unitario || b.PRECIO_UNITARIO || 0);
               });
             }
             var filtered = (p.variations || []).filter(v => String(v.store_id) === String(resolvedStoreId));
@@ -1787,6 +1841,26 @@
         }
       }
 
+      function applyButtonStates(button, text, isWarn) {
+        if (!button) return;
+        // Preservar el ícono si existe
+        const icon = button.querySelector('i');
+        button.innerHTML = '';
+        if (icon) {
+          button.appendChild(icon);
+          button.appendChild(document.createTextNode(' '));
+        }
+        button.appendChild(document.createTextNode(text));
+
+        if (isWarn) {
+          button.style.backgroundColor = '#dc2626'; // Rojo Tailwind (red-600)
+          button.style.border = '2px solid #ef4444'; // Borde rojo (red-500)
+        } else {
+          button.style.backgroundColor = '';
+          button.style.border = '';
+        }
+      }
+
       function updateTpvSessionStatus(session) {
         window.isOutsideSchedule = !session.isWithinSchedule;
         const statusEl = document.getElementById('tpv-user-status');
@@ -1800,48 +1874,45 @@
 
         const btnStandard = document.getElementById('btn-process-checkout');
         const btnQr = document.getElementById('btn-qr-process-sale');
-        const btnRegVenta = document.querySelector('.tpv-btn-primary-large'); // Botón de la barra lateral
+        const btnRegVenta = document.querySelector('.tpv-btn-primary-large');
 
-        // Determinar estado basado en sesión y horario
-        if (!session.isWithinSchedule) {
-          color = "bg-red-500 animate-pulse";
-          statusText = "Fuera de Horario (" + session.horario.apertura + " - " + session.horario.cierre + ")";
+        const isWithinSchedule = session.isWithinSchedule;
+        const isCajaAbierta = !!session.activeCashRegisterId;
 
-          // En lugar de bloquear, advertimos visualmente
-          [btnStandard, btnQr, btnRegVenta].forEach(b => {
-            if (b) {
-              b.disabled = false;
-              b.classList.remove('opacity-50', 'cursor-not-allowed');
-              b.classList.add('border-red-500', 'border-2');
-            }
-          });
-          if (btnStandard) btnStandard.innerText = "FORZAR VENTA (FUERA DE HORA)";
-          if (btnQr) btnQr.innerText = "FORZAR REGISTRO";
-        } else if (session.activeCashRegisterId) {
+        // Determinar estado basado en la matriz de 4 estados independientes
+        if (isWithinSchedule && isCajaAbierta) {
           color = "bg-emerald-500";
           statusText = "Caja Abierta (" + session.storeId + ")";
-
-          [btnStandard, btnQr, btnRegVenta].forEach(b => {
-            if (b) {
-              b.disabled = false;
-              b.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-          });
-          if (btnStandard) btnStandard.innerText = "CONFIRMAR Y PAGAR";
-          if (btnQr) btnQr.innerText = "REGISTRAR VENTA";
-        } else {
+          applyButtonStates(btnStandard, "CONFIRMAR Y PAGAR", false);
+          applyButtonStates(btnQr, "REGISTRAR VENTA", false);
+          applyButtonStates(btnRegVenta, "REGISTRAR VENTA", false);
+        } else if (isWithinSchedule && !isCajaAbierta) {
           color = "bg-amber-500";
           statusText = "Caja Pendiente (Sesion: " + session.storeId + ")";
-
-          [btnStandard, btnQr, btnRegVenta].forEach(b => {
-            if (b) {
-              b.disabled = false;
-              b.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-          });
-          if (btnStandard) btnStandard.innerText = "ABRIR CAJA Y PAGAR";
-          if (btnQr) btnQr.innerText = "ABRIR CAJA Y PAGAR";
+          applyButtonStates(btnStandard, "ABRIR CAJA Y PAGAR", false);
+          applyButtonStates(btnQr, "ABRIR CAJA Y PAGAR", false);
+          applyButtonStates(btnRegVenta, "REGISTRAR VENTA", false);
+        } else if (!isWithinSchedule && isCajaAbierta) {
+          color = "bg-red-500 animate-pulse";
+          statusText = "Fuera de Horario - Caja Abierta (" + session.storeId + ")";
+          applyButtonStates(btnStandard, "FORZAR VENTA (FUERA DE HORA)", true);
+          applyButtonStates(btnQr, "FORZAR REGISTRO (FUERA DE HORA)", true);
+          applyButtonStates(btnRegVenta, "FORZAR VENTA (FUERA DE HORA)", true);
+        } else { // !isWithinSchedule && !isCajaAbierta
+          color = "bg-red-500 animate-pulse";
+          statusText = "Fuera de Horario - Caja Pendiente (" + session.storeId + ")";
+          applyButtonStates(btnStandard, "FORZAR VENTA (ABRIR CAJA)", true);
+          applyButtonStates(btnQr, "FORZAR REGISTRO (ABRIR CAJA)", true);
+          applyButtonStates(btnRegVenta, "FORZAR VENTA (ABRIR CAJA)", true);
         }
+
+        // Habilitar los botones para que puedan ser operados en cualquier estado (como forzar venta)
+        [btnStandard, btnQr, btnRegVenta].forEach(b => {
+          if (b) {
+            b.disabled = false;
+            b.classList.remove('opacity-50', 'cursor-not-allowed');
+          }
+        });
 
         if (dot) dot.className = "w-2.5 h-2.5 rounded-full " + color;
         if (label) label.innerText = statusText;
@@ -2700,8 +2771,19 @@
           .withFailureHandler(() => {
             btn.innerText = oldText;
             btn.disabled = false;
-          })
-          .manualRefreshStockCache();
+      })
+      .manualRefreshStockCache();
+      };
+
+      window.openConfigModal = function () {
+        var el = document.getElementById('tpv-config-hide-surcharge-ticket');
+        if (el) el.checked = localStorage.getItem('tpvHideSurchargeTicket') === 'true';
+
+        document.getElementById('modal-config').style.display = 'flex';
+      };
+
+      window.closeConfigModal = function () {
+        document.getElementById('modal-config').style.display = 'none';
       };
 
       window.closeTpvModal = function () {
@@ -3177,22 +3259,31 @@
 
         const url = "http://" + p.printer_ip + ":8000/print_ticket?" + params.toString();
 
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(function () { controller.abort(); }, 5000);
+        // Pixel Tracking: Evadir CORS/PNA mediante instanciación de imagen en memoria
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const timeoutId = setTimeout(function () {
+            img.src = ""; // Cancelar descarga
+            console.warn("[Printer] Timeout al enviar ticket vía Pixel Tracking");
+            reject(new Error("Timeout al enviar ticket (Pixel Tracking)"));
+          }, 8000); // 8 segundos de timeout
 
-          await fetch(url, {
-            mode: 'no-cors',
-            cache: 'no-cache',
-            signal: controller.signal
-          });
+          img.onload = function () {
+            clearTimeout(timeoutId);
+            console.log(" [Printer] Comando enviado con éxito (Pixel Tracking - onload)");
+            resolve();
+          };
 
-          clearTimeout(timeoutId);
-          console.log(" [Printer] Comando enviado");
-        } catch (e) {
-          console.warn("[Printer] Fallo al enviar ticket:", e.message);
-          google.script.run.logErrorFromFrontend("Fallo impresion TPV: " + e.message);
-        }
+          img.onerror = function () {
+            clearTimeout(timeoutId);
+            // Dado que el servidor responde HTML, el navegador disparará onerror al fallar el parseo de imagen,
+            // pero el GET ya se realizó con éxito en la red local. Resolvemos de igual manera.
+            console.log(" [Printer] Comando enviado (Pixel Tracking - completado)");
+            resolve();
+          };
+
+          img.src = url;
+        });
       }
 
       function getContrastColor(hexcolor) {

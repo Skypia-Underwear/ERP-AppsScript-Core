@@ -8,6 +8,7 @@ function onOpen() {
     .createMenu('⚙️ INSTALACIÓN')
     .addItem('🚀 Inicializar Sistema', 'inicializarEntorno')
     .addItem('🔍 Auditar Hojas y Columnas', 'auditarEntornoTablas')
+    .addItem('🛠️ Migración Auditoría IA (BD_LABORATORIO_IA)', 'ejecutarMigracionAuditoriaIA')
     .addItem('🧹 Optimizar Espacio (Limpiar)', 'optimizarEspacioHojas')
     .addItem('⚡ Instalar Automatización (IA)', 'instalarTriggersIA')
     .addSeparator()
@@ -873,5 +874,70 @@ function applyDataValidation(clave, range) {
     range.setDataValidation(rule);
   } else {
     range.clearDataValidations();
+  }
+}
+
+/**
+ * 🛠️ MIGRACIÓN DE AUDITORÍA IA
+ * Quita físicamente las columnas PROMPT y COSTO de la hoja BD_PRODUCTO_IMAGENES
+ * y asegura que BD_LABORATORIO_IA tenga las columnas CONFIG_PARAMS y COSTO.
+ */
+function ejecutarMigracionAuditoriaIA() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const logs = ["🛠️ Iniciando migración de auditoría IA..."];
+  
+  try {
+    // 1. Asegurar columnas en BD_LABORATORIO_IA
+    logs.push("1. Validando estructura de BD_LABORATORIO_IA...");
+    const sheetLab = AIService._obtenerHojaLab();
+    if (sheetLab) {
+      logs.push("✅ BD_LABORATORIO_IA validada/actualizada con éxito.");
+    } else {
+      throw new Error("No se pudo obtener ni crear BD_LABORATORIO_IA.");
+    }
+
+    // 2. Buscar y remover columnas en BD_PRODUCTO_IMAGENES
+    logs.push("2. Buscando columnas obsoletas en BD_PRODUCTO_IMAGENES...");
+    const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
+    if (!sheetImg) {
+      throw new Error(`No se encontró la hoja '${SHEETS.PRODUCT_IMAGES}'.`);
+    }
+
+    const lastCol = sheetImg.getLastColumn();
+    if (lastCol > 0) {
+      const headers = sheetImg.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toUpperCase());
+      
+      // Encontrar índices de PROMPT y COSTO (1-indexed para borrar columnas)
+      // Nota: Borramos primero la que tenga mayor índice para no alterar los índices de las anteriores
+      const indicesABorrar = [];
+      const promptIdx = headers.indexOf("PROMPT");
+      const costoIdx = headers.indexOf("COSTO");
+      
+      if (promptIdx !== -1) indicesABorrar.push({ name: "PROMPT", colNum: promptIdx + 1 });
+      if (costoIdx !== -1) indicesABorrar.push({ name: "COSTO", colNum: costoIdx + 1 });
+      
+      // Ordenar de mayor a menor columna para borrar sin desfasar índices
+      indicesABorrar.sort((a, b) => b.colNum - a.colNum);
+      
+      indicesABorrar.forEach(item => {
+        sheetImg.deleteColumn(item.colNum);
+        logs.push(`🗑️ Columna '${item.name}' eliminada correctamente de BD_PRODUCTO_IMAGENES (Columna física #${item.colNum}).`);
+      });
+
+      if (indicesABorrar.length === 0) {
+        logs.push("ℹ️ Las columnas 'PROMPT' y 'COSTO' ya no existen en BD_PRODUCTO_IMAGENES.");
+      }
+    }
+
+    // Limpiar caché de HeaderManager
+    HeaderManager.clearCache();
+    logs.push("✅ Caché de cabeceras reseteada.");
+    logs.push("🎉 Migración de auditoría IA completada con éxito!");
+    
+    ui.alert("Migración Exitosa", logs.join("\n"), ui.ButtonSet.OK);
+  } catch (e) {
+    logs.push(`❌ ERROR: ${e.message}`);
+    ui.alert("Fallo en Migración", logs.join("\n"), ui.ButtonSet.OK);
   }
 }

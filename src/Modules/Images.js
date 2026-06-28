@@ -463,11 +463,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
             const setValU = (c, v) => { if (col[c] !== undefined) u.rowData[col[c]] = v; };
             setValU('IMAGEN_ID', originalRowData[col['IMAGEN_ID']]);
             setValU('ESTADO', originalRowData[col['ESTADO']]);
-            const oldPrompt = originalRowData[col['PROMPT']];
-            const oldCosto = originalRowData[col['COSTO']];
             const oldFuente = originalRowData[col['FUENTE']];
-            if (oldPrompt && !u.rowData[col['PROMPT']]) setValU('PROMPT', oldPrompt);
-            if (oldCosto && !u.rowData[col['COSTO']]) setValU('COSTO', oldCosto);
             if (oldFuente && (oldFuente.includes('AI') || oldFuente.includes('Gemini'))) setValU('FUENTE', oldFuente);
             
             // Actualizar la matriz en memoria
@@ -494,7 +490,12 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         let contadorImagenes = 1;
         // 1. OBTENER Y CLASIFICAR ARCHIVOS
         const archivosEnCarpeta = [];
-        while (files.hasNext()) archivosEnCarpeta.push(files.next());
+        const nombresOriginales = {};
+        while (files.hasNext()) {
+          const file = files.next();
+          archivosEnCarpeta.push(file);
+          nombresOriginales[file.getId()] = file.getName();
+        }
         log(`ℹ️ Encontrados ${archivosEnCarpeta.length} archivos en Drive.`);
 
         // Ordenar por: 1. ORDEN, 2. Si es Portada, 3. Fecha de creación
@@ -535,7 +536,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         archivosEnCarpeta.forEach(file => {
           const fileId = file.getId();
           const mime = file.getMimeType();
-          let originalFileName = file.getName(); // Guardamos el nombre original para buscar por ruta
+          let originalFileName = nombresOriginales[fileId] || file.getName(); // Guardamos el nombre original para buscar por ruta
           let fileName = originalFileName;
 
           if (fileName.toLowerCase().includes('_thumb.jpg')) {
@@ -713,8 +714,6 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         const originalRowData = dataImg[u.rowIndex - 1];
         const oldID = originalRowData[col['IMAGEN_ID']];
         const oldEstado = originalRowData[col['ESTADO']];
-        const oldPrompt = originalRowData[col['PROMPT']];
-        const oldCosto = originalRowData[col['COSTO']];
         const oldFuente = originalRowData[col['FUENTE']];
         const oldAnalisis = originalRowData[col['ANALISIS_FORENSE']];
         const oldSyncWc = originalRowData[col['SYNC_WC']];
@@ -732,10 +731,6 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
         if (oldPortada !== undefined && oldPortada !== "") {
           setVal('PORTADA', oldPortada);
         }
-
-        // Solo restauramos Prompt y Costo si ya existían y la nueva fila viene vacía (que es siempre en el sync base)
-        if (oldPrompt && !u.rowData[col['PROMPT']]) setVal('PROMPT', oldPrompt);
-        if (oldCosto && !u.rowData[col['COSTO']]) setVal('COSTO', oldCosto);
 
         // Si la fuente era Gemini, la respetamos. Si era manual, el sync pone 'Sistema Web' por defecto pero podemos ser más listos
         if (oldFuente && (oldFuente.includes('AI') || oldFuente.includes('Gemini'))) setVal('FUENTE', oldFuente);
@@ -960,12 +955,44 @@ function convertirRangoAObjetos_IMAGENES(sheet) {
   if (data.length < 2) return [];
   const headers = data[0].map(h => String(h).trim().toUpperCase()); // FORZAR MAYÚSCULAS
 
-  // Debug de headers para verificar si CARPETA_ID existe
-  // console.log(`📦 [convertirRangoAObjetos_IMAGENES] Headers detectados: ${headers.join(", ")}`);
+  const ss = getImagesSpreadsheet();
+  const labSheet = ss.getSheetByName(SHEETS.LAB_IA);
+  const labMap = new Map();
+  if (labSheet) {
+    const labData = labSheet.getDataRange().getValues();
+    if (labData.length > 1) {
+      const labHeaders = labData[0].map(h => String(h).trim().toUpperCase());
+      const imgIdIdx = labHeaders.indexOf("IMAGEN_ID");
+      const promptIdx = labHeaders.indexOf("PROMPT_MAESTRO");
+      const costoIdx = labHeaders.indexOf("COSTO");
+      if (imgIdIdx !== -1) {
+        for (let i = 1; i < labData.length; i++) {
+          const row = labData[i];
+          const imgId = String(row[imgIdIdx]).trim();
+          if (!imgId) continue;
+          
+          const promptVal = promptIdx !== -1 ? row[promptIdx] : "";
+          const costoVal = (costoIdx !== -1 && row[costoIdx] !== "") ? parseFloat(row[costoIdx]) || 0 : 0;
+          
+          labMap.set(imgId, {
+            PROMPT: promptVal,
+            COSTO: costoVal
+          });
+        }
+      }
+    }
+  }
 
   return data.slice(1).map(row => {
     let obj = {};
     headers.forEach((h, i) => { obj[h] = row[i]; });
+    
+    // Enriquecimiento dinámico
+    const imgIdStr = String(obj.IMAGEN_ID || "").trim();
+    const labData = labMap.get(imgIdStr) || { PROMPT: "", COSTO: 0 };
+    obj.PROMPT = labData.PROMPT;
+    obj.COSTO = labData.COSTO;
+    
     return obj;
   });
 }
@@ -1362,7 +1389,8 @@ function escanearPrenda(imagenId, forzar = false, modeloForzado = null) {
       marca: prodRow ? prodRow.MARCA : "Unknown",
       modelo: prodRow ? (prodRow.MODELO || prodRow.PRODUCTO) : "Unknown",
       material: prodRow ? prodRow.MATERIAL : "Textile",
-      genero: prodRow ? prodRow.GENERO : "Unisex"
+      genero: prodRow ? prodRow.GENERO : "Unisex",
+      grupoEdad: prodRow ? (prodRow.GRUPO_EDAD || "Adulto") : "Adulto"
     };
 
     // Ejecución centralizada vía AIService (Motor de persistencia y fallback dual-key)
@@ -1404,15 +1432,12 @@ function generarSuperPrompt(imagenId, estiloSolicitado, modo = 'image', extraSpe
   try {
     console.log(`🧠 [Core-Flow] Delegando generación de Prompt Maestro a AIService para imagen: ${imagenId}`);
     // Invocamos el servicio maestro de AIService
-    // Forzamos la regeneración (true) al ser solicitado desde el dashboard y omitimos log de laboratorio
-    const result = AIService.ejecutarGeneracionPromptMaestro([imagenId], estiloSolicitado, { ...extraSpecs, skipLabLog: true }, true);
+    // Forzamos la regeneración (true) al ser solicitado desde el dashboard y permitimos que guarde en el laboratorio
+    const result = AIService.ejecutarGeneracionPromptMaestro([imagenId], estiloSolicitado, extraSpecs, true);
 
     if (!result.success) throw new Error(result.error || "Error indeterminado de IA.");
 
     const promptGenerado = result.clean;
-
-    // Persistimos en la columna de la hoja comercial BD_PRODUCTO_IMAGENES
-    actualizarCeldaPorHeader(imagenId, 'PROMPT', promptGenerado);
 
     let resObj = {
       success: true,
@@ -1459,16 +1484,13 @@ function generarSuperPromptMasivo(imageIds, estiloSolicitado, modo = 'image', ex
   try {
     console.log(`🧠 [Core-Flow] Delegando generación de Prompt Maestro Masivo a AIService para: ${imageIds.join(', ')}`);
     // Invocamos el servicio maestro de AIService
-    // Forzamos la regeneración (true) al ser solicitado desde el dashboard y omitimos log de laboratorio
-    const result = AIService.ejecutarGeneracionPromptMaestro(imageIds, estiloSolicitado, { ...extraSpecs, skipLabLog: true }, true);
+    // Forzamos la regeneración (true) al ser solicitado desde el dashboard y permitimos que guarde en el laboratorio
+    const result = AIService.ejecutarGeneracionPromptMaestro(imageIds, estiloSolicitado, extraSpecs, true);
 
     if (!result.success) throw new Error(result.error || "Error indeterminado de IA.");
 
     const promptGenerado = result.clean;
     const masterId = imageIds[0];
-
-    // Persistimos en la columna de la hoja comercial BD_PRODUCTO_IMAGENES (sobre la imagen Master)
-    actualizarCeldaPorHeader(masterId, 'PROMPT', promptGenerado);
 
     let resObj = {
       success: true,
@@ -1904,7 +1926,6 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
                 const freshDataAll = freshSheetImg.getDataRange().getValues();
                 const archIdIdx = colMapping["ARCHIVO_ID"];
                 const imgIdIdx = colMapping["IMAGEN_ID"];
-                const costoIdx = colMapping["COSTO"];
 
                 let generatedId = null;
                 let targetRowIdx = -1;
@@ -1918,9 +1939,25 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
                 }
 
                 if (targetRowIdx !== -1) {
-                  if (costoIdx !== undefined) freshSheetImg.getRange(targetRowIdx, costoIdx + 1).setValue(costoEstimado);
-                  const promptIdx = colMapping["PROMPT"];
-                  if (promptIdx !== undefined) freshSheetImg.getRange(targetRowIdx, promptIdx + 1).setValue(cleanPromptText);
+                  // Guardar en la hoja de auditoría técnica del laboratorio de IA
+                  try {
+                    AIService.guardarResultadoLab({
+                      imagenId: generatedId,
+                      sku: targetRow.PRODUCTO_ID,
+                      estilo: (extraSpecs && extraSpecs.style) || 'render',
+                      promptMaestro: cleanPromptText,
+                      modelo: modelo,
+                      costo: costoEstimado,
+                      configParams: {
+                        ...extraSpecs,
+                        referenciaIds: ids
+                      }
+                    });
+                    console.log(`💾 [Render-Gateway] Auditoría registrada en BD_LABORATORIO_IA para ${generatedId}`);
+                  } catch (eLab) {
+                    console.error(`⚠️ [Render-Gateway] Falló registrar auditoría en BD_LABORATORIO_IA: ${eLab.message}`);
+                  }
+
                   const estadoIdx = colMapping["ESTADO"];
                   if (estadoIdx !== undefined) freshSheetImg.getRange(targetRowIdx, estadoIdx + 1).setValue(true);
                   const fuenteIdx = colMapping["FUENTE"];
@@ -2312,24 +2349,37 @@ function verificarEstadoVideoVEO(operationId, sku, carpetaId) {
                 driveUrl = `https://drive.google.com/file/d/${fileId}/view`;
                 console.log(`${logPrefix} ✅ Video guardado en Drive: ${fileId}`);
 
-                // REGISTRO DE COSTO VEO ($0.25 USD Estándar por generación)
+                // REGISTRO DE COSTO VEO ($0.25 USD Estándar por generación) en Laboratorio
                 try {
                   const ss = getImagesSpreadsheet();
                   const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
-                  const dataImg = convertirRangoAObjetos_IMAGENES(sheetImg);
                   const colMapping = HeaderManager.getMapping("PRODUCT_IMAGES");
-                  const costoIdx = colMapping["COSTO"];
-
-                  // Buscar la fila por ARCHIVO_ID del video recién subido
                   const freshData = sheetImg.getDataRange().getValues();
                   const archIdIdx = colMapping["ARCHIVO_ID"];
+                  const imgIdIdx = colMapping["IMAGEN_ID"];
+                  
+                  let generatedId = null;
                   for (let r = freshData.length - 1; r >= 1; r--) {
                     if (String(freshData[r][archIdIdx]) === String(fileId)) {
-                      if (costoIdx !== undefined) {
-                        sheetImg.getRange(r + 1, costoIdx + 1).setValue(0.25); // Costo VEO
-                      }
+                      generatedId = freshData[r][imgIdIdx];
                       break;
                     }
+                  }
+                  
+                  if (generatedId) {
+                    AIService.guardarResultadoLab({
+                      imagenId: generatedId,
+                      sku: sku,
+                      estilo: 'video_veo',
+                      promptMaestro: promptVideo,
+                      modelo: 'veo-3.1-generate-preview',
+                      costo: 0.25,
+                      configParams: {
+                        ...opciones,
+                        referenciaIds: idOrIds
+                      }
+                    });
+                    console.log(`💾 [VEO RENDER] Costo registrado en BD_LABORATORIO_IA para ${generatedId}`);
                   }
                 } catch (eCosto) { console.error(`${logPrefix} Error registrando costo VEO: ${eCosto.message}`); }
               } else {
@@ -2371,27 +2421,36 @@ function obtenerResumenGastosIA() {
   const logPrefix = `📊 [COST AUDIT]`;
   try {
     const ss = getImagesSpreadsheet();
-    const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES);
-    if (!sheetImg) return { success: false, error: "Hoja de imágenes no encontrada." };
+    const sheetLab = ss.getSheetByName(SHEETS.LAB_IA);
+    if (!sheetLab) return { success: false, error: "Hoja de laboratorio no encontrada." };
 
-    const data = convertirRangoAObjetos_IMAGENES(sheetImg);
+    const data = sheetLab.getDataRange().getValues();
     let totalImagen = 0;
     let totalVideo = 0;
+    let count = 0;
 
-    data.forEach(row => {
-      // Intentar obtener el costo de varias formas para mayor robustez heredada
-      let costoRaw = row.COSTO || row.COSTO_IA || "0";
-      const costo = parseFloat(String(costoRaw).replace(",", ".")) || 0;
+    if (data.length > 1) {
+      const headers = data[0].map(h => String(h).trim().toUpperCase());
+      const costoIdx = headers.indexOf("COSTO");
+      const estiloIdx = headers.indexOf("ESTILO");
 
-      const tipo = String(row.TIPO_ARCHIVO || "").toLowerCase();
-      const esVideo = tipo.includes('video') || tipo.includes('veo');
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        let costoRaw = costoIdx !== -1 ? row[costoIdx] : 0;
+        const costo = parseFloat(String(costoRaw).replace(",", ".")) || 0;
+        if (costo <= 0) continue;
 
-      if (esVideo) {
-        totalVideo += costo;
-      } else if (costo > 0) {
-        totalImagen += costo;
+        const estilo = estiloIdx !== -1 ? String(row[estiloIdx] || "").toLowerCase() : "";
+        const esVideo = estilo.includes('video') || estilo.includes('veo');
+
+        if (esVideo) {
+          totalVideo += costo;
+        } else {
+          totalImagen += costo;
+        }
+        count++;
       }
-    });
+    }
 
     const totalGlobal = totalImagen + totalVideo;
 
@@ -2402,7 +2461,7 @@ function obtenerResumenGastosIA() {
         video: totalVideo.toFixed(3),
         total: totalGlobal.toFixed(3),
         moneda: "USD",
-        count: data.length
+        count: count
       }
     };
   } catch (e) {

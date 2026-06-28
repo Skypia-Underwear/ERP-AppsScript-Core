@@ -87,6 +87,152 @@ const AIService = {
   },
 
   /**
+   * CONSULTA CON RETORNO DE JSON NATIVO (GEMINI)
+   * Ideal para enriquecimiento de productos y estructuración de datos.
+   */
+  consultarGeminiJSON(prompt, configOverride = {}) {
+    const apiKeysToTry = [];
+    if (GLOBAL_CONFIG.GEMINI.FREE_API_KEY) apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.FREE_API_KEY, label: "Gratuita" });
+    if (GLOBAL_CONFIG.GEMINI.API_KEY && (!GLOBAL_CONFIG.GEMINI.FREE_API_KEY || GLOBAL_CONFIG.GEMINI.API_KEY !== GLOBAL_CONFIG.GEMINI.FREE_API_KEY)) {
+      apiKeysToTry.push({ key: GLOBAL_CONFIG.GEMINI.API_KEY, label: "Pago (Respaldo)" });
+    }
+    if (apiKeysToTry.length === 0) throw new Error("Falta API Key para IA.");
+
+    // Modelos Gemini con soporte nativo de JSON
+    const modelosGeminiJSON = [
+      "gemini-2.5-flash",
+      "gemini-3.5-flash",
+      "gemini-3.1-pro-preview"
+    ];
+
+    let ultimoError = "";
+    for (const modelo of modelosGeminiJSON) {
+      for (const keyObj of apiKeysToTry) {
+        const apiKey = keyObj.key;
+        console.log("🧠 [AIService] Consultando JSON con modelo " + modelo + " usando API Key: " + keyObj.label);
+
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+          const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: configOverride.temperature || 0.2,
+              maxOutputTokens: configOverride.maxOutputTokens || 2048,
+              responseMimeType: "application/json"
+            }
+          };
+
+          if (configOverride.responseSchema) {
+            payload.generationConfig.responseSchema = configOverride.responseSchema;
+          }
+
+          const response = UrlFetchApp.fetch(url, {
+            method: "post",
+            contentType: "application/json",
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true,
+            timeoutInSeconds: 30
+          });
+
+          if (response.getResponseCode() === 200) {
+            const resText = response.getContentText();
+            const json = JSON.parse(resText);
+            const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (rawText) {
+              // Validar que realmente sea un JSON válido antes de retornarlo
+              JSON.parse(rawText);
+              return rawText;
+            }
+          }
+          ultimoError = `Mod ${modelo} (${keyObj.label}) -> HTTP ${response.getResponseCode()}: ${response.getContentText()}`;
+          console.warn(`⚠️ [AIService] ${ultimoError}`);
+        } catch (e) {
+          ultimoError = `Mod ${modelo} (${keyObj.label}) -> ${e.message}`;
+          console.warn("❌ [AIService] Excepción: " + ultimoError);
+        }
+      }
+    }
+    throw new Error(`[AIService] Fallaron todos los modelos Gemini JSON con las llaves disponibles: ${ultimoError}`);
+  },
+
+  /**
+   * Gestión manual/AppSheet de enriquecimiento de producto.
+   * Centralizado en AIService para usar Gemini JSON nativo.
+   */
+  gestionarAccionEnriquecimiento(sku) {
+    debugLog(`🛠️ [IA] Iniciando enriquecimiento para SKU: ${sku}`);
+    const logArray = [`🚀 Iniciando análisis para el producto ${sku}...`];
+    
+    try {
+      // 1. Verificar condiciones en BD_PRODUCTO_IMAGENES
+      logArray.push("🔍 Buscando referencia visual maestra (Portada + Prompt)...");
+      const referenciaMaestra = obtenerReferenciaMaestra(sku);
+      
+      if (!referenciaMaestra) {
+        const errorMsg = "⚠️ No se encontró una imagen marcada como PORTADA con PROMPT generado. Genera primero la imagen de portada en el Gestor de Imágenes.";
+        logArray.push(errorMsg);
+        return { success: false, message: errorMsg, logs: logArray };
+      }
+      logArray.push("✅ Referencia maestra encontrada.");
+
+      // 2. Obtener metadatos del producto
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
+      const mappingProd = HeaderManager.getMapping("PRODUCTS");
+      const productosData = convertirRangoAObjetos(sheetProd);
+      const prodObj = productosData.find(p => String(p.CODIGO_ID) === String(sku));
+      
+      if (!prodObj) {
+        throw new Error(`Producto ${sku} no encontrado en la base de datos.`);
+      }
+
+      // 3. Preparar Prompt y Consultar IA (con Gemini JSON nativo)
+      logArray.push("🧠 Consultando a la IA para generar descripción y tabla de talles (Gemini JSON)...");
+      const promptMaster = prepararPromptDescripcionIA(referenciaMaestra, prodObj);
+      
+      const schemaEnriquecimiento = {
+        type: "OBJECT",
+        properties: {
+          corta: { type: "STRING" },
+          fichatecnica: { type: "STRING" },
+          tabla_talles: { type: "STRING" }
+        },
+        required: ["corta", "fichatecnica", "tabla_talles"]
+      };
+
+      const respuestaIA = this.consultarGeminiJSON(promptMaster, { responseSchema: schemaEnriquecimiento });
+
+      if (!respuestaIA || respuestaIA.includes("Error")) {
+        throw new Error("La IA no respondió correctamente o devolvió un error.");
+      }
+
+      let dataIA;
+      try {
+        dataIA = JSON.parse(respuestaIA);
+      } catch (e) {
+        logArray.push("❌ Error al procesar los datos de la IA: La respuesta no tiene un formato válido.");
+        throw new Error("No se pudo parsear la respuesta de la IA.");
+      }
+
+      logArray.push("✅ Contenido generado con éxito.");
+      
+      return { 
+        success: true, 
+        message: "Contenido generado. Revisa y edita antes de guardar.",
+        data: dataIA,
+        logs: logArray 
+      };
+
+    } catch (e) {
+      const errorMsg = `❌ Error técnico: ${e.message}`;
+      logArray.push(errorMsg);
+      debugLog(errorMsg);
+      return { success: false, message: errorMsg, logs: logArray };
+    }
+  },
+
+  /**
    * GENERACIÓN DE IMAGEN (PAID TIER)
    * Lógica de renderizado publicitario de alta gama.
    */
@@ -365,7 +511,7 @@ const AIService = {
     const expectedHeaders = [
       "TIMESTAMP", "IMAGEN_ID", "SKU", "CATEGORIA", "ESTILO",
       "ANALISIS_FORENSE", "FORENSE_RAW", "PROMPT_MAESTRO", "PROMPT_RAW",
-      "MODELO", "VERSION_REGLAS", "CONFIG_PARAMS"
+      "MODELO", "VERSION_REGLAS", "CONFIG_PARAMS", "COSTO"
     ];
 
     if (!sheet) {
@@ -404,12 +550,14 @@ const AIService = {
       const colMap = {};
       headers.forEach((h, i) => colMap[h] = i);
 
-      // Buscar si ya existe una entrada para esta Imagen (Consolidación por ID)
+      // Buscar si ya existe una entrada para esta Imagen (Solo consolidación si es análisis forense estático)
       let rowIndex = -1;
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i][colMap.IMAGEN_ID] === data.imagenId) {
-          rowIndex = i + 1;
-          break;
+      if (data.estilo === "FORENSIC_ONLY") {
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i][colMap.IMAGEN_ID] === data.imagenId) {
+            rowIndex = i + 1;
+            break;
+          }
         }
       }
 
@@ -425,9 +573,12 @@ const AIService = {
       if (data.promptMaestro) newRow[colMap.PROMPT_MAESTRO] = data.promptMaestro;
       if (data.promptMaestroRaw !== undefined && colMap.PROMPT_RAW !== undefined) newRow[colMap.PROMPT_RAW] = data.promptMaestroRaw;
       if (data.modelo) newRow[colMap.MODELO] = data.modelo;
-      newRow[colMap.VERSION_REGLAS] = "v4.2 (Consolidado)";
+      newRow[colMap.VERSION_REGLAS] = "v4.3 (Histórico)";
       if (data.configParams !== undefined && colMap.CONFIG_PARAMS !== undefined) {
         newRow[colMap.CONFIG_PARAMS] = typeof data.configParams === 'string' ? data.configParams : JSON.stringify(data.configParams);
+      }
+      if (data.costo !== undefined && colMap.COSTO !== undefined) {
+        newRow[colMap.COSTO] = data.costo;
       }
 
       if (rowIndex > 0) {
@@ -450,7 +601,14 @@ const AIService = {
       const colMap = {};
       headers.forEach((h, i) => colMap[h] = i);
 
-      const match = data.find(r => r[colMap.IMAGEN_ID] === imagenId);
+      let match = null;
+      for (let i = data.length - 1; i >= 1; i--) {
+        if (data[i][colMap.IMAGEN_ID] === imagenId) {
+          match = data[i];
+          break;
+        }
+      }
+
       if (match) {
         let configParamsObj = {};
         if (colMap.CONFIG_PARAMS !== undefined && match[colMap.CONFIG_PARAMS]) {
@@ -467,7 +625,8 @@ const AIService = {
           analisisForense: match[colMap.ANALISIS_FORENSE],
           promptMaestro: match[colMap.PROMPT_MAESTRO],
           modelo: match[colMap.MODELO],
-          configParams: configParamsObj
+          configParams: configParamsObj,
+          costo: (colMap.COSTO !== undefined && match[colMap.COSTO] !== "") ? parseFloat(match[colMap.COSTO]) || 0 : 0
         };
       }
       return null;
@@ -573,10 +732,10 @@ const AIService = {
       const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
 
       // Construir Prompt Forense (Fase Industrial: Ignora metadata, reporta lo que veo)
-      const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) : "";
+      const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) + " | GENDER: " + prodRow.GENERO + " | AGE_GROUP: " + (prodRow.GRUPO_EDAD || "") : "";
       const promptForense = `Forensic Clothing Analyst for a high-precision ERP.
 Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).
-Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).
+Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, GÉNERO, and GRUPO_EDAD exactly from the Context Reference, even if not visually identifiable in the image).
 Plain text, one line per field, no bold, no markdown, no introductions.
 
 * Context Reference (ERP): ${metadata ? JSON.stringify(metadata) : contextoProducto}
@@ -587,6 +746,7 @@ MODELO: [Heredar de Context Reference. Exclusivo para indexación ERP]
 CATEGORÍA: [Heredar de Context Reference]
 MATERIAL: [Heredar de Context Reference, confirmando con textura visual]
 GÉNERO: [Heredar de Context Reference]
+GRUPO_EDAD: [Heredar de Context Reference]
 CLASIFICACION_ESTRUCTURAL: [Analiza la prenda a partir de la imagen y los metadatos de referencia. Clasifícala estrictamente en una de las dos clasificaciones anatómicas: PRENDA_SUPERIOR (si se viste en la parte superior del cuerpo, ej. cubriendo cuello, hombros, torso, pecho o brazos) o PRENDA_INFERIOR (si se viste en la parte inferior del cuerpo, ej. cubriendo cintura, cadera, pelvis o piernas). Escribe estrictamente PRENDA_SUPERIOR o PRENDA_INFERIOR en mayúsculas sin más texto]
 TIPO_PRENDA: [Categoría de mayor jerarquía / Familia, ej: ROPA INTERIOR]
 POSICIÓN_DETECTADA: [FRENTE / ESPALDA / LATERAL / PLANO / GHOST_MANNEQUIN / PILA_O_DOBLADO / INDETERMINADO]
@@ -695,6 +855,7 @@ TIPO_PRENDA: ROPA INTERIOR
                   CATEGORIA: { type: "STRING" },
                   MATERIAL: { type: "STRING" },
                   GENERO: { type: "STRING" },
+                  GRUPO_EDAD: { type: "STRING" },
                   CLASIFICACION_ESTRUCTURAL: {
                     type: "STRING",
                     enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"]
@@ -745,7 +906,7 @@ TIPO_PRENDA: ROPA INTERIOR
                   DETALLES_VISUALES: { type: "STRING" }
                 },
                 required: [
-                  "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO",
+                  "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO", "GRUPO_EDAD",
                   "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA",
                   "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO",
                   "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES",
@@ -786,6 +947,7 @@ TIPO_PRENDA: ROPA INTERIOR
                     `CATEGORÍA: ${parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""}`,
                     `MATERIAL: ${parsedJson.MATERIAL || ""}`,
                     `GÉNERO: ${parsedJson.GENERO || parsedJson.GÉNERO || ""}`,
+                    `GRUPO_EDAD: ${parsedJson.GRUPO_EDAD || ""}`,
                     `CLASIFICACION_ESTRUCTURAL: ${parsedJson.CLASIFICACION_ESTRUCTURAL || ""}`,
                     `TIPO_PRENDA: ${parsedJson.TIPO_PRENDA || ""}`,
                     `POSICIÓN_DETECTADA: ${parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""}`,
@@ -830,7 +992,7 @@ TIPO_PRENDA: ROPA INTERIOR
 
       // 4. Limpieza Industrial
       const forensicWhitelist = [
-        "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
+        "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "GRUPO_EDAD", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
         "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
         "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
         "MATERIAL_ESTIMADO",
@@ -1834,6 +1996,40 @@ ${directiva.exampleBlock}
       const estilo = String(estiloSolicitado || 'ecommerce').toLowerCase();
       const genero = String(prodRow ? prodRow.GENERO || prodRow.GENDER || 'UNISEX' : 'UNISEX').toUpperCase();
 
+      // Obtener y mapear el grupo de edad para evitar modelos adultos en ropa infantil
+      let grupoEdad = "";
+      if (prodRow && prodRow.GRUPO_EDAD) {
+        grupoEdad = String(prodRow.GRUPO_EDAD).trim();
+      } else if (extraSpecs && extraSpecs.grupoEdad) {
+        grupoEdad = String(extraSpecs.grupoEdad).trim();
+      }
+      
+      const generoNormalizado = genero.trim().toUpperCase();
+      const edadNormalizada = grupoEdad.toLowerCase();
+
+      let modelEnglishNoun = "model"; // Default
+      
+      const esBebe = edadNormalizada.includes("bebe") || edadNormalizada.includes("beba") || edadNormalizada.includes("baby") || edadNormalizada.includes("toddler") || (edadNormalizada.includes("infantil") && (edadNormalizada.includes("0") || edadNormalizada.includes("1") || edadNormalizada.includes("2") || edadNormalizada.includes("3")));
+      const esNiño = edadNormalizada.includes("niño") || edadNormalizada.includes("niña") || edadNormalizada.includes("nino") || edadNormalizada.includes("nina") || edadNormalizada.includes("infantil") || edadNormalizada.includes("kid") || edadNormalizada.includes("child") || edadNormalizada.includes("jardin");
+      const esTeen = edadNormalizada.includes("adolescente") || edadNormalizada.includes("teen") || edadNormalizada.includes("juvenil");
+
+      if (generoNormalizado === 'FEMENINO' || generoNormalizado === 'MUJER') {
+        if (esBebe) modelEnglishNoun = "baby girl model";
+        else if (esNiño) modelEnglishNoun = "young girl model";
+        else if (esTeen) modelEnglishNoun = "teenage girl model";
+        else modelEnglishNoun = "female model";
+      } else if (generoNormalizado === 'MASCULINO' || generoNormalizado === 'HOMBRE') {
+        if (esBebe) modelEnglishNoun = "baby boy model";
+        else if (esNiño) modelEnglishNoun = "young boy model";
+        else if (esTeen) modelEnglishNoun = "teenage boy model";
+        else modelEnglishNoun = "male model";
+      } else {
+        if (esBebe) modelEnglishNoun = "baby model";
+        else if (esNiño) modelEnglishNoun = "child model";
+        else if (esTeen) modelEnglishNoun = "teenage model";
+        else modelEnglishNoun = "model";
+      }
+
       // Detección Inteligente de "Conjunto" (Prendas de dos o más piezas)
       const category = String(prodRow ? prodRow.CATEGORIA || prodRow.CATEGORIA_PADRE || '' : '').toLowerCase();
       const modelName = String(prodRow ? prodRow.MODELO || '' : '').toLowerCase();
@@ -1970,10 +2166,10 @@ ${directiva.exampleBlock}
           rules: isConjunto
             ? "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Strict full-body portrait shot from head to toe, showing the model's entire silhouette and the full length of both garments down to the ankles."
             : "\n          - ENVIRONMENT/CONTEXT: " + environment + ".\n          - Lighting: Cinematic natural light with professional highlights.\n          - Composition: Medium or full-body shot with soft bokeh depth of field.",
-          model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
+          model: "- GENDER AND AGE MANDATE: Use a " + modelEnglishNoun + ". Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
           example: isConjunto
-            ? "        **REASONING:** The two-piece set is adapted to a natural lifestyle environment with a model, aiming for a cinematic full-body framing showing both garments naturally, with natural draping.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, full-body portrait shot of a [GENDER] model wearing a two-piece set, [ENVIRONMENT/CONTEXT], cinematic natural lighting, 8k, editorial style."
-            : "        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, [GENDER] model wearing [GARMENT], [ENVIRONMENT/CONTEXT], cinematic natural lighting, soft bokeh depth of field, 8k, editorial style."
+            ? "        **REASONING:** The two-piece set is adapted to a natural lifestyle environment with a model, aiming for a cinematic full-body framing showing both garments naturally, with natural draping.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, full-body portrait shot of a [MODEL_TYPE] wearing a two-piece set, [ENVIRONMENT/CONTEXT], cinematic natural lighting, 8k, editorial style."
+            : "        **REASONING:** The garment is adapted to a natural lifestyle environment with a model, aiming for a cinematic framing and natural lighting.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] Environment, [X] Lighting.\n        **MASTER PROMPT:** High-end lifestyle fashion photography, [MODEL_TYPE] wearing [GARMENT], [ENVIRONMENT/CONTEXT], cinematic natural lighting, soft bokeh depth of field, 8k, editorial style."
         },
         'ecommerce': {
           base: isConjunto
@@ -1982,10 +2178,10 @@ ${directiva.exampleBlock}
           rules: isConjunto
             ? "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional full-body portrait shot showing the model from head to toe. NO \"flat lay\" or \"flat surface\" mentions allowed."
             : "\n          - Background: Neutral professional studio (Light Gray #F2F2F2).\n          - Lighting: Uniform high-key studio softbox lighting.\n          - Style: Professional on-body shot. NO \"flat lay\" or \"flat surface\" mentions allowed.",
-          model: "- GENDER MANDATE: Use a " + genero + " model. Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
+          model: "- GENDER AND AGE MANDATE: Use a " + modelEnglishNoun + ". Skin tone: " + (extraSpecs.skinTone || 'Natural') + ".",
           example: isConjunto
             ? "        **REASONING:** Transitioning from flat-laid garments to a professional full-body catalog shot with a female model. The garments are styled with natural layering where the hoodie draping overlaps the pants.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional full-body portrait shot of a model wearing a two-piece set, showing the full length of the garments from head to toe, frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
-            : "        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender mandate. Tags are removed and catalog lighting is applied.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional on-body shot of a model wearing [GARMENT], [TEXTURE/COLOR DETAILS], frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
+            : "        **REASONING:** Transitioning from physical support to a human model (on-body shot) following the gender and age mandate. Tags are removed and catalog lighting is applied.\n        **VISUAL AUDIT:** [X] Brand, [X] Human Model, [X] High-Key Lighting, [X] Light Gray Background.\n        **MASTER PROMPT:** High-end e-commerce fashion photography, professional on-body shot of a [MODEL_TYPE] wearing [GARMENT], [TEXTURE/COLOR DETAILS], frontal view, uniform high-key studio softbox lighting, neutral light gray background #F2F2F2, 8k, commercial catalog style."
         },
         'hanger': {
           base: "STILL LIFE - PROFESSIONAL HANGER: Garment professionally hanging on a luxury minimalist hanger.",
@@ -2274,7 +2470,7 @@ ${directiva.exampleBlock}
 
         // 1. Preparar las directivas y el esquema comunes
         const forensicWhitelist = [
-          "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
+          "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "GRUPO_EDAD", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
           "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
           "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
           "MATERIAL_ESTIMADO",
@@ -2291,6 +2487,7 @@ ${directiva.exampleBlock}
             CATEGORIA: { type: "STRING" },
             MATERIAL: { type: "STRING" },
             GENERO: { type: "STRING" },
+            GRUPO_EDAD: { type: "STRING" },
             CLASIFICACION_ESTRUCTURAL: { type: "STRING", enum: ["PRENDA_SUPERIOR", "PRENDA_INFERIOR"] },
             TIPO_PRENDA: { type: "STRING" },
             POSICION_DETECTADA: { type: "STRING", enum: ["FRENTE", "ESPALDA", "LATERAL", "PLANO", "GHOST_MANNEQUIN", "PILA_O_DOBLADO", "INDETERMINADO"] },
@@ -2329,7 +2526,7 @@ ${directiva.exampleBlock}
             DETALLES_VISUALES: { type: "STRING" }
           },
           required: [
-            "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO",
+            "MARCA", "MODELO", "CATEGORIA", "MATERIAL", "GENERO", "GRUPO_EDAD",
             "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA", "POSICION_DETECTADA",
             "SOPORTE_O_CONTEXTO", "COLOR_PRINCIPAL", "MATERIAL_ESTIMADO",
             "LOGO_O_MARCA", "DETALLES_CONSTRUCTIVOS", "AVISOS_DE_LIMPIEZA_VISIBLES",
@@ -2357,11 +2554,11 @@ ${directiva.exampleBlock}
             }
 
             const prodRow = this.buscarFilaPorValor(sheetProd, "PRODUCTS", "CODIGO_ID", imgRow.PRODUCTO_ID);
-            const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) : "";
+            const contextoProducto = prodRow ? "PRODUCT: " + (prodRow.MODELO || prodRow.NOMBRE_PRODUCTO) + " | BRAND: " + prodRow.MARCA + " | PARENT_CATEGORY: " + (prodRow.PARENT_CATEGORY || prodRow.CATEGORIA_PADRE) + " | GENDER: " + prodRow.GENERO + " | AGE_GROUP: " + (prodRow.GRUPO_EDAD || "") : "";
 
             const promptForense = "Forensic Clothing Analyst for a high-precision ERP.\n" +
               "Visual Pixel Sovereignty (report strictly what is seen for colors, patterns, and physical traits).\n" +
-              "Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, and GÉNERO exactly from the Context Reference, even if not visually identifiable in the image).\n" +
+              "Metadata Inheritance (MANDATORY: Inherit MARCA, MODELO, CATEGORÍA, GÉNERO, and GRUPO_EDAD exactly from the Context Reference, even if not visually identifiable in the image).\n" +
               "Plain text, one line per field, no bold, no markdown, no introductions.\n\n" +
               "* Context Reference (ERP): " + contextoProducto + "\n" +
               "* Analysis Request: Technical forensic breakdown in SPANISH.\n" +
@@ -2369,6 +2566,8 @@ ${directiva.exampleBlock}
               "MARCA: [Heredar de Context Reference]\n" +
               "MODELO: [Heredar de Context Reference]\n" +
               "CATEGORÍA: [Heredar de Context Reference]\n" +
+              "GÉNERO: [Heredar de Context Reference]\n" +
+              "GRUPO_EDAD: [Heredar de Context Reference]\n" +
               "... (resto de campos) ...";
 
             // Subir a la File API para asociarlo temporalmente a la API Key
@@ -2528,6 +2727,7 @@ ${directiva.exampleBlock}
               "CATEGORÍA: " + (parsedJson.CATEGORIA || parsedJson.CATEGORÍA || ""),
               "MATERIAL: " + (parsedJson.MATERIAL || ""),
               "GÉNERO: " + (parsedJson.GENERO || parsedJson.GÉNERO || ""),
+              "GRUPO_EDAD: " + (parsedJson.GRUPO_EDAD || ""),
               "CLASIFICACION_ESTRUCTURAL: " + (parsedJson.CLASIFICACION_ESTRUCTURAL || ""),
               "TIPO_PRENDA: " + (parsedJson.TIPO_PRENDA || ""),
               "POSICIÓN_DETECTADA: " + (parsedJson.POSICION_DETECTADA || parsedJson.POSICIÓN_DETECTADA || ""),
@@ -2552,7 +2752,7 @@ ${directiva.exampleBlock}
             ].join('\n');
 
             const forensicWhitelist = [
-              "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
+              "MARCA", "MODELO", "CATEGORÍA", "MATERIAL", "GÉNERO", "GRUPO_EDAD", "CLASIFICACION_ESTRUCTURAL", "TIPO_PRENDA",
               "POSICIÓN_DETECTADA", "SOPORTE_O_CONTEXTO",
               "COLOR_PRINCIPAL", "NOMBRE TÉCNICO", "CÓDIGO HEX", "TIPO", "PATRÓN",
               "MATERIAL_ESTIMADO",

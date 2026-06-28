@@ -396,7 +396,9 @@ function blogger_generarDescripcionProductoCompleta({ pId, tipoRegistroProducto,
     }
     const listColores = [...colores].map(c => ({ nombre: c, hex: mapColores[c] || "#cccccc" }));
     const video = videoRow ? { label: "Video", url: videoRow[mI.URL], thumbnail: videoRow[mI.THUMBNAIL_URL] } : undefined;
-    const msgWA = `¡Hola! Interesado en:\n🔹 Código: ${pId}\n🔹 Modelo: ${p[mP.MODELO] || '-'}\n🔹 Marca: ${p[mP.MARCA] || '-'}\n🔹 Género: ${p[mP.GENERO] || '-'}\n🔹 Talles: ${[...talles].join(', ')}`;
+    const ageGroupVal = (mP.GRUPO_EDAD !== undefined && p[mP.GRUPO_EDAD]) ? String(p[mP.GRUPO_EDAD]).trim() : "";
+    const ageGroupStr = ageGroupVal ? `\n🔹 Edad: ${ageGroupVal}` : "";
+    const msgWA = `¡Hola! Interesado en:\n🔹 Código: ${pId}\n🔹 Modelo: ${p[mP.MODELO] || '-'}\n🔹 Marca: ${p[mP.MARCA] || '-'}\n🔹 Género: ${p[mP.GENERO] || '-'}${ageGroupStr}\n🔹 Talles: ${[...talles].join(', ')}`;
 
     return {
         modelo: { label: "Modelo", valor: p[mP.MODELO] || "-" },
@@ -405,6 +407,11 @@ function blogger_generarDescripcionProductoCompleta({ pId, tipoRegistroProducto,
             label: "Género",
             valor: p[mP.GENERO] || "-",
             icono: blogger_getGeneroIcono(p[mP.GENERO])
+        },
+        grupo_edad: {
+            label: "Edad",
+            valor: ageGroupVal || "-",
+            icono: "👶"
         },
         estilo: { label: "Estilo", valor: p[mP.ESTILO] || "-" },
         material: { label: "Material", valor: p[mP.MATERIAL] || "-" },

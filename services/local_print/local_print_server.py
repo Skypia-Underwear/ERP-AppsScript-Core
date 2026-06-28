@@ -32,6 +32,10 @@ ARCHIVO_LOG = os.path.join(CARPETA_SERVER, 'historial.log')
 
 CACHE_IMPRESIONES = {}
 
+# Locks para asegurar exclusión mutua en hilos
+cache_lock = threading.Lock()
+log_lock = threading.Lock()
+
 # ==========================================
 # LOGGER
 # ==========================================
@@ -40,18 +44,20 @@ class LoggerWriter:
         self.terminal = sys.stdout
         self.log = open(ARCHIVO_LOG, "a", encoding="utf-8")
     def write(self, message):
-        if self.terminal:
-            try: self.terminal.write(message)
+        with log_lock:
+            if self.terminal:
+                try: self.terminal.write(message)
+                except: pass
+            try:
+                self.log.write(message)
+                self.log.flush()
             except: pass
-        try:
-            self.log.write(message)
-            self.log.flush()
-        except: pass
     def flush(self):
-        if self.terminal:
-            try: self.terminal.flush()
-            except: pass
-        self.log.flush()
+        with log_lock:
+            if self.terminal:
+                try: self.terminal.flush()
+                except: pass
+            self.log.flush()
 
 sys.stdout = LoggerWriter()
 sys.stderr = LoggerWriter()
@@ -163,6 +169,15 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+    def do_OPTIONS(self):
+        """ Responder preflights CORS y Private Network Access de Chrome """
+        self.send_response(204) # No Content
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Private-Network")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
+        self.end_headers()
+
     def do_GET(self):
         try:
             parsed_url = urllib.parse.urlparse(self.path)
@@ -197,17 +212,23 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
             if not id_venta: id_venta = f"SinID_{int(time.time())}"
             
             t_now = time.time()
-            for k in list(CACHE_IMPRESIONES.keys()):
-                if t_now - CACHE_IMPRESIONES[k] > 60: del CACHE_IMPRESIONES[k]
-            
-            if id_venta in CACHE_IMPRESIONES and force_reprint != "1":
+            es_duplicado = False
+            with cache_lock:
+                for k in list(CACHE_IMPRESIONES.keys()):
+                    if t_now - CACHE_IMPRESIONES[k] > 60: del CACHE_IMPRESIONES[k]
+                
+                if id_venta in CACHE_IMPRESIONES and force_reprint != "1":
+                    es_duplicado = True
+                else:
+                    CACHE_IMPRESIONES[id_venta] = t_now
+
+            if es_duplicado:
                 print(f"[{datetime.now()}] 🚫 DUPLICADO: {id_venta}")
                 current_query = parsed_url.query
                 reprint_url = f"/print_ticket?{current_query}&force=1"
                 self.responder_cierre("YA IMPRESO", "#ff9800", f"Ticket {id_venta} ya enviado.", True, reprint_url)
                 return
             
-            CACHE_IMPRESIONES[id_venta] = t_now
             safe_id = "".join([c for c in id_venta if c.isalnum() or c in ('-','_')])
             print(f"\n[{datetime.now()}] --- PROCESANDO: {safe_id} (Copias: {num_copias}) ---")
 
@@ -237,15 +258,21 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
                 for linea in texto_decodificado.split('\n'):
                     linea_stripped = linea.lstrip()
                     if linea_stripped.startswith('^^'):
-                        # Quitar ^^ y también :: si viene inmediatamente después (ej. ^^::)
+                        # Quitar ^^ y también :: si viene inmediatamente después (ej: ^^::)
                         texto_linea = linea_stripped[2:]
                         if texto_linea.startswith('::'):
                             texto_linea = texto_linea[2:]
                         
                         p._raw(b'\x1b\x61\x01')  # Centrar
-                        p._raw(b'\x1b\x21\x38')  # ESC ! 56 (Doble ancho + Doble alto + Negrita) - Byte seguro 0x38 ('8')
+                        p._raw(b'\x1b\x21\x38')  # ESC ! 56 (Doble ancho + Doble alto + Negrita)
                         p.text(texto_linea.strip() + "\n")
                         p._raw(b'\x1b\x21\x00')  # ESC ! 0 (Restaurar)
+                        p._raw(b'\x1b\x61\x00')  # Izquierda
+                    elif linea_stripped.startswith('^'):
+                        # Centrado con tamaño normal (un solo caret ^)
+                        texto_linea = linea_stripped[1:]
+                        p._raw(b'\x1b\x61\x01')  # Centrar
+                        p.text(texto_linea.strip() + "\n")
                         p._raw(b'\x1b\x61\x00')  # Izquierda
                     elif linea_stripped.startswith('::'):
                         p._raw(b'\x1b\x61\x00')  # Izquierda
@@ -345,20 +372,32 @@ class PrintHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 self.responder_cierre("IMPRESION ENVIADA", "#000000", "Ticket enviado.")
 
+        except (ConnectionAbortedError, ConnectionResetError) as conn_err:
+            print(f"[{datetime.now()}] ⚠️ Conexión abortada durante la impresión de {id_venta}: {conn_err}")
         except Exception as e:
             print(f"Error: {e}")
-            self.responder_cierre("ERROR SERVIDOR", "#ff0000", str(e))
+            try:
+                self.responder_cierre("ERROR SERVIDOR", "#ff0000", str(e))
+            except:
+                pass
 
     def responder_cierre(self, titulo, color, mensaje, boton_reimprimir=False, url_reimprimir=""):
-        self.send_response(200) 
-        self.send_header("Content-type", "text/html; charset=utf-8") 
-        self.end_headers()
-        boton_extra = ""
-        if boton_reimprimir:
-            boton_extra = f"<button onclick=\"window.location.href='{url_reimprimir}'\" style=\"background-color:#333;border:2px solid white;margin-top:10px;\">🔄 FORZAR REIMPRESIÓN</button>"
-        js = "" if boton_reimprimir else "setTimeout(function(){try{window.open('','_self','');window.close()}catch(e){}try{window.history.back()}catch(e){}},1000);"
-        html = f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{titulo}</title><style>body{{background-color:{color};color:white;font-family:sans-serif;text-align:center;padding-top:20vh}}button{{background-color:white;color:{color};border:none;padding:15px;font-size:18px;border-radius:8px;font-weight:bold;margin:10px}}</style><script>window.onload=function(){{{js}}}</script></head><body><h1>{titulo}</h1><p>{mensaje}</p>{boton_extra}<br><button onclick="window.history.back()">VOLVER</button></body></html>"""
-        self.wfile.write(html.encode('utf-8'))
+        try:
+            self.send_response(200) 
+            self.send_header("Content-type", "text/html; charset=utf-8") 
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Private-Network", "true")
+            self.end_headers()
+            boton_extra = ""
+            if boton_reimprimir:
+                boton_extra = f"<button onclick=\"window.location.href='{url_reimprimir}'\" style=\"background-color:#333;border:2px solid white;margin-top:10px;\">🔄 FORZAR REIMPRESIÓN</button>"
+            js = "" if boton_reimprimir else "setTimeout(function(){try{window.open('','_self','');window.close()}catch(e){}try{window.history.back()}catch(e){}},1000);"
+            html = f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{titulo}</title><style>body{{background-color:{color};color:white;font-family:sans-serif;text-align:center;padding-top:20vh}}button{{background-color:white;color:{color};border:none;padding:15px;font-size:18px;border-radius:8px;font-weight:bold;margin:10px}}</style><script>window.onload=function(){{{js}}}</script></head><body><h1>{titulo}</h1><p>{mensaje}</p>{boton_extra}<br><button onclick="window.history.back()">VOLVER</button></body></html>"""
+            self.wfile.write(html.encode('utf-8'))
+        except (ConnectionAbortedError, ConnectionResetError) as conn_err:
+            print(f"[{datetime.now()}] ⚠️ Conexión abortada por el cliente al responder: {conn_err}")
+        except Exception as e:
+            print(f"[{datetime.now()}] ⚠️ Error en responder_cierre: {e}")
 
 if __name__ == "__main__":
     try:
@@ -378,7 +417,8 @@ if __name__ == "__main__":
         hilo_sync.start()
         
         try:
-            with socketserver.TCPServer(("", PUERTO), PrintHandler) as httpd:
+            socketserver.ThreadingTCPServer.allow_reuse_address = True
+            with socketserver.ThreadingTCPServer(("", PUERTO), PrintHandler) as httpd:
                 print(f"[{datetime.now()}] Servidor escuchando en puerto {PUERTO}")
                 httpd.serve_forever()
         except KeyboardInterrupt: pass

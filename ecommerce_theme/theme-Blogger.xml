@@ -8602,6 +8602,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 "Estilo": new Set(),
                 "Marca": new Set(),
                 "Género": new Set(),
+                "Edad": new Set(),
                 "Material": new Set(),
                 "Temporada": new Set(),
                 "Talles": new Set(),
@@ -8638,6 +8639,14 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     resaltados[key].add(limpio);
                     contador[key][limpio] = (contador[key][limpio] || 0) + 1;
                 }
+            }
+
+            if (desc.grupo_edad?.valor) {
+                const edades = desc.grupo_edad.valor.split(",").map(val => val.trim()).filter(val => val && val !== "-");
+                edades.forEach(edad => {
+                    resaltados["Edad"].add(edad);
+                    contador.Edad[edad] = (contador.Edad[edad] || 0) + 1;
+                });
             }
 
             if (Array.isArray(desc.talles?.valores)) {
@@ -9124,7 +9133,9 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 "Talles": "talles",
                 "Color": "colores",
                 "Variedad": "variedad",
-                "video": "video"
+                "video": "video",
+                "Edad": "grupo_edad",
+                "edad": "grupo_edad"
             };
 
             if (!filtros || Object.keys(filtros).length === 0 || filtros['mostrar_todos']) {
@@ -9196,6 +9207,14 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                             textoElemento = descripcion[claveReal].valores
                                 .map(t => String(t || "").trim().toLowerCase())
                                 .filter(t => t.length > 0);
+                        }
+                    } else if (claveReal === 'grupo_edad') {
+                        textoElemento = [];
+                        if (descripcion?.[claveReal]?.valor) {
+                            textoElemento = descripcion[claveReal].valor
+                                .split(",")
+                                .map(t => String(t || "").trim().toLowerCase())
+                                .filter(t => t.length > 0 && t !== "-");
                         }
                     } else {
                         textoElemento = (descripcion?.[claveReal]?.valor || "").toLowerCase();

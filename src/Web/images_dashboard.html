@@ -1606,6 +1606,11 @@
                         class="w-full mt-2 py-2 bg-indigo-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-indigo-500 shadow-sm transition hidden">
                         <span class="material-icons text-sm">visibility</span>Auditar Prompt
                     </button>
+                    <!-- BOTÓN DE RENDERIZAR DIRECTO DESDE CACHÉ (DINÁMICO - PAGO) -->
+                    <button id="btnRenderDirectModal" onclick="renderizarDesdePromptCache()"
+                        class="w-full mt-2 py-2 bg-emerald-600 text-white rounded font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-500 shadow-sm transition hidden">
+                        <span class="material-icons text-sm">camera_enhance</span>Renderizar Guardado
+                    </button>
                     <div id="aiResultBox" class="hidden">
                         <textarea id="aiPromptText" readonly class="hidden"></textarea>
                     </div>
@@ -4310,6 +4315,7 @@
 
         const btnModal = document.getElementById('btnStartAiModal');
         const btnAudit = document.getElementById('btnAuditPromptModal');
+        const btnRenderDirect = document.getElementById('btnRenderDirectModal');
 
         if (btnModal) {
             if (showPremium) {
@@ -4339,6 +4345,14 @@
                 if (btnAudit) {
                     btnAudit.classList.add('hidden');
                 }
+            }
+        }
+
+        if (btnRenderDirect) {
+            if (showPremium && currentImgObj && currentImgObj.PROMPT) {
+                btnRenderDirect.classList.remove('hidden');
+            } else {
+                btnRenderDirect.classList.add('hidden');
             }
         }
 
@@ -4556,6 +4570,15 @@
                             </div>`;
                     }
 
+                    let renderBtnHtml = '';
+                    if (formato !== 'video') {
+                        renderBtnHtml = `
+                            <button id="swalBtnRenderDirect" class="col-span-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition mt-2">
+                                <span class="material-icons text-sm">camera_enhance</span> Renderizar con este Prompt (Pago)
+                            </button>
+                        `;
+                    }
+
                     let htmlContent = `
                         <div class="text-left space-y-3">
                             ${bodyHtml}
@@ -4566,6 +4589,7 @@
                                 <button id="swalBtnRehacer" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
                                     <span class="material-icons text-sm">autorenew</span> Rehacer Prompt
                                 </button>
+                                ${renderBtnHtml}
                             </div>
                         </div>`;
 
@@ -4590,6 +4614,12 @@
                                 Swal.close();
                                 generarPromptModal();
                             };
+                            if (formato !== 'video') {
+                                document.getElementById('swalBtnRenderDirect').onclick = () => {
+                                    Swal.close();
+                                    renderizarDesdePromptCache();
+                                };
+                            }
                         }
                     }).then((result) => {
                         if (result.dismiss === Swal.DismissReason.cancel && showVeoButton) {
@@ -4746,6 +4776,9 @@
                     <button id="swalBtnRehacer" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
                         <span class="material-icons text-sm">autorenew</span> Rehacer Prompt
                     </button>
+                    <button id="swalBtnRenderDirect" class="col-span-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition mt-2">
+                        <span class="material-icons text-sm">camera_enhance</span> Renderizar con este Prompt (Pago)
+                    </button>
                 </div>
             </div>`;
 
@@ -4765,8 +4798,132 @@
                     Swal.close();
                     generarPromptModal();
                 };
+                document.getElementById('swalBtnRenderDirect').onclick = () => {
+                    Swal.close();
+                    renderizarDesdePromptCache();
+                };
             }
         });
+    }
+
+    function renderizarDesdePromptCache() {
+        if (!currentImgObj || !currentImgObj.PROMPT) {
+            Swal.fire({
+                title: 'Atención',
+                text: 'No hay un prompt guardado disponible en caché.',
+                icon: 'warning',
+                background: '#1e293b',
+                color: '#fff'
+            });
+            return;
+        }
+
+        let pinToUse = currentPaidPin;
+        if (!pinToUse) {
+            Swal.fire({
+                title: 'Validar PIN de Pago',
+                text: 'Para realizar este renderizado (de pago), debes ingresar tu PIN de seguridad.',
+                input: 'password',
+                inputPlaceholder: 'Ingresa el PIN',
+                background: '#1e293b',
+                color: '#fff',
+                showCancelButton: true,
+                confirmButtonText: 'Validar y Renderizar'
+            }).then(res => {
+                if (res.isConfirmed && res.value) {
+                    google.script.run.withSuccessHandler(valid => {
+                        if (valid && valid.success) {
+                            currentPaidPin = res.value;
+                            const switchEl = document.getElementById('paid-mode-switch');
+                            if (switchEl) switchEl.checked = true;
+                            log("PIN Validado. Modo pago activo.", "success");
+                            updateAiButtonLabels();
+                            ejecutarRenderizadoDirecto(res.value);
+                        } else {
+                            Swal.fire('Error', valid ? valid.message : 'PIN Incorrecto', 'error');
+                        }
+                    }).validarPinPaid(res.value);
+                }
+            });
+        } else {
+            ejecutarRenderizadoDirecto(pinToUse);
+        }
+    }
+
+    function ejecutarRenderizadoDirecto(pinToUse) {
+        Swal.fire({
+            title: 'IA Renderizando...',
+            html: 'Conectando con el motor de renderizado (GCP) usando el prompt guardado. Por favor espera.',
+            background: '#1e293b',
+            color: '#f1f5f9',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const _renderStartTime = Date.now();
+        const ids = (selectedImages && selectedImages.size > 0) ? Array.from(selectedImages) : [currentImageId];
+
+        const style = document.getElementById('swal-input-style') ? document.getElementById('swal-input-style').value : "ecommerce";
+        const model = document.getElementById('swal-input-model') ? document.getElementById('swal-input-model').value : "gemini-3-pro-image";
+        const aspect = document.getElementById('swal-input-aspect') ? document.getElementById('swal-input-aspect').value : "3:4";
+        
+        const extraSpecs = {
+            model: model,
+            aspectRatio: aspect,
+            style: style
+        };
+
+        google.script.run.withSuccessHandler(res => {
+            Swal.close();
+            try {
+                const parsedRes = typeof res === 'string' ? JSON.parse(res) : res;
+                if (parsedRes && parsedRes.success) {
+                    const _elapsed = ((Date.now() - _renderStartTime) / 1000).toFixed(1);
+                    log(`Renderizado desde caché OK (${parsedRes.modelUsed || parsedRes.model}) en ${_elapsed}s.`, 'success');
+
+                    if (parsedRes.cost !== undefined) {
+                        log(`Inversión IA: ${parsedRes.cost.toFixed(5)} USD`, 'info');
+                    }
+
+                    Swal.fire({
+                        title: '¡Imagen Generada!',
+                        text: 'La imagen ha sido renderizada y guardada exitosamente.',
+                        icon: 'success',
+                        background: '#1e293b',
+                        color: '#fff',
+                        timer: 2000
+                    });
+
+                    if (parsedRes.imagenId) {
+                        autoOpenId = parsedRes.imagenId;
+                    } else if (parsedRes.fileId) {
+                        autoOpenId = parsedRes.fileId;
+                    } else {
+                        autoOpenId = currentImageId;
+                    }
+                    closeModal();
+                    recargar();
+                } else {
+                    Swal.fire({
+                        title: 'Error de Renderizado',
+                        text: parsedRes.error || "Fallo en la generación de la imagen física.",
+                        icon: 'error',
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                    log(`❌ Error al renderizar desde caché: ${parsedRes.error}`, 'error');
+                }
+            } catch (e) {
+                Swal.fire({
+                    title: 'Error de Respuesta',
+                    text: 'El motor de renderizado devolvió una respuesta inesperada.',
+                    icon: 'error',
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+                console.error("Error al parsear respuesta de renderizado:", e, res);
+            }
+        }).ejecutarRenderizadoDesdeLaboratorio(ids, currentImgObj.PROMPT, pinToUse, extraSpecs);
     }
 
     function generarPromptMasivo() { generarPromptModal(); }

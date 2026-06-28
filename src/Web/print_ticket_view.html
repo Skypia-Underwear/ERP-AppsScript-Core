@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket de Venta</title>
+    <style>
+        /* Estilos del ticket */
+        body {
+            font-family: monospace;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            display: block;
+        }
+        .ticket {
+            margin: 0 auto;
+            width: 72mm;
+            padding: 5px;
+            border: 2px solid #000;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+        }
+        .ticket h1 {
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+        .ticket p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        .ticket p strong {
+            text-transform: uppercase;
+        }
+        .ticket table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .descripcion-producto {
+            white-space: nowrap;      
+            overflow: hidden;         
+            text-overflow: ellipsis;  
+            max-width: 100%;          
+        }
+        .ticket th, .ticket td {
+            border: 1px solid #000;
+            font-size: 12px;
+            padding: 2px;
+            text-align: left;
+            word-wrap: break-word;
+        }
+        .ticket th {
+            background-color: #f2f2f2;
+            text-transform: uppercase;
+        }
+        .ticket td:nth-child(2) {
+            text-align: center; /* Centrar la columna Cant. */
+        }
+        .ticket td:nth-child(3), 
+        .ticket td:nth-child(4) {
+            text-align: right;
+        }
+        .ticket .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .ticket .summary-table th, .ticket .summary-table td {
+            text-align: right;
+            padding: 2px;
+            border: none;
+        }
+        .ticket .summary-table th {
+            width: auto;
+            font-size: 12px;
+        }
+        .ticket .summary-table td {
+            font-size: 12px;
+        }
+        .ticket .total-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .ticket .total-table th, .ticket .total-table td {
+            font-size: 16px;  /* Tamaño de fuente más grande para el total */
+            font-weight: bold;
+            text-align: right;
+            padding: 5px;
+            border: none; /* Sin borde */
+        }
+        
+        .logo-container {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .logo-container img {
+            width: 120px; /* O el tamaño que prefieras para tu logo */
+            height: auto;
+        }
+        .qr-container {
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        .qr-container fieldset {
+            border: 1px dashed #000; /* Borde punteado para destacar */
+            border-radius: 5px;
+            padding: 10px 15px;
+        }
+        .qr-container legend {
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 0 5px; /* Espacio para que el borde no toque el texto */
+            font-size: 12px;
+            text-align: center;
+            width: 100%;
+        }
+        .qr-container img {
+            display: block;
+            margin: 5px auto 0; /* Centrado horizontalmente */
+            width: 110px;
+            height: auto;
+        }
+
+        .transferencia-info {
+            display: none;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        @media print {
+            body, .ticket {
+                width: auto;
+                height: auto;
+                margin: 0;
+                padding: 0;
+                border: none;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ticket">
+        <div class="logo-container">
+            <img id="logo" src="<?!= logo ?>" alt="Logo">
+        </div>
+
+        <h1 id="titulo-principal"><?= titulo_principal ?></h1>
+        <p><strong>Código de Venta:</strong> <span id="codigo"><?= codigo ?></span></p>
+        <p><strong>Dirección:</strong> <span id="direccion-tienda"><?= direccion_tienda ?></span></p>
+        <p><strong>F/H:</strong> <span id="fecha-hora"><?= fecha_hora ?></span></p>
+        <p><strong>Cliente:</strong> <span id="nomcliente"><?= nomcliente ?></span></p>
+        <p><strong>Método de Pago:</strong> <span id="metodo-pago"><?= metodo_pago ?></span></p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <td colspan="4" class="descripcion-producto">Descripción Detallada - Articulo</td>
+                </tr>
+                <tr>
+                    <th>Código</th>
+                    <th>Cant.</th>
+                    <th>Precio</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="filas">
+                <?!= filas ?>
+            </tbody>
+        </table>
+
+        <table class="summary-table">
+            <tr id="monto-total-row">
+                <th>Monto Total de Productos:</th>
+                <td id="monto-total"></td>
+            </tr>
+            <tr id="pago-mixto-row">
+                <th>Pago mixto en efectivo:</th>
+                <td id="pago-mixto"></td>
+            </tr>
+            <tr>
+                <th>Subtotal:</th>
+                <td id="subtotal"></td>
+            </tr>
+            <tr id="recargo-menor-row">
+                <th>Recargo por menor:</th>
+                <td id="recargo-menor"></td>
+            </tr>
+            <tr id="costo-envio-row">
+                <th>Costo de Envío:</th>
+                <td id="costo-envio"></td>
+            </tr>
+            <tr id="impto-row">
+                <th id="impto-label">Recargo:</th>
+                <td id="impto"></td>
+            </tr>
+        </table>
+        
+        <table class="total-table">
+            <tr>
+                <th>Total a Pagar:</th>
+                <td id="totalventa"></td>
+            </tr>
+        </table>
+
+        <p><strong>Visítanos en:</strong> <span id="web-url"><?= web_url ?></span></p>
+        <p><strong>Condiciones de Compra:</strong> <span><?= condicion ?></span></p>
+
+        <div class="qr-container">
+            <fieldset>
+                <legend>Conéctate con Nosotros</legend>
+                <img id="qr-code" src="<?!= qr_code ?>" alt="QR Code">
+            </fieldset>
+        </div>
+    </div>
+
+    <script>
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-AR', {
+                style: 'currency',
+                currency: 'ARS',
+                minimumFractionDigits: 2
+            }).format(value);
+        }
+
+        function aplicarFormatoMoneda() {
+            const filas = document.querySelectorAll("#filas tr");
+
+            filas.forEach(fila => {
+                const precioElement = fila.querySelector("td:nth-child(3)");
+                const totalElement = fila.querySelector("td:nth-child(4)");
+
+                if (precioElement && totalElement) {
+                    const precioValue = parseFloat(precioElement.innerText);
+                    const totalValue = parseFloat(totalElement.innerText);
+
+                    if (!isNaN(precioValue)) {
+                        precioElement.innerText = formatCurrency(precioValue);
+                    }
+
+                    if (!isNaN(totalValue)) {
+                        totalElement.innerText = formatCurrency(totalValue);
+                    }
+                }
+            });
+        }
+
+        function hideIfZero(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (Number(value) === 0) {
+                element.parentElement.style.display = 'none';
+            }
+        }
+
+        // Asignación de valores numéricos de forma segura
+        const rawMontoTotal = parseFloat('<?= monto_total ?>') || 0;
+        const rawPagoMixto = parseFloat('<?= pago_mixto ?>') || 0;
+        const rawSubtotal = parseFloat('<?= subtotal ?>') || 0;
+        const rawRecargoMenor = parseFloat('<?= recargo_menor ?>') || 0;
+        const rawCostoEnvio = parseFloat('<?= costo_envio ?>') || 0;
+        const rawImpto = parseFloat('<?= impto ?>') || 0;
+        const rawTotalVenta = parseFloat('<?= totalventa ?>') || 0;
+
+        document.getElementById("monto-total").innerHTML = formatCurrency(rawMontoTotal);
+        document.getElementById("pago-mixto").innerHTML = formatCurrency(rawPagoMixto);
+        document.getElementById("subtotal").innerHTML = formatCurrency(rawSubtotal);
+        document.getElementById("recargo-menor").innerHTML = formatCurrency(rawRecargoMenor);
+        document.getElementById("costo-envio").innerHTML = formatCurrency(rawCostoEnvio);
+        document.getElementById("impto").innerHTML = formatCurrency(rawImpto);
+        document.getElementById("totalventa").innerHTML = formatCurrency(rawTotalVenta);
+
+        // Lógica para el método de pago e impuesto
+        const metodoPago = '<?= metodo_pago ?>';
+        const imptoLabel = document.getElementById("impto-label");
+
+        if (metodoPago.toLowerCase().includes('tarjeta debito')) {
+            imptoLabel.textContent = "Impuesto 10%:";
+        } else if (metodoPago.toLowerCase().includes('factura iva') || metodoPago.toLowerCase().includes('tarjeta credito')) {
+            imptoLabel.textContent = "IVA 21%:";
+        }
+
+        // Ocultar campos con valor 0
+        hideIfZero('monto-total', rawMontoTotal);
+        hideIfZero('pago-mixto', rawPagoMixto);
+        hideIfZero('recargo-menor', rawRecargoMenor);
+        hideIfZero('costo-envio', rawCostoEnvio);
+        hideIfZero('impto', rawImpto);
+
+        aplicarFormatoMoneda();
+
+        window.onload = function() {
+            window.print();
+            setTimeout(function() {
+                alert('La impresión ha finalizado. Puedes cerrar esta ventana.');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

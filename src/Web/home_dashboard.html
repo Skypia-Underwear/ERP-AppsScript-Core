@@ -90,7 +90,7 @@
     <div class="mb-8">
         <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Accesos Rapidos</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button onclick="loadView('pos_manager', '', '', '')"
+            <button onclick="loadView('pos_manager', '', '', '')" id="dash-btn-pos_manager"
                 class="flex flex-col items-center justify-center p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:bg-slate-800 transition active:scale-95 group">
                 <i class="ph-duotone ph-calculator text-3xl text-indigo-400 mb-3 group-hover:scale-110 transition"></i>
                 <span class="text-xs font-bold text-white uppercase tracking-wider">Abrir TPV</span>
@@ -231,15 +231,37 @@
 
 <script>
     (function () {
+        // Ocultar TPV en PWA por restricciones de red local
+        const isPwaEnv = (function() {
+            if (typeof window.checkIsPWA === 'function' && window.checkIsPWA()) return true;
+            if (window.location.ancestorOrigins) {
+                for (let i = 0; i < window.location.ancestorOrigins.length; i++) {
+                    if (!window.location.ancestorOrigins[i].includes('google.com')) return true;
+                }
+            }
+            if (document.referrer) {
+                try {
+                    const ref = new URL(document.referrer);
+                    if (!ref.hostname.includes('google.com')) return true;
+                } catch (e) {}
+            }
+            return false;
+        })();
+        if (isPwaEnv) {
+            const btnPosDash = document.getElementById('dash-btn-pos_manager');
+            if (btnPosDash) btnPosDash.style.setProperty('display', 'none', 'important');
+        }
+
         // Carga de datos del usuario desde session
         const userRaw = sessionStorage.getItem('loggedInUser');
         if (userRaw && userRaw !== 'undefined') {
             const user = JSON.parse(userRaw);
             document.getElementById('home-user-name').innerText = user.name || "Usuario";
 
-            // Mostrar Empaquetador SaaS solo a Administradores (insensible a may\u00fasculas y flexible con la propiedad)
-            const userRole = String(user.role || user.rol || user.rolTienda || user.ROL_TIENDA || '').toUpperCase();
-            if (userRole === 'ADMIN' || userRole === 'ADMINISTRADOR' || user.email === 'administrador') {
+            // Mostrar Empaquetador SaaS solo a Administradores (acepta ADMIN, ADMINISTRADOR, ADMINISTRATIVO, ADMINISTRACION, etc.)
+            const userRole = String(user.role || user.rol || user.rolTienda || user.ROL_TIENDA || '');
+            const checkAdmin = (typeof window.isAdminRole === 'function') ? window.isAdminRole : (r) => r.trim().toUpperCase().startsWith('ADMIN');
+            if (checkAdmin(userRole)) {
                 const saasSection = document.getElementById('saas-admin-section');
                 if (saasSection) saasSection.classList.remove('hidden');
             }

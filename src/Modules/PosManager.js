@@ -241,30 +241,25 @@ function generarCatalogoJsonTPV() {
         }
 
         // 4.3 Mapear VARIEDADES DE PRECIO (BD_VARIEDAD_PRODUCTOS)
-        const varietiesByProduct = {};
-        const allVarietiesMap = {}; // Para el TPV (visibilidad TRUE)
+        const allVarietiesMap = {}; // Para el TPV (visibilidad ignorada, se envian todas)
         const sheetVariedades = ss.getSheetByName(SHEETS.PRODUCT_VARIETIES);
         if (sheetVariedades) {
             const variedadesData = convertirRangoAObjetos(sheetVariedades);
             variedadesData.forEach(v => {
                 const pid = String(v.PRODUCTO_ID || "").trim();
                 if (!pid) return;
-                
+                const isVisible = String(v.VISIBILIDAD_TIENDA).toUpperCase() === "TRUE" || String(v.VISIBILIDAD_TIENDA).toUpperCase() === "Y";
                 const varietyObj = {
                     variedad_id: String(v.VARIEDAD_ID || v.VARIATION_ID || "").trim(),
                     nombre: String(v.VARIEDAD || v.TIPO_PRECIO || "").trim(),
                     precio_unitario: parseFloat(v.PRECIO_UNITARIO || v.PRECIO_VARIEDAD || 0),
-                    cantidad_minima: parseInt(v.CANTIDAD_MINIMA || 1)
+                    cantidad_minima: parseInt(v.CANTIDAD_MINIMA || 1),
+                    visible: isVisible
                 };
 
-                if (!varietiesByProduct[pid]) varietiesByProduct[pid] = [];
-                varietiesByProduct[pid].push(varietyObj);
-
-                // Solo para TPV si visibilidad es TRUE
-                if (String(v.VISIBILIDAD_TIENDA).toUpperCase() === "TRUE") {
-                    if (!allVarietiesMap[pid]) allVarietiesMap[pid] = [];
-                    allVarietiesMap[pid].push(varietyObj);
-                }
+                // TPV: Enviamos siempre todas las variedades (el frontend decide si ocultarlas por config)
+                if (!allVarietiesMap[pid]) allVarietiesMap[pid] = [];
+                allVarietiesMap[pid].push(varietyObj);
             });
         }
         catalogo.allVarieties = allVarietiesMap;
@@ -335,7 +330,7 @@ function generarCatalogoJsonTPV() {
                 .filter(p => p.CODIGO_ID && String(p.CODIGO_ID).trim() !== "")
                 .map(p => {
                     const pid = p.CODIGO_ID;
-                    const pVarieties = varietiesByProduct[String(pid)] || [];
+                    const pVarieties = allVarietiesMap[String(pid)] || [];
                     const pVariations = variacionesPorProducto[pid] || [];
 
                     // Precio base: se usa para modos ESTANDAR y PERSONALIZADO.
@@ -365,7 +360,6 @@ function generarCatalogoJsonTPV() {
                         image: thumbMap.get(String(pid)) || "",
                         carpeta_id: p.CARPETA_ID || "",
                         woo_id: p.WOO_ID || "",
-                        varieties: pVarieties,     // Variedades de precio (BD_VARIEDAD_PRODUCTOS)
                         variations: pVariations,   // Variaciones de inventario (color/talle)
                         fecha_creacion: p.FECHA_CREACION ? (p.FECHA_CREACION instanceof Date ? p.FECHA_CREACION.toISOString() : String(p.FECHA_CREACION)) : ""
                     };
@@ -1316,6 +1310,45 @@ function getCurrentOpenBoxId() {
 }
 
 /**
+ * Analizador dinámico de fechas para corregir la discrepancia regional (DD/MM/YYYY vs MM/DD/YYYY)
+ */
+function parseFechaDinamica(val, timeZone) {
+    if (val instanceof Date) {
+        if (isNaN(val.getTime())) return "";
+        return Utilities.formatDate(val, timeZone, "yyyy-MM-dd");
+    }
+    if (typeof val === 'string' && val.trim()) {
+        const cleaned = val.trim();
+        // Separar por / o -
+        const parts = cleaned.split(/[\/\-]/);
+        if (parts.length === 3) {
+            let day, month, year;
+            if (parts[0].length === 4) {
+                // Formato YYYY/MM/DD o YYYY-MM-DD
+                year = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10) - 1;
+                day = parseInt(parts[2], 10);
+            } else {
+                // Formato regional argentino DD/MM/YYYY o DD-MM-YYYY
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10) - 1;
+                year = parseInt(parts[2], 10);
+            }
+            const parsedDate = new Date(year, month, day);
+            if (!isNaN(parsedDate.getTime())) {
+                return Utilities.formatDate(parsedDate, timeZone, "yyyy-MM-dd");
+            }
+        }
+        // Fallback al parseador nativo
+        const nativeDate = new Date(cleaned);
+        if (!isNaN(nativeDate.getTime())) {
+            return Utilities.formatDate(nativeDate, timeZone, "yyyy-MM-dd");
+        }
+    }
+    return "";
+}
+
+/**
  * Obtiene datos específicos de una sesión de tienda (Caja, Horario, etc.)
  */
 function getStoreSessionData(storeId, userId) {
@@ -1347,15 +1380,38 @@ function getStoreSessionData(storeId, userId) {
         }
 
         if (sheetCaja) {
-            const hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
-            const cajas = convertirRangoAObjetos(sheetCaja);
-            const cajaAbierta = cajas.find(c =>
-                Utilities.formatDate(new Date(c.FECHA), Session.getScriptTimeZone(), "yyyy-MM-dd") === hoy &&
-                c.ASESOR_ID === userId &&
-                c.TIENDA_ID === storeId &&
-                c.ESTADO === "ABIERTA"
-            );
-            if (cajaAbierta) session.activeCashRegisterId = cajaAbierta.CAJA_ID;
+            const dataCaja = sheetCaja.getDataRange().getValues();
+            const mappingCaja = HeaderManager.getMapping("GESTION_CAJA");
+            
+            if (dataCaja.length > 1 && mappingCaja) {
+                const cajaIdIdx = mappingCaja["CAJA_ID"];
+                const tiendaIdIdx = mappingCaja["TIENDA_ID"];
+                const asesorIdIdx = mappingCaja["ASESOR_ID"];
+                const fechaIdx = mappingCaja["FECHA"];
+                const estadoIdx = mappingCaja["ESTADO"];
+                
+                if (cajaIdIdx !== undefined && tiendaIdIdx !== undefined && asesorIdIdx !== undefined && fechaIdx !== undefined && estadoIdx !== undefined) {
+                    const tz = Session.getScriptTimeZone();
+                    const hoy = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+                    
+                    // Bucle inverso para interceptar la última caja de forma eficiente
+                    for (let i = dataCaja.length - 1; i >= 1; i--) {
+                        const row = dataCaja[i];
+                        const estado = String(row[estadoIdx]).trim();
+                        const tienda = String(row[tiendaIdIdx]).trim();
+                        const asesor = String(row[asesorIdIdx]).trim();
+                        
+                        if (estado === "ABIERTA" && tienda === storeId && asesor === userId) {
+                            const fechaVal = row[fechaIdx];
+                            const fechaNorm = parseFechaDinamica(fechaVal, tz);
+                            if (fechaNorm === hoy) {
+                                session.activeCashRegisterId = String(row[cajaIdIdx]).trim();
+                                break; // Encontrado, detenemos el recorrido
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Normalizador de hora seguro (garantiza formato HH:mm:ss con padding)
@@ -1388,7 +1444,11 @@ function getStoreSessionData(storeId, userId) {
         // Si no hay horario definido (00:00 a 00:00 o similar), permitimos siempre
         if (aperturaStr === cierreStr && aperturaStr === "00:00:00") {
             session.isWithinSchedule = true;
+        } else if (cierreStr < aperturaStr) {
+            // Lógica de turno nocturno cruzando medianoche (ej. 20:00 a 03:00)
+            session.isWithinSchedule = (timeStr >= aperturaStr || timeStr <= cierreStr);
         } else {
+            // Lógica de turno normal diurno
             session.isWithinSchedule = (timeStr >= aperturaStr && timeStr <= cierreStr);
         }
 

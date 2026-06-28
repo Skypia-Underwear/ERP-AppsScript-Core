@@ -246,7 +246,7 @@ function generarInventarioInicial(logArray = null) {
     if (!inventarioActualIds.has(id)) {
       const [productoId, color, talle, tiendaId] = id.split('-');
       const stockInicial = (color === "Surtido" && talle === "Surtido") ? 144 : 0;
-      nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, stockInicial, 0, 0, 0, 0, 0, fechaHoy, 0]);
+      nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, stockInicial, 0, 0, 0, 0, stockInicial, fechaHoy, 0]);
     }
   });
   if (nuevasFilasInventario.length > 0) {
@@ -1317,70 +1317,8 @@ function guardarCopiaHistoricaDrive(content, fechaObj, logArray) {
 /**
  * Gestión manual/AppSheet de enriquecimiento de producto
  */
-/**
- * Gestión manual/AppSheet de enriquecimiento de producto.
- * Ahora integra condiciones de "Imagen Maestra" y permite auditoría previa.
- */
 function gestionarAccionEnriquecimiento(sku) {
-  debugLog(`🛠️ [IA] Iniciando enriquecimiento para SKU: ${sku}`);
-  const logArray = [`🚀 Iniciando análisis para el producto ${sku}...`];
-  
-  try {
-    // 1. Verificar condiciones en BD_PRODUCTO_IMAGENES
-    logArray.push("🔍 Buscando referencia visual maestra (Portada + Prompt)...");
-    const referenciaMaestra = obtenerReferenciaMaestra(sku);
-    
-    if (!referenciaMaestra) {
-      const errorMsg = "⚠️ No se encontró una imagen marcada como PORTADA con PROMPT generado. Genera primero la imagen de portada en el Gestor de Imágenes.";
-      logArray.push(errorMsg);
-      return { success: false, message: errorMsg, logs: logArray };
-    }
-    logArray.push("✅ Referencia maestra encontrada.");
-
-    // 2. Obtener metadatos del producto
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetProd = ss.getSheetByName(SHEETS.PRODUCTS);
-    const mappingProd = HeaderManager.getMapping("PRODUCTS");
-    const productosData = convertirRangoAObjetos(sheetProd);
-    const prodObj = productosData.find(p => String(p.CODIGO_ID) === String(sku));
-    
-    if (!prodObj) {
-      throw new Error(`Producto ${sku} no encontrado en la base de datos.`);
-    }
-
-    // 3. Preparar Prompt y Consultar IA
-    logArray.push("🧠 Consultando a la IA para generar descripción y tabla de talles...");
-    const promptMaster = prepararPromptDescripcionIA(referenciaMaestra, prodObj);
-    const respuestaIA = AIService.consultarGemma(promptMaster);
-
-    if (!respuestaIA || respuestaIA.includes("Error")) {
-      throw new Error("La IA no respondió correctamente.");
-    }
-
-    let dataIA;
-    try {
-      dataIA = JSON.parse(respuestaIA);
-    } catch (e) {
-      logArray.push("❌ Error al procesar los datos de la IA: La respuesta no tiene un formato válido.");
-      throw new Error("No se pudo parsear la respuesta de la IA.");
-    }
-
-    logArray.push("✅ Contenido generado con éxito.");
-    
-    // Retornamos los datos para que el auditor los muestre
-    return { 
-      success: true, 
-      message: "Contenido generado. Revisa y edita antes de guardar.",
-      data: dataIA,
-      logs: logArray 
-    };
-
-  } catch (e) {
-    const errorMsg = `❌ Error técnico: ${e.message}`;
-    logArray.push(errorMsg);
-    debugLog(errorMsg);
-    return { success: false, message: errorMsg, logs: logArray };
-  }
+  return AIService.gestionarAccionEnriquecimiento(sku);
 }
 
 /**

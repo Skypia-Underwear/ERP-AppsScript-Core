@@ -963,6 +963,53 @@ function doGet_MainRouter(e) {
     return ContentService.createTextOutput(jsonpResponse).setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
 
+  // --- MODO: GENERAR COMPROBANTE TICKET (Formato Tabla) ---
+  if (params.titulo_principal || params.nomcliente) {
+    try {
+      const htmltemplate = HtmlService.createTemplateFromFile('Web/print_ticket_view');
+
+      // Definir valores por defecto para evitar ReferenceErrors en la plantilla
+      const camposTicket = [
+        "titulo_principal", "direccion_tienda", "web_url", "logo", "qr_code",
+        "codigo", "fecha_hora", "nomcliente", "metodo_pago", "alias_transferencia",
+        "nombre_cuenta", "filas", "monto_total", "pago_mixto", "subtotal",
+        "recargo_menor", "costo_envio", "impto", "totalventa", "condicion"
+      ];
+      camposTicket.forEach(c => { htmltemplate[c] = ""; });
+
+      // Mapear los parámetros reales de la URL
+      Object.keys(params).forEach(key => {
+        htmltemplate[key] = params[key] || "";
+      });
+
+      // Decodificación de logo y qr_code si vienen como JSON stringificado
+      if (params.logo && params.logo.indexOf("{") !== -1) {
+        try { htmltemplate.logo = JSON.parse(params.logo).Url; } catch (i) { htmltemplate.logo = params.logo; }
+      }
+      if (params.qr_code && params.qr_code.indexOf("{") !== -1) {
+        try { htmltemplate.qr_code = JSON.parse(params.qr_code).Url; } catch (i) { htmltemplate.qr_code = params.qr_code; }
+      }
+      if (params.web_url && params.web_url.indexOf("{") !== -1) {
+        try { htmltemplate.web_url = JSON.parse(params.web_url).Url; } catch (i) { htmltemplate.web_url = params.web_url; }
+      }
+
+      // Sanear "filas": conservar solo el contenido dentro de etiquetas <tr>...</tr>,
+      // descartando texto plano huérfano (ej: "Cant: ...") para evitar duplicación.
+      if (htmltemplate.filas) {
+        const matches = htmltemplate.filas.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi);
+        if (matches) {
+          htmltemplate.filas = matches.join("");
+        }
+      }
+
+      return htmltemplate.evaluate()
+        .setTitle("Ticket de Venta - " + (params.codigo || "HostingShop"))
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    } catch (err) {
+      return ContentService.createTextOutput("❌ Error en Ticket: " + err.message);
+    }
+  }
+
   // --- MODO: GENERAR RÓTULO DE ENVÍO (Centralizado) ---
   if (mode === "print_label") {
     try {
@@ -1094,8 +1141,11 @@ function doGet_MainRouter(e) {
   const isWooConfigured = (GLOBAL_CONFIG.WORDPRESS.SITE_URL && GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY) ? true : false;
   template.isWooConfigured = isWooConfigured;
 
-  // Pasamos parámetros limpios para evitar bucles en el frontend
-  template.initialParams = JSON.stringify({ view: 'welcome' });
+  // Pasamos la vista solicitada via URL al frontend (solo rutas autorizadas para deep-link)
+  var requestedView = (params.view || '').toString().trim();
+  var ALLOWED_DEEP_LINKS = ['pos_manager'];
+  var initialView = ALLOWED_DEEP_LINKS.indexOf(requestedView) !== -1 ? requestedView : 'welcome';
+  template.initialParams = JSON.stringify({ view: initialView });
   template.CATALOG_URL = getCatalogJsonUrl();
   template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
 
@@ -1464,10 +1514,34 @@ function ejecutarAccionDeImagen(params) {
           // Asegurar que la hoja esté sincronizada antes de crear la carpeta
           SpreadsheetApp.flush();
 
-          obtenerOCrearCarpetaProducto(codigo);
+          const folder = obtenerOCrearCarpetaProducto(codigo);
+
+          // Sincronización automática de imágenes si AppSheet ya creó la carpeta y subió imágenes
+          let msgSync = "";
+          if (folder) {
+            try {
+              console.log(`📁 Carpeta del producto ${codigo} encontrada. Ejecutando sincronización inicial de imágenes...`);
+              const logSync = [];
+              sincronizarImagenes(codigo, logSync);
+              msgSync = " | 🖼️ Sincronización inicial de imágenes ejecutada";
+            } catch (errSync) {
+              console.warn(`⚠️ Error en sincronización inicial de imágenes para ${codigo}: ${errSync.message}`);
+              msgSync = ` | ⚠️ Fallo sincronización inicial: ${errSync.message}`;
+            }
+
+            // Programar una re-sincronización diferida obligatoria para absorber la latencia de subida de AppSheet (múltiples tablas)
+            try {
+              console.log(`⏳ Programando re-sincronización diferida para ${codigo} para absorber latencia de subida de AppSheet...`);
+              programarSyncDiferido(codigo);
+              msgSync += " | ⏳ Re-sync diferido programado ✅";
+            } catch (errDiferido) {
+              console.warn(`⚠️ Error al programar re-sync diferido para ${codigo}: ${errDiferido.message}`);
+            }
+          }
+
           generarInventarioPorProducto(codigo);
 
-          // INTEGRACIÓN WOOCOMMERCE: Sincronizar automáticamente tras creación
+          // INTEGRACIÓN WOOCOMMERCE: Sincronizar automáticamente tras creación (incluyendo las imágenes recién sincronizadas)
           let msgWoo = "";
           try {
             const resWoo = enviarProductoWP(codigo);
@@ -1486,7 +1560,7 @@ function ejecutarAccionDeImagen(params) {
           // Forzar escritura final
           SpreadsheetApp.flush();
 
-          return { success: true, message: `✅ Carpeta y variaciones generadas para '${codigo}'${msgWoo}.` };
+          return { success: true, message: `✅ Carpeta y variaciones generadas para '${codigo}'${msgSync}${msgWoo}.` };
         default:
           throw new Error(`Acción desconocida: '${accion}'`);
       }
@@ -1522,7 +1596,7 @@ function userLogin(credentials) {
     const passIdx = mapping["USER_ID"];
     const nameIdx = mapping["NOMBRE"];
     const storeIdx = mapping["MANAGED_STORE"] !== undefined ? mapping["MANAGED_STORE"] : (mapping["TIENDA_ID"] !== undefined ? mapping["TIENDA_ID"] : undefined);
-    const roleIdx = mapping["ROL"];
+    const roleIdx = mapping["ROL_TIENDA"] !== undefined ? mapping["ROL_TIENDA"] : mapping["ROL"];
 
     if (emailIdx === undefined || passIdx === undefined) {
       return { success: false, message: 'Faltan columnas críticas (Email o USER_ID) en la base de datos.' };
@@ -1754,4 +1828,139 @@ function whatsapp_obtenerCategoriasYCodigos() {
     console.error("Error en whatsapp_obtenerCategoriasYCodigos: " + e.message);
     return { success: false, error: e.message };
   }
+}
+
+/**
+ * Programar una re-sincronización diferida de imágenes y re-envío a WooCommerce
+ * para un SKU/Código específico para mitigar la latencia de subida de AppSheet.
+ * @param {string} codigo - El código de producto a procesar.
+ */
+function programarSyncDiferido(codigo) {
+  const props = PropertiesService.getScriptProperties();
+  let queue = [];
+  const existingQueue = props.getProperty("PENDING_SYNC_SKUS");
+  if (existingQueue) {
+    try {
+      queue = JSON.parse(existingQueue);
+    } catch (e) {
+      queue = [];
+    }
+  }
+  
+  const cleanCodigo = String(codigo).trim().toUpperCase();
+  if (cleanCodigo && !queue.includes(cleanCodigo)) {
+    queue.push(cleanCodigo);
+    props.setProperty("PENDING_SYNC_SKUS", JSON.stringify(queue));
+  }
+
+  // Programar trigger si no existe uno activo
+  const triggers = ScriptApp.getProjectTriggers();
+  const tieneTrigger = triggers.some(t => t.getHandlerFunction() === "ejecutarSyncDiferidoQueue");
+  if (!tieneTrigger) {
+    ScriptApp.newTrigger("ejecutarSyncDiferidoQueue")
+      .timeBased()
+      .after(45 * 1000) // 45 segundos de delay para esperar que suban las fotos
+      .create();
+    console.log("⏰ Trigger de re-sincronización diferida (ejecutarSyncDiferidoQueue) creado con éxito.");
+  }
+}
+
+/**
+ * Ejecuta la re-sincronización de las imágenes de los productos en la cola diferida
+ * y los actualiza en WooCommerce una vez que las imágenes terminaron de subirse a Drive.
+ */
+function ejecutarSyncDiferidoQueue() {
+  // Auto-limpiar trigger para evitar acumulación
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "ejecutarSyncDiferidoQueue") {
+      try {
+        ScriptApp.deleteTrigger(t);
+      } catch (e) {
+        console.warn("No se pudo eliminar el trigger ejecutarSyncDiferidoQueue: " + e.message);
+      }
+    }
+  });
+
+  const props = PropertiesService.getScriptProperties();
+  const queueStr = props.getProperty("PENDING_SYNC_SKUS");
+  if (!queueStr) return;
+
+  let queue = [];
+  try {
+    queue = JSON.parse(queueStr);
+  } catch (e) {
+    return;
+  }
+
+  // Limpiar la cola en PropertiesService
+  props.deleteProperty("PENDING_SYNC_SKUS");
+
+  console.log(`🚀 [Sync Diferido] Procesando cola de SKUs: ${queue.join(", ")}`);
+  queue.forEach(sku => {
+    try {
+      const logSync = [];
+      sincronizarImagenes(sku, logSync);
+      console.log(`[Sync Diferido] Sincronización de imágenes finalizada para ${sku}.`);
+      
+      // Volver a enviar a WooCommerce para actualizar el producto con sus imágenes
+      const resWoo = enviarProductoWP(sku);
+      console.log(`[Sync Diferido] Re-envío a WooCommerce para ${sku}: ${resWoo.success ? "OK" : "Error: " + resWoo.message}`);
+
+      // Verificar si aún quedan imágenes pendientes sin ARCHIVO_ID (reintentar con límite de 3)
+      const aunPendientes = verificarImagenesPendientesEnSheet(sku);
+      const retryKey = "SYNC_RETRY_" + sku;
+      const retries = parseInt(props.getProperty(retryKey)) || 0;
+
+      if (aunPendientes && retries < 3) {
+        props.setProperty(retryKey, String(retries + 1));
+        console.log(`[Sync Diferido] SKU ${sku} aún tiene imágenes sin ID de archivo. Reprogramando intento ${retries + 1}/3...`);
+        programarSyncDiferido(sku);
+      } else {
+        props.deleteProperty(retryKey);
+        if (aunPendientes) {
+          console.warn(`[Sync Diferido] Se alcanzó el límite de reintentos para ${sku}. Algunas imágenes podrían haber fallado en subirse.`);
+        }
+      }
+    } catch (err) {
+      console.error(`❌ Error en sync diferido para SKU ${sku}: ${err.message}`);
+    }
+  });
+}
+
+/**
+ * Verifica si hay filas de imágenes para un SKU en BD_PRODUCTO_IMAGENES
+ * que no tengan el ARCHIVO_ID guardado, indicando que aún no se sincronizaron con Drive.
+ * @param {string} sku - SKU del producto.
+ * @return {boolean} true si hay imágenes pendientes.
+ */
+function verificarImagenesPendientesEnSheet(sku) {
+  try {
+    const ss = getActiveSS();
+    const sheetImg = ss.getSheetByName(SHEETS.PRODUCT_IMAGES || "BD_PRODUCTO_IMAGENES");
+    if (!sheetImg) return false;
+
+    const mapping = HeaderManager.getMapping("PRODUCT_IMAGES");
+    if (!mapping) return false;
+
+    const data = sheetImg.getDataRange().getValues();
+    const colProdId = mapping["PRODUCTO_ID"];
+    const colArchId = mapping["ARCHIVO_ID"];
+    const colRuta = mapping["IMAGEN_RUTA"];
+
+    if (colProdId === undefined || colArchId === undefined || colRuta === undefined) return false;
+
+    const skuUpper = String(sku).trim().toUpperCase();
+    for (let i = 1; i < data.length; i++) {
+      const pId = String(data[i][colProdId]).trim().toUpperCase();
+      const aId = String(data[i][colArchId]).trim();
+      const ruta = String(data[i][colRuta]).trim();
+
+      if (pId === skuUpper && ruta && (!aId || aId === "undefined" || aId === "")) {
+        return true; 
+      }
+    }
+  } catch (e) {
+    console.error("Error en verificarImagenesPendientesEnSheet: " + e.message);
+  }
+  return false;
 }

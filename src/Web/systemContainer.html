@@ -300,6 +300,46 @@
       console.warn("[Shell] Error critico recuperando INITIAL_PARAMS:", e.message);
     }
 
+    window.checkIsPWA = function() {
+      try {
+        if (window.location.ancestorOrigins) {
+          for (let i = 0; i < window.location.ancestorOrigins.length; i++) {
+            if (!window.location.ancestorOrigins[i].includes('google.com')) return true;
+          }
+        }
+      } catch (e) {
+        console.warn("[Shell] checkIsPWA ancestorOrigins error:", e);
+      }
+      try {
+        if (document.referrer) {
+          const ref = new URL(document.referrer);
+          if (!ref.hostname.includes('google.com')) return true;
+        }
+      } catch (e) {
+        console.warn("[Shell] checkIsPWA referrer error:", e);
+      }
+      return false;
+    };
+
+    // Ocultar TPV de forma inmediata si se detecta PWA/Iframe Externo
+    if (window.checkIsPWA()) {
+      console.log("[Shell] PWA detectada. Ocultando TPV por restricciones de red local.");
+      document.addEventListener('DOMContentLoaded', () => {
+        const btnPos = document.getElementById('btn-pos_manager');
+        if (btnPos) btnPos.style.setProperty('display', 'none', 'important');
+      });
+    }
+
+    /**
+     * Detecta si un rol de usuario corresponde a nivel Administrador.
+     * Acepta cualquier variante: ADMIN, ADMINISTRADOR, ADMINISTRATIVO, ADMINISTRACION, etc.
+     * @param {string} role - El valor del campo 'role' del usuario en sessionStorage.
+     * @returns {boolean}
+     */
+    window.isAdminRole = function(role) {
+      return String(role || '').trim().toUpperCase().startsWith('ADMIN');
+    };
+
     function setGlobalStatus(show, text) {
       const container = document.getElementById('shell-status');
       const textEl = document.getElementById('shell-status-text');
@@ -447,7 +487,7 @@
       const sidebar = document.getElementById('main-sidebar');
       const mobileNav = document.getElementById('mobile-bottom-nav');
       const mobileMenuFab = document.getElementById('mobile-menu-fab');
-      if (view === 'login') {
+      if (view === 'login' || view === 'pos_manager') {
         sidebar.classList.add('hidden');
         if (mobileNav) mobileNav.classList.add('hidden');
         if (mobileMenuFab) mobileMenuFab.style.setProperty('display', 'none', 'important');
@@ -553,14 +593,32 @@
       console.log("[Shell] Iniciando ruteo...");
       const userStr = sessionStorage.getItem('loggedInUser');
       const user = userStr ? JSON.parse(userStr) : null;
+
+      // Leer la vista solicitada desde los params iniciales del servidor
+      const deepLinkView = (INITIAL_PARAMS && INITIAL_PARAMS.view && INITIAL_PARAMS.view !== 'welcome')
+        ? INITIAL_PARAMS.view : null;
+
       if (!user) {
+        // Si hay un deep-link, guardarlo para redirigir DESPUES del login
+        if (deepLinkView) sessionStorage.setItem('pendingView', deepLinkView);
         loadView('login', '', '', '', '', 'Login');
         return;
       }
+
       const userNameEl = document.getElementById('user-name');
       if (userNameEl) userNameEl.innerText = user.name;
       window.getGlobalCatalog(CATALOG_URL, CATALOG_URL_FALLBACK);
-      navigate('welcome');
+
+      // Si hay una vista pendiente (post-login) o un deep-link directo, navegar a ella
+      const pendingView = sessionStorage.getItem('pendingView');
+      if (pendingView) {
+        sessionStorage.removeItem('pendingView');
+        loadView(pendingView, '', '', '');
+      } else if (deepLinkView) {
+        loadView(deepLinkView, '', '', '');
+      } else {
+        navigate('welcome');
+      }
     }
 
     window.onload = handleInitialRoute;
