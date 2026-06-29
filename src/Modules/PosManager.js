@@ -571,11 +571,20 @@ function getAllStockFromCache(storeId) {
 /**
  * Fuerza la actualización de la caché desde la hoja real.
  */
-function manualRefreshStockCache() {
+function manualRefreshStockCache(storeId) {
     const lock = LockService.getScriptLock();
     try {
         if (!lock.tryLock(10000)) return { success: false, message: "Servidor ocupado." };
-                return generateInventoryCache();
+        
+        const result = generateInventoryCache();
+        if (!result.success) return result;
+
+        if (storeId) {
+            const stockResult = getAllStockFromCache(storeId);
+            return { success: true, stockMap: stockResult.success ? stockResult.stockMap : {} };
+        } else {
+            return result; // Fallback
+        }
     } catch (e) {
         return { success: false, message: e.message };
     } finally {

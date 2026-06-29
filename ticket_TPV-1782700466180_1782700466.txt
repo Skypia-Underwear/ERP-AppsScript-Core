@@ -1,0 +1,50 @@
+--- RESPALDO DE TICKET DE VENTA ---
+ID Venta: TPV-1782700466180
+Fecha Impresion: 2026-06-28 23:34:26
+Estado Impresion: OK (Enviado)
+-----------------------------------
+
+^^SKYPIA UNDERWEAR
+Cnel. José María Vilela 2206, B1714JWT Ituzaingó, Provincia de Buenos Aires, Argentina
+Telefono: 1123890659
+--------------------------------
+Codigo de Venta: TPV-1782700466180
+Fecha y Hora: 28/6/2026 23:34:26
+Cliente: Publico General (CLI001)
+--------------------------------
+BH Sodapop (SKU:Boxe003) [DOCENA]
+Surtido / Surtido          12 x $3.640 = $43.680
+BH Sodapop (SKU:Boxe003) [MENOR]
+Surtido / L                  1 x $4.680 = $4.680
+JH Joggin Cargo camuflado (SKU:367) [DOCENA]
+Surtido / 48             12 x $14.000 = $168.000
+Gris / Surtido           12 x $14.000 = $168.000
+JH Joggin Cargo camuflado (SKU:367) [MENOR]
+Verde Militar / 48         1 x $18.000 = $18.000
+JH Joggin Cargo camuflado (SKU:367) [CURVA]
+Gris / 40                  1 x $15.000 = $15.000
+Gris / 44                  1 x $15.000 = $15.000
+Gris / 48                  1 x $15.000 = $15.000
+Surtido / 40               1 x $15.000 = $15.000
+Surtido / 44               1 x $15.000 = $15.000
+Surtido / 48               1 x $15.000 = $15.000
+Verde Militar / 40         1 x $15.000 = $15.000
+Verde Militar / 44         1 x $15.000 = $15.000
+Verde Militar / 48         1 x $15.000 = $15.000
+
+--------------------------------
+*** PAGO MIXTO ***
+::Monto Productos: $537.360
+::Pago Efectivo: -$50.000
+--------------------------------
+::RESTANTE A PAGAR:
+^^::$536.096
+--------------------------------
+Pago: Transferencia
+Alias: Ricaldisimo
+
+^^::GRACIAS POR SU COMPRA
+
+===================================
+Mensaje Publicitario:
+Guarda este cupon/ticket y obten un 5% de descuento en tu proxima compra

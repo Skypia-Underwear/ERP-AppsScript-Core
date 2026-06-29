@@ -33,7 +33,7 @@
 
   .tpv-main-layout {
     display: grid;
-    grid-template-columns: 220px 1fr 500px;
+    grid-template-columns: auto 1fr 480px;
     /* Mas espacio al carrito */
     flex: 1;
     overflow: hidden;
@@ -1260,19 +1260,63 @@
                 class="ph-bold ph-qr-code text-2xl"></i><span>Lector QR</span></button>
           </div>
         </div>
+        <div class="mb-4">
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Opciones de Impresión Visual</label>
+          <div class="mt-3 flex flex-col gap-2">
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-config-print-logo"
+                onchange="togglePrintFeature('tpv-config-print-logo', 'tpv_print_logo')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-config-print-logo" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Imprimir
+                Logo</label>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-config-print-qr"
+                onchange="togglePrintFeature('tpv-config-print-qr', 'tpv_print_qr')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-config-print-qr" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Imprimir
+                Código QR</label>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-config-print-barra"
+                onchange="togglePrintFeature('tpv-config-print-barra', 'tpv_print_barra')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-config-print-barra"
+                class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Imprimir Código de Barras</label>
+            </div>
+          </div>
+        </div>
         <div>
-          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Opciones de Impresión</label>
-          <div class="mt-3 flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
-            <input type="checkbox" id="tpv-config-hide-surcharge-ticket" onchange="toggleHideSurchargeTicket()"
-              class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
-            <label for="tpv-config-hide-surcharge-ticket"
-              class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Ocultar recargo de pago en ticket</label>
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Formato del Ticket</label>
+          <div class="mt-3 flex flex-col gap-2">
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-config-print-transfer"
+                onchange="togglePrintFeature('tpv-config-print-transfer', 'tpv_print_transfer_data')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-config-print-transfer"
+                class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Imprimir Datos de Transferencia</label>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-config-detailed-ticket"
+                onchange="togglePrintFeature('tpv-config-detailed-ticket', 'tpv_detailed_ticket')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-config-detailed-ticket"
+                class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Ticket detallado (Colores y
+                Talles)</label>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-config-hide-surcharge-ticket"
+                onchange="togglePrintFeature('tpv-config-hide-surcharge-ticket', 'tpv_hide_surcharge_ticket')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-config-hide-surcharge-ticket"
+                class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Ocultar recargo en ticket</label>
+            </div>
           </div>
         </div>
         <div id="tpv-back-to-erp-container" style="display: none;">
           <div class="h-px bg-slate-700 my-2"></div>
           <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Navegación</label>
-          <button onclick="closeConfigModal(); if(typeof loadView==='function') loadView('welcome', '', '', '');" 
+          <button onclick="closeConfigModal(); if(typeof loadView==='function') loadView('welcome', '', '', '');"
             class="w-full mt-3 py-2.5 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
             <i class="ph-bold ph-arrow-left"></i>
             <span>Volver al ERP Principal</span>
@@ -1444,9 +1488,13 @@
         if (!posMetadata) return;
         if (!posMetadata.storeConfig) posMetadata.storeConfig = {};
         posMetadata.storeConfig.saleMode = mode;
+        localStorage.setItem('tpv_sale_mode', mode);
+
         var mainLayout = document.querySelector('.tpv-main-layout');
         var btnQr = document.getElementById('btn-mode-qr');
         var btnBtn = document.getElementById('btn-mode-buttons');
+
+        updateConfigModeButtons(mode);
 
         if (mode.toUpperCase().trim() === "LECTOR QR") {
           mainLayout.classList.add('mode-qr');
@@ -1473,18 +1521,18 @@
       initTPV();
 
       // Mostrar botón 'Volver al ERP' solo para administradores (acepta ADMIN, ADMINISTRADOR, ADMINISTRATIVO, etc.)
-      (function() {
+      (function () {
         try {
           var uStr = sessionStorage.getItem('loggedInUser');
           if (!uStr) return;
           var u = JSON.parse(uStr);
           var rol = String(u.role || u.rol || u.rolTienda || u.ROL_TIENDA || '');
-          var checkAdmin = (typeof window.isAdminRole === 'function') ? window.isAdminRole : function(r) { return String(r).trim().toUpperCase().startsWith('ADMIN'); };
+          var checkAdmin = (typeof window.isAdminRole === 'function') ? window.isAdminRole : function (r) { return String(r).trim().toUpperCase().startsWith('ADMIN'); };
           if (checkAdmin(rol)) {
             var backBtn = document.getElementById('tpv-back-to-erp-container');
             if (backBtn) backBtn.style.display = 'block';
           }
-        } catch(e) { /* silencioso */ }
+        } catch (e) { /* silencioso */ }
       })();
 
       window.openCheckoutModal = function () {
@@ -1638,7 +1686,7 @@
           if (posMetadata.priceConfig) priceConfig = posMetadata.priceConfig;
 
           // 3. Lógica de Selección de Tienda para Administradores (ADMIN*, cualquier variante)
-          var checkAdmin = (typeof window.isAdminRole === 'function') ? window.isAdminRole : function(r) { return String(r).trim().toUpperCase().startsWith('ADMIN'); };
+          var checkAdmin = (typeof window.isAdminRole === 'function') ? window.isAdminRole : function (r) { return String(r).trim().toUpperCase().startsWith('ADMIN'); };
           const isAdmin = checkAdmin(userRole);
           // La tienda puede ser "TODAS" o una lista separada por comas: "CASTFER , JM MAYORISTA"
           const managedStoreList = (managedStore || '')
@@ -1706,8 +1754,8 @@
       async function finalizeTpvInit(storeId) {
         posMetadata.managedStoreId = storeId;
 
-        // 1. Aplicar Modo de Venta (desde Catálogo)
-        var rawMode = (posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
+        // 1. Aplicar Modo de Venta (desde LocalStorage o Catálogo)
+        var rawMode = localStorage.getItem('tpv_sale_mode') || (posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
         setTpvMode(rawMode);
 
         // 2. Popular UI con Metadatos del Catálogo
@@ -1733,8 +1781,8 @@
 
         // 3. Inicialización Unificada del TPV (Sesión + Stock)
         google.script.run
-          .withFailureHandler(err => { 
-            console.error("Fallo crítico en inicialización unificada del TPV:", err); 
+          .withFailureHandler(err => {
+            console.error("Fallo crítico en inicialización unificada del TPV:", err);
             hideTpvLoader();
             alert("Error al cargar datos del TPV: " + err.message);
           })
@@ -1805,7 +1853,7 @@
             // Variedades: intentar posMetadata.allVarieties primero (legacy), luego p.prices del catálogo
             if (posMetadata.allVarieties && posMetadata.allVarieties[p.id]) {
               const rawVars = posMetadata.allVarieties[p.id] || [];
-              
+
               p.varieties = rawVars.slice().sort((a, b) => {
                 const nameA = (a.nombre || '').toLowerCase().trim();
                 const nameB = (b.nombre || '').toLowerCase().trim();
@@ -2310,8 +2358,13 @@
         const standardContainer = document.getElementById('standard-variations-container');
         const colorCont = document.getElementById('color-options');
         const sizeContainer = document.getElementById('size-container');
+        const sizeOptions = document.getElementById('size-options');
         const curvaWrapper = document.getElementById('curva-matrix-wrapper');
         const curvaSummary = document.getElementById('curva-summary-container');
+
+        // Limpiar contenedor de talles de aperturas previas
+        if (sizeOptions) sizeOptions.innerHTML = '';
+        if (sizeContainer) sizeContainer.style.display = 'none';
 
         const isPrecioVariable = checkIsPrecioVariable();
         let _selectedVariety = preselectedVariety || (product.varieties && product.varieties[0]) || null;
@@ -2678,6 +2731,7 @@
         const uniqueTotals = [...new Set(colTotals)];
         const isPerfect = uniqueTotals.length === 1 && uniqueTotals[0] > 0;
         const target = uniqueTotals.length > 0 ? Math.max(...uniqueTotals) : 0;
+        const grandTotal = colTotals.reduce((a, b) => a + b, 0);
 
         colTotals.forEach(total => {
           let statusClass = 'status-pending';
@@ -2694,7 +2748,7 @@
         // Update Global UI
         if (isPerfect) {
           if (counter) {
-            counter.innerText = target + (target === 1 ? ' Curva completa' : ' Curvas completas');
+            counter.innerText = target + (target === 1 ? ' Curva completa / ' : ' Curvas completas / ') + grandTotal + ' unidades';
             counter.style.color = 'var(--success)';
           }
           if (msg) {
@@ -2707,7 +2761,7 @@
         } else {
           const curvesFound = Math.min(...colTotals);
           if (counter) {
-            counter.innerText = curvesFound + ' Curvas completas';
+            counter.innerText = curvesFound + (curvesFound === 1 ? ' Curva completa / ' : ' Curvas completas / ') + grandTotal + ' unidades';
             counter.style.color = 'var(--primary)';
           }
           if (msg) {
@@ -2751,9 +2805,13 @@
         btn.innerText = "ACTUALIZANDO...";
         btn.disabled = true;
 
+        const userStr = sessionStorage.getItem('loggedInUser');
+        const userObj = userStr && userStr !== 'undefined' ? JSON.parse(userStr) : null;
+        const storeId = userObj ? userObj.managedStore : null;
+
         google.script.run
           .withSuccessHandler(data => {
-            if (data.success) {
+            if (data && data.success && data.stockMap) {
               realStockCache.map = data.stockMap;
               realStockCache.lastUpdate = new Date();
               console.log("  Stock actualizado manualmente.");
@@ -2764,6 +2822,8 @@
                 const product = catalog.products.find(p => p.model === modalTitle);
                 if (product) renderTpvSizes(product, activeColorBtn.innerText);
               }
+            } else {
+              console.error("No se pudo actualizar el stock", data);
             }
             btn.innerText = oldText;
             btn.disabled = false;
@@ -2771,8 +2831,8 @@
           .withFailureHandler(() => {
             btn.innerText = oldText;
             btn.disabled = false;
-      })
-      .manualRefreshStockCache();
+          })
+          .manualRefreshStockCache(storeId);
       };
 
       window.openConfigModal = function () {
@@ -3111,12 +3171,63 @@
         t += "Cliente: " + clientName + " (" + clientId + ")\n";
         t += "--------------------------------\n";
 
-        sale.cart.forEach(function (item) {
+        const detailedTicket = localStorage.getItem('tpv_detailed_ticket') === 'true';
+
+        function buildTicketLabel(item) {
+          const catInit = item.categoryName ? item.categoryName.charAt(0).toUpperCase() : "";
+          const genInit = item.gender ? item.gender.charAt(0).toUpperCase() : "";
           const skuStr = item.sku ? " (SKU:" + item.sku + ")" : "";
-          t += item.categoryName + " M. " + item.model + " de " + item.gender + skuStr + "\n";
-          t += "Cant: " + item.quantity + "  x  " + formatCurrencyTpv(item.price) + "  =  " + formatCurrencyTpv(item.price * item.quantity) + "\n";
-          t += "-\n";
-        });
+          return catInit + genInit + " " + item.model + skuStr;
+        }
+
+        function formatTicketLine(leftText, rightText) {
+          const TICKER_WIDTH = 48; // Asumiendo impresora de 80mm
+          if (!leftText) leftText = "";
+          if (!rightText) rightText = "";
+          if (leftText.length + rightText.length >= TICKER_WIDTH) {
+            leftText = leftText.substring(0, Math.max(0, TICKER_WIDTH - rightText.length - 2)) + "..";
+          }
+          const spaces = TICKER_WIDTH - leftText.length - rightText.length;
+          return leftText + " ".repeat(Math.max(0, spaces)) + rightText;
+        }
+
+        if (detailedTicket) {
+          const detailGroups = {};
+          sale.cart.forEach(function (item) {
+            const key = item.product_id + '_' + item.price + '_' + item.tipoPrecio;
+            if (!detailGroups[key]) {
+              detailGroups[key] = { labelItem: item, lines: [] };
+            }
+            detailGroups[key].lines.push(item);
+          });
+
+          Object.values(detailGroups).forEach(function (group) {
+            const item = group.labelItem;
+            const priceTypeStr = item.tipoPrecio && item.tipoPrecio !== '-' && item.tipoPrecio !== 'Estandar' ? " [" + item.tipoPrecio.toUpperCase() + "]" : "";
+            t += buildTicketLabel(item) + priceTypeStr + "\n";
+            group.lines.forEach(function (lineItem) {
+              const leftStr = lineItem.color + " / " + lineItem.size;
+              const rightStr = lineItem.quantity + " x " + formatCurrencyTpv(lineItem.price) + " = " + formatCurrencyTpv(lineItem.price * lineItem.quantity);
+              t += formatTicketLine(leftStr, rightStr) + "\n";
+            });
+          });
+        } else {
+          const groupedCart = {};
+          sale.cart.forEach(function (item) {
+            const key = item.product_id + '_' + item.price + '_' + item.tipoPrecio;
+            if (!groupedCart[key]) {
+              groupedCart[key] = { ...item, totalQty: 0 };
+            }
+            groupedCart[key].totalQty += item.quantity;
+          });
+
+          Object.values(groupedCart).forEach(function (item) {
+            const priceTypeStr = item.tipoPrecio && item.tipoPrecio !== '-' && item.tipoPrecio !== 'Estandar' ? "[" + item.tipoPrecio.toUpperCase() + "]" : "";
+            t += buildTicketLabel(item) + "\n";
+            const rightStr = item.totalQty + " x " + formatCurrencyTpv(item.price) + " = " + formatCurrencyTpv(item.price * item.totalQty);
+            t += formatTicketLine(priceTypeStr, rightStr) + "\n";
+          });
+        }
         t += "\n";
 
         if (sale.isMixedPayment) {
@@ -3155,7 +3266,8 @@
         t += "Pago: " + sale.paymentMethod + "\n";
 
         // Datos transferencia si aplica
-        if (sale.paymentMethod === "Transferencia" && sale.transferAccountId) {
+        const printTransferData = localStorage.getItem('tpv_print_transfer_data') !== 'false';
+        if (sale.paymentMethod === "Transferencia" && sale.transferAccountId && printTransferData) {
           if (posMetadata.transferAccounts) {
             const acc = posMetadata.transferAccounts.find(a => String(a.id) === String(sale.transferAccountId));
             if (acc) t += "Alias: " + (acc.alias || "") + "\n";
@@ -3164,10 +3276,17 @@
 
         t += "\n^^::GRACIAS POR SU COMPRA\n";
 
+        const pLogo = localStorage.getItem('tpv_print_logo') !== 'false';
+        const pQr = localStorage.getItem('tpv_print_qr') !== 'false';
+        const pBarra = localStorage.getItem('tpv_print_barra') !== 'false';
+
         return {
           printer_ip: posMetadata.printerIp || "127.0.0.1",
           venta_id: sale.saleId,
-          qr_info: store.qrData || "",
+          // El Frontend decide qué elementos visuales imprimir basado en la configuración local
+          logo: pLogo ? "1" : "0",
+          qr_info: pQr ? (store.qrData || "") : "",
+          barra: pBarra ? sale.saleId : "",
           copias: settings.copias || 1,
           sonido: settings.sonido || "0",
           abrir_caja: (sale.paymentMethod === "Efectivo" || sale.isMixedPayment) ? "1" : "0",
@@ -3221,6 +3340,11 @@
 
               if (res.cashRegisterId) {
                 posMetadata.activeCashRegisterId = res.cashRegisterId;
+                updateTpvSessionStatus({
+                  isWithinSchedule: !window.isOutsideSchedule,
+                  activeCashRegisterId: res.cashRegisterId,
+                  storeId: posMetadata.managedStoreId || "TIENDA"
+                });
               }
 
               updateSyncUI();
@@ -3249,13 +3373,15 @@
         const params = new URLSearchParams({
           id: p.venta_id,
           texto: p.texto_ticket,
-          qr: p.qr_info,
-          barra: p.venta_id,
           copias: p.copias,
           sonido: p.sonido,
           caja: p.abrir_caja,
           extra: p.marketing
         });
+
+        if (p.logo === "1") params.append("logo", "1");
+        if (p.qr_info) params.append("qr", p.qr_info);
+        if (p.barra) params.append("barra", p.barra);
 
         const url = "http://" + p.printer_ip + ":8000/print_ticket?" + params.toString();
 
@@ -3335,21 +3461,52 @@
         const modal = document.getElementById('modal-config');
         if (modal) {
           modal.style.display = 'flex';
-          const rawMode = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
+          const rawMode = localStorage.getItem('tpv_sale_mode') || (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
           updateConfigModeButtons(rawMode);
 
           // Cargar preferencia de ocultar recargo en ticket
           const hideSurcharge = localStorage.getItem('tpv_hide_surcharge_ticket') === 'true';
           const cb = document.getElementById('tpv-config-hide-surcharge-ticket');
           if (cb) cb.checked = hideSurcharge;
+
+          // Cargar preferencia de ticket detallado
+          const detailedTicket = localStorage.getItem('tpv_detailed_ticket') === 'true';
+          const cbDet = document.getElementById('tpv-config-detailed-ticket');
+          if (cbDet) cbDet.checked = detailedTicket;
+
+          // Cargar preferencias visuales del ticket
+          const printTransfer = localStorage.getItem('tpv_print_transfer_data') !== 'false';
+          const cbTransfer = document.getElementById('tpv-config-print-transfer');
+          if (cbTransfer) cbTransfer.checked = printTransfer;
+
+          const printLogo = localStorage.getItem('tpv_print_logo') !== 'false'; // true por defecto
+          const cbLogo = document.getElementById('tpv-config-print-logo');
+          if (cbLogo) cbLogo.checked = printLogo;
+
+          const printQr = localStorage.getItem('tpv_print_qr') !== 'false';
+          const cbQr = document.getElementById('tpv-config-print-qr');
+          if (cbQr) cbQr.checked = printQr;
+
+          const printBarra = localStorage.getItem('tpv_print_barra') !== 'false';
+          const cbBarra = document.getElementById('tpv-config-print-barra');
+          if (cbBarra) cbBarra.checked = printBarra;
         }
       };
 
-      window.toggleHideSurchargeTicket = function () {
-        const cb = document.getElementById('tpv-config-hide-surcharge-ticket');
+      window.togglePrintFeature = function (checkboxId, storageKey) {
+        const cb = document.getElementById(checkboxId);
         if (cb) {
-          localStorage.setItem('tpv_hide_surcharge_ticket', cb.checked ? 'true' : 'false');
+          localStorage.setItem(storageKey, cb.checked ? 'true' : 'false');
         }
+      };
+
+      // Funciones obsoletas, conservadas por seguridad temporalmente
+      window.toggleHideSurchargeTicket = function () {
+        togglePrintFeature('tpv-config-hide-surcharge-ticket', 'tpv_hide_surcharge_ticket');
+      };
+
+      window.toggleDetailedTicket = function () {
+        togglePrintFeature('tpv-config-detailed-ticket', 'tpv_detailed_ticket');
       };
 
       window.closeConfigModal = function () {

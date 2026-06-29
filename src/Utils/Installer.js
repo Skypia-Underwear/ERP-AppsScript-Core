@@ -39,18 +39,21 @@ function getOrCreateSubFolder(parentFolder, folderName) {
  * Asegura que exista la clave en la hoja.
  * Retorna: { fila, valorActual }
  */
-function asegurarClave(sheet, clave, valorPorDefecto, descripcion, grupo = "⚙️ CONFIGURACIÓN GENERAL") {
+function asegurarClave(sheet, clave, valorPorDefecto, descripcion, grupo = "⚙️ CONFIGURACIÓN GENERAL", editable = true) {
   const mapping = HeaderManager.getMapping("APP_SCRIPT_CONFIG");
   const data = sheet.getDataRange().getValues();
 
-  const claveIdx = mapping ? mapping["CLAVE"] : 1;
-  const valorIdx = mapping ? mapping["VALOR"] : 2;
-  const grupoIdx = mapping ? mapping["GRUPO"] : 4;
+  const claveIdx = mapping ? mapping["CLAVE"] : (mapping && mapping["TIPO_CLAVE"] ? mapping["TIPO_CLAVE"] : 2);
+  const valorIdx = mapping ? mapping["VALOR"] : 3;
+  const grupoIdx = mapping ? mapping["GRUPO"] : 1;
 
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][claveIdx]).trim() === clave) {
       if (grupoIdx !== undefined && (!data[i][grupoIdx] || String(data[i][grupoIdx]).trim() === "")) {
         sheet.getRange(i + 1, grupoIdx + 1).setValue(grupo);
+      }
+      if (mapping && mapping["EDITABLE"] !== undefined) {
+        sheet.getRange(i + 1, mapping["EDITABLE"] + 1).setValue(editable);
       }
       return { fila: i + 1, valorActual: data[i][valorIdx] };
     }
@@ -60,13 +63,17 @@ function asegurarClave(sheet, clave, valorPorDefecto, descripcion, grupo = "⚙�
   const nextRow = sheet.getLastRow() + 1;
   const isDefaultOrder = !mapping || mapping["GRUPO"] === 4;
   if (isDefaultOrder) {
-    sheet.appendRow([nuevoId, clave, valorPorDefecto, descripcion, grupo]);
+    sheet.appendRow([nuevoId, clave, valorPorDefecto, descripcion, grupo, editable]);
   } else {
     sheet.getRange(nextRow, (mapping["MACRO_ID"] !== undefined ? mapping["MACRO_ID"] : 0) + 1).setValue(nuevoId);
     sheet.getRange(nextRow, (mapping["GRUPO"] !== undefined ? mapping["GRUPO"] : 1) + 1).setValue(grupo);
-    sheet.getRange(nextRow, (mapping["CLAVE"] !== undefined ? mapping["CLAVE"] : 2) + 1).setValue(clave);
+    const keyCol = mapping["CLAVE"] !== undefined ? mapping["CLAVE"] : (mapping["TIPO_CLAVE"] !== undefined ? mapping["TIPO_CLAVE"] : 2);
+    sheet.getRange(nextRow, keyCol + 1).setValue(clave);
     sheet.getRange(nextRow, (mapping["VALOR"] !== undefined ? mapping["VALOR"] : 3) + 1).setValue(valorPorDefecto);
     sheet.getRange(nextRow, (mapping["DESCRIPCION"] !== undefined ? mapping["DESCRIPCION"] : 4) + 1).setValue(descripcion);
+    if (mapping["EDITABLE"] !== undefined) {
+      sheet.getRange(nextRow, mapping["EDITABLE"] + 1).setValue(editable);
+    }
   }
   return { fila: nextRow, valorActual: valorPorDefecto };
 }
@@ -205,47 +212,47 @@ function inicializarEntorno() {
     // 5. CONSTANTES RESTANTES
 
     const otrasConstantes = [
-      { clave: "GLOBAL_SCRIPT_ID", val: "", desc: "PEGA AQUÍ: ID WebApp (Este Script)", grupo: "⚙️ CONFIGURACIÓN GENERAL" },
-      { clave: "WP_SITE_URL", val: "https://tudominio.com/", desc: "URL Sitio Web", grupo: "🌐 INTEGRACIÓN WORDPRESS" },
-      { clave: "WP_IMAGE_API_URL", val: "https://tudominio.com/api-image-uploader.php", desc: "URL API Imágenes", grupo: "🌐 INTEGRACIÓN WORDPRESS" },
-      { clave: "WP_PRODUCT_API_URL", val: "https://tudominio.com/api-woocommerce-product.php", desc: "URL API Productos WC", grupo: "🌐 INTEGRACIÓN WORDPRESS" },
-      { clave: "WP_IMAGE_API_KEY", val: "CASTFER2025", desc: "API Key Imágenes", grupo: "🌐 INTEGRACIÓN WORDPRESS" },
-      { clave: "WP_CONSUMER_KEY", val: "", desc: "PEGA AQUÍ: WC Consumer Key", grupo: "🌐 INTEGRACIÓN WORDPRESS" },
-      { clave: "WP_CONSUMER_SECRET", val: "", desc: "PEGA AQUÍ: WC Consumer Secret", grupo: "🌐 INTEGRACIÓN WORDPRESS" },
-      { clave: "GM_IMAGE_API_KEY", val: "", desc: "PEGA AQUÍ: API Key de Google Gemini (PRO/PAID) para Imagen 3", grupo: "🤖 GOOGLE GEMINI IA" },
-      { clave: "GM_FREE_API_KEY", val: "", desc: "PEGA AQUÍ: API Key de Google Gemini (FREE) para Laboratorio y Análisis", grupo: "🤖 GOOGLE GEMINI IA" },
-      { clave: "GM_PAID_PIN", val: "1234", desc: "PIN de seguridad para activar IA de pago (Nano Banana Pro)", grupo: "🤖 GOOGLE GEMINI IA" },
-      { clave: "APPSHEET_APP_ID", val: "", desc: "PEGA AQUÍ: ID de la App en AppSheet", grupo: "🤖 INTEGRACIÓN APPSHEET" },
-      { clave: "APPSHEET_ACCESS_KEY", val: "", desc: "PEGA AQUÍ: Access Key de la App en AppSheet", grupo: "🤖 INTEGRACIÓN APPSHEET" },
-      { clave: "TELEGRAM_BOT_TOKEN", val: "8268672991:AAH2aKxeJvhT4kBdJaUghNmvtJrPT8bTLyQ", desc: "Token del Bot de Telegram (@BotFather)", grupo: "💬 TELEGRAM NOTIFICATION" },
-      { clave: "TELEGRAM_CHAT_ID", val: "7778458279", desc: "ID del Chat o Grupo de Telegram (CLIENTE)", grupo: "💬 TELEGRAM NOTIFICATION" },
-      { clave: "TELEGRAM_DEV_CHAT_ID", val: "7778458279", desc: "ID del Chat del Desarrollador (ERRORES)", grupo: "💬 TELEGRAM NOTIFICATION" },
-      { clave: "TELEGRAM_MODE", val: "DEV", desc: "Modo: DEV (solo salud) o CLIENT (asistente)", grupo: "💬 TELEGRAM NOTIFICATION" },
-      { clave: "NOTIFICATION_PROVIDER", val: "TELEGRAM", desc: "Canal: TELEGRAM, EMAIL o NONE", grupo: "💬 TELEGRAM NOTIFICATION" },
-      { clave: "NOTIFICATION_EMAIL", val: "", desc: "Email para notificaciones (si aplica)", grupo: "💬 TELEGRAM NOTIFICATION" },
-      { clave: "BQ_ENABLE", val: "TRUE", desc: "Activa el archivado industrial en BigQuery", grupo: "📊 INDUSTRIALES (BIGQUERY)" },
-      { clave: "BQ_PROJECT_ID", val: "SkypiaUnderwearApi", desc: "ID Proyecto Google Cloud (GCP)", grupo: "📊 INDUSTRIALES (BIGQUERY)" },
-      { clave: "BQ_DATASET_ID", val: "", desc: "ID Dataset BQ (Vacio = APP_NAME_MASTER)", grupo: "📊 INDUSTRIALES (BIGQUERY)" },
-      { clave: "PUBLICATION_TARGET", val: "DONWEB", desc: "Respaldo Global: DONWEB o GITHUB", grupo: "⚙️ CONFIGURACIÓN GENERAL" },
-      { clave: "BLOGGER_PUBLICATION_TARGET", val: "AMBOS", desc: "Blogger Sync: DONWEB, GITHUB, AMBOS o NONE", grupo: "📡 ECOSISTEMA BLOGGER" },
-      { clave: "TPV_PUBLICATION_TARGET", val: "DRIVE", desc: "TPV Sync: DRIVE, DONWEB, GITHUB o AMBOS", grupo: "⚙️ CONFIGURACIÓN GENERAL" },
-      { clave: "GITHUB_USER", val: "", desc: "Usuario GitHub", grupo: "🌐 GITHUB SYNC" },
-      { clave: "GITHUB_REPO", val: "api-tienda", desc: "Repositorio", grupo: "🌐 GITHUB SYNC" },
-      { clave: "GITHUB_TOKEN", val: "", desc: "Token (repo scope)", grupo: "🌐 GITHUB SYNC" },
-      { clave: "GITHUB_FILE_PATH", val: catalogFileName, desc: "Ruta JSON del TPV en GitHub", grupo: "🌐 GITHUB SYNC" },
-      { clave: "ASSETS_GITHUB_TOKEN", val: "", desc: "Token del Repositorio Central de Activos (BlogShop Core)", grupo: "🌐 GITHUB SYNC" },
-      { clave: "ASSETS_GITHUB_BRANCH", val: "main", desc: "Rama del Repositorio de Activos", grupo: "🌐 GITHUB SYNC" },
-      { clave: "ASSETS_ENABLE_GITHUB_SYNC", val: "TRUE", desc: "Activa la sincronización de iconos SVG a GitHub (TRUE/FALSE)", grupo: "🌐 GITHUB SYNC" },
-      { clave: "BLOGGER_GITHUB_FILE_PATH", val: appSlug + "-blogger-config.json", desc: "Ruta JSON de Blogger en GitHub", grupo: "📡 ECOSISTEMA BLOGGER" },
-      { clave: "DONWEB_WRITE_URL", val: "https://tudominio.com/api_json_write.php", desc: "URL PHP de escritura JSON en Donweb", grupo: "📡 DONWEB HOSTING" },
-      { clave: "DONWEB_READ_URL", val: "https://tudominio.com/api_json_read.php", desc: "URL PHP de lectura JSON en Donweb", grupo: "📡 DONWEB HOSTING" },
-      { clave: "SYNC_START_HOUR", val: "6", desc: "Hora de inicio de sincronización (0-23)", grupo: "⚙️ CONFIGURACIÓN GENERAL" },
-      { clave: "SYNC_END_HOUR", val: "23", desc: "Hora de fin de sincronización (0-23)", grupo: "⚙️ CONFIGURACIÓN GENERAL" },
-      { clave: "RESELLER_SYNC_TOKEN", val: "RESELLER_SYNC_TOKEN_V1", desc: "Token secreto para validar la sincronización (Debe ser igual en ambos ERP)", grupo: "🔌 INTEGRACIÓN RESELLER" }
+      { clave: "GLOBAL_SCRIPT_ID", val: "", desc: "PEGA AQUÍ: ID WebApp (Este Script)", grupo: "⚙️ CONFIGURACIÓN GENERAL", editable: false },
+      { clave: "WP_SITE_URL", val: "https://tudominio.com/", desc: "URL Sitio Web", grupo: "🌐 INTEGRACIÓN WORDPRESS", editable: true },
+      { clave: "WP_IMAGE_API_URL", val: "https://tudominio.com/api-image-uploader.php", desc: "URL API Imágenes", grupo: "🌐 INTEGRACIÓN WORDPRESS", editable: true },
+      { clave: "WP_PRODUCT_API_URL", val: "https://tudominio.com/api-woocommerce-product.php", desc: "URL API Productos WC", grupo: "🌐 INTEGRACIÓN WORDPRESS", editable: true },
+      { clave: "WP_IMAGE_API_KEY", val: "CASTFER2025", desc: "API Key Imágenes", grupo: "🌐 INTEGRACIÓN WORDPRESS", editable: true },
+      { clave: "WP_CONSUMER_KEY", val: "", desc: "PEGA AQUÍ: WC Consumer Key", grupo: "🌐 INTEGRACIÓN WORDPRESS", editable: true },
+      { clave: "WP_CONSUMER_SECRET", val: "", desc: "PEGA AQUÍ: WC Consumer Secret", grupo: "🌐 INTEGRACIÓN WORDPRESS", editable: true },
+      { clave: "GM_IMAGE_API_KEY", val: "", desc: "PEGA AQUÍ: API Key de Google Gemini (PRO/PAID) para Imagen 3", grupo: "🤖 GOOGLE GEMINI IA", editable: false },
+      { clave: "GM_FREE_API_KEY", val: "", desc: "PEGA AQUÍ: API Key de Google Gemini (FREE) para Laboratorio y Análisis", grupo: "🤖 GOOGLE GEMINI IA", editable: false },
+      { clave: "GM_PAID_PIN", val: "1234", desc: "PIN de seguridad para activar IA de pago (Nano Banana Pro)", grupo: "🤖 GOOGLE GEMINI IA", editable: false },
+      { clave: "APPSHEET_APP_ID", val: "", desc: "PEGA AQUÍ: ID de la App en AppSheet", grupo: "🤖 INTEGRACIÓN APPSHEET", editable: false },
+      { clave: "APPSHEET_ACCESS_KEY", val: "", desc: "PEGA AQUÍ: Access Key de la App en AppSheet", grupo: "🤖 INTEGRACIÓN APPSHEET", editable: false },
+      { clave: "TELEGRAM_BOT_TOKEN", val: "8268672991:AAH2aKxeJvhT4kBdJaUghNmvtJrPT8bTLyQ", desc: "Token del Bot de Telegram (@BotFather)", grupo: "💬 TELEGRAM NOTIFICATION", editable: false },
+      { clave: "TELEGRAM_CHAT_ID", val: "7778458279", desc: "ID del Chat o Grupo de Telegram (CLIENTE)", grupo: "💬 TELEGRAM NOTIFICATION", editable: true },
+      { clave: "TELEGRAM_DEV_CHAT_ID", val: "7778458279", desc: "ID del Chat del Desarrollador (ERRORES)", grupo: "💬 TELEGRAM NOTIFICATION", editable: false },
+      { clave: "TELEGRAM_MODE", val: "DEV", desc: "Modo: DEV (solo salud) o CLIENT (asistente)", grupo: "💬 TELEGRAM NOTIFICATION", editable: true },
+      { clave: "NOTIFICATION_PROVIDER", val: "TELEGRAM", desc: "Canal: TELEGRAM, EMAIL o NONE", grupo: "💬 TELEGRAM NOTIFICATION", editable: true },
+      { clave: "NOTIFICATION_EMAIL", val: "", desc: "Email para notificaciones (si aplica)", grupo: "💬 TELEGRAM NOTIFICATION", editable: true },
+      { clave: "BQ_ENABLE", val: "TRUE", desc: "Activa el archivado industrial en BigQuery", grupo: "📊 INDUSTRIALES (BIGQUERY)", editable: true },
+      { clave: "BQ_PROJECT_ID", val: "SkypiaUnderwearApi", desc: "ID Proyecto Google Cloud (GCP)", grupo: "📊 INDUSTRIALES (BIGQUERY)", editable: false },
+      { clave: "BQ_DATASET_ID", val: "", desc: "ID Dataset BQ (Vacio = APP_NAME_MASTER)", grupo: "📊 INDUSTRIALES (BIGQUERY)", editable: false },
+      { clave: "PUBLICATION_TARGET", val: "DONWEB", desc: "Respaldo Global: DONWEB o GITHUB", grupo: "⚙️ CONFIGURACIÓN GENERAL", editable: true },
+      { clave: "BLOGGER_PUBLICATION_TARGET", val: "AMBOS", desc: "Blogger Sync: DONWEB, GITHUB, AMBOS o NONE", grupo: "📡 ECOSISTEMA BLOGGER", editable: true },
+      { clave: "TPV_PUBLICATION_TARGET", val: "DRIVE", desc: "TPV Sync: DRIVE, DONWEB, GITHUB o AMBOS", grupo: "⚙️ CONFIGURACIÓN GENERAL", editable: true },
+      { clave: "GITHUB_USER", val: "", desc: "Usuario GitHub", grupo: "🌐 GITHUB SYNC", editable: false },
+      { clave: "GITHUB_REPO", val: "api-tienda", desc: "Repositorio", grupo: "🌐 GITHUB SYNC", editable: false },
+      { clave: "GITHUB_TOKEN", val: "", desc: "Token (repo scope)", grupo: "🌐 GITHUB SYNC", editable: false },
+      { clave: "GITHUB_FILE_PATH", val: catalogFileName, desc: "Ruta JSON del TPV en GitHub", grupo: "🌐 GITHUB SYNC", editable: false },
+      { clave: "ASSETS_GITHUB_TOKEN", val: "", desc: "Token del Repositorio Central de Activos (BlogShop Core)", grupo: "🌐 GITHUB SYNC", editable: false },
+      { clave: "ASSETS_GITHUB_BRANCH", val: "main", desc: "Rama del Repositorio de Activos", grupo: "🌐 GITHUB SYNC", editable: false },
+      { clave: "ASSETS_ENABLE_GITHUB_SYNC", val: "TRUE", desc: "Activa la sincronización de iconos SVG a GitHub (TRUE/FALSE)", grupo: "🌐 GITHUB SYNC", editable: true },
+      { clave: "BLOGGER_GITHUB_FILE_PATH", val: appSlug + "-blogger-config.json", desc: "Ruta JSON de Blogger en GitHub", grupo: "📡 ECOSISTEMA BLOGGER", editable: false },
+      { clave: "DONWEB_WRITE_URL", val: "https://tudominio.com/api_json_write.php", desc: "URL PHP de escritura JSON en Donweb", grupo: "📡 DONWEB HOSTING", editable: true },
+      { clave: "DONWEB_READ_URL", val: "https://tudominio.com/api_json_read.php", desc: "URL PHP de lectura JSON en Donweb", grupo: "📡 DONWEB HOSTING", editable: true },
+      { clave: "SYNC_START_HOUR", val: "6", desc: "Hora de inicio de sincronización (0-23)", grupo: "⚙️ CONFIGURACIÓN GENERAL", editable: true },
+      { clave: "SYNC_END_HOUR", val: "23", desc: "Hora de fin de sincronización (0-23)", grupo: "⚙️ CONFIGURACIÓN GENERAL", editable: true },
+      { clave: "RESELLER_SYNC_TOKEN", val: "RESELLER_SYNC_TOKEN_V1", desc: "Token secreto para validar la sincronización (Debe ser igual en ambos ERP)", grupo: "🔌 INTEGRACIÓN RESELLER", editable: false }
     ];
 
     otrasConstantes.forEach(c => {
-      asegurarClave(sheet, c.clave, c.val, c.desc, c.grupo);
+      asegurarClave(sheet, c.clave, c.val, c.desc, c.grupo, c.editable);
     });
 
     // 6. SINCRONIZAR URLS DESDE BD_CONFIGURACION_GENERAL

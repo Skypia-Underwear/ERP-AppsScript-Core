@@ -232,21 +232,7 @@
 <script>
     (function () {
         // Ocultar TPV en PWA por restricciones de red local
-        const isPwaEnv = (function() {
-            if (typeof window.checkIsPWA === 'function' && window.checkIsPWA()) return true;
-            if (window.location.ancestorOrigins) {
-                for (let i = 0; i < window.location.ancestorOrigins.length; i++) {
-                    if (!window.location.ancestorOrigins[i].includes('google.com')) return true;
-                }
-            }
-            if (document.referrer) {
-                try {
-                    const ref = new URL(document.referrer);
-                    if (!ref.hostname.includes('google.com')) return true;
-                } catch (e) {}
-            }
-            return false;
-        })();
+        const isPwaEnv = typeof window.checkIsPWA === 'function' ? window.checkIsPWA() : false;
         if (isPwaEnv) {
             const btnPosDash = document.getElementById('dash-btn-pos_manager');
             if (btnPosDash) btnPosDash.style.setProperty('display', 'none', 'important');

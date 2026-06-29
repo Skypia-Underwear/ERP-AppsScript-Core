@@ -302,18 +302,31 @@
 
     window.checkIsPWA = function() {
       try {
-        if (window.location.ancestorOrigins) {
+        // En Chrome/WebKit, ancestorOrigins es la forma más confiable de detectar iframes cross-domain.
+        if (window.location.ancestorOrigins && window.location.ancestorOrigins.length > 0) {
           for (let i = 0; i < window.location.ancestorOrigins.length; i++) {
-            if (!window.location.ancestorOrigins[i].includes('google.com')) return true;
+            const origin = window.location.ancestorOrigins[i];
+            // Si hay un origin que NO es de Google, estamos en un Iframe de terceros (PWA)
+            if (!origin.includes('google.com') && !origin.includes('googleusercontent.com')) {
+              return true; 
+            }
           }
+          // Si terminamos el bucle y todos los ancestors son de Google, NO es PWA.
+          // Retornamos false inmediatamente para evitar falsos positivos con el referrer.
+          return false;
         }
       } catch (e) {
         console.warn("[Shell] checkIsPWA ancestorOrigins error:", e);
       }
+
       try {
+        // Fallback para Firefox/Safari donde ancestorOrigins no existe.
         if (document.referrer) {
           const ref = new URL(document.referrer);
-          if (!ref.hostname.includes('google.com')) return true;
+          const host = ref.hostname;
+          if (!host.includes('google.com') && !host.includes('googleusercontent.com') && !host.includes('appsheet.com')) {
+            return true;
+          }
         }
       } catch (e) {
         console.warn("[Shell] checkIsPWA referrer error:", e);
@@ -390,7 +403,11 @@
               throw new Error("Donweb fallo");
             }
           } catch (e) {
-            console.warn("[Global Fetch] Fallo en Donweb, recurriendo a Github...", e.message);
+            if (rUrl.includes("script.google.com") || (e.message && e.message.includes("Unexpected token"))) {
+              console.warn("[Global Fetch] ⚠️ Las variables de Donweb no están configuradas en BD_APP_SCRIPT (o devolvió JSONP). Recurriendo a Github...", e.message);
+            } else {
+              console.warn("[Global Fetch] Fallo en Donweb, recurriendo a Github...", e.message);
+            }
             if (isGithubValid) {
               try {
                 const fbResponse = await fetch(fUrl);
