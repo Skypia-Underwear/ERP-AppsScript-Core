@@ -1157,6 +1157,12 @@
         <!-- Right: Actions -->
         <div class="flex items-center gap-2 shrink-0">
 
+            <!-- NUEVO: Indicador de tareas en segundo plano -->
+            <div id="global-tasks-indicator" onclick="toggleGlobalTasksDrawer()" class="hidden items-center gap-1.5 px-3 py-1 bg-indigo-900/40 border border-indigo-700/50 rounded-lg cursor-pointer hover:bg-indigo-900/60 transition-all shadow-sm" title="Ver procesos de IA en segundo plano">
+                <div class="spinner animate-spin rounded-full h-3 w-3 border-2 border-indigo-400/20 border-t-indigo-400"></div>
+                <span id="global-tasks-count" class="text-[10px] font-bold text-indigo-300">0</span>
+            </div>
+
             <!-- PAID MODE TOGGLE (visible en móvil como icono) -->
             <div
                 class="flex items-center gap-2 bg-slate-800 px-2 md:px-3 py-1.5 rounded-lg border border-slate-700 shadow-sm">
@@ -1762,6 +1768,23 @@
         </div>
     </div>
 </div>
+</div>
+
+<!-- GLOBAL TASKS DRAWER -->
+<div id="global-tasks-drawer" class="fixed inset-y-0 right-0 w-80 bg-slate-900 border-l border-slate-700 transform translate-x-full transition-transform duration-300 z-[9999] flex flex-col shadow-2xl">
+    <div class="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950">
+        <div class="flex items-center gap-2">
+            <span class="material-icons text-indigo-400 animate-spin-slow">autorenew</span>
+            <h3 class="text-sm font-bold text-white tracking-wide">Procesos en Segundo Plano</h3>
+        </div>
+        <button onclick="toggleGlobalTasksDrawer(false)" class="text-slate-400 hover:text-white transition bg-slate-800 hover:bg-slate-700 rounded-full w-7 h-7 flex items-center justify-center">
+            <span class="material-icons text-sm">close</span>
+        </button>
+    </div>
+    <div id="global-tasks-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+        <!-- Tareas renderizadas aquí -->
+    </div>
+</div>
 
 <script>
     var CATALOG_URL = "<?!= CATALOG_URL ?>";
@@ -1783,6 +1806,194 @@
     var gridSnapshot = null; // Para revertir orden
     var currentCategoryFilter = ""; // --- NUEVO: Filtro por categoría ---
     var CATEGORY_LIST = []; // --- NUEVO: Lista de categorías ---
+
+    // --- SISTEMA DE PROCESOS EN SEGUNDO PLANO ---
+    var activeGenerations = []; // { id: 'gen-123', sku: 'ABC', tipo: 'Generando Angulo', startTime: Date.now() }
+    
+    function toggleGlobalTasksDrawer(openForce = null) {
+        const drawer = document.getElementById('global-tasks-drawer');
+        if(!drawer) return;
+        if(openForce === true) {
+            drawer.classList.remove('translate-x-full');
+        } else if (openForce === false) {
+            drawer.classList.add('translate-x-full');
+        } else {
+            drawer.classList.toggle('translate-x-full');
+        }
+    }
+
+    function updateGlobalTasksIndicator() {
+        const count = activeGenerations.length;
+        const ind = document.getElementById('global-tasks-indicator');
+        if(ind) {
+            if(count > 0) {
+                ind.classList.remove('hidden');
+                ind.classList.add('flex');
+                ind.querySelector('#global-tasks-count').textContent = count;
+            } else {
+                ind.classList.add('hidden');
+                ind.classList.remove('flex');
+            }
+        }
+        
+        const list = document.getElementById('global-tasks-list');
+        if(list) {
+            if(count === 0) {
+                list.innerHTML = `<div class="text-center text-slate-500 text-xs mt-10"><span class="material-icons text-4xl mb-2 opacity-20">check_circle</span><br>No hay procesos activos.</div>`;
+            } else {
+                list.innerHTML = activeGenerations.map(g => {
+                    const isRender = String(g.tipo).includes("Render") || String(g.tipo).includes("Físico");
+                    const isVideo = String(g.tipo).includes("Video");
+                    const icon = isRender ? "brush" : (isVideo ? "movie" : "psychology");
+                    const color = isRender ? "fuchsia-400" : (isVideo ? "blue-400" : "indigo-400");
+                    const elapsed = Math.floor((Date.now() - g.startTime) / 1000);
+                    return `
+                    <div class="bg-slate-800 rounded-lg p-3 border border-slate-700 flex items-start gap-3 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 h-1 bg-${color} animate-pulse w-full opacity-70"></div>
+                        <div class="bg-slate-900 rounded p-2 flex items-center justify-center border border-slate-700">
+                            <span class="material-icons text-${color} text-lg animate-spin-slow">${icon}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-white truncate">${g.tipo}</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">SKU: <span class="text-slate-300 font-mono">${g.sku}</span></p>
+                            <p class="text-[9px] text-slate-500 mt-1">Lleva ${elapsed}s...</p>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+    }
+    
+    setInterval(() => {
+        const drawer = document.getElementById('global-tasks-drawer');
+        if(drawer && !drawer.classList.contains('translate-x-full')) {
+            updateGlobalTasksIndicator();
+        }
+    }, 1000);
+    
+    function crearCardGeneracionHTML(genData) {
+        const card = document.createElement('div');
+        card.id = `gen-${genData.id}`;
+        card.className = "img-card group upload-preview-card transition-all duration-300";
+        card.setAttribute('data-id', `gen-${genData.id}`);
+    
+        let icon = "auto_awesome";
+        let color = "indigo-400";
+        if(genData.tipo.includes("Video") || genData.tipo.includes("VEO")) {
+            icon = "movie";
+            color = "emerald-400";
+        } else if(genData.tipo.includes("Refin")) {
+            icon = "auto_fix_high";
+            color = "fuchsia-400";
+        }
+    
+        card.innerHTML = `
+            <div class="w-full h-full relative">
+                <div class="w-full h-full flex flex-col items-center justify-center bg-slate-900 border-2 border-dashed border-${color}/50 rounded-xl">
+                    <span class="material-icons text-3xl text-${color} animate-pulse mb-2">${icon}</span>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider px-2 text-center leading-tight">Procesando...</span>
+                </div>
+                <div class="status-overlay absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center p-3 text-center transition-all duration-300">
+                    <div class="spinner animate-spin rounded-full h-6 w-6 border-2 border-${color}/20 border-t-${color} mb-2"></div>
+                    <span class="status-text text-[9px] font-bold text-${color} uppercase tracking-wider leading-tight">${genData.tipo}</span>
+                    <span class="status-icon material-icons text-[12px] text-${color} mt-1">${icon}</span>
+                </div>
+            </div>
+        `;
+        return card;
+    }
+    
+    function agregarProcesoSegundoPlano(sku, tipo, originalId) {
+        const uniqueId = 'gen_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+        const genData = {
+            id: uniqueId,
+            sku: sku,
+            tipo: tipo,
+            originalId: originalId,
+            startTime: Date.now()
+        };
+        activeGenerations.push(genData);
+        updateGlobalTasksIndicator();
+        if(currentProduct && currentProduct.sku === sku) {
+            if (tipo === "Auditoría IA" && originalId) {
+                const originalCard = document.getElementById('card-' + originalId);
+                if (originalCard) {
+                    const imgObj = CURRENT_IMAGES.find(i => i.IMAGEN_ID === originalId);
+                    if (imgObj) {
+                        const index = CURRENT_IMAGES.indexOf(imgObj);
+                        const newCard = crearCard(imgObj, index);
+                        originalCard.replaceWith(newCard);
+                    }
+                }
+            } else {
+                const grid = document.getElementById('imageGridActive');
+                const uploadCard = document.getElementById('wp-upload-card');
+                const card = crearCardGeneracionHTML(genData);
+                if (uploadCard && uploadCard.nextSibling) {
+                    grid.insertBefore(card, uploadCard.nextSibling);
+                } else if (grid) {
+                    grid.appendChild(card);
+                }
+            }
+        }
+        return uniqueId;
+    }
+    
+    function removerProcesoSegundoPlano(id) {
+        const idx = activeGenerations.findIndex(g => g.id === id);
+        if(idx !== -1) {
+            const gen = activeGenerations[idx];
+            activeGenerations.splice(idx, 1);
+            updateGlobalTasksIndicator();
+            const card = document.getElementById(id);
+            if(card) card.remove();
+            
+            if (gen.tipo === "Auditoría IA" && gen.originalId && currentProduct && currentProduct.sku === gen.sku) {
+                const originalCard = document.getElementById('card-' + gen.originalId);
+                if (originalCard) {
+                    const imgObj = CURRENT_IMAGES.find(i => i.IMAGEN_ID === gen.originalId);
+                    if (imgObj) {
+                        const index = CURRENT_IMAGES.indexOf(imgObj);
+                        const newCard = crearCard(imgObj, index);
+                        originalCard.replaceWith(newCard);
+                    }
+                }
+            }
+        }
+    }
+    
+    function manejarCompletadoProcesoSegundoPlano(uniqueId, sku, imagenIdResultante, titulo, mensaje) {
+        removerProcesoSegundoPlano(uniqueId);
+        
+        autoOpenId = imagenIdResultante;
+    
+        if (currentProduct && currentProduct.sku === sku) {
+            log(`Proceso completado: ${titulo}.`, "success");
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'success',
+                title: titulo, text: mensaje || 'Imagen lista',
+                showConfirmButton: false, timer: 3000,
+                background: '#1e293b', color: '#fff'
+            });
+            recargar(); 
+        } else {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'success',
+                title: `¡Listo! SKU ${sku}`, text: `El proceso "${titulo}" ha finalizado.`,
+                showConfirmButton: true, confirmButtonText: 'Ver Producto', showCloseButton: true,
+                timer: 10000, background: '#1e293b', color: '#fff',
+                customClass: { confirmButton: 'bg-indigo-600 text-xs px-2 py-1' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    debounceSearch(sku);
+                    setTimeout(() => {
+                        const foundItem = document.querySelector(`.sidebar-item[onclick*="${sku}"]`);
+                        if(foundItem) foundItem.click();
+                    }, 500);
+                }
+            });
+        }
+    }
     var CATEGORY_SVGS = {}; // --- NUEVO: SVGs del catálogo ---
 
     // Catálogo para búsqueda rápida
@@ -2781,6 +2992,10 @@
         document.querySelectorAll('.sidebar-item').forEach(e => e.classList.remove('active', 'bg-indigo-500/10', 'border-indigo-500'));
         if (el) el.classList.add('active', 'bg-indigo-500/10', 'border-indigo-500');
 
+        // Cerrar cualquier modal abierto (ej. Composer de Prompt) para evitar que
+        // se use la selección de un producto en otro.
+        if (Swal.isVisible()) Swal.close();
+
         currentProduct = { sku: p.sku, carpeta_id: p.carpeta_id, woo_id: p.woo_id };
 
         // Mostrar FABs moviles cuando hay producto seleccionado
@@ -2956,6 +3171,15 @@
         const uploadCard = crearWpUploadCard();
         ga.appendChild(uploadCard);
 
+        // --- NUEVO: Insertar tarjetas de generación en curso ---
+        if (currentProduct) {
+            const activeForProduct = activeGenerations.filter(g => g.sku === currentProduct.sku);
+            activeForProduct.forEach(gData => {
+                const card = crearCardGeneracionHTML(gData);
+                ga.appendChild(card);
+            });
+        }
+
         const noImg = (text) => `<div class="flex-shrink-0 w-full flex flex-col items-center justify-center py-8 text-slate-600 italic text-xs"><span class="material-icons text-lg mb-1 opacity-50">image_not_supported</span>${text}</div>`;
 
         if (imgs && imgs.length > 0) {
@@ -3114,6 +3338,24 @@
         const isSelected = selectedImages.has(img.IMAGEN_ID);
         const jsonSafe = JSON.stringify(img).replace(/"/g, '&quot;');
 
+        const activeProcess = activeGenerations.find(g => g.originalId === img.IMAGEN_ID);
+        let processOverlay = '';
+        if (activeProcess) {
+            let pColor = "indigo-400";
+            let pIcon = "auto_awesome";
+            if(activeProcess.tipo.includes("Auditor")) { pColor = "amber-500"; pIcon = "biotech"; }
+            else if(activeProcess.tipo.includes("Video") || activeProcess.tipo.includes("VEO")) { pColor = "emerald-400"; pIcon = "movie"; }
+            else if(activeProcess.tipo.includes("Refin")) { pColor = "fuchsia-400"; pIcon = "auto_fix_high"; }
+            
+            processOverlay = `
+                <div class="status-overlay absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center p-3 text-center transition-all duration-300 z-10" style="backdrop-filter: blur(2px);">
+                    <div class="spinner animate-spin rounded-full h-6 w-6 border-2 border-${pColor}/20 border-t-${pColor} mb-2"></div>
+                    <span class="status-text text-[9px] font-bold text-${pColor} uppercase tracking-wider leading-tight">${activeProcess.tipo}</span>
+                    <span class="status-icon material-icons text-[12px] text-${pColor} mt-1">${pIcon}</span>
+                </div>
+            `;
+        }
+
         div.id = `card-${img.IMAGEN_ID}`;
         div.innerHTML = `
                 <div class="card-checkbox" onclick="event.stopPropagation(); toggleSelection('${img.IMAGEN_ID}', this.parentElement, ${img.ESTADO})">
@@ -3121,6 +3363,7 @@
                 </div>
                 <div onclick="handleCardClick(${jsonSafe}, event)" class="w-full h-full relative cursor-pointer">
                     ${imgHTML}
+                    ${processOverlay}
                     
                     <div class="status-badges-container">
                         ${img.PORTADA ? '<div class="mini-badge portada" title="Portada"><span class="material-icons">star</span></div>' : ''}
@@ -3204,10 +3447,23 @@
                             <button onclick="accionMasiva('eliminar')" class="hover:bg-red-600 bg-red-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition" title="Borrar"><span class="material-icons text-sm">delete</span><span class="btn-text-mobile"> Borrar</span></button>`;
             }
             if (currentSelectionState === true) {
+                let hasPrompt = false;
+                selectedImages.forEach(id => {
+                    const img = CURRENT_IMAGES.find(i => String(i.IMAGEN_ID) === String(id));
+                    if (img && img.PROMPT) {
+                        hasPrompt = true;
+                    }
+                });
+
                 const btnLabel = currentPaidPin ? 'RENDER AI' : 'AI PROMPT';
                 html += `<div class="h-3 w-px bg-slate-700 mx-2"></div>
-                              <button onclick="auditarSeleccionMasiva()" class="hover:bg-slate-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition mr-1" title="An\u00e1lisis Forense Masivo"><span class="material-icons text-sm text-amber-500">biotech</span><span class="btn-text-mobile"> Auditar</span></button>
-                              <button onclick="generarPromptMasivo()" class="hover:bg-indigo-600 bg-indigo-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm mr-1" title="${btnLabel}"><span class="material-icons text-sm">auto_awesome</span><span class="btn-text-mobile"> ${btnLabel}</span></button>
+                              <button onclick="auditarSeleccionMasiva()" class="hover:bg-slate-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition mr-1" title="Análisis Forense Masivo"><span class="material-icons text-sm text-amber-500">biotech</span><span class="btn-text-mobile"> Auditar</span></button>`;
+                              
+                if (hasPrompt) {
+                    html += `<button onclick="verPromptMaestroYRenderizar()" class="hover:bg-emerald-600 bg-emerald-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm mr-1" title="Renderizar con Prompt Guardado"><span class="material-icons text-sm text-white">play_circle</span><span class="btn-text-mobile text-white"> Renderizar</span></button>`;
+                }
+
+                html += `<button onclick="generarPromptMasivo()" class="hover:bg-indigo-600 bg-indigo-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm mr-1" title="${btnLabel}"><span class="material-icons text-sm">auto_awesome</span><span class="btn-text-mobile"> ${btnLabel}</span></button>
                               <button onclick="descargarSeleccionMasiva()" class="hover:bg-cyan-600 bg-cyan-700 px-2 py-1 rounded-md flex items-center gap-1 text-[10px] uppercase font-bold transition shadow-sm" title="Descargar como ZIP"><span class="material-icons text-sm">cloud_download</span><span class="btn-text-mobile"> Descargar</span></button>`;
             }
             actionsDiv.innerHTML = html;
@@ -3874,8 +4130,11 @@
         const idParaAnalizar = targetId || currentImageId;
         if (!idParaAnalizar) return;
 
+        let procesoId = null;
+
         if (background) {
             if (!targetId) closeModal(); // Solo cerrar si no viene de un proceso externo (como upload)
+            procesoId = agregarProcesoSegundoPlano(currentProduct ? currentProduct.sku : null, "Auditoría IA", idParaAnalizar);
             const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
             Toast.fire({ icon: 'info', title: 'Análisis iniciado', text: `Imagen: ${idParaAnalizar}`, background: '#1e293b', color: '#fff' });
             log(`Analizando prenda ${idParaAnalizar} en segundo plano...`, 'info');
@@ -3890,6 +4149,7 @@
         }
 
         google.script.run.withSuccessHandler(res => {
+            if (procesoId) removerProcesoSegundoPlano(procesoId);
             if (!background) Swal.close();
             const d = JSON.parse(res);
             if (d.success) {
@@ -3913,6 +4173,7 @@
                 else Swal.fire('Error Forense', d.error, 'error');
             }
         }).withFailureHandler(err => {
+            if (procesoId) removerProcesoSegundoPlano(procesoId);
             if (!background) Swal.close();
             log(`Error crítico forense (${idParaAnalizar}): ${err.message}`, 'error');
         }).escanearPrenda(idParaAnalizar, forzar, document.getElementById('dashboard-analysis-model') ? document.getElementById('dashboard-analysis-model').value : 'gemini-3.5-flash');
@@ -4523,14 +4784,22 @@
     function ejecutarGeneracionPrompt(formato, estilo, opciones = {}, extraSpecs = {}) {
         const pinToUse = extraSpecs.pin;
         delete extraSpecs.pin; // No enviar en el objeto extraSpecs limpio
-        // MOSTRAR CARGADOR
+        
+        const skuActual = currentProduct ? currentProduct.sku : null;
+        const ids = selectedImages.size > 0 ? Array.from(selectedImages) : (currentImageId ? [currentImageId] : []);
+        
+        if (ids.length === 0 || !ids[0]) {
+            Swal.fire({ icon: 'warning', title: 'Atención', text: 'No hay ninguna imagen seleccionada válida.', background: '#1e293b', color: '#fff' });
+            return;
+        }
+
+        const primaryId = ids[0];
+        const procesoId = agregarProcesoSegundoPlano(skuActual, "Prompt IA", primaryId);
+
         Swal.fire({
-            title: 'IA Generando...',
-            html: 'Estamos analizando tus imágenes para crear el mejor prompt. Por favor espera.',
-            background: '#1e293b',
-            color: '#f1f5f9',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            toast: true, position: 'top-end', icon: 'info',
+            title: 'IA Generando...', text: 'Analizando imágenes en segundo plano.',
+            showConfirmButton: false, timer: 2000, background: '#1e293b', color: '#fff'
         });
 
         document.getElementById('aiResultBox').classList.remove('hidden');
@@ -4538,7 +4807,7 @@
         const _aiStartTime = Date.now();
 
         const onSuccess = (res) => {
-            Swal.close();
+            removerProcesoSegundoPlano(procesoId);
             try {
                 const d = JSON.parse(res);
                 if (d.success) {
@@ -4557,6 +4826,26 @@
                     const isJson = d.text && (d.text.trim().startsWith('{') || d.text.trim().startsWith('```json'));
                     const finalContent = (formato === 'video' || isJson) ? formatVideoScript(d.text) : d.text;
                     txt.value = finalContent;
+
+                    if (currentProduct && currentProduct.sku !== skuActual) {
+                        Swal.fire({
+                            toast: true, position: 'top-end', icon: 'success',
+                            title: `Prompt Listo! SKU ${skuActual}`, text: `Haz clic para ver el resultado.`,
+                            showConfirmButton: true, confirmButtonText: 'Ver', showCloseButton: true,
+                            timer: 10000, background: '#1e293b', color: '#fff',
+                            customClass: { confirmButton: 'bg-indigo-600 text-xs px-2 py-1' }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                debounceSearch(skuActual);
+                                setTimeout(() => {
+                                    const foundItem = document.querySelector(`.sidebar-item[onclick*="${skuActual}"]`);
+                                    if(foundItem) foundItem.click();
+                                    setTimeout(() => onSuccess(res), 1000); // Re-ejecutar en el contexto correcto
+                                }, 500);
+                            }
+                        });
+                        return; // Detenemos aquí, ya que el usuario está en otro producto
+                    }
 
                     // MOSTRAR ALERTA CON RESULTADO EN ESPAÑOL Y ACCIONES DIRECTAS
                     let bodyHtml = '';
@@ -4617,7 +4906,7 @@
                             if (formato !== 'video') {
                                 document.getElementById('swalBtnRenderDirect').onclick = () => {
                                     Swal.close();
-                                    renderizarDesdePromptCache();
+                                    renderizarDesdePromptCache(finalContent);
                                 };
                             }
                         }
@@ -4678,6 +4967,12 @@
             }
         };
 
+        const onFailure = (err) => {
+            removerProcesoSegundoPlano(procesoId);
+            Swal.fire({ icon: 'error', title: 'Error Fatal', text: err.message, background: '#1e293b', color: '#f1f5f9' });
+            txt.value = "Error: " + err.message;
+        };
+
         if (formato === 'video') {
             log("Generando Prompt de Video...", "info");
             // Lógica para elegir el selector de entorno correcto
@@ -4685,7 +4980,6 @@
             const envEl = document.getElementById('env-selection');
             const isStillLife = ['folded', 'hanger', 'hero', 'collage'].includes(estilo);
             const envVal = isStillLife ? (stillLifeEnvEl ? stillLifeEnvEl.value : "") : (envEl ? envEl.value : "");
-            const ids = selectedImages.size > 0 ? Array.from(selectedImages) : [currentImageId];
             // Inyectamos extraSpecs en opciones para el video (VEO usa una estructura distinta)
             opciones.extraSpecs = { 
                 ...extraSpecs, 
@@ -4693,7 +4987,7 @@
                 environment: envVal,
                 analysisModel: document.getElementById('dashboard-analysis-model') ? document.getElementById('dashboard-analysis-model').value : 'gemini-3.5-flash'
             };
-            google.script.run.withSuccessHandler(onSuccess).generarVideoPrompt(ids, estilo, opciones);
+            google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).generarVideoPrompt(ids, estilo, opciones);
         } else {
             log("Generando Prompt de Imagen...", "info");
             // Lógica para elegir el selector de entorno correcto
@@ -4711,10 +5005,10 @@
                 analysisModel: document.getElementById('dashboard-analysis-model') ? document.getElementById('dashboard-analysis-model').value : 'gemini-3.5-flash'
             };
 
-            if (selectedImages.size > 1) {
-                google.script.run.withSuccessHandler(onSuccess).generarSuperPromptMasivo(Array.from(selectedImages), estilo, 'image', finalExtraSpecs, pinToUse);
+            if (ids.length > 1) {
+                google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).generarSuperPromptMasivo(ids, estilo, 'image', finalExtraSpecs, pinToUse);
             } else {
-                google.script.run.withSuccessHandler(onSuccess).generarSuperPrompt(currentImageId, estilo, 'image', finalExtraSpecs, pinToUse);
+                google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure).generarSuperPrompt(ids[0], estilo, 'image', finalExtraSpecs, pinToUse);
             }
         }
     }
@@ -4806,8 +5100,9 @@
         });
     }
 
-    function renderizarDesdePromptCache() {
-        if (!currentImgObj || !currentImgObj.PROMPT) {
+    function renderizarDesdePromptCache(customPrompt = null) {
+        const promptToUse = customPrompt || (currentImgObj ? currentImgObj.PROMPT : null);
+        if (!promptToUse) {
             Swal.fire({
                 title: 'Atención',
                 text: 'No hay un prompt guardado disponible en caché.',
@@ -4838,7 +5133,7 @@
                             if (switchEl) switchEl.checked = true;
                             log("PIN Validado. Modo pago activo.", "success");
                             updateAiButtonLabels();
-                            ejecutarRenderizadoDirecto(res.value);
+                            ejecutarRenderizadoDirecto(res.value, promptToUse);
                         } else {
                             Swal.fire('Error', valid ? valid.message : 'PIN Incorrecto', 'error');
                         }
@@ -4846,18 +5141,21 @@
                 }
             });
         } else {
-            ejecutarRenderizadoDirecto(pinToUse);
+            ejecutarRenderizadoDirecto(pinToUse, promptToUse);
         }
     }
 
-    function ejecutarRenderizadoDirecto(pinToUse) {
+    function ejecutarRenderizadoDirecto(pinToUse, customPrompt = null) {
+        const skuActual = (currentProduct) ? currentProduct.sku : null;
+        let procesoId = null;
+        if(skuActual) {
+            procesoId = agregarProcesoSegundoPlano(skuActual, "Renderizando IA");
+        }
+        
         Swal.fire({
-            title: 'IA Renderizando...',
-            html: 'Conectando con el motor de renderizado (GCP) usando el prompt guardado. Por favor espera.',
-            background: '#1e293b',
-            color: '#f1f5f9',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            toast: true, position: 'top-end', icon: 'info',
+            title: 'IA Renderizando...', text: 'Conectando con el motor de renderizado en segundo plano.',
+            showConfirmButton: false, timer: 3000, background: '#1e293b', color: '#fff'
         });
 
         const _renderStartTime = Date.now();
@@ -4872,9 +5170,11 @@
             aspectRatio: aspect,
             style: style
         };
+        
+        const finalPrompt = customPrompt || (currentImgObj ? currentImgObj.PROMPT : "");
 
         google.script.run.withSuccessHandler(res => {
-            Swal.close();
+            if(procesoId) removerProcesoSegundoPlano(procesoId);
             try {
                 const parsedRes = typeof res === 'string' ? JSON.parse(res) : res;
                 if (parsedRes && parsedRes.success) {
@@ -4923,10 +5223,86 @@
                 });
                 console.error("Error al parsear respuesta de renderizado:", e, res);
             }
-        }).ejecutarRenderizadoDesdeLaboratorio(ids, currentImgObj.PROMPT, pinToUse, extraSpecs);
+        }).withFailureHandler(err => {
+            if(procesoId) removerProcesoSegundoPlano(procesoId);
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'error',
+                title: 'Error de Conexión', text: 'Falló la comunicación con el servidor.',
+                showConfirmButton: false, timer: 3000, background: '#1e293b', color: '#fff'
+            });
+            console.error(err);
+        }).ejecutarRenderizadoDesdeLaboratorio(ids, finalPrompt, pinToUse, extraSpecs);
     }
 
     function generarPromptMasivo() { generarPromptModal(); }
+
+    function verPromptMaestroYRenderizar() {
+        let promptText = null;
+        selectedImages.forEach(id => {
+            const img = CURRENT_IMAGES.find(i => String(i.IMAGEN_ID) === String(id));
+            if (img && img.PROMPT && !promptText) {
+                promptText = img.PROMPT;
+            }
+        });
+        
+        if (!promptText) return;
+
+        const isJson = promptText.trim().startsWith('{') || promptText.trim().startsWith('```json');
+        
+        let bodyHtml = '';
+        if (isJson) {
+            bodyHtml = `<textarea class="w-full h-60 p-3 text-[11px] bg-slate-950 text-emerald-400 border border-slate-800 rounded font-mono focus:ring-1 focus:ring-indigo-500 outline-none scroll-thin" readonly>${promptText}</textarea>`;
+        } else {
+            const resumenEspanol = extraerResumenEspanol(promptText);
+            bodyHtml = `
+                <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg">
+                    <p class="text-xs text-slate-300 leading-relaxed font-sans">${resumenEspanol || "No hay resumen en español disponible."}</p>
+                </div>`;
+        }
+
+        let renderBtnHtml = `
+            <button id="swalBtnRenderDirectMaster" class="col-span-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition mt-2">
+                <span class="material-icons text-sm">camera_enhance</span> Renderizar con este Prompt (Pago)
+            </button>
+        `;
+
+        let htmlContent = `
+            <div class="text-left space-y-3">
+                ${bodyHtml}
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button id="swalBtnCopiarMaster" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                        <span class="material-icons text-sm">content_copy</span> Copiar Prompt Inglés
+                    </button>
+                    <button id="swalBtnRehacerMaster" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                        <span class="material-icons text-sm">autorenew</span> Rehacer Prompt
+                    </button>
+                    ${renderBtnHtml}
+                </div>
+            </div>`;
+
+        Swal.fire({
+            title: '<div class="flex items-center gap-2"><span class="material-icons text-emerald-400">check_circle</span> <span>Prompt Maestro Guardado</span></div>',
+            html: htmlContent,
+            showConfirmButton: false,
+            showCloseButton: true,
+            width: '450px',
+            background: '#1e293b',
+            color: '#f1f5f9',
+            didOpen: () => {
+                document.getElementById('swalBtnCopiarMaster').onclick = () => {
+                    copiarTextoAlPortapapeles(promptText);
+                };
+                document.getElementById('swalBtnRehacerMaster').onclick = () => {
+                    Swal.close();
+                    generarPromptMasivo();
+                };
+                document.getElementById('swalBtnRenderDirectMaster').onclick = () => {
+                    Swal.close();
+                    renderizarDesdePromptCache(promptText);
+                };
+            }
+        });
+    }
 
     // --- LÓGICA DE REFINAMIENTO DE PROMPT POR VOZ / TEXTO (FASE 2.5 - GRATIS) ---
     var promptMediaRecorder = null;
@@ -5457,37 +5833,26 @@
             return;
         }
 
+        const skuActual = currentProduct.sku;
+        const procesoId = agregarProcesoSegundoPlano(skuActual, "Refinando", currentImageId);
+        closeModal();
+
         Swal.fire({
-            title: 'Refinando Imagen...',
-            html: 'Aplicando correcciones con IA. Por favor espera.',
-            background: '#1e293b',
-            color: '#fff',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            toast: true, position: 'top-end', icon: 'info',
+            title: 'Refinando...', text: 'Aplicando correcciones en segundo plano.',
+            showConfirmButton: false, timer: 2000, background: '#1e293b', color: '#fff'
         });
 
         google.script.run.withSuccessHandler(res => {
-            Swal.close();
             const d = JSON.parse(res);
             if (d.success) {
-                log(`Imagen refinada con éxito. Costo: $${d.cost.toFixed(4)}`, "success");
-                autoOpenId = d.imagenId;
-                closeModal();
-                recargar();
-
-                // Mostrar resultado final sin imagen (evitar broken image/lentitud)
-                Swal.fire({
-                    title: '<div class="flex items-center gap-2"><span class="material-icons text-emerald-400">check_circle</span> <span>Refinamiento Listo</span></div>',
-                    html: `<p class="text-xs text-slate-400">La corrección ha sido procesada y registrada en la galería como una nueva versión.</p>`,
-                    confirmButtonText: 'Entendido',
-                    background: '#1e293b',
-                    color: '#fff'
-                });
+                manejarCompletadoProcesoSegundoPlano(procesoId, skuActual, d.imagenId, 'Refinamiento Listo', `Costo: $${d.cost.toFixed(4)}`);
             } else {
+                removerProcesoSegundoPlano(procesoId);
                 Swal.fire('Error de Refinamiento', d.error, 'error');
             }
         }).withFailureHandler(err => {
-            Swal.close();
+            removerProcesoSegundoPlano(procesoId);
             Swal.fire('Error Crítico', err.message, 'error');
         }).ejecutarRefinamientoDesdeDashboard(currentImageId, feedback, currentPaidPin);
     }
@@ -5503,94 +5868,105 @@
             return;
         }
 
+        const skuActual = currentProduct.sku;
+        const procesoId = agregarProcesoSegundoPlano(skuActual, `Generando ${angulo}`, currentImageId);
+        closeModal();
+
         Swal.fire({
-            title: 'Generando Ángulo...',
-            html: `Procesando <b>${angulo}</b> manteniendo consistencia. Por favor espera.`,
-            background: '#1e293b',
-            color: '#fff',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            toast: true, position: 'top-end', icon: 'info',
+            title: 'Generando Ángulo...', text: `Procesando ${angulo} en segundo plano.`,
+            showConfirmButton: false, timer: 2000, background: '#1e293b', color: '#fff'
         });
 
         google.script.run.withSuccessHandler(res => {
-            Swal.close();
             const d = JSON.parse(res);
             if (d.success) {
-                log(`Angulo [${angulo}] generado. Costo: $${d.cost.toFixed(4)}`, "success");
-                autoOpenId = d.imagenId;
-                closeModal();
-                recargar();
-
-                Swal.fire({
-                    title: 'IA: Angulo Listo',
-                    html: `<p class="text-xs text-slate-400">La nueva vista <b>${angulo}</b> ha sido agregada a la galer\u00eda.</p>`,
-                    confirmButtonText: 'Genial',
-                    background: '#1e293b',
-                    color: '#fff'
-                });
+                manejarCompletadoProcesoSegundoPlano(procesoId, skuActual, d.imagenId, 'IA: Angulo Listo', `Vista ${angulo} agregada. Costo: $${d.cost.toFixed(4)}`);
             } else {
+                removerProcesoSegundoPlano(procesoId);
                 Swal.fire('Error de Generacion', d.error, 'error');
             }
         }).withFailureHandler(err => {
-            Swal.close();
+            removerProcesoSegundoPlano(procesoId);
             Swal.fire('Error Crítico', err.message, 'error');
         }).generarVarianteAnguloDesdeDashboard(currentImageId, angulo, currentPaidPin);
     }
 
     // --- LÓGICA DE AUTOMATIZACIÓN VEO (PHASE 6) ---
     function iniciarRenderVEO(masterId, prompt, opciones = {}) {
+        const skuActual = currentProduct.sku;
+        const procesoId = agregarProcesoSegundoPlano(skuActual, "Video VEO", masterId);
+        
         Swal.fire({
-            title: 'Iniciando VEO...',
-            text: 'Contactando al motor de renderizado de Google.',
-            background: '#1e293b', color: '#fff',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            toast: true, position: 'top-end', icon: 'info',
+            title: 'Iniciando VEO...', text: 'Contactando motor de renderizado.',
+            showConfirmButton: false, timer: 2000, background: '#1e293b', color: '#fff'
         });
 
         google.script.run.withSuccessHandler(res => {
             const d = JSON.parse(res);
             if (d.success && d.operationId) {
-                Swal.fire({
-                    title: 'Renderizado en Proceso',
-                    html: `<div class="text-sm">${d.message}</div><div class="mt-4 p-2 bg-slate-950 rounded text-[10px] font-mono text-indigo-400">${d.operationId}</div>`,
-                    icon: 'info', background: '#1e293b', color: '#fff',
-                    timer: 10000, timerProgressBar: true
-                });
-                // Comenzar seguimiento con metadata de guardado
-                setTimeout(() => monitorizarVideoVEO(d.operationId, d.sku, d.carpetaId), 30000);
+                log(`VEO iniciado. Operación: ${d.operationId}`, "info");
+                // Comenzar seguimiento
+                setTimeout(() => monitorizarVideoVEO(d.operationId, d.sku, d.carpetaId, procesoId), 30000);
             } else {
+                removerProcesoSegundoPlano(procesoId);
                 Swal.fire('Error VEO', d.error, 'error');
             }
+        }).withFailureHandler(err => {
+            removerProcesoSegundoPlano(procesoId);
+            Swal.fire('Error Crítico', err.message, 'error');
         }).ejecutarRenderizadoVideoVEO(masterId, prompt, currentPaidPin, opciones);
     }
 
-    function monitorizarVideoVEO(opId, sku, carpetaId) {
+    function monitorizarVideoVEO(opId, sku, carpetaId, procesoId) {
         log("Verificando estado del video...", "info");
         google.script.run.withSuccessHandler(res => {
             const d = JSON.parse(res);
             if (d.success) {
                 if (d.done) {
+                    removerProcesoSegundoPlano(procesoId);
                     const finalLink = d.driveUrl || d.videoUri;
                     const linkText = d.driveUrl ? "Ver en Google Drive" : "Ver / Descargar (Link Temporal)";
 
-                    Swal.fire({
-                        title: '¡Video Listo!',
-                        html: `<p class="text-xs text-slate-400">El video ha sido procesado y guardado en tu Drive.</p>
-                                   <div class="mt-4">
-                                       <a href="${finalLink}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
-                                            <span class="material-icons text-sm">movie</span> ${linkText}
-                                       </a>
-                                   </div>`,
-                        icon: 'success', background: '#1e293b', color: '#fff'
-                    });
-                    log("Renderizado de video completado.", "success");
-                    recargar(); // Refrescar galería automáticamente
+                    const htmlContent = `<p class="text-xs text-slate-400">El video ha sido procesado y guardado en tu Drive.</p>
+                               <div class="mt-4">
+                                   <a href="${finalLink}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                        <span class="material-icons text-sm">movie</span> ${linkText}
+                                   </a>
+                               </div>`;
+
+                    if (currentProduct && currentProduct.sku === sku) {
+                        Swal.fire({
+                            title: '¡Video Listo!', html: htmlContent, icon: 'success', background: '#1e293b', color: '#fff'
+                        });
+                        log("Renderizado de video completado.", "success");
+                        recargar();
+                    } else {
+                        Swal.fire({
+                            toast: true, position: 'top-end', icon: 'success',
+                            title: `¡Video Listo! SKU ${sku}`, text: `El proceso VEO ha finalizado.`,
+                            showConfirmButton: true, confirmButtonText: 'Ver Producto', showCloseButton: true,
+                            timer: 10000, background: '#1e293b', color: '#fff',
+                            customClass: { confirmButton: 'bg-indigo-600 text-xs px-2 py-1' }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                debounceSearch(sku);
+                                setTimeout(() => {
+                                    const foundItem = document.querySelector(`.sidebar-item[onclick*="${sku}"]`);
+                                    if(foundItem) foundItem.click();
+                                    setTimeout(() => Swal.fire({ title: '¡Video Listo!', html: htmlContent, icon: 'success', background: '#1e293b', color: '#fff' }), 1000);
+                                }, 500);
+                            }
+                        });
+                    }
                 } else {
                     // Reintentar en 30 segundos
-                    setTimeout(() => monitorizarVideoVEO(opId, sku, carpetaId), 30000);
+                    setTimeout(() => monitorizarVideoVEO(opId, sku, carpetaId, procesoId), 30000);
                     log("VEO: El video sigue cocinándose...", "info");
                 }
             } else {
+                removerProcesoSegundoPlano(procesoId);
                 log("Fallo al verificar video: " + d.error, "error");
             }
         }).verificarEstadoVideoVEO(opId, sku, carpetaId);

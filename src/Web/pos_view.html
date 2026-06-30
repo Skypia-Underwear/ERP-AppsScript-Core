@@ -2914,10 +2914,17 @@
         dt.clear();
 
         cart.forEach(function (item, index) {
+          let priceHtml = "";
+          if ((item.categoryName || '').toUpperCase() === 'OFERTA') {
+            priceHtml = "<div style='display:flex; flex-direction:column; align-items:flex-start;'><span style='font-size:0.75rem; font-weight:700; color:#3b82f6;'>" + (item.tipoPrecio || '—') + "</span><input type='number' class='qty-input' style='width: 80px; margin-top:2px;' value='" + (item.price || 0) + "' min='0' onchange='updateTpvPrice(" + index + ", this.value)'></div>";
+          } else {
+            priceHtml = "<div style='display:flex; flex-direction:column; align-items:flex-start;'><span style='font-size:0.75rem; font-weight:700; color:#3b82f6;'>" + (item.tipoPrecio || '—') + "</span><span style='font-size:0.8rem; font-weight:600; color:#cbd5e1;'>$" + (item.price || 0).toLocaleString() + "</span></div>";
+          }
+
           dt.row.add([
             "<div style='font-weight:600'>" + item.model + "</div>",
             "<div style='font-size:0.85rem;'>" + item.color + " / " + item.size + "</div>",
-            "<div style='display:flex; flex-direction:column; align-items:flex-start;'><span style='font-size:0.75rem; font-weight:700; color:#3b82f6;'>" + (item.tipoPrecio || '—') + "</span><span style='font-size:0.8rem; font-weight:600; color:#cbd5e1;'>$" + (item.price || 0).toLocaleString() + "</span></div>",
+            priceHtml,
             "<input type='number' class='qty-input' value='" + item.quantity + "' min='" + (item.min_qty || 1) + "' step='" + (item.min_qty || 1) + "' onchange='updateTpvQty(" + index + ", this.value)'>",
             "$" + (item.price * item.quantity).toLocaleString(),
             "<button onclick='removeTpvItem(" + index + ")' style='color:#ef4444;background:none;border:none;cursor:pointer'><i class='ph-bold ph-trash'></i></button>"
@@ -2927,6 +2934,16 @@
         dt.draw();
         updateTpvTotals();
       }
+
+      window.updateTpvPrice = function (index, val) {
+        const item = cart[index];
+        let newPrice = parseFloat(val);
+        if (isNaN(newPrice) || newPrice < 0) {
+            newPrice = 0;
+        }
+        item.price = newPrice;
+        renderTpvCart();
+      };
 
       window.updateTpvQty = function (index, val) {
         const item = cart[index];
@@ -3290,7 +3307,7 @@
           copias: settings.copias || 1,
           sonido: settings.sonido || "0",
           abrir_caja: (sale.paymentMethod === "Efectivo" || sale.isMixedPayment) ? "1" : "0",
-          marketing: (sale.totalAmount >= (settings.minCupon || 0)) ? (settings.marketing || "") : "",
+          marketing: (sale.totalAmount >= (settings.minCupon || 0)) ? (settings.marketing || "Condiciones: Los cambios solo se aceptan con este ticket (7 dias). No aplica Ropa de Oferta") : "",
           texto_ticket: t
         };
       }

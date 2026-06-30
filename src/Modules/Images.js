@@ -596,7 +596,18 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
               }
             } catch (e) { }
           } else {
-            thumbnailUrl = publicUrl;
+            try {
+              const fileMeta = Drive.Files.get(fileId, {fields: "thumbnailLink"});
+              if (fileMeta && fileMeta.thumbnailLink) {
+                // Reemplazamos el parámetro de tamaño por defecto por =s600-rw (max 600px, respeta proporciones, formato WebP)
+                thumbnailUrl = fileMeta.thumbnailLink.replace(/=s\d+.*$/, '=s600-rw');
+              } else {
+                thumbnailUrl = publicUrl;
+              }
+            } catch (e) {
+              log(`   ⚠️ Error obteniendo WebP thumbnailLink para ${fileName}: ${e.message}`);
+              thumbnailUrl = publicUrl;
+            }
           }
 
           const relativePath = `${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${fileName}`;

@@ -695,6 +695,7 @@ function tpv_procesarSubidasRemotas() {
             if (!files.hasNext()) throw new Error(`JSON local TPV (${fileName}) no encontrado en Drive.`);
             const file = files.next();
             const contenidoStr = file.getBlob().getDataAsString();
+            if (!contenidoStr || contenidoStr === "null") throw new Error(`El archivo en Drive está vacío o es nulo`);
             return JSON.parse(contenidoStr);
         }, 3);
 
@@ -769,8 +770,17 @@ function subirArchivoAGitHub(jsonData, filePath) {
     const RETRYABLE_CODES = [409, 500, 502, 503, 504];
 
     try {
-        if (!jsonData) {
-            throw new Error("El contenido a subir a GitHub (jsonData) es nulo o indefinido.");
+        if (!jsonData || typeof jsonData !== 'object' || Object.keys(jsonData).length === 0) {
+            debugLog(`⚠️ jsonData inválido en subirArchivoAGitHub (tipo: ${typeof jsonData}). Intentando regenerar catálogo...`);
+            if (typeof generarCatalogoJsonTPV === 'function') {
+                jsonData = generarCatalogoJsonTPV();
+            } else {
+                throw new Error("El contenido a subir a GitHub (jsonData) es nulo o indefinido y no se pudo regenerar.");
+            }
+        }
+
+        if (!filePath) {
+            filePath = GLOBAL_CONFIG.GITHUB.FILE_PATH || "catalogo.json";
         }
 
         const cache = CacheService.getScriptCache();

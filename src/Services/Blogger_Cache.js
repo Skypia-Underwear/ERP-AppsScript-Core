@@ -242,10 +242,15 @@ function blogger_subirCacheAGitHub(jsonData) {
         if (!jsonData) {
             console.log("ℹ️ [Blogger Cache] blogger_subirCacheAGitHub ejecutado sin argumentos. Intentando cargar desde Drive...");
             const cachedData = blogger_obtenerConfiguracionDesdeDrive();
-            if (cachedData) {
-                jsonData = JSON.parse(cachedData);
+            if (cachedData && cachedData !== "null") {
+                try {
+                    jsonData = JSON.parse(cachedData);
+                    if (!jsonData) throw new Error("JSON.parse retornó un objeto nulo.");
+                } catch(e) {
+                    return { success: false, message: "Error al parsear el caché de Drive: " + e.message };
+                }
             } else {
-                return { success: false, message: "No hay datos para subir (jsonData es nulo y no se encontró caché en Drive)." };
+                return { success: false, message: "No hay datos para subir (jsonData es nulo y no se encontró caché válida en Drive)." };
             }
         }
         const path = GLOBAL_CONFIG.BLOGGER.GITHUB_FILE_PATH;
