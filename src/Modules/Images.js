@@ -32,8 +32,8 @@ function ejecutarSincronizacionGlobal() {
   try {
     // 0. VALIDACIÓN DE VENTANA DE TIEMPO (Prevenir bloqueos con publicarCatalogo)
     const currentHour = new Date().getHours();
-    const startH = APP_CONFIG.SYNC_WINDOW.START_HOUR;
-    const endH = APP_CONFIG.SYNC_WINDOW.END_HOUR;
+    const startH = GLOBAL_CONFIG.SYNC_WINDOW.START_HOUR;
+    const endH = GLOBAL_CONFIG.SYNC_WINDOW.END_HOUR;
     
     let isComercial = false;
     if (startH < endH) {
