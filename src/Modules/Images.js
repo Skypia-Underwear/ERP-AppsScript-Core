@@ -30,6 +30,21 @@ function procesarSincronizacion(codigo) {
 function ejecutarSincronizacionGlobal() {
   const logArray = [];
   try {
+    // 0. VALIDACIÓN DE VENTANA DE TIEMPO (Prevenir bloqueos con publicarCatalogo)
+    const currentHour = new Date().getHours();
+    const startH = APP_CONFIG.SYNC_WINDOW.START_HOUR;
+    const endH = APP_CONFIG.SYNC_WINDOW.END_HOUR;
+    
+    let isComercial = false;
+    if (startH < endH) {
+      isComercial = currentHour >= startH && currentHour < endH;
+    } else {
+      isComercial = currentHour >= startH || currentHour < endH;
+    }
+
+    if (isComercial) {
+      throw new Error(`Operación denegada: La sincronización global masiva está restringida al horario "valle" (entre las ${endH}:00 y las ${startH}:00) para evitar colisiones con la regeneración automática de catálogos y colapsos del sistema.\nHora actual del servidor: ${currentHour}:00.`);
+    }
     // Limpiar triggers residuales de ejecuciones previas
     ScriptApp.getProjectTriggers().forEach(t => {
       if (t.getHandlerFunction() === 'continuarSincronizacionGlobal') ScriptApp.deleteTrigger(t);

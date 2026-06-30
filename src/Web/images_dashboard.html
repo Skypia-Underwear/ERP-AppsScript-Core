@@ -3835,7 +3835,13 @@
         else {
             btnDel.classList.add('hidden');
             if (btnAi) btnAi.parentElement.classList.remove('hidden');
-            if (btnCover) btnCover.classList.add('hidden');
+            if (btnCover) {
+                if (img.PORTADA) {
+                    btnCover.classList.add('hidden');
+                } else {
+                    btnCover.classList.remove('hidden');
+                }
+            }
         }
 
         // AUTO-DISPLAY PROMPT IF EXISTS
