@@ -94,9 +94,14 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
                 videosPorProducto[pId] = r;
             } else {
                 if (!imagenesPorProducto[pId]) imagenesPorProducto[pId] = [];
+                const thumb = r[mI.THUMBNAIL_URL] || "";
+                let urlAltaResolucion = r[mI.URL];
+                if (thumb && (thumb.includes('=s') || thumb.includes('sz=s'))) {
+                    urlAltaResolucion = thumb.replace(/(=|sz=)s\d+.*$/, '$1s1600-rw');
+                }
                 imagenesPorProducto[pId].push({
-                    url: r[mI.URL],
-                    thumbnail_url: r[mI.THUMBNAIL_URL] || "",
+                    url: urlAltaResolucion,
+                    thumbnail_url: thumb,
                     archivo_id: r[mI.ARCHIVO_ID],
                     portada: blogger_esVerdadero(r[mI.PORTADA]),
                     orden: (mI.ORDEN !== undefined) ? (parseInt(r[mI.ORDEN]) || 999) : 999,
@@ -125,7 +130,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
         }
 
         if (imgs.length === 0) {
-            imgs = [{ url: urlImagenSinImagen, portada: true }];
+            imgs = [{ url: urlImagenSinImagen, thumbnail_url: urlImagenSinImagen, portada: true }];
         } else if (!imgs.some(img => img.portada)) {
             imgs[0].portada = true;
         }
@@ -192,7 +197,7 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
         const variedad = { moneda, precio, variedad: variedadNombre, minima, sub_variedad };
 
         if (productoActual !== productoId) {
-            let imagenes = imagenesPorProducto[productoId] || [{ url: urlImagenSinImagen, portada: true }];
+            let imagenes = imagenesPorProducto[productoId] || [{ url: urlImagenSinImagen, thumbnail_url: urlImagenSinImagen, portada: true }];
 
             const desc = blogger_generarDescripcionProductoCompleta({
                 pId: productoId,

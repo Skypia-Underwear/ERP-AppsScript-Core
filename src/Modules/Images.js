@@ -611,10 +611,22 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
               }
             } catch (e) { }
           } else {
-            // PROBLEMA: El thumbnailLink de Drive.Files.get genera un token atado a la IP del servidor de Apps Script.
-            // Cuando un cliente real intenta abrirlo, Google arroja error 403 (Client IP address mismatch).
-            // SOLUCIÓN: Usar el endpoint público de Drive que delega la generación del token al navegador del cliente final.
-            thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s600`;
+            try {
+              // Obtener thumbnailLink nativo del CDN de Google a través de Drive API v3
+              const fileMeta = Drive.Files.get(fileId, { fields: "thumbnailLink" });
+              if (fileMeta && fileMeta.thumbnailLink) {
+                // Transformar el enlace CDN reemplazando su resolución por defecto por =s600-rw (WebP ligero sin recortar)
+                thumbnailUrl = fileMeta.thumbnailLink.replace(/=s\d+.*$/, '=s600-rw');
+                if (!thumbnailUrl.includes('=s600-rw')) {
+                  thumbnailUrl += (thumbnailUrl.includes('?') ? '&' : '') + '=s600-rw';
+                }
+              } else {
+                thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s600-rw`;
+              }
+            } catch (e) {
+              log(`   ⚠️ Error al obtener thumbnailLink para ${fileId}, usando fallback: ${e.message}`);
+              thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s600-rw`;
+            }
           }
 
           const relativePath = `${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${fileName}`;

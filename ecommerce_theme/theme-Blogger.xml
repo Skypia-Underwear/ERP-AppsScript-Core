@@ -5765,8 +5765,11 @@
             Fancybox.bind('[data-fancybox]', {
                 Images: {}, // Eliminamos 'protected: true', ahora lo manejamos con CSS
                 Video: { autoplay: false },
+                Thumbs: {
+                    type: "modern", // Activamos la galería de miniaturas en el modal
+                    autoStart: true // Visibles al abrir
+                },
                 Carousel: {
-                    Thumbs: false, // Mantenemos las miniaturas desactivadas por simplicidad
                     Toolbar: {
                         items: {
                             descargar: {
@@ -7020,7 +7023,7 @@
             <div class="carousel-inner h-100">
                 ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                     <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
-                        <a href="${img.url}" data-fancybox="gallery-${producto.codigo}" data-carpeta-id="${producto.carpeta_id || ''}" class="h-100 d-block">
+                        <a href="${img.url}" data-fancybox="gallery-${producto.codigo}" data-thumb="${img.thumbnail_url || img.url}" data-carpeta-id="${producto.carpeta_id || ''}" class="h-100 d-block">
                             <img src="${img.thumbnail_url || img.url}" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="${producto.nombre}" loading="lazy" width="300" height="300">
                         </a>
                         ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
@@ -7147,7 +7150,7 @@
                 <div class="carousel-inner h-100">
                     ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                         <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
-                            <a href="${img.url}" data-fancybox="gallery-compact-${producto.codigo}" data-carpeta-id="${producto.carpeta_id || ''}">
+                            <a href="${img.url}" data-fancybox="gallery-compact-${producto.codigo}" data-thumb="${img.thumbnail_url || img.url}" data-carpeta-id="${producto.carpeta_id || ''}">
                                 <img src="${img.thumbnail_url || img.url}" class="d-block w-100 h-100" style="object-fit: cover;">
                             </a>
                             ${img.portada ? `<span class="sticker-portada" style="font-size: 0.6rem; padding: 3px 8px;">⭐ Portada</span>` : ''}
