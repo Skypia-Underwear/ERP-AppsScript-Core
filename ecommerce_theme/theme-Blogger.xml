@@ -3442,6 +3442,9 @@
                                     Detallada</button>
                                 <button class='btn btn-sm btn-outline-secondary' id='vista-compacta'>🔳 Vista
                                     Compacta</button>
+                                <button class='btn btn-sm btn-outline-danger shadow-sm' onclick='abrirModalConfigPDF("");' title='Descargar Catálogo PDF Completo o de la Categoría Seleccionada'>
+                                    <i class='fa fa-file-pdf-o me-1'></i> <span>Catálogo PDF</span>
+                                </button>
                             </div>
 
                         </div>
@@ -3994,7 +3997,93 @@
         </div>
     </div>
 
-
+    <!-- Modal para Configurar Descarga de Catálogo PDF para Revendedores -->
+    <div aria-hidden='true' aria-labelledby='modalConfigPDFLabel' class='modal fade' id='modalConfigPDF' tabindex='-1'>
+        <div class='modal-dialog modal-dialog-centered' role='document'>
+            <div class='modal-content' style='border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);'>
+                <div class='modal-header bg-danger text-white' style='border-top-left-radius: 15px; border-top-right-radius: 15px;'>
+                    <h5 class='modal-title' id='modalConfigPDFLabel'><i class='fa fa-file-pdf-o me-2'/>Configurar Catálogo PDF</h5>
+                    <button aria-label='Close' class='btn-close btn-close-white' data-bs-dismiss='modal' type='button'/>
+                </div>
+                <div class='modal-body p-4'>
+                    <p class='text-muted small mb-3'>
+                        Selecciona el modo de cotización para generar el catálogo: <strong id='lblCategoriaPDF' class='text-danger'></strong>
+                    </p>
+                    <div class='form-check mb-2'>
+                        <input class='form-check-input' type='radio' name='modoPrecioPDF' id='pdfPrecioOficial' value='oficial' checked='checked' onchange='toggleRecargoPDF()'/>
+                        <label class='form-check-label fw-bold' for='pdfPrecioOficial'>
+                            🟢 Precios Oficiales (Tienda)
+                        </label>
+                        <div class='text-muted small'>Muestra la lista de precios mayoristas y variedades oficiales.</div>
+                    </div>
+                    <div class='form-check mb-2'>
+                        <input class='form-check-input' type='radio' name='modoPrecioPDF' id='pdfPrecioCiego' value='ciego' onchange='toggleRecargoPDF()'/>
+                        <label class='form-check-label fw-bold' for='pdfPrecioCiego'>
+                            🟡 Catálogo Ciego (Sin Precios)
+                        </label>
+                        <div class='text-muted small'>Oculta todos los precios. Ideal para revender y cotizar por privado.</div>
+                    </div>
+                    <div class='form-check mb-3'>
+                        <input class='form-check-input' type='radio' name='modoPrecioPDF' id='pdfPrecioRecargo' value='recargo' onchange='toggleRecargoPDF()'/>
+                        <label class='form-check-label fw-bold text-primary' for='pdfPrecioRecargo'>
+                            🔵 Precios con Recargo (PVP Revendedor)
+                        </label>
+                        <div class='text-muted small'>Aplica tu aumento o margen de ganancia a todas las variedades de precios.</div>
+                    </div>
+                    <div id='divConfigRecargoPDF' class='card p-3 bg-light border-primary mb-3' style='display: none; border-radius: 10px;'>
+                        <label class='form-label small fw-bold text-primary mb-2'><i class='fa fa-sliders me-1'/> Configurar Márgenes (%) por Variedad:</label>
+                        <div class='row g-2 mb-2'>
+                            <div class='col-6 col-md-3'>
+                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>📦 Docena / Mayor:</label>
+                                <div class='input-group input-group-sm'>
+                                    <input type='number' class='form-control fw-bold text-primary' id='recargo_docena' value='10' step='any'/>
+                                    <span class='input-group-text'>%</span>
+                                </div>
+                                <small class='text-muted' style='font-size: 0.65rem;'>Ej: x12 un.</small>
+                            </div>
+                            <div class='col-6 col-md-3'>
+                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>📊 Curva / Pack:</label>
+                                <div class='input-group input-group-sm'>
+                                    <input type='number' class='form-control fw-bold text-primary' id='recargo_curva' value='15' step='any'/>
+                                    <span class='input-group-text'>%</span>
+                                </div>
+                                <small class='text-muted' style='font-size: 0.65rem;'>Ej: x6 un.</small>
+                            </div>
+                            <div class='col-6 col-md-3'>
+                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>🛍️ Menor / Unidad:</label>
+                                <div class='input-group input-group-sm'>
+                                    <input type='number' class='form-control fw-bold text-primary' id='recargo_menor' value='25' step='any'/>
+                                    <span class='input-group-text'>%</span>
+                                </div>
+                                <small class='text-muted' style='font-size: 0.65rem;'>Ej: x1 un.</small>
+                            </div>
+                            <div class='col-6 col-md-3'>
+                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>🔄 Otras / Default:</label>
+                                <div class='input-group input-group-sm'>
+                                    <input type='number' class='form-control fw-bold text-secondary' id='recargo_general' value='20' step='any'/>
+                                    <span class='input-group-text'>%</span>
+                                </div>
+                                <small class='text-muted' style='font-size: 0.65rem;'>Resto</small>
+                            </div>
+                        </div>
+                        <div class='d-flex align-items-center justify-content-between mt-1 pt-2 border-top'>
+                            <span class='small text-muted' style='font-size: 0.7rem;'>Tipo de ajuste:</span>
+                            <select class='form-select form-select-sm w-auto' id='tipoRecargoPDF' style='font-size: 0.75rem;'>
+                                <option value='porcentaje'>Porcentaje de Aumento (+%)</option>
+                                <option value='multiplicador'>Multiplicador de Precio (x)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class='d-grid gap-2 mt-3'>
+                        <button class='btn btn-danger fw-bold shadow-sm' id='btnGenerarPDFAccion' type='button' onclick='ejecutarGeneracionPDF();'>
+                            <i class='fa fa-download me-1'/> 🚀 Generar y Descargar PDF
+                        </button>
+                        <button class='btn btn-outline-secondary btn-sm' data-bs-dismiss='modal' type='button'>Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
         <script type='text/javascript'>
         //<![CDATA[
@@ -7495,11 +7584,15 @@
                 </div>
               </button>
              ${categoria.url_categoria ? `
-             <a href="${categoria.url_categoria}" class="btn btn-success btn-sm ms-2 me-3 whatsapp-btn"
+             <a href="${categoria.url_categoria}" class="btn btn-success btn-sm ms-2 me-2 whatsapp-btn"
                target="_blank" onclick="event.stopPropagation();">
               <span class="whatsapp-text">📲 Comparte y vende "${categoria.nombre}" por WhatsApp <i class="fa fa-whatsapp me-1"></i></span>
               <span class="whatsapp-text-small">Vender por <i class="fa fa-whatsapp me-1"></i></span>
             </a>` : ''}
+             <button type="button" class="btn btn-outline-danger btn-sm ms-1 me-3 pdf-btn shadow-sm"
+               onclick="event.stopPropagation(); abrirModalConfigPDF('${categoria.nombre.replace(/'/g, "\\'")}');" title="Descargar Catálogo PDF de ${categoria.nombre}">
+              <i class="fa fa-file-pdf-o me-1"></i> <span class="d-none d-md-inline">Catálogo PDF</span><span class="d-inline d-md-none">PDF</span>
+             </button>
             </div>
           </h2>
           <div id="flush-collapse-${categoria.codigo}" class="accordion-collapse collapse"
@@ -12197,6 +12290,494 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     }
                 }
             });
+        }
+
+        // ==========================================
+        // MÓDULO DE CATÁLOGOS PDF PARA REVENDEDORES
+        // ==========================================
+        window._categoriaSeleccionadaPDF = "";
+
+        function abrirModalConfigPDF(nombreCategoria) {
+            window._categoriaSeleccionadaPDF = nombreCategoria || "";
+            const lbl = document.getElementById("lblCategoriaPDF");
+            if (lbl) {
+                lbl.innerText = nombreCategoria ? `"${nombreCategoria}"` : "CATÁLOGO COMPLETO (Todas las Categorías)";
+            }
+            // Reset modal defaults
+            const radOficial = document.getElementById("pdfPrecioOficial");
+            if (radOficial) radOficial.checked = true;
+            toggleRecargoPDF();
+            
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#modalConfigPDF').modal('show');
+            } else {
+                const mod = document.getElementById('modalConfigPDF');
+                if (mod && typeof bootstrap !== 'undefined') {
+                    new bootstrap.Modal(mod).show();
+                }
+            }
+        }
+
+        function toggleRecargoPDF() {
+            const radRecargo = document.getElementById("pdfPrecioRecargo");
+            const divRecargo = document.getElementById("divConfigRecargoPDF");
+            if (divRecargo && radRecargo) {
+                divRecargo.style.display = radRecargo.checked ? "block" : "none";
+            }
+        }
+
+        async function cargarImagenYConvertirAJpegBase64(url) {
+            if (!url || typeof url !== 'string' || url.trim() === '') return null;
+            
+            // Transformación mágica: Convertir enlaces de Drive (thumbnail?id=, uc?id=, etc) al CDN de Google con CORS abierto
+            let urlCors = url.trim();
+            const matchId = urlCors.match(/[?&]id=([a-zA-Z0-9_-]{25,})/i) || urlCors.match(/\/d\/([a-zA-Z0-9_-]{25,})/i);
+            if (matchId && matchId[1]) {
+                urlCors = `https://lh3.googleusercontent.com/d/${matchId[1]}=s600-rw`;
+            }
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous"; // Aprovechamos CORS abierto de Google CDN (lh3)
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement("canvas");
+                        canvas.width = img.naturalWidth || 300;
+                        canvas.height = img.naturalHeight || 300;
+                        const ctx = canvas.getContext("2d");
+                        ctx.fillStyle = "#FFFFFF"; // Fondo blanco para transparencia
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                        const dataUrl = canvas.toDataURL("        function obtenerListaMetadataPDF(prod) {
+            const desc = prod.descripcion || {};
+            const items = [];
+            
+            const addAttr = (label, val) => {
+                if (!val || val === '-' || val === 'undefined' || val === 'null' || val === '' || (Array.isArray(val) && !val.length)) return;
+                items.push({
+                    text: [
+                        { text: `• ${label}: `, bold: true, fontSize: 8, color: '#002b5c' },
+                        { text: String(val), bold: false, fontSize: 8, color: '#333333' }
+                    ],
+                    margin: [0, 1.5, 0, 1.5]
+                });
+            };
+
+            const formatObj = (v) => {
+                if (v === null || v === undefined) return '';
+                if (typeof v === 'object') {
+                    return v.nombre || v.label || v.etiqueta || v.talle || v.valor || JSON.stringify(v);
+                }
+                return String(v);
+            };
+
+            const getVal = (key) => {
+                if (desc[key]) {
+                    if (typeof desc[key] === 'object' && desc[key].valor) return formatObj(desc[key].valor);
+                    if (typeof desc[key] === 'object' && Array.isArray(desc[key].valores)) {
+                        return desc[key].valores.map(formatObj).join(', ');
+                    }
+                    return formatObj(desc[key]);
+                }
+                if (prod[key]) {
+                    if (Array.isArray(prod[key])) {
+                        return prod[key].map(formatObj).join(', ');
+                    }
+                    if (typeof prod[key] === 'object' && prod[key].valor) return formatObj(prod[key].valor);
+                    return formatObj(prod[key]);
+                }
+                return null;
+            };
+
+            addAttr('Modelo', getVal('modelo'));
+            addAttr('Marca', getVal('marca'));
+            addAttr('Género', getVal('genero'));
+            addAttr('Material', getVal('material'));
+            addAttr('Temporada', getVal('temporada'));
+            addAttr('Estilo', getVal('estilo'));
+            addAttr('Edad', getVal('grupo_edad'));
+            
+            const tallesVal = getVal('talles') || (prod.talles && Array.isArray(prod.talles) ? prod.talles.map(formatObj).join(', ') : formatObj(prod.talles)) || 'Consultar';
+            addAttr('Talles', tallesVal);
+            
+            const coloresVal = getVal('colores') || (prod.colores && Array.isArray(prod.colores) ? prod.colores.map(formatObj).join(', ') : formatObj(prod.colores)) || 'Variados';
+            addAttr('Colores', coloresVal);
+
+            const stockVal = getVal('stock');
+            const actVal = getVal('ultima_actualizacion') || (prod.fecha_carga ? String(prod.fecha_carga).slice(0,10) : null);
+            if (stockVal || actVal) {
+                items.push({
+                    text: [
+                        { text: `📦 Stock: `, bold: true, fontSize: 7.5, color: '#64748b' },
+                        { text: `${stockVal || '-'}   `, fontSize: 7.5, color: '#64748b' },
+                        { text: `🕒 Act: `, bold: true, fontSize: 7.5, color: '#64748b' },
+                        { text: `${actVal || '-'}`, fontSize: 7.5, color: '#64748b' }
+                    ],
+                    margin: [0, 4, 0, 0]
+                });
+            }
+
+            return items;
+        }
+
+        function calcularYFormatearPreciosPDF(producto, modoPrecio, tipoRecargo, mapaRecargos) {
+            if (modoPrecio === 'ciego') {
+                return { text: '💬 Cotizar precio y compra mínima por privado', fontSize: 9.5, bold: true, color: '#64748b', alignment: 'center', margin: [0, 4, 0, 4] };
+            }
+            const varieties = producto.variedad || [];
+            if (!varieties.length) {
+                let pBase = parseFloat(producto.precio) || 0;
+                const minCompra = parseInt(producto.minima) || 1;
+                if (modoPrecio === 'recargo' && pBase > 0) {
+                    const val = (mapaRecargos && mapaRecargos.general !== undefined) ? parseFloat(mapaRecargos.general) : 0;
+                    if (tipoRecargo === 'porcentaje') pBase = pBase * (1 + val / 100);
+                    else if (tipoRecargo === 'multiplicador' && val > 0) pBase = pBase * val;
+                }
+                const pTotal = pBase * minCompra;
+                const simbolo = producto.moneda || '$';
+                const pFmt = typeof formatMoneda === 'function' ? formatMoneda(pBase, simbolo) : `${simbolo}${pBase.toFixed(2)}`;
+                const pTotalFmt = typeof formatMoneda === 'function' ? formatMoneda(pTotal, simbolo) : `${simbolo}${pTotal.toFixed(2)}`;
+                return {
+                    text: [
+                        { text: `▪ PRECIO OFICIAL: `, bold: true, fontSize: 8.5, color: '#002b5c' },
+                        { text: `${pFmt} c/u `, bold: true, fontSize: 9.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c' },
+                        { text: `(Mínimo ${minCompra} un. = `, fontSize: 7.5, color: '#64748b' },
+                        { text: `${pTotalFmt}`, bold: true, fontSize: 8, color: '#334155' },
+                        { text: `)`, fontSize: 7.5, color: '#64748b' }
+                    ],
+                    alignment: 'left',
+                    margin: [0, 2, 0, 2]
+                };
+            }
+
+            const lineasPrecio = varieties.map(v => {
+                let precioUnit = parseFloat(v.precio) || 0;
+                const minCompra = parseInt(v.minima) || 1;
+                const nombreVar = v.variedad ? String(v.variedad).trim() : 'PRECIO';
+                const nomLower = nombreVar.toLowerCase();
+
+                if (modoPrecio === 'recargo' && precioUnit > 0 && mapaRecargos) {
+                    let val = mapaRecargos.general !== undefined ? mapaRecargos.general : 0;
+                    if (nomLower.includes('docena') || nomLower.includes('mayor') || nomLower.includes('x12') || nomLower.includes('box')) {
+                        val = mapaRecargos.docena !== undefined ? mapaRecargos.docena : val;
+                    } else if (nomLower.includes('curva') || nomLower.includes('pack') || nomLower.includes('surti') || nomLower.includes('media')) {
+                        val = mapaRecargos.curva !== undefined ? mapaRecargos.curva : val;
+                    } else if (nomLower.includes('menor') || nomLower.includes('unidad') || nomLower.includes('c/u') || nomLower.includes('x1')) {
+                        val = mapaRecargos.menor !== undefined ? mapaRecargos.menor : val;
+                    }
+
+                    const numVal = parseFloat(val) || 0;
+                    if (tipoRecargo === 'porcentaje') {
+                        precioUnit = precioUnit * (1 + numVal / 100);
+                    } else if (tipoRecargo === 'multiplicador' && numVal > 0) {
+                        precioUnit = precioUnit * numVal;
+                    }
+                }
+
+                const precioTotalMin = precioUnit * minCompra;
+                const simbolo = v.moneda || '$';
+                const pUnitFmt = typeof formatMoneda === 'function' ? formatMoneda(precioUnit, simbolo) : `${simbolo}${precioUnit.toFixed(2)}`;
+                const pTotalFmt = typeof formatMoneda === 'function' ? formatMoneda(precioTotalMin, simbolo) : `${simbolo}${precioTotalMin.toFixed(2)}`;
+
+                return {
+                    text: [
+                        { text: `▪ ${nombreVar.toUpperCase()}: `, bold: true, fontSize: 8.5, color: '#002b5c' },
+                        { text: `${pUnitFmt} c/u `, bold: true, fontSize: 9.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c' },
+                        { text: `(Mínimo ${minCompra} un. = `, fontSize: 7.5, color: '#64748b' },
+                        { text: `${pTotalFmt}`, bold: true, fontSize: 8, color: '#334155' },
+                        { text: `)`, fontSize: 7.5, color: '#64748b' }
+                    ],
+                    margin: [0, 2, 0, 2],
+                    alignment: 'left'
+                };
+            });
+
+            return { stack: lineasPrecio, alignment: 'left' };
+        }
+
+        function crearCeldaProductoPDF(prod, modoPrecio, tipoRecargo, mapaRecargos) {
+            if (!prod) return null;
+
+            let imgObj = { text: 'Sin imagen disponible', fontSize: 8, color: '#999999', alignment: 'center', margin: [0, 40, 0, 40] };
+            if (prod._base64Img) {
+                imgObj = {
+                    image: prod._base64Img,
+                    width: 140,
+                    alignment: 'center',
+                    margin: [0, 0, 0, 4]
+                };
+            }
+
+            const preciosObj = calcularYFormatearPreciosPDF(prod, modoPrecio, tipoRecargo, mapaRecargos);
+
+            let linkDrive = null;
+            if (prod.carpeta_id && String(prod.carpeta_id).trim() !== '' && String(prod.carpeta_id) !== 'undefined') {
+                linkDrive = {
+                    text: '📁 Ver fotos en Google Drive',
+                    link: `https://drive.google.com/drive/folders/${String(prod.carpeta_id).trim()}`,
+                    color: '#0d6efd',
+                    decoration: 'underline',
+                    fontSize: 8.5,
+                    bold: true,
+                    alignment: 'left',
+                    margin: [0, 8, 0, 0]
+                };
+            }
+
+            const listaMetadata = obtenerListaMetadataPDF(prod);
+            const nombreProd = prod.nombre || prod.codigo || 'Producto';
+            const skuProd = prod.codigo ? `Código SKU: [ ${prod.codigo} ]` : '';
+
+            return {
+                table: {
+                    widths: ['100%'],
+                    body: [
+                        [
+                            {
+                                stack: [
+                                    // CABECERA DEL PRODUCTO
+                                    {
+                                        columns: [
+                                            { text: nombreProd.toUpperCase(), style: 'prodTitle', width: '*' },
+                                            { text: '⭐⭐⭐⭐⭐', fontSize: 9, alignment: 'right', width: 'auto', color: '#f59e0b', margin: [0, 2, 0, 0] }
+                                        ],
+                                        margin: [0, 0, 0, 3]
+                                    },
+                                    skuProd ? {
+                                        text: skuProd,
+                                        fontSize: 8,
+                                        bold: true,
+                                        color: '#475569',
+                                        background: '#f1f5f9',
+                                        margin: [0, 0, 0, 8]
+                                    } : { text: '', margin: [0,0,0,2] },
+                                    // CUERPO EN 2 COLUMNAS (68% Izq: Specs & Precios, 32% Der: Foto)
+                                    {
+                                        columns: [
+                                            {
+                                                width: '68%',
+                                                stack: [
+                                                    { stack: listaMetadata, margin: [0, 0, 10, 8] },
+                                                    {
+                                                        table: {
+                                                            widths: ['100%'],
+                                                            body: [
+                                                                [{ stack: [preciosObj], fillColor: '#f8fafc', margin: [6, 6, 6, 6] }]
+                                                            ]
+                                                        },
+                                                        layout: {
+                                                            hLineWidth: function() { return 0.5; },
+                                                            vLineWidth: function() { return 0.5; },
+                                                            hLineColor: function() { return '#cbd5e1'; },
+                                                            vLineColor: function() { return '#cbd5e1'; }
+                                                        }
+                                                    },
+                                                    linkDrive ? linkDrive : { text: '' }
+                                                ],
+                                                margin: [0, 0, 10, 0]
+                                            },
+                                            {
+                                                width: '32%',
+                                                stack: [
+                                                    {
+                                                        table: {
+                                                            widths: ['100%'],
+                                                            body: [
+                                                                [{ text: '⭐ PORTADA', fontSize: 7, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 2, 0, 2] }],
+                                                                [{ stack: [imgObj], alignment: 'center', margin: [4, 6, 4, 4] }]
+                                                            ]
+                                                        },
+                                                        layout: {
+                                                            hLineWidth: function() { return 0.5; },
+                                                            vLineWidth: function() { return 0.5; },
+                                                            hLineColor: function() { return '#e2e8f0'; },
+                                                            vLineColor: function() { return '#e2e8f0'; }
+                                                        }
+                                                    }
+                                                ],
+                                                alignment: 'center'
+                                            }
+                                        ]
+                                    }
+                                ],
+                                margin: [12, 12, 12, 12],
+                                fillColor: '#ffffff'
+                            }
+                        ]
+                    ]
+                },
+                layout: {
+                    hLineWidth: function() { return 1; },
+                    vLineWidth: function() { return 1; },
+                    hLineColor: function() { return '#cbd5e1'; },
+                    vLineColor: function() { return '#cbd5e1'; },
+                    paddingLeft: function() { return 0; },
+                    paddingRight: function() { return 0; },
+                    paddingTop: function() { return 0; },
+                    paddingBottom: function() { return 0; }
+                },
+                margin: [0, 0, 0, 14],
+                border: [false, false, false, false],
+                unbreakable: true
+            };
+        }
+
+        async function ejecutarGeneracionPDF() {
+            if (typeof pdfMake === 'undefined') {
+                Swal.fire("Error", "La librería pdfmake no está disponible en este momento.", "error");
+                return;
+            }
+
+            const modoPrecio = document.querySelector('input[name="modoPrecioPDF"]:checked')?.value || 'oficial';
+            const tipoRecargo = document.getElementById("tipoRecargoPDF")?.value || 'porcentaje';
+            const recargoDocena = parseFloat(document.getElementById("recargo_docena")?.value) || 0;
+            const recargoCurva = parseFloat(document.getElementById("recargo_curva")?.value) || 0;
+            const recargoMenor = parseFloat(document.getElementById("recargo_menor")?.value) || 0;
+            const recargoGeneral = parseFloat(document.getElementById("recargo_general")?.value) || 0;
+            const mapaRecargos = {
+                docena: recargoDocena,
+                curva: recargoCurva,
+                menor: recargoMenor,
+                general: recargoGeneral
+            };
+            const nomCat = window._categoriaSeleccionadaPDF;
+
+            // Cerrar modal de configuración
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#modalConfigPDF').modal('hide');
+            } else {
+                const modEl = document.getElementById('modalConfigPDF');
+                if (modEl && typeof bootstrap !== 'undefined') {
+                    const modInst = bootstrap.Modal.getInstance(modEl);
+                    if (modInst) modInst.hide();
+                }
+            }
+
+            Swal.fire({
+                title: 'Generando Catálogo PDF...',
+                text: 'Descargando miniaturas WebP del CDN y maquetando el documento en formato 1 tarjeta por fila para máxima calidad. Por favor espera unos segundos...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const configCompleta = JSON.parse(localStorage.getItem('configuracion_pagina'));
+                const todasCategorias = (configCompleta?.content || []).flatMap(padre => padre.categorias || []);
+                let productos = [];
+                let tituloDoc = "CATÁLOGO DE PRODUCTOS";
+                let subtituloDoc = "COLECCIÓN COMPLETA";
+
+                if (nomCat && nomCat !== "") {
+                    const catObj = todasCategorias.find(c => c.nombre === nomCat);
+                    productos = catObj ? (catObj.producto || []) : [];
+                    tituloDoc = `COLECCIÓN: ${nomCat.toUpperCase()}`;
+                    subtituloDoc = "Catálogo Oficial de Productos";
+                } else {
+                    const skuSet = new Set();
+                    todasCategorias.forEach(c => {
+                        (c.producto || []).forEach(p => {
+                            if (!skuSet.has(p.codigo)) {
+                                skuSet.add(p.codigo);
+                                productos.push(p);
+                            }
+                        });
+                    });
+                }
+
+                if (!productos.length) {
+                    Swal.close();
+                    Swal.fire("Atención", "No se encontraron productos en esta categoría para exportar.", "warning");
+                    return;
+                }
+
+                // Descargar imágenes en paralelo via Canvas (Aprovechando CDN Google y CORS)
+                const productosConImg = [];
+                for (let p of productos) {
+                    let urlImg = "";
+                    if (Array.isArray(p.imagen) && p.imagen.length > 0) {
+                        const sorted = [...p.imagen].sort((a, b) => {
+                            if (a.portada && !b.portada) return -1;
+                            if (!a.portada && b.portada) return 1;
+                            return (parseInt(a.orden) || 999) - (parseInt(b.orden) || 999);
+                        });
+                        urlImg = sorted[0].thumbnail_url || sorted[0].url || "";
+                    } else if (typeof p.imagen === 'string') {
+                        urlImg = p.imagen;
+                    } else {
+                        urlImg = p.thumbnail_url || p.url || "";
+                    }
+
+                    let base64 = null;
+                    if (urlImg) {
+                        base64 = await cargarImagenYConvertirAJpegBase64(urlImg);
+                    }
+                    productosConImg.push({ ...p, _base64Img: base64 });
+                }
+
+                // Construir lista de 1 tarjeta por fila (Ancho completo 100%, irrompible)
+                const listaTarjetas = [];
+                for (let p of productosConImg) {
+                    const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos);
+                    if (celda && celda.table) {
+                        listaTarjetas.push(celda);
+                    }
+                }
+
+                const nombreTienda = configCompleta?.nombre_tienda || document.title || "Tienda Mayorista";
+                const nombreArchivo = `${(nomCat || 'Catalogo_Completo').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+
+                const docDefinition = {
+                    pageSize: 'A4',
+                    pageMargins: [30, 45, 30, 45],
+                    header: function(currentPage, pageCount) {
+                        return {
+                            text: `${nombreTienda}  |  ${nomCat ? 'Categoría: ' + nomCat : 'Catálogo Completo'}`,
+                            alignment: 'right',
+                            margin: [30, 15, 30, 0],
+                            fontSize: 8,
+                            color: '#888888'
+                        };
+                    },
+                    footer: function(currentPage, pageCount) {
+                        return {
+                            columns: [
+                                { text: '📲 Consultas y Pedidos por WhatsApp', alignment: 'left', margin: [30, 10, 0, 0], fontSize: 9, bold: true, color: '#25D366' },
+                                { text: `Página ${currentPage} de ${pageCount}`, alignment: 'right', margin: [0, 10, 30, 0], fontSize: 9, color: '#666666' }
+                            ]
+                        };
+                    },
+                    content: [
+                        { text: nombreTienda.toUpperCase(), style: 'mainTitle', alignment: 'center' },
+                        { text: tituloDoc, style: 'subTitle', alignment: 'center' },
+                        { text: `Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}  •  ${productos.length} Productos`, style: 'dateStyle', alignment: 'center', margin: [0, 0, 0, 20] },
+                        ...listaTarjetas
+                    ],
+                    styles: {
+                        mainTitle: { fontSize: 20, bold: true, color: '#002b5c', margin: [0, 0, 0, 4] },
+                        subTitle: { fontSize: 13, bold: true, color: '#333333', margin: [0, 0, 0, 4] },
+                        dateStyle: { fontSize: 8.5, italic: true, color: '#64748b' },
+                        prodTitle: { fontSize: 11, bold: true, color: '#002b5c', margin: [0, 0, 0, 2] },
+                        prodSku: { fontSize: 8, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
+                        prodDetails: { fontSize: 8, color: '#444444', margin: [0, 0, 0, 4] }
+                    }
+                };
+
+                pdfMake.createPdf(docDefinition).download(nombreArchivo);
+                Swal.close();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Catálogo PDF Generado!',
+                    text: `El archivo ${nombreArchivo} ha sido descargado con éxito.`,
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            } catch (err) {
+                console.error("❌ Error generando PDF:", err);
+                Swal.close();
+                Swal.fire("Error", "Ocurrió un problema al generar el catálogo PDF: " + err.message, "error");
+            }
         }
         //]]>
     </script>
