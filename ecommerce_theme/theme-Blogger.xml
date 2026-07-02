@@ -13233,15 +13233,13 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     const filasCategorias = [];
                     let filaActual = [];
                     catConProductos2.forEach((c, idx) => {
-                        const svgIcono = c.icono || null;
+                        // Generar color único por categoría para el badge de iniciales
+                        const coloresBadge = ['#002b5c','#0284c7','#7c3aed','#b45309','#065f46','#9d174d','#1e3a5f','#44403c'];
+                        const colorBadge = coloresBadge[idx % coloresBadge.length];
+                        const iniciales = c.nombre.trim().substring(0, 3).toUpperCase();
                         const celdaCat = {
                             stack: [
-                                svgIcono ? {
-                                    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><rect width="24" height="24" fill="#e2e8f0" rx="4"/><text x="12" y="16" text-anchor="middle" font-size="10" font-family="Arial" fill="#002b5c">${c.nombre.substring(0,3).toUpperCase()}</text></svg>`,
-                                    width: 48,
-                                    alignment: 'center',
-                                    margin: [0, 8, 0, 6]
-                                } : { text: '', margin: [0, 10, 0, 6] },
+                                { text: iniciales, fontSize: 14, bold: true, color: '#ffffff', background: colorBadge, alignment: 'center', margin: [0, 10, 0, 8] },
                                 { text: c.nombre.toUpperCase(), fontSize: 8.5, bold: true, color: '#002b5c', alignment: 'center', margin: [2, 0, 2, 4] },
                                 { text: `${(c.producto || []).length} productos`, fontSize: 7.5, color: '#64748b', alignment: 'center', margin: [0, 0, 0, 8] }
                             ],
