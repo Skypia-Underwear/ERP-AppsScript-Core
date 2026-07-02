@@ -4031,40 +4031,9 @@
                         <div class='text-muted small'>Aplica tu aumento o margen de ganancia a todas las variedades de precios.</div>
                     </div>
                     <div id='divConfigRecargoPDF' class='card p-3 bg-light border-primary mb-3' style='display: none; border-radius: 10px;'>
-                        <label class='form-label small fw-bold text-primary mb-2'><i class='fa fa-sliders me-1'/> Configurar Márgenes (%) por Variedad:</label>
-                        <div class='row g-2 mb-2'>
-                            <div class='col-6 col-md-3'>
-                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>📦 Docena / Mayor:</label>
-                                <div class='input-group input-group-sm'>
-                                    <input type='number' class='form-control fw-bold text-primary' id='recargo_docena' value='10' step='any'/>
-                                    <span class='input-group-text'>%</span>
-                                </div>
-                                <small class='text-muted' style='font-size: 0.65rem;'>Ej: x12 un.</small>
-                            </div>
-                            <div class='col-6 col-md-3'>
-                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>📊 Curva / Pack:</label>
-                                <div class='input-group input-group-sm'>
-                                    <input type='number' class='form-control fw-bold text-primary' id='recargo_curva' value='15' step='any'/>
-                                    <span class='input-group-text'>%</span>
-                                </div>
-                                <small class='text-muted' style='font-size: 0.65rem;'>Ej: x6 un.</small>
-                            </div>
-                            <div class='col-6 col-md-3'>
-                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>🛍️ Menor / Unidad:</label>
-                                <div class='input-group input-group-sm'>
-                                    <input type='number' class='form-control fw-bold text-primary' id='recargo_menor' value='25' step='any'/>
-                                    <span class='input-group-text'>%</span>
-                                </div>
-                                <small class='text-muted' style='font-size: 0.65rem;'>Ej: x1 un.</small>
-                            </div>
-                            <div class='col-6 col-md-3'>
-                                <label class='form-label mb-1' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>🔄 Otras / Default:</label>
-                                <div class='input-group input-group-sm'>
-                                    <input type='number' class='form-control fw-bold text-secondary' id='recargo_general' value='20' step='any'/>
-                                    <span class='input-group-text'>%</span>
-                                </div>
-                                <small class='text-muted' style='font-size: 0.65rem;'>Resto</small>
-                            </div>
+                        <label class='form-label small fw-bold text-primary mb-2'><i class='fa fa-sliders me-1'/> Configurar Márgenes por Variedad detectada:</label>
+                        <div id='divContenedorVariedadesPDF' class='mb-2'>
+                            <!-- Se cargan dinámicamente desde el JSON -->
                         </div>
                         <div class='d-flex align-items-center justify-content-between mt-1 pt-2 border-top'>
                             <span class='small text-muted' style='font-size: 0.7rem;'>Tipo de ajuste:</span>
@@ -12307,6 +12276,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const radOficial = document.getElementById("pdfPrecioOficial");
             if (radOficial) radOficial.checked = true;
             toggleRecargoPDF();
+            renderizarInputsVariedadesPDF(nombreCategoria);
             
             if (typeof $ !== 'undefined' && $.fn.modal) {
                 $('#modalConfigPDF').modal('show');
@@ -12323,6 +12293,91 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const divRecargo = document.getElementById("divConfigRecargoPDF");
             if (divRecargo && radRecargo) {
                 divRecargo.style.display = radRecargo.checked ? "block" : "none";
+            }
+        }
+
+        function renderizarInputsVariedadesPDF(nomCat) {
+            const cont = document.getElementById("divContenedorVariedadesPDF");
+            if (!cont) return;
+            cont.innerHTML = "";
+
+            try {
+                const configCompleta = JSON.parse(localStorage.getItem('configuracion_pagina') || '{}');
+                const todasCategorias = (configCompleta?.content || []).flatMap(padre => padre.categorias || []);
+                let productos = [];
+
+                if (nomCat && nomCat !== "") {
+                    const catObj = todasCategorias.find(c => c.nombre === nomCat);
+                    productos = catObj ? (catObj.producto || []) : [];
+                } else {
+                    todasCategorias.forEach(c => {
+                        (c.producto || []).forEach(p => productos.push(p));
+                    });
+                }
+
+                const setVariedades = new Set();
+                productos.forEach(p => {
+                    if (Array.isArray(p.variedad)) {
+                        p.variedad.forEach(v => {
+                            const nom = String(v.variedad || "").trim();
+                            if (nom) setVariedades.add(nom);
+                        });
+                    }
+                });
+
+                if (setVariedades.size === 0) {
+                    ["Docena", "Curva", "Menor"].forEach(v => setVariedades.add(v));
+                }
+
+                const row = document.createElement("div");
+                row.className = "row g-2 mb-2";
+
+                Array.from(setVariedades).forEach((varName) => {
+                    const col = document.createElement("div");
+                    col.className = "col-6 col-md-4 col-lg-3";
+
+                    let defVal = 20;
+                    const low = varName.toLowerCase();
+                    if (low.includes("corte") || low.includes("fardo") || low.includes("caja") || low.includes("docena") || low.includes("mayor") || low.includes("x12") || low.includes("combo")) {
+                        defVal = 10;
+                    } else if (low.includes("curva") || low.includes("pack") || low.includes("surti") || low.includes("media")) {
+                        defVal = 15;
+                    } else if (low.includes("menor") || low.includes("unidad") || low.includes("c/u") || low.includes("x1")) {
+                        defVal = 25;
+                    }
+
+                    const colorBg = typeof obtenerColor === 'function' ? obtenerColor(varName) : '#0284c7';
+
+                    col.innerHTML = `
+                        <label class='form-label mb-1 d-flex align-items-center' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>
+                            <span class='badge me-1' style='background-color: ${colorBg}; color: #fff; font-size: 0.65rem;'>●</span>
+                            <span class='text-truncate' title='${varName}'>${varName}:</span>
+                        </label>
+                        <div class='input-group input-group-sm'>
+                            <input type='number' class='form-control fw-bold text-primary input-var-pdf' data-variedad='${varName}' value='${defVal}' step='any'/>
+                            <span class='input-group-text'>% / x</span>
+                        </div>
+                    `;
+                    row.appendChild(col);
+                });
+
+                const colDef = document.createElement("div");
+                colDef.className = "col-6 col-md-4 col-lg-3";
+                colDef.innerHTML = `
+                    <label class='form-label mb-1 d-flex align-items-center' style='font-size: 0.75rem; font-weight: 600; color: #64748b;'>
+                        <span class='badge me-1 bg-secondary' style='font-size: 0.65rem;'>●</span>
+                        <span>General / Resto:</span>
+                    </label>
+                    <div class='input-group input-group-sm'>
+                        <input type='number' class='form-control fw-bold text-secondary' id='recargo_general' value='20' step='any'/>
+                        <span class='input-group-text'>% / x</span>
+                    </div>
+                `;
+                row.appendChild(colDef);
+
+                cont.appendChild(row);
+            } catch (err) {
+                console.warn("Error al renderizar inputs dinámicos de variedad:", err);
             }
         }
 
@@ -12506,13 +12561,19 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 const nomLower = nombreVar.toLowerCase();
 
                 if (modoPrecio === 'recargo' && precioUnit > 0 && mapaRecargos) {
-                    let val = mapaRecargos.general !== undefined ? mapaRecargos.general : 0;
-                    if (nomLower.includes('docena') || nomLower.includes('mayor') || nomLower.includes('x12') || nomLower.includes('box')) {
-                        val = mapaRecargos.docena !== undefined ? mapaRecargos.docena : val;
-                    } else if (nomLower.includes('curva') || nomLower.includes('pack') || nomLower.includes('surti') || nomLower.includes('media')) {
-                        val = mapaRecargos.curva !== undefined ? mapaRecargos.curva : val;
-                    } else if (nomLower.includes('menor') || nomLower.includes('unidad') || nomLower.includes('c/u') || nomLower.includes('x1')) {
-                        val = mapaRecargos.menor !== undefined ? mapaRecargos.menor : val;
+                    let val = mapaRecargos[nombreVar];
+                    if (val === undefined) val = mapaRecargos[nomLower];
+                    if (val === undefined) {
+                        let fallbackGen = mapaRecargos.general !== undefined ? mapaRecargos.general : 0;
+                        if (nomLower.includes('docena') || nomLower.includes('mayor') || nomLower.includes('x12') || nomLower.includes('box') || nomLower.includes('corte') || nomLower.includes('fardo') || nomLower.includes('caja')) {
+                            val = mapaRecargos.docena !== undefined ? mapaRecargos.docena : fallbackGen;
+                        } else if (nomLower.includes('curva') || nomLower.includes('pack') || nomLower.includes('surti') || nomLower.includes('media') || nomLower.includes('combo')) {
+                            val = mapaRecargos.curva !== undefined ? mapaRecargos.curva : fallbackGen;
+                        } else if (nomLower.includes('menor') || nomLower.includes('unidad') || nomLower.includes('c/u') || nomLower.includes('x1')) {
+                            val = mapaRecargos.menor !== undefined ? mapaRecargos.menor : fallbackGen;
+                        } else {
+                            val = fallbackGen;
+                        }
                     }
 
                     const numVal = parseFloat(val) || 0;
@@ -12679,16 +12740,27 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
             const modoPrecio = document.querySelector('input[name="modoPrecioPDF"]:checked')?.value || 'oficial';
             const tipoRecargo = document.getElementById("tipoRecargoPDF")?.value || 'porcentaje';
-            const recargoDocena = parseFloat(document.getElementById("recargo_docena")?.value) || 0;
-            const recargoCurva = parseFloat(document.getElementById("recargo_curva")?.value) || 0;
-            const recargoMenor = parseFloat(document.getElementById("recargo_menor")?.value) || 0;
             const recargoGeneral = parseFloat(document.getElementById("recargo_general")?.value) || 0;
             const mapaRecargos = {
-                docena: recargoDocena,
-                curva: recargoCurva,
-                menor: recargoMenor,
-                general: recargoGeneral
+                general: recargoGeneral,
+                docena: recargoGeneral,
+                curva: recargoGeneral,
+                menor: recargoGeneral
             };
+            document.querySelectorAll('#divContenedorVariedadesPDF input[data-variedad]').forEach(inp => {
+                const varName = inp.getAttribute('data-variedad').trim();
+                const numVal = parseFloat(inp.value) || 0;
+                mapaRecargos[varName] = numVal;
+                mapaRecargos[varName.toLowerCase()] = numVal;
+                const low = varName.toLowerCase();
+                if (low.includes('docena') || low.includes('mayor') || low.includes('x12') || low.includes('caja') || low.includes('fardo') || low.includes('corte')) {
+                    mapaRecargos.docena = numVal;
+                } else if (low.includes('curva') || low.includes('pack') || low.includes('surti') || low.includes('combo')) {
+                    mapaRecargos.curva = numVal;
+                } else if (low.includes('menor') || low.includes('unidad') || low.includes('c/u') || low.includes('x1')) {
+                    mapaRecargos.menor = numVal;
+                }
+            });
             const nomCat = window._categoriaSeleccionadaPDF;
 
             // Cerrar modal de configuración
