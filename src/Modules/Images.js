@@ -593,7 +593,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
               if (thumbs.hasNext()) {
                 const tf = thumbs.next();
                 archivosVistosEnDrive.add(tf.getId());
-                thumbnailUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${encodeURIComponent(appName)}&tableName=${encodeURIComponent(sheetName)}&fileName=${encodeURIComponent(`${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${thumbName}`)}&v=${tf.getId()}`;
+                thumbnailUrl = `https://drive.google.com/thumbnail?id=${tf.getId()}&sz=s600-rw`;
               } else {
                 let thumbBlob = null;
                 for (let i = 0; i < 3; i++) {
@@ -606,27 +606,17 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
                 if (thumbBlob) {
                   const newThumbFile = folder.createFile(thumbBlob).setName(thumbName);
                   archivosVistosEnDrive.add(newThumbFile.getId());
-                  thumbnailUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${encodeURIComponent(appName)}&tableName=${encodeURIComponent(sheetName)}&fileName=${encodeURIComponent(`${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${thumbName}`)}&v=${newThumbFile.getId()}`;
+                  thumbnailUrl = `https://drive.google.com/thumbnail?id=${newThumbFile.getId()}&sz=s600-rw`;
                 }
+              }
+              if (!thumbnailUrl && fileId) {
+                thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s600-rw`;
               }
             } catch (e) { }
           } else {
-            try {
-              // Obtener thumbnailLink nativo del CDN de Google a través de Drive API v3
-              const fileMeta = Drive.Files.get(fileId, { fields: "thumbnailLink" });
-              if (fileMeta && fileMeta.thumbnailLink) {
-                // Transformar el enlace CDN reemplazando su resolución por defecto por =s600-rw (WebP ligero sin recortar)
-                thumbnailUrl = fileMeta.thumbnailLink.replace(/=s\d+.*$/, '=s600-rw');
-                if (!thumbnailUrl.includes('=s600-rw')) {
-                  thumbnailUrl += (thumbnailUrl.includes('?') ? '&' : '') + '=s600-rw';
-                }
-              } else {
-                thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s600-rw`;
-              }
-            } catch (e) {
-              log(`   ⚠️ Error al obtener thumbnailLink para ${fileId}, usando fallback: ${e.message}`);
-              thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s600-rw`;
-            }
+            // URL pública de thumbnail de Drive — soporta autenticación implícita del usuario logueado
+            // NOTA: Drive.Files.get thumbnailLink devuelve URLs privadas (drive-storage/...) que dan 403 en el browser.
+            thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=s600-rw`;
           }
 
           const relativePath = `${SHEETS.PRODUCT_IMAGES}_Images/${prod.sku}/${fileName}`;

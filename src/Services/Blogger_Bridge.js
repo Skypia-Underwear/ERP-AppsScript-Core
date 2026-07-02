@@ -91,7 +91,28 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
         const pId = r[mI.PRODUCTO_ID];
         if (blogger_esVerdadero(r[mI.ESTADO]) && r[mI.URL]) {
             if (r[mI.TIPO_ARCHIVO] === 'video') {
-                videosPorProducto[pId] = r;
+                let vidUrl = r[mI.URL] || "";
+                const vidFileId = r[mI.ARCHIVO_ID];
+                if (vidFileId && (vidUrl.includes('appsheet.com') || !vidUrl.includes('drive.google.com'))) {
+                    vidUrl = `https://drive.google.com/file/d/${vidFileId}/preview`;
+                }
+                let vidThumb = r[mI.THUMBNAIL_URL] || "";
+                if (vidThumb && (vidThumb.includes('=s') || vidThumb.includes('sz=s'))) {
+                    vidThumb = vidThumb.replace(/(=|sz=)s\d+.*$/, '$1s600-rw');
+                } else if (vidThumb.includes('appsheet.com')) {
+                    const matchV = vidThumb.match(/[?&]v=([^&]+)/);
+                    const thumbId = matchV ? matchV[1] : vidFileId;
+                    if (thumbId) {
+                        vidThumb = `https://drive.google.com/thumbnail?id=${thumbId}&sz=s600-rw`;
+                    }
+                } else if (!vidThumb && vidFileId) {
+                    vidThumb = `https://drive.google.com/thumbnail?id=${vidFileId}&sz=s600-rw`;
+                }
+                videosPorProducto[pId] = {
+                    ...r,
+                    url_cdn: vidUrl,
+                    thumb_cdn: vidThumb
+                };
             } else {
                 if (!imagenesPorProducto[pId]) imagenesPorProducto[pId] = [];
                 const thumb = r[mI.THUMBNAIL_URL] || "";
@@ -400,7 +421,27 @@ function blogger_generarDescripcionProductoCompleta({ pId, tipoRegistroProducto,
         });
     }
     const listColores = [...colores].map(c => ({ nombre: c, hex: mapColores[c] || "#cccccc" }));
-    const video = videoRow ? { label: "Video", url: videoRow[mI.URL], thumbnail: videoRow[mI.THUMBNAIL_URL] } : undefined;
+    let video = undefined;
+    if (videoRow) {
+        let vidUrl = videoRow.url_cdn || videoRow[mI.URL] || "";
+        const vidFileId = videoRow[mI.ARCHIVO_ID];
+        if (vidFileId && (vidUrl.includes('appsheet.com') || !vidUrl.includes('drive.google.com'))) {
+            vidUrl = `https://drive.google.com/file/d/${vidFileId}/preview`;
+        }
+        let vidThumb = videoRow.thumb_cdn || videoRow[mI.THUMBNAIL_URL] || "";
+        if (vidThumb && (vidThumb.includes('=s') || vidThumb.includes('sz=s'))) {
+            vidThumb = vidThumb.replace(/(=|sz=)s\d+.*$/, '$1s600-rw');
+        } else if (vidThumb.includes('appsheet.com')) {
+            const matchV = vidThumb.match(/[?&]v=([^&]+)/);
+            const thumbId = matchV ? matchV[1] : vidFileId;
+            if (thumbId) {
+                vidThumb = `https://drive.google.com/thumbnail?id=${thumbId}&sz=s600-rw`;
+            }
+        } else if (!vidThumb && vidFileId) {
+            vidThumb = `https://drive.google.com/thumbnail?id=${vidFileId}&sz=s600-rw`;
+        }
+        video = { label: "Video", url: vidUrl, thumbnail: vidThumb };
+    }
     const ageGroupVal = (mP.GRUPO_EDAD !== undefined && p[mP.GRUPO_EDAD]) ? String(p[mP.GRUPO_EDAD]).trim() : "";
     const ageGroupStr = ageGroupVal ? `\n🔹 Edad: ${ageGroupVal}` : "";
     const msgWA = `¡Hola! Interesado en:\n🔹 Código: ${pId}\n🔹 Modelo: ${p[mP.MODELO] || '-'}\n🔹 Marca: ${p[mP.MARCA] || '-'}\n🔹 Género: ${p[mP.GENERO] || '-'}${ageGroupStr}\n🔹 Talles: ${[...talles].join(', ')}`;
