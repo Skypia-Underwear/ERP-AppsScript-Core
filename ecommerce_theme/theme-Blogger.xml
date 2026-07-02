@@ -12690,12 +12690,12 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 const simbolo = producto.moneda || '$';
                 const pFmt = typeof formatMoneda === 'function' ? formatMoneda(pBase, simbolo) : `${simbolo}${pBase.toFixed(2)}`;
                 const pTotalFmt = typeof formatMoneda === 'function' ? formatMoneda(pTotal, simbolo) : `${simbolo}${pTotal.toFixed(2)}`;
-                filasTabla.push([
-                    { text: 'PRECIO OFICIAL', bold: true, fontSize: 8, color: '#002b5c', fillColor: '#f8fafc', margin: [4, 4, 4, 4] },
-                    { text: `${pFmt}`, bold: true, fontSize: 8.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c', alignment: 'right', fillColor: '#f8fafc', margin: [4, 4, 4, 4] },
-                    { text: `${minCompra} un.`, fontSize: 8, color: '#475569', alignment: 'center', fillColor: '#f8fafc', margin: [4, 4, 4, 4] },
-                    { text: `${pTotalFmt}`, bold: true, fontSize: 8.5, color: '#1e293b', alignment: 'right', fillColor: '#f8fafc', margin: [4, 4, 4, 4] }
-                ]);
+                    filasTabla.push([
+                        { text: 'PRECIO OFICIAL', bold: true, fontSize: 9.5, color: '#002b5c', fillColor: '#f8fafc', margin: [6, 6, 6, 6] },
+                        { text: `${pFmt}`, bold: true, fontSize: 10, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c', alignment: 'right', fillColor: '#f8fafc', margin: [6, 6, 6, 6] },
+                        { text: `${minCompra} un.`, fontSize: 9.5, color: '#475569', alignment: 'center', fillColor: '#f8fafc', margin: [6, 6, 6, 6] },
+                        { text: `${pTotalFmt}`, bold: true, fontSize: 10, color: '#1e293b', alignment: 'right', fillColor: '#f8fafc', margin: [6, 6, 6, 6] }
+                    ]);
             } else {
                 varieties.forEach((v, idxRow) => {
                     let precioUnit = parseFloat(v.precio) || 0;
@@ -12736,10 +12736,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     const bgRow = idxRow % 2 === 0 ? '#f8fafc' : '#ffffff';
 
                     filasTabla.push([
-                        { text: nombreVar.toUpperCase(), bold: true, fontSize: 8, color: '#002b5c', fillColor: bgRow, margin: [4, 4, 4, 4] },
-                        { text: `${pUnitFmt}`, bold: true, fontSize: 8.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c', alignment: 'right', fillColor: bgRow, margin: [4, 4, 4, 4] },
-                        { text: `${minCompra} un.`, fontSize: 8, color: '#475569', alignment: 'center', fillColor: bgRow, margin: [4, 4, 4, 4] },
-                        { text: `${pTotalFmt}`, bold: true, fontSize: 8.5, color: '#1e293b', alignment: 'right', fillColor: bgRow, margin: [4, 4, 4, 4] }
+                        { text: nombreVar.toUpperCase(), bold: true, fontSize: 9.5, color: '#002b5c', fillColor: bgRow, margin: [6, 6, 6, 6] },
+                        { text: `${pUnitFmt}`, bold: true, fontSize: 10, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c', alignment: 'right', fillColor: bgRow, margin: [6, 6, 6, 6] },
+                        { text: `${minCompra} un.`, fontSize: 9.5, color: '#475569', alignment: 'center', fillColor: bgRow, margin: [6, 6, 6, 6] },
+                        { text: `${pTotalFmt}`, bold: true, fontSize: 10, color: '#1e293b', alignment: 'right', fillColor: bgRow, margin: [6, 6, 6, 6] }
                     ]);
                 });
             }
@@ -12747,13 +12747,13 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             return {
                 table: {
                     headerRows: 1,
-                    widths: ['40%', '22%', '16%', '22%'],
+                    widths: ['38%', '26%', '14%', '22%'],
                     body: [
                         [
-                            { text: 'VARIEDAD / TIPO', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'left', margin: [4, 4, 4, 4] },
-                            { text: 'PRECIO UNIT.', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [4, 4, 4, 4] },
-                            { text: 'MÍN.', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'center', margin: [4, 4, 4, 4] },
-                            { text: 'TOTAL MÍN.', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [4, 4, 4, 4] }
+                            { text: 'VARIEDAD / TIPO', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'left', margin: [6, 5, 6, 5] },
+                            { text: 'PRECIO UNIT.', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [6, 5, 6, 5] },
+                            { text: 'MÍN.', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'center', margin: [6, 5, 6, 5] },
+                            { text: 'TOTAL MÍN.', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [6, 5, 6, 5] }
                         ],
                         ...filasTabla
                     ]
@@ -12895,15 +12895,21 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         {
                             width: '45%',
                             stack: [
-                                { text: 'ESPECIFICACIONES', fontSize: 9.5, bold: true, color: '#002b5c', margin: [0, 0, 0, 6] },
-                                ...listaMetadata
+                                { text: 'ESPECIFICACIONES', fontSize: 11, bold: true, color: '#002b5c', margin: [0, 0, 0, 8] },
+                                ...listaMetadata.map(item => ({
+                                    ...item,
+                                    text: Array.isArray(item.text)
+                                        ? item.text.map(t => ({ ...t, fontSize: (t.fontSize || 8) + 2 }))
+                                        : item.text,
+                                    margin: [0, 2.5, 0, 2.5]
+                                }))
                             ],
                             margin: [0, 10, 14, 0]
                         },
                         {
                             width: '55%',
                             stack: [
-                                { text: 'LISTA DE PRECIOS OFICIAL', fontSize: 9.5, bold: true, color: '#002b5c', margin: [0, 0, 0, 6] },
+                                { text: 'LISTA DE PRECIOS OFICIAL', fontSize: 11, bold: true, color: '#002b5c', margin: [0, 0, 0, 8] },
                                 preciosObj
                             ],
                             margin: [0, 10, 0, 0]
@@ -13153,54 +13159,138 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 } else {
                     const botonesIdx = [];
                     let catIdx = 0;
-                    todasCategorias.forEach((c, idx) => {
+                    const catConProductos = todasCategorias.filter(c => productosConImg.some(p => p._catNombre === c.nombre));
+
+                    catConProductos.forEach((c, idx) => {
                         const prodsCat = productosConImg.filter(p => p._catNombre === c.nombre);
-                        if (prodsCat && prodsCat.length > 0) {
-                            const anchorId = `cat_sec_${idx}`;
-                            botonesIdx.push({
-                                text: `   [ ${c.nombre.toUpperCase()} ]   `,
-                                linkToDestination: anchorId,
-                                fontSize: 8.5,
-                                bold: true,
-                                color: '#ffffff',
-                                background: '#0284c7'
-                            });
-                            botonesIdx.push({ text: '  ' });
+                        const anchorId = `cat_sec_${idx}`;
 
-                            if (catIdx > 0) {
-                                listaTarjetas.push({ text: '', pageBreak: 'before' });
-                            }
-                            listaTarjetas.push({
-                                table: {
-                                    widths: ['100%'],
-                                    body: [
-                                        [ { text: `CATEGORÍA: ${c.nombre.toUpperCase()}`, fontSize: 13, bold: true, color: '#ffffff', alignment: 'center', margin: [0, 6, 0, 6] } ]
-                                    ]
-                                },
-                                layout: 'noBorders',
-                                fillColor: '#002b5c',
-                                id: anchorId,
-                                margin: [0, 0, 0, 15]
-                            });
+                        // Botón en el índice con linkToDestination (ancla real)
+                        botonesIdx.push({
+                            text: `  ${c.nombre.toUpperCase()}  `,
+                            linkToDestination: anchorId,
+                            fontSize: 9.5,
+                            bold: true,
+                            color: '#ffffff',
+                            background: '#0284c7'
+                        });
+                        botonesIdx.push({ text: '  ' });
 
-                            prodsCat.forEach((p, idxP) => {
-                                const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, idxP === 0);
-                                if (celda && celda.table) listaTarjetas.push(celda);
-                            });
-                            catIdx++;
+                        // Página de categoría: con salto de página y ancla al inicio
+                        const elementosBloqueCat = [];
+
+                        // Banner de Categoría + ancla real (id en un elemento de texto)
+                        elementosBloqueCat.push({
+                            id: anchorId,
+                            table: {
+                                widths: ['100%'],
+                                body: [
+                                    [ { text: `CATEGORÍA: ${c.nombre.toUpperCase()}`, fontSize: 15, bold: true, color: '#ffffff', alignment: 'center', margin: [0, 10, 0, 10] } ]
+                                ]
+                            },
+                            layout: 'noBorders',
+                            fillColor: '#002b5c',
+                            margin: [0, 0, 0, 18]
+                        });
+
+                        prodsCat.forEach((p, idxP) => {
+                            const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, idxP === 0);
+                            if (celda && celda.table) elementosBloqueCat.push(celda);
+                        });
+
+                        // Para modo pagina_completa: ya tiene pageBreak en crearCeldaProductoPDF
+                        // Para modo compacto: agregar pageBreak antes del bloque de cada categoría
+                        if (catIdx === 0) {
+                            listaTarjetas.push(...elementosBloqueCat);
+                        } else {
+                            // Insertar pageBreak al inicio del stack de la categoría
+                            elementosBloqueCat[0] = { ...elementosBloqueCat[0], pageBreak: 'before' };
+                            listaTarjetas.push(...elementosBloqueCat);
                         }
+                        catIdx++;
                     });
 
                     if (botonesIdx.length > 0) {
                         indiceElementos = [
-                            { text: 'ÍNDICE RÁPIDO DE CATEGORÍAS (Haz clic en un botón para saltar directamente):', fontSize: 8.5, bold: true, color: '#475569', alignment: 'center', margin: [0, 0, 0, 8] },
-                            { text: botonesIdx, alignment: 'center', margin: [0, 0, 0, 18] }
+                            { text: 'ÍNDICE DE CATEGORÍAS', fontSize: 10, bold: true, color: '#002b5c', alignment: 'center', margin: [0, 0, 0, 6] },
+                            { text: 'Haz clic en una categoría para ir directamente a esa sección del catálogo:', fontSize: 8.5, italic: true, color: '#475569', alignment: 'center', margin: [0, 0, 0, 10] },
+                            { text: botonesIdx, alignment: 'center', margin: [0, 0, 0, 8] }
                         ];
                     }
                 }
 
                 const nombreTienda = configCompleta?.nombre_tienda || document.title || "Tienda Mayorista";
                 const nombreArchivo = `${(nomCat || 'Catalogo_Completo').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+
+                // =====================================================================
+                // PORTADA ESPECIAL PARA CATÁLOGO COMPLETO (con tarjetas de categorías)
+                // =====================================================================
+                let portadaElementos = [];
+                if (!nomCat || nomCat === '') {
+                    const catConProductos2 = todasCategorias.filter(c => (c.producto || []).length > 0);
+
+                    // Tarjetas de categorías en grilla 3 columnas
+                    const filasCategorias = [];
+                    let filaActual = [];
+                    catConProductos2.forEach((c, idx) => {
+                        const svgIcono = c.icono || null;
+                        const celdaCat = {
+                            stack: [
+                                svgIcono ? {
+                                    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><rect width="24" height="24" fill="#e2e8f0" rx="4"/><text x="12" y="16" text-anchor="middle" font-size="10" font-family="Arial" fill="#002b5c">${c.nombre.substring(0,3).toUpperCase()}</text></svg>`,
+                                    width: 48,
+                                    alignment: 'center',
+                                    margin: [0, 8, 0, 6]
+                                } : { text: '', margin: [0, 10, 0, 6] },
+                                { text: c.nombre.toUpperCase(), fontSize: 8.5, bold: true, color: '#002b5c', alignment: 'center', margin: [2, 0, 2, 4] },
+                                { text: `${(c.producto || []).length} productos`, fontSize: 7.5, color: '#64748b', alignment: 'center', margin: [0, 0, 0, 8] }
+                            ],
+                            fillColor: '#f8fafc',
+                            margin: [4, 4, 4, 4]
+                        };
+                        filaActual.push(celdaCat);
+                        if (filaActual.length === 3 || idx === catConProductos2.length - 1) {
+                            while (filaActual.length < 3) {
+                                filaActual.push({ text: '', border: [false, false, false, false] });
+                            }
+                            filasCategorias.push([...filaActual]);
+                            filaActual = [];
+                        }
+                    });
+
+                    if (filasCategorias.length > 0) {
+                        portadaElementos.push({
+                            text: 'COLECCIONES DISPONIBLES',
+                            fontSize: 12,
+                            bold: true,
+                            color: '#002b5c',
+                            alignment: 'center',
+                            margin: [0, 20, 0, 14]
+                        });
+                        portadaElementos.push({
+                            table: {
+                                widths: ['33%', '34%', '33%'],
+                                body: filasCategorias
+                            },
+                            layout: {
+                                hLineWidth: function() { return 0.5; },
+                                vLineWidth: function() { return 0.5; },
+                                hLineColor: function() { return '#cbd5e1'; },
+                                vLineColor: function() { return '#cbd5e1'; }
+                            },
+                            margin: [0, 0, 0, 20]
+                        });
+                        portadaElementos.push({
+                            table: {
+                                widths: ['100%'],
+                                body: [[ { text: '↓  Navegar el catálogo: usa los botones de categoría del índice para saltar directamente a cada sección', fontSize: 9, italic: true, color: '#64748b', alignment: 'center', margin: [0, 6, 0, 6] } ]]
+                            },
+                            layout: 'noBorders',
+                            fillColor: '#f1f5f9',
+                            margin: [0, 0, 0, 14]
+                        });
+                    }
+                }
 
                 const docDefinition = {
                     pageSize: 'A4',
@@ -13249,7 +13339,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     content: [
                         { text: nombreTienda.toUpperCase(), style: 'mainTitle', alignment: 'center' },
                         { text: tituloDoc, style: 'subTitle', alignment: 'center' },
-                        { text: `Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}  •  ${productos.length} Productos`, style: 'dateStyle', alignment: 'center', margin: [0, 0, 0, indiceElementos.length ? 12 : 20] },
+                        { text: `Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}  •  ${productos.length} Productos`, style: 'dateStyle', alignment: 'center', margin: [0, 0, 0, portadaElementos.length ? 8 : (indiceElementos.length ? 12 : 20)] },
+                        ...portadaElementos,
                         ...indiceElementos,
                         ...listaTarjetas
                     ],
