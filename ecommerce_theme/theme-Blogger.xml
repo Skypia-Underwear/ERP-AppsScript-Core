@@ -4037,9 +4037,9 @@
                         </div>
                         <div class='d-flex align-items-center justify-content-between mt-1 pt-2 border-top'>
                             <span class='small text-muted' style='font-size: 0.7rem;'>Tipo de ajuste:</span>
-                            <select class='form-select form-select-sm w-auto' id='tipoRecargoPDF' style='font-size: 0.75rem;'>
+                            <select class='form-select form-select-sm w-auto' id='tipoRecargoPDF' style='font-size: 0.75rem;' onchange='actualizarSimboloAddonPDF()'>
                                 <option value='porcentaje'>Porcentaje de Aumento (+%)</option>
-                                <option value='multiplicador'>Multiplicador de Precio (x)</option>
+                                <option value='monto_fijo'>Suma Fija por Unidad (+$)</option>
                             </select>
                         </div>
                     </div>
@@ -12296,6 +12296,31 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
         }
 
+        function actualizarSimboloAddonPDF() {
+            const tipo = document.getElementById("tipoRecargoPDF")?.value || 'porcentaje';
+            const sim = (tipo === 'porcentaje') ? '%' : '+$';
+            document.querySelectorAll('.addon-simbolo-pdf').forEach(el => el.innerText = sim);
+            // Actualizar placeholders o valores sugeridos si cambian el tipo
+            const esFijo = (tipo === 'monto_fijo');
+            document.querySelectorAll('.input-var-pdf').forEach(inp => {
+                const varName = (inp.getAttribute('data-variedad') || '').toLowerCase();
+                if (esFijo) {
+                    if (parseFloat(inp.value) < 100) inp.value = 1000;
+                } else {
+                    if (parseFloat(inp.value) >= 100) {
+                        if (varName.includes('menor') || varName.includes('unidad')) inp.value = 25;
+                        else if (varName.includes('curva') || varName.includes('pack')) inp.value = 15;
+                        else inp.value = 10;
+                    }
+                }
+            });
+            const genInp = document.getElementById("recargo_general");
+            if (genInp) {
+                if (esFijo && parseFloat(genInp.value) < 100) genInp.value = 1000;
+                else if (!esFijo && parseFloat(genInp.value) >= 100) genInp.value = 20;
+            }
+        }
+
         function renderizarInputsVariedadesPDF(nomCat) {
             const cont = document.getElementById("divContenedorVariedadesPDF");
             if (!cont) return;
@@ -12330,47 +12355,53 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 }
 
                 const row = document.createElement("div");
-                row.className = "row g-2 mb-2";
+                row.className = "row g-2 mb-1";
+
+                const tipoActual = document.getElementById("tipoRecargoPDF")?.value || 'porcentaje';
+                const simInicial = (tipoActual === 'porcentaje') ? '%' : '+$';
+                const esFijo = (tipoActual === 'monto_fijo');
 
                 Array.from(setVariedades).forEach((varName) => {
                     const col = document.createElement("div");
-                    col.className = "col-6 col-md-4 col-lg-3";
+                    col.className = "col-12 col-sm-6 mb-2";
 
-                    let defVal = 20;
-                    const low = varName.toLowerCase();
-                    if (low.includes("corte") || low.includes("fardo") || low.includes("caja") || low.includes("docena") || low.includes("mayor") || low.includes("x12") || low.includes("combo")) {
-                        defVal = 10;
-                    } else if (low.includes("curva") || low.includes("pack") || low.includes("surti") || low.includes("media")) {
-                        defVal = 15;
-                    } else if (low.includes("menor") || low.includes("unidad") || low.includes("c/u") || low.includes("x1")) {
-                        defVal = 25;
+                    let defVal = esFijo ? 1000 : 20;
+                    if (!esFijo) {
+                        const low = varName.toLowerCase();
+                        if (low.includes("corte") || low.includes("fardo") || low.includes("caja") || low.includes("docena") || low.includes("mayor") || low.includes("x12") || low.includes("combo")) {
+                            defVal = 10;
+                        } else if (low.includes("curva") || low.includes("pack") || low.includes("surti") || low.includes("media")) {
+                            defVal = 15;
+                        } else if (low.includes("menor") || low.includes("unidad") || low.includes("c/u") || low.includes("x1")) {
+                            defVal = 25;
+                        }
                     }
 
                     const colorBg = typeof obtenerColor === 'function' ? obtenerColor(varName) : '#0284c7';
 
                     col.innerHTML = `
-                        <label class='form-label mb-1 d-flex align-items-center' style='font-size: 0.75rem; font-weight: 600; color: #334155;'>
-                            <span class='badge me-1' style='background-color: ${colorBg}; color: #fff; font-size: 0.65rem;'>●</span>
+                        <label class='form-label mb-1 d-flex align-items-center' style='font-size: 0.8rem; font-weight: 600; color: #334155;'>
+                            <span class='badge me-1' style='background-color: ${colorBg}; color: #fff; font-size: 0.7rem;'>●</span>
                             <span class='text-truncate' title='${varName}'>${varName}:</span>
                         </label>
-                        <div class='input-group input-group-sm'>
+                        <div class='input-group input-group-sm shadow-sm'>
                             <input type='number' class='form-control fw-bold text-primary input-var-pdf' data-variedad='${varName}' value='${defVal}' step='any'/>
-                            <span class='input-group-text'>% / x</span>
+                            <span class='input-group-text addon-simbolo-pdf fw-bold text-dark' style='min-width: 42px; justify-content: center; background-color: #e2e8f0;'>${simInicial}</span>
                         </div>
                     `;
                     row.appendChild(col);
                 });
 
                 const colDef = document.createElement("div");
-                colDef.className = "col-6 col-md-4 col-lg-3";
+                colDef.className = "col-12 col-sm-6 mb-2";
                 colDef.innerHTML = `
-                    <label class='form-label mb-1 d-flex align-items-center' style='font-size: 0.75rem; font-weight: 600; color: #64748b;'>
-                        <span class='badge me-1 bg-secondary' style='font-size: 0.65rem;'>●</span>
+                    <label class='form-label mb-1 d-flex align-items-center' style='font-size: 0.8rem; font-weight: 600; color: #64748b;'>
+                        <span class='badge me-1 bg-secondary' style='font-size: 0.7rem;'>●</span>
                         <span>General / Resto:</span>
                     </label>
-                    <div class='input-group input-group-sm'>
-                        <input type='number' class='form-control fw-bold text-secondary' id='recargo_general' value='20' step='any'/>
-                        <span class='input-group-text'>% / x</span>
+                    <div class='input-group input-group-sm shadow-sm'>
+                        <input type='number' class='form-control fw-bold text-secondary' id='recargo_general' value='${esFijo ? 1000 : 20}' step='any'/>
+                        <span class='input-group-text addon-simbolo-pdf fw-bold text-dark' style='min-width: 42px; justify-content: center; background-color: #e2e8f0;'>${simInicial}</span>
                     </div>
                 `;
                 row.appendChild(colDef);
@@ -12535,6 +12566,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 if (modoPrecio === 'recargo' && pBase > 0) {
                     const val = (mapaRecargos && mapaRecargos.general !== undefined) ? parseFloat(mapaRecargos.general) : 0;
                     if (tipoRecargo === 'porcentaje') pBase = pBase * (1 + val / 100);
+                    else if (tipoRecargo === 'monto_fijo' || tipoRecargo === 'fijo') pBase = pBase + val;
                     else if (tipoRecargo === 'multiplicador' && val > 0) pBase = pBase * val;
                 }
                 const pTotal = pBase * minCompra;
@@ -12579,6 +12611,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     const numVal = parseFloat(val) || 0;
                     if (tipoRecargo === 'porcentaje') {
                         precioUnit = precioUnit * (1 + numVal / 100);
+                    } else if (tipoRecargo === 'monto_fijo' || tipoRecargo === 'fijo') {
+                        precioUnit = precioUnit + numVal;
                     } else if (tipoRecargo === 'multiplicador' && numVal > 0) {
                         precioUnit = precioUnit * numVal;
                     }
