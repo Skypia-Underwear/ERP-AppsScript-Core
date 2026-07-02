@@ -12532,20 +12532,75 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             addAttr('Estilo', getVal('estilo'));
             addAttr('Edad', getVal('grupo_edad'));
             
-            const tallesVal = getVal('talles') || (prod.talles && Array.isArray(prod.talles) ? prod.talles.map(formatObj).join(', ') : formatObj(prod.talles)) || 'Consultar';
-            addAttr('Talles', tallesVal);
-            
-            const coloresVal = getVal('colores') || (prod.colores && Array.isArray(prod.colores) ? prod.colores.map(formatObj).join(', ') : formatObj(prod.colores)) || 'Variados';
-            addAttr('Colores', coloresVal);
+            const renderBadgesAttr = (label, arrValores, isColor) => {
+                if (!arrValores || !arrValores.length || (arrValores.length === 1 && !arrValores[0])) return;
+                const spans = [ { text: `• ${label}: `, bold: true, fontSize: 8, color: '#002b5c' } ];
+                
+                arrValores.forEach((item, idx) => {
+                    const valStr = typeof item === 'object' ? (item.nombre || item.valor || String(item)) : String(item);
+                    if (!valStr || valStr === '-' || valStr === 'undefined' || valStr === 'null') return;
+                    
+                    let bg = '#e2e8f0';
+                    let fg = '#334155';
+                    
+                    if (isColor) {
+                        let hex = (typeof item === 'object' && item.hex && item.hex !== 'transparent') ? item.hex : null;
+                        const nom = valStr.toLowerCase().trim();
+                        if (!hex) {
+                            if (nom === 'surtido' || nom === 'variados') hex = '#6854fa';
+                            else if (nom === 'negro') hex = '#000000';
+                            else if (nom === 'blanco') hex = '#f8fafc';
+                            else if (nom === 'rojo' || nom.includes('bordo') || nom.includes('bordó')) hex = '#991b1b';
+                            else if (nom.includes('azul')) hex = '#1e3a8a';
+                            else if (nom === 'gris') hex = '#475569';
+                            else if (nom.includes('marron') || nom.includes('marrón')) hex = '#78350f';
+                            else if (nom.includes('verde')) hex = '#365314';
+                            else if (nom.includes('rosa')) hex = '#db2777';
+                            else if (nom === 'amarillo') hex = '#ca8a04';
+                            else hex = '#334155';
+                        }
+                        bg = hex;
+                        fg = (bg === '#ffffff' || bg === '#f8fafc' || bg === '#fff' || bg === '#ffff00' || bg === '#f1f5f9') ? '#1e293b' : '#ffffff';
+                    }
+                    
+                    spans.push({
+                        text: `  ${valStr.trim()}  `,
+                        fontSize: 7,
+                        bold: true,
+                        color: fg,
+                        background: bg
+                    });
+                    if (idx < arrValores.length - 1) spans.push({ text: ' ' });
+                });
+                if (spans.length > 1) {
+                    items.push({ text: spans, margin: [0, 2, 0, 2] });
+                }
+            };
+
+            // Talles
+            let arrTalles = [];
+            if (desc.talles && Array.isArray(desc.talles.valores)) arrTalles = desc.talles.valores;
+            else if (prod.talles && Array.isArray(prod.talles)) arrTalles = prod.talles;
+            else if (getVal('talles')) arrTalles = String(getVal('talles')).split(',').map(s => s.trim());
+            if (!arrTalles || !arrTalles.length) arrTalles = ['Consultar'];
+            renderBadgesAttr('Talles', arrTalles, false);
+
+            // Colores
+            let arrColores = [];
+            if (desc.colores && Array.isArray(desc.colores.valores)) arrColores = desc.colores.valores;
+            else if (prod.colores && Array.isArray(prod.colores)) arrColores = prod.colores;
+            else if (getVal('colores')) arrColores = String(getVal('colores')).split(',').map(s => s.trim());
+            if (!arrColores || !arrColores.length) arrColores = ['Variados'];
+            renderBadgesAttr('Colores', arrColores, true);
 
             const stockVal = getVal('stock');
             const actVal = getVal('ultima_actualizacion') || (prod.fecha_carga ? String(prod.fecha_carga).slice(0,10) : null);
             if (stockVal || actVal) {
                 items.push({
                     text: [
-                        { text: `📦 Stock: `, bold: true, fontSize: 7.5, color: '#64748b' },
+                        { text: `Stock: `, bold: true, fontSize: 7.5, color: '#64748b' },
                         { text: `${stockVal || '-'}   `, fontSize: 7.5, color: '#64748b' },
-                        { text: `🕒 Act: `, bold: true, fontSize: 7.5, color: '#64748b' },
+                        { text: `Act: `, bold: true, fontSize: 7.5, color: '#64748b' },
                         { text: `${actVal || '-'}`, fontSize: 7.5, color: '#64748b' }
                     ],
                     margin: [0, 4, 0, 0]
@@ -12575,7 +12630,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 const pTotalFmt = typeof formatMoneda === 'function' ? formatMoneda(pTotal, simbolo) : `${simbolo}${pTotal.toFixed(2)}`;
                 return {
                     text: [
-                        { text: `▪ PRECIO OFICIAL: `, bold: true, fontSize: 8.5, color: '#002b5c' },
+                        { text: `• PRECIO OFICIAL: `, bold: true, fontSize: 8.5, color: '#002b5c' },
                         { text: `${pFmt} c/u `, bold: true, fontSize: 9.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c' },
                         { text: `(Mínimo ${minCompra} un. = `, fontSize: 7.5, color: '#64748b' },
                         { text: `${pTotalFmt}`, bold: true, fontSize: 8, color: '#334155' },
@@ -12625,7 +12680,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
                 return {
                     text: [
-                        { text: `▪ ${nombreVar.toUpperCase()}: `, bold: true, fontSize: 8.5, color: '#002b5c' },
+                        { text: `• ${nombreVar.toUpperCase()}: `, bold: true, fontSize: 8.5, color: '#002b5c' },
                         { text: `${pUnitFmt} c/u `, bold: true, fontSize: 9.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c' },
                         { text: `(Mínimo ${minCompra} un. = `, fontSize: 7.5, color: '#64748b' },
                         { text: `${pTotalFmt}`, bold: true, fontSize: 8, color: '#334155' },
@@ -12657,13 +12712,13 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             let linkDrive = null;
             if (prod.carpeta_id && String(prod.carpeta_id).trim() !== '' && String(prod.carpeta_id) !== 'undefined') {
                 linkDrive = {
-                    text: '📁 Ver fotos en Google Drive',
+                    text: 'Ver fotos en Google Drive',
                     link: `https://drive.google.com/drive/folders/${String(prod.carpeta_id).trim()}`,
                     color: '#0d6efd',
                     decoration: 'underline',
                     fontSize: 8.5,
                     bold: true,
-                    alignment: 'left',
+                    alignment: 'center',
                     margin: [0, 8, 0, 0]
                 };
             }
@@ -12681,10 +12736,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                 stack: [
                                     // CABECERA DEL PRODUCTO
                                     {
-                                        columns: [
-                                            { text: nombreProd.toUpperCase(), style: 'prodTitle', width: '*' },
-                                            { text: '⭐⭐⭐⭐⭐', fontSize: 9, alignment: 'right', width: 'auto', color: '#f59e0b', margin: [0, 2, 0, 0] }
-                                        ],
+                                        text: nombreProd.toUpperCase(),
+                                        style: 'prodTitle',
                                         margin: [0, 0, 0, 3]
                                     },
                                     skuProd ? {
@@ -12715,8 +12768,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                                             hLineColor: function() { return '#cbd5e1'; },
                                                             vLineColor: function() { return '#cbd5e1'; }
                                                         }
-                                                    },
-                                                    linkDrive ? linkDrive : { text: '' }
+                                                    }
                                                 ],
                                                 margin: [0, 0, 10, 0]
                                             },
@@ -12727,7 +12779,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                                         table: {
                                                             widths: ['100%'],
                                                             body: [
-                                                                [{ text: '⭐ PORTADA', fontSize: 7, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 2, 0, 2] }],
+                                                                [{ text: 'PORTADA', fontSize: 7, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 2, 0, 2] }],
                                                                 [{ stack: [imgObj], alignment: 'center', margin: [4, 6, 4, 4] }]
                                                             ]
                                                         },
@@ -12737,7 +12789,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                                             hLineColor: function() { return '#e2e8f0'; },
                                                             vLineColor: function() { return '#e2e8f0'; }
                                                         }
-                                                    }
+                                                    },
+                                                    linkDrive ? linkDrive : { text: '' }
                                                 ],
                                                 alignment: 'center'
                                             }
@@ -12835,7 +12888,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         (c.producto || []).forEach(p => {
                             if (!skuSet.has(p.codigo)) {
                                 skuSet.add(p.codigo);
-                                productos.push(p);
+                                productos.push({ ...p, _catNombre: c.nombre });
                             }
                         });
                     });
@@ -12871,12 +12924,63 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     productosConImg.push({ ...p, _base64Img: base64 });
                 }
 
-                // Construir lista de 1 tarjeta por fila (Ancho completo 100%, irrompible)
+                // Construir lista de tarjetas e índice si es catálogo completo
                 const listaTarjetas = [];
-                for (let p of productosConImg) {
-                    const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos);
-                    if (celda && celda.table) {
-                        listaTarjetas.push(celda);
+                let indiceElementos = [];
+
+                if (nomCat && nomCat !== "") {
+                    for (let p of productosConImg) {
+                        const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos);
+                        if (celda && celda.table) {
+                            listaTarjetas.push(celda);
+                        }
+                    }
+                } else {
+                    const botonesIdx = [];
+                    let catIdx = 0;
+                    todasCategorias.forEach((c, idx) => {
+                        const prodsCat = productosConImg.filter(p => p._catNombre === c.nombre);
+                        if (prodsCat && prodsCat.length > 0) {
+                            const anchorId = `cat_sec_${idx}`;
+                            botonesIdx.push({
+                                text: `   [ ${c.nombre.toUpperCase()} ]   `,
+                                linkToDestination: anchorId,
+                                fontSize: 8.5,
+                                bold: true,
+                                color: '#ffffff',
+                                background: '#0284c7'
+                            });
+                            botonesIdx.push({ text: '  ' });
+
+                            if (catIdx > 0) {
+                                listaTarjetas.push({ text: '', pageBreak: 'before' });
+                            }
+                            listaTarjetas.push({
+                                table: {
+                                    widths: ['100%'],
+                                    body: [
+                                        [ { text: `CATEGORÍA: ${c.nombre.toUpperCase()}`, fontSize: 13, bold: true, color: '#ffffff', alignment: 'center', margin: [0, 6, 0, 6] } ]
+                                    ]
+                                },
+                                layout: 'noBorders',
+                                fillColor: '#002b5c',
+                                id: anchorId,
+                                margin: [0, 0, 0, 15]
+                            });
+
+                            prodsCat.forEach(p => {
+                                const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos);
+                                if (celda && celda.table) listaTarjetas.push(celda);
+                            });
+                            catIdx++;
+                        }
+                    });
+
+                    if (botonesIdx.length > 0) {
+                        indiceElementos = [
+                            { text: 'ÍNDICE RÁPIDO DE CATEGORÍAS (Haz clic en un botón para saltar directamente):', fontSize: 8.5, bold: true, color: '#475569', alignment: 'center', margin: [0, 0, 0, 8] },
+                            { text: botonesIdx, alignment: 'center', margin: [0, 0, 0, 18] }
+                        ];
                     }
                 }
 
@@ -12898,7 +13002,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     footer: function(currentPage, pageCount) {
                         return {
                             columns: [
-                                { text: '📲 Consultas y Pedidos por WhatsApp', alignment: 'left', margin: [30, 10, 0, 0], fontSize: 9, bold: true, color: '#25D366' },
+                                { text: 'WhatsApp: Consultas y Pedidos', alignment: 'left', margin: [30, 10, 0, 0], fontSize: 9, bold: true, color: '#25D366' },
                                 { text: `Página ${currentPage} de ${pageCount}`, alignment: 'right', margin: [0, 10, 30, 0], fontSize: 9, color: '#666666' }
                             ]
                         };
@@ -12906,7 +13010,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     content: [
                         { text: nombreTienda.toUpperCase(), style: 'mainTitle', alignment: 'center' },
                         { text: tituloDoc, style: 'subTitle', alignment: 'center' },
-                        { text: `Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}  •  ${productos.length} Productos`, style: 'dateStyle', alignment: 'center', margin: [0, 0, 0, 20] },
+                        { text: `Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}  •  ${productos.length} Productos`, style: 'dateStyle', alignment: 'center', margin: [0, 0, 0, indiceElementos.length ? 12 : 20] },
+                        ...indiceElementos,
                         ...listaTarjetas
                     ],
                     styles: {
