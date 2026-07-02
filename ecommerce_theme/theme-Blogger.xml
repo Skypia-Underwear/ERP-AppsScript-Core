@@ -12348,7 +12348,56 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         ctx.fillStyle = "#FFFFFF"; // Fondo blanco para transparencia
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(img, 0, 0);
-                        const dataUrl = canvas.toDataURL("        function obtenerListaMetadataPDF(prod) {
+                        const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+                        resolve(dataUrl);
+                    } catch (e) {
+                        console.warn("⚠️ Error en canvas toDataURL para PDF:", e);
+                        resolve(null);
+                    }
+                };
+                img.onerror = () => {
+                    console.warn("⚠️ Falló carga con lh3 CDN, intentando URL alternativa:", urlCors);
+                    const imgFallback = new Image();
+                    imgFallback.crossOrigin = "Anonymous";
+                    imgFallback.onload = () => {
+                        try {
+                            const canvas = document.createElement("canvas");
+                            canvas.width = imgFallback.naturalWidth || 300;
+                            canvas.height = imgFallback.naturalHeight || 300;
+                            const ctx = canvas.getContext("2d");
+                            ctx.fillStyle = "#FFFFFF";
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(imgFallback, 0, 0);
+                            resolve(canvas.toDataURL("image/jpeg", 0.82));
+                        } catch (err) {
+                            resolve(null);
+                        }
+                    };
+                    imgFallback.onerror = () => {
+                        // Último recurso sin crossOrigin por si el navegador lo admite desde caché
+                        const imgNoCors = new Image();
+                        imgNoCors.onload = () => {
+                            try {
+                                const canvas = document.createElement("canvas");
+                                canvas.width = imgNoCors.naturalWidth || 300;
+                                canvas.height = imgNoCors.naturalHeight || 300;
+                                const ctx = canvas.getContext("2d");
+                                ctx.fillStyle = "#FFFFFF";
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                ctx.drawImage(imgNoCors, 0, 0);
+                                resolve(canvas.toDataURL("image/jpeg", 0.82));
+                            } catch (e2) { resolve(null); }
+                        };
+                        imgNoCors.onerror = () => resolve(null);
+                        imgNoCors.src = url;
+                    };
+                    imgFallback.src = `https://lh3.googleusercontent.com/d/${matchId ? matchId[1] : ''}`;
+                };
+                img.src = urlCors;
+            });
+        }
+
+        function obtenerListaMetadataPDF(prod) {
             const desc = prod.descripcion || {};
             const items = [];
             
