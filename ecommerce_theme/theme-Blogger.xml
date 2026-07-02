@@ -12490,6 +12490,52 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             });
         }
 
+        async function cargarImagenConDimensiones(url) {
+            if (!url || typeof url !== 'string' || url.trim() === '') return null;
+            let urlCors = url.trim();
+            const matchId = urlCors.match(/[?&]id=([a-zA-Z0-9_-]{25,})/i) || urlCors.match(/\/d\/([a-zA-Z0-9_-]{25,})/i);
+            if (matchId && matchId[1]) {
+                urlCors = `https://lh3.googleusercontent.com/d/${matchId[1]}=s800-rw`;
+            }
+
+            const procesarImg = (imgObj) => {
+                try {
+                    const canvas = document.createElement("canvas");
+                    const w = imgObj.naturalWidth || 400;
+                    const h = imgObj.naturalHeight || 400;
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext("2d");
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.drawImage(imgObj, 0, 0);
+                    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+                    return { dataUrl: dataUrl, width: w, height: h, ratio: w / (h || 1) };
+                } catch (e) {
+                    return null;
+                }
+            };
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => resolve(procesarImg(img));
+                img.onerror = () => {
+                    const imgFallback = new Image();
+                    imgFallback.crossOrigin = "Anonymous";
+                    imgFallback.onload = () => resolve(procesarImg(imgFallback));
+                    imgFallback.onerror = () => {
+                        const imgNoCors = new Image();
+                        imgNoCors.onload = () => resolve(procesarImg(imgNoCors));
+                        imgNoCors.onerror = () => resolve(null);
+                        imgNoCors.src = url;
+                    };
+                    imgFallback.src = `https://lh3.googleusercontent.com/d/${matchId ? matchId[1] : ''}`;
+                };
+                img.src = urlCors;
+            });
+        }
+
         function obtenerListaMetadataPDF(prod) {
             const desc = prod.descripcion || {};
             const items = [];
@@ -12726,16 +12772,6 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             if (!prod) return null;
             const esPaginaCompleta = (formatoMaquetacion === 'pagina_completa');
 
-            let imgObj = { text: 'Sin imagen disponible', fontSize: 8, color: '#999999', alignment: 'center', margin: [0, 40, 0, 40] };
-            if (prod._base64Img) {
-                imgObj = {
-                    image: prod._base64Img,
-                    width: esPaginaCompleta ? 210 : 140,
-                    alignment: 'center',
-                    margin: [0, 0, 0, 4]
-                };
-            }
-
             const preciosObj = calcularYFormatearPreciosPDF(prod, modoPrecio, tipoRecargo, mapaRecargos);
 
             let linkDrive = null;
@@ -12748,7 +12784,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     fontSize: esPaginaCompleta ? 9.5 : 8.5,
                     bold: true,
                     alignment: 'center',
-                    margin: [0, 8, 0, 0]
+                    margin: [0, 6, 0, 0]
                 };
             }
 
@@ -12756,65 +12792,198 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const nombreProd = prod.nombre || prod.codigo || 'Producto';
             const skuProd = prod.codigo ? `Código SKU: [ ${prod.codigo} ]` : '';
 
+            let cuerpoStack = [];
+
+            if (esPaginaCompleta) {
+                // MODO 1 PRODUCTO POR PÁGINA: DISEÑO EDITORIAL EN FILAS (VERTICAL)
+                // 1. Cabecera centrada
+                cuerpoStack.push({
+                    text: nombreProd.toUpperCase(),
+                    style: 'prodTitle',
+                    fontSize: 16,
+                    alignment: 'center',
+                    margin: [0, 0, 0, 4]
+                });
+                if (skuProd) {
+                    cuerpoStack.push({
+                        text: skuProd,
+                        fontSize: 9.5,
+                        bold: true,
+                        color: '#475569',
+                        background: '#f1f5f9',
+                        alignment: 'center',
+                        margin: [0, 0, 0, 12]
+                    });
+                }
+
+                // 2. Fila Principal de Imagen (Showcase Visual Inteligente por Relación de Aspecto)
+                let visualShowcase = { text: 'Sin imagen disponible', fontSize: 9, color: '#999999', alignment: 'center', margin: [0, 40, 0, 40] };
+                const imgs = prod._imagenesPDF || [];
+                if (imgs.length > 0 && imgs[0]) {
+                    const img0 = imgs[0];
+                    // Si es relación de aspecto ancha/horizontal (> 1.05) o solo hay 1 imagen disponible
+                    if (img0.ratio > 1.05 || imgs.length === 1) {
+                        visualShowcase = {
+                            table: {
+                                widths: ['100%'],
+                                body: [
+                                    [{ text: 'PORTADA OFICIAL', fontSize: 8.5, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 3.5, 0, 3.5] }],
+                                    [{ image: img0.dataUrl, width: img0.ratio > 1.05 ? 360 : 250, alignment: 'center', margin: [0, 10, 0, 10] }]
+                                ]
+                            },
+                            layout: {
+                                hLineWidth: function() { return 0.5; },
+                                vLineWidth: function() { return 0.5; },
+                                hLineColor: function() { return '#cbd5e1'; },
+                                vLineColor: function() { return '#cbd5e1'; }
+                            },
+                            margin: [0, 2, 0, 6]
+                        };
+                    } else {
+                        // Relación 3:4 (o vertical) con al menos 2 imágenes: Mostrar Frente y Espalda lado a lado
+                        const img1 = imgs[1] || img0;
+                        visualShowcase = {
+                            table: {
+                                widths: ['50%', '50%'],
+                                body: [
+                                    [
+                                        { text: 'PORTADA OFICIAL (FRENTE)', fontSize: 8, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 3.5, 0, 3.5] },
+                                        { text: 'VISTA POSTERIOR / CONTINUACIÓN', fontSize: 8, bold: true, color: '#ffffff', fillColor: '#002b5c', alignment: 'center', margin: [0, 3.5, 0, 3.5] }
+                                    ],
+                                    [
+                                        { image: img0.dataUrl, width: 205, alignment: 'center', margin: [0, 10, 0, 10] },
+                                        { image: img1.dataUrl, width: 205, alignment: 'center', margin: [0, 10, 0, 10] }
+                                    ]
+                                ]
+                            },
+                            layout: {
+                                hLineWidth: function() { return 0.5; },
+                                vLineWidth: function() { return 0.5; },
+                                hLineColor: function() { return '#cbd5e1'; },
+                                vLineColor: function() { return '#cbd5e1'; }
+                            },
+                            margin: [0, 2, 0, 6]
+                        };
+                    }
+                } else if (prod._base64Img) {
+                    visualShowcase = {
+                        table: {
+                            widths: ['100%'],
+                            body: [
+                                [{ text: 'PORTADA OFICIAL', fontSize: 8.5, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 3.5, 0, 3.5] }],
+                                [{ image: prod._base64Img, width: 250, alignment: 'center', margin: [0, 10, 0, 10] }]
+                            ]
+                        },
+                        layout: {
+                            hLineWidth: function() { return 0.5; },
+                            vLineWidth: function() { return 0.5; },
+                            hLineColor: function() { return '#cbd5e1'; },
+                            vLineColor: function() { return '#cbd5e1'; }
+                        },
+                        margin: [0, 2, 0, 6]
+                    };
+                }
+
+                cuerpoStack.push(visualShowcase);
+                if (linkDrive) {
+                    cuerpoStack.push(linkDrive);
+                }
+
+                // 3. Fila Secundaria de Metadatos en 2 Columnas (45% Descripción | 55% Lista de Precios)
+                cuerpoStack.push({
+                    columns: [
+                        {
+                            width: '45%',
+                            stack: [
+                                { text: 'ESPECIFICACIONES', fontSize: 9.5, bold: true, color: '#002b5c', margin: [0, 0, 0, 6] },
+                                ...listaMetadata
+                            ],
+                            margin: [0, 10, 14, 0]
+                        },
+                        {
+                            width: '55%',
+                            stack: [
+                                { text: 'LISTA DE PRECIOS OFICIAL', fontSize: 9.5, bold: true, color: '#002b5c', margin: [0, 0, 0, 6] },
+                                preciosObj
+                            ],
+                            margin: [0, 10, 0, 0]
+                        }
+                    ],
+                    margin: [0, 6, 0, 0]
+                });
+            } else {
+                // MODO COMPACTO: DISEÑO CLÁSICO 2 COLUMNAS (IZQ: SPECS/PRECIOS | DER: FOTO)
+                let imgObj = { text: 'Sin imagen disponible', fontSize: 8, color: '#999999', alignment: 'center', margin: [0, 40, 0, 40] };
+                if (prod._base64Img) {
+                    imgObj = {
+                        image: prod._base64Img,
+                        width: 140,
+                        alignment: 'center',
+                        margin: [0, 0, 0, 4]
+                    };
+                }
+
+                cuerpoStack.push({
+                    text: nombreProd.toUpperCase(),
+                    style: 'prodTitle',
+                    fontSize: 11,
+                    margin: [0, 0, 0, 4]
+                });
+                if (skuProd) {
+                    cuerpoStack.push({
+                        text: skuProd,
+                        fontSize: 8,
+                        bold: true,
+                        color: '#475569',
+                        background: '#f1f5f9',
+                        margin: [0, 0, 0, 10]
+                    });
+                }
+
+                cuerpoStack.push({
+                    columns: [
+                        {
+                            width: '68%',
+                            stack: [
+                                { stack: listaMetadata, margin: [0, 0, 12, 10] },
+                                { stack: [preciosObj], margin: [0, 0, 10, 4] }
+                            ],
+                            margin: [0, 0, 10, 0]
+                        },
+                        {
+                            width: '32%',
+                            stack: [
+                                {
+                                    table: {
+                                        widths: ['100%'],
+                                        body: [
+                                            [{ text: 'PORTADA OFICIAL', fontSize: 7, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 3, 0, 3] }],
+                                            [{ stack: [imgObj], alignment: 'center', margin: [4, 8, 4, 6] }]
+                                        ]
+                                    },
+                                    layout: {
+                                        hLineWidth: function() { return 0.5; },
+                                        vLineWidth: function() { return 0.5; },
+                                        hLineColor: function() { return '#e2e8f0'; },
+                                        vLineColor: function() { return '#e2e8f0'; }
+                                    }
+                                },
+                                linkDrive ? linkDrive : { text: '' }
+                            ],
+                            alignment: 'center'
+                        }
+                    ]
+                });
+            }
+
             const resTabla = {
                 table: {
                     widths: ['100%'],
                     body: [
                         [
                             {
-                                stack: [
-                                    // CABECERA DEL PRODUCTO
-                                    {
-                                        text: nombreProd.toUpperCase(),
-                                        style: 'prodTitle',
-                                        fontSize: esPaginaCompleta ? 14 : 11,
-                                        margin: [0, 0, 0, 4]
-                                    },
-                                    skuProd ? {
-                                        text: skuProd,
-                                        fontSize: esPaginaCompleta ? 9 : 8,
-                                        bold: true,
-                                        color: '#475569',
-                                        background: '#f1f5f9',
-                                        margin: [0, 0, 0, 10]
-                                    } : { text: '', margin: [0,0,0,2] },
-                                    // CUERPO EN 2 COLUMNAS (58% Izq: Specs & Precios, 42% Der: Foto)
-                                    {
-                                        columns: [
-                                            {
-                                                width: esPaginaCompleta ? '58%' : '68%',
-                                                stack: [
-                                                    { stack: listaMetadata, margin: [0, 0, 12, 10] },
-                                                    { stack: [preciosObj], margin: [0, 0, 10, 4] }
-                                                ],
-                                                margin: [0, 0, 10, 0]
-                                            },
-                                            {
-                                                width: esPaginaCompleta ? '42%' : '32%',
-                                                stack: [
-                                                    {
-                                                        table: {
-                                                            widths: ['100%'],
-                                                            body: [
-                                                                [{ text: 'PORTADA OFICIAL', fontSize: esPaginaCompleta ? 8 : 7, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 3, 0, 3] }],
-                                                                [{ stack: [imgObj], alignment: 'center', margin: [4, 8, 4, 6] }]
-                                                            ]
-                                                        },
-                                                        layout: {
-                                                            hLineWidth: function() { return 0.5; },
-                                                            vLineWidth: function() { return 0.5; },
-                                                            hLineColor: function() { return '#e2e8f0'; },
-                                                            vLineColor: function() { return '#e2e8f0'; }
-                                                        }
-                                                    },
-                                                    linkDrive ? linkDrive : { text: '' }
-                                                ],
-                                                alignment: 'center'
-                                            }
-                                        ]
-                                    }
-                                ],
-                                margin: esPaginaCompleta ? [16, 16, 16, 16] : [12, 12, 12, 12],
+                                stack: cuerpoStack,
+                                margin: esPaginaCompleta ? [18, 18, 18, 18] : [12, 12, 12, 12],
                                 fillColor: '#ffffff'
                             }
                         ]
@@ -12933,29 +13102,41 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     return;
                 }
 
-                // Descargar imágenes en paralelo via Canvas en Alta Resolución (HD)
+                // Descargar imágenes en paralelo via Canvas en Alta Resolución (HD) con detección de proporción y soporte para 2 fotos
                 const productosConImg = [];
                 for (let p of productos) {
-                    let urlImg = "";
+                    let listaUrls = [];
                     if (Array.isArray(p.imagen) && p.imagen.length > 0) {
                         const sorted = [...p.imagen].sort((a, b) => {
                             if (a.portada && !b.portada) return -1;
                             if (!a.portada && b.portada) return 1;
                             return (parseInt(a.orden) || 999) - (parseInt(b.orden) || 999);
                         });
-                        urlImg = sorted[0].url || sorted[0].thumbnail_url || "";
+                        const u1 = sorted[0].url || sorted[0].thumbnail_url;
+                        const u2 = sorted.length > 1 ? (sorted[1].url || sorted[1].thumbnail_url) : null;
+                        if (u1) listaUrls.push(optimizarUrlImagenPDF(u1));
+                        if (u2 && sorted[1].url !== u1) listaUrls.push(optimizarUrlImagenPDF(u2));
                     } else if (typeof p.imagen === 'string') {
-                        urlImg = p.imagen;
+                        listaUrls.push(optimizarUrlImagenPDF(p.imagen));
                     } else {
-                        urlImg = p.url || p.thumbnail_url || "";
+                        const u1 = p.url || p.thumbnail_url;
+                        if (u1) listaUrls.push(optimizarUrlImagenPDF(u1));
                     }
 
-                    let base64 = null;
-                    if (urlImg) {
-                        urlImg = optimizarUrlImagenPDF(urlImg);
-                        base64 = await cargarImagenYConvertirAJpegBase64(urlImg);
+                    if (formatoMaquetacion !== 'pagina_completa') {
+                        listaUrls = listaUrls.slice(0, 1);
                     }
-                    productosConImg.push({ ...p, _base64Img: base64 });
+
+                    let imagenesCargadas = [];
+                    for (let u of listaUrls) {
+                        const imgData = await cargarImagenConDimensiones(u);
+                        if (imgData && imgData.dataUrl) imagenesCargadas.push(imgData);
+                    }
+                    productosConImg.push({
+                        ...p,
+                        _imagenesPDF: imagenesCargadas,
+                        _base64Img: imagenesCargadas.length ? imagenesCargadas[0].dataUrl : null
+                    });
                 }
 
                 // Construir lista de tarjetas e índice si es catálogo completo
