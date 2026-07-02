@@ -4043,6 +4043,13 @@
                             </select>
                         </div>
                     </div>
+                    <div class='card p-2 bg-white border mb-3' style='border-radius: 8px;'>
+                        <label class='form-label small fw-bold text-dark mb-1'><i class='fa fa-columns me-1'/> Formato de Visualización:</label>
+                        <select class='form-select form-select-sm fw-bold' id='pdfFormatoMaquetacion' style='font-size: 0.8rem;'>
+                            <option value='pagina_completa' selected='selected'>📱 1 Producto por Página (Ficha Grande, Ideal Celulares)</option>
+                            <option value='compacto'>🖨️ Lista Compacta (Continuo, Ahorro de hojas)</option>
+                        </select>
+                    </div>
                     <div class='d-grid gap-2 mt-3'>
                         <button class='btn btn-danger fw-bold shadow-sm' id='btnGenerarPDFAccion' type='button' onclick='ejecutarGeneracionPDF();'>
                             <i class='fa fa-download me-1'/> 🚀 Generar y Descargar PDF
@@ -12612,9 +12619,18 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
         function calcularYFormatearPreciosPDF(producto, modoPrecio, tipoRecargo, mapaRecargos) {
             if (modoPrecio === 'ciego') {
-                return { text: '💬 Cotizar precio y compra mínima por privado', fontSize: 9.5, bold: true, color: '#64748b', alignment: 'center', margin: [0, 4, 0, 4] };
+                return {
+                    table: {
+                        widths: ['100%'],
+                        body: [ [ { text: 'Cotizar precios, variedades y condiciones de compra por privado', fontSize: 9.5, bold: true, color: '#64748b', alignment: 'center', margin: [8, 8, 8, 8], fillColor: '#f1f5f9' } ] ]
+                    },
+                    layout: 'noBorders',
+                    margin: [0, 4, 0, 4]
+                };
             }
             const varieties = producto.variedad || [];
+            const filasTabla = [];
+
             if (!varieties.length) {
                 let pBase = parseFloat(producto.precio) || 0;
                 const minCompra = parseInt(producto.minima) || 1;
@@ -12628,80 +12644,93 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 const simbolo = producto.moneda || '$';
                 const pFmt = typeof formatMoneda === 'function' ? formatMoneda(pBase, simbolo) : `${simbolo}${pBase.toFixed(2)}`;
                 const pTotalFmt = typeof formatMoneda === 'function' ? formatMoneda(pTotal, simbolo) : `${simbolo}${pTotal.toFixed(2)}`;
-                return {
-                    text: [
-                        { text: `• PRECIO OFICIAL: `, bold: true, fontSize: 8.5, color: '#002b5c' },
-                        { text: `${pFmt} c/u `, bold: true, fontSize: 9.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c' },
-                        { text: `(Mínimo ${minCompra} un. = `, fontSize: 7.5, color: '#64748b' },
-                        { text: `${pTotalFmt}`, bold: true, fontSize: 8, color: '#334155' },
-                        { text: `)`, fontSize: 7.5, color: '#64748b' }
-                    ],
-                    alignment: 'left',
-                    margin: [0, 2, 0, 2]
-                };
-            }
+                filasTabla.push([
+                    { text: 'PRECIO OFICIAL', bold: true, fontSize: 8, color: '#002b5c', fillColor: '#f8fafc', margin: [4, 4, 4, 4] },
+                    { text: `${pFmt}`, bold: true, fontSize: 8.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c', alignment: 'right', fillColor: '#f8fafc', margin: [4, 4, 4, 4] },
+                    { text: `${minCompra} un.`, fontSize: 8, color: '#475569', alignment: 'center', fillColor: '#f8fafc', margin: [4, 4, 4, 4] },
+                    { text: `${pTotalFmt}`, bold: true, fontSize: 8.5, color: '#1e293b', alignment: 'right', fillColor: '#f8fafc', margin: [4, 4, 4, 4] }
+                ]);
+            } else {
+                varieties.forEach((v, idxRow) => {
+                    let precioUnit = parseFloat(v.precio) || 0;
+                    const minCompra = parseInt(v.minima) || 1;
+                    const nombreVar = v.variedad ? String(v.variedad).trim() : 'PRECIO';
+                    const nomLower = nombreVar.toLowerCase();
 
-            const lineasPrecio = varieties.map(v => {
-                let precioUnit = parseFloat(v.precio) || 0;
-                const minCompra = parseInt(v.minima) || 1;
-                const nombreVar = v.variedad ? String(v.variedad).trim() : 'PRECIO';
-                const nomLower = nombreVar.toLowerCase();
+                    if (modoPrecio === 'recargo' && precioUnit > 0 && mapaRecargos) {
+                        let val = mapaRecargos[nombreVar];
+                        if (val === undefined) val = mapaRecargos[nomLower];
+                        if (val === undefined) {
+                            let fallbackGen = mapaRecargos.general !== undefined ? mapaRecargos.general : 0;
+                            if (nomLower.includes('docena') || nomLower.includes('mayor') || nomLower.includes('x12') || nomLower.includes('box') || nomLower.includes('corte') || nomLower.includes('fardo') || nomLower.includes('caja')) {
+                                val = mapaRecargos.docena !== undefined ? mapaRecargos.docena : fallbackGen;
+                            } else if (nomLower.includes('curva') || nomLower.includes('pack') || nomLower.includes('surti') || nomLower.includes('media') || nomLower.includes('combo')) {
+                                val = mapaRecargos.curva !== undefined ? mapaRecargos.curva : fallbackGen;
+                            } else if (nomLower.includes('menor') || nomLower.includes('unidad') || nomLower.includes('c/u') || nomLower.includes('x1')) {
+                                val = mapaRecargos.menor !== undefined ? mapaRecargos.menor : fallbackGen;
+                            } else {
+                                val = fallbackGen;
+                            }
+                        }
 
-                if (modoPrecio === 'recargo' && precioUnit > 0 && mapaRecargos) {
-                    let val = mapaRecargos[nombreVar];
-                    if (val === undefined) val = mapaRecargos[nomLower];
-                    if (val === undefined) {
-                        let fallbackGen = mapaRecargos.general !== undefined ? mapaRecargos.general : 0;
-                        if (nomLower.includes('docena') || nomLower.includes('mayor') || nomLower.includes('x12') || nomLower.includes('box') || nomLower.includes('corte') || nomLower.includes('fardo') || nomLower.includes('caja')) {
-                            val = mapaRecargos.docena !== undefined ? mapaRecargos.docena : fallbackGen;
-                        } else if (nomLower.includes('curva') || nomLower.includes('pack') || nomLower.includes('surti') || nomLower.includes('media') || nomLower.includes('combo')) {
-                            val = mapaRecargos.curva !== undefined ? mapaRecargos.curva : fallbackGen;
-                        } else if (nomLower.includes('menor') || nomLower.includes('unidad') || nomLower.includes('c/u') || nomLower.includes('x1')) {
-                            val = mapaRecargos.menor !== undefined ? mapaRecargos.menor : fallbackGen;
-                        } else {
-                            val = fallbackGen;
+                        const numVal = parseFloat(val) || 0;
+                        if (tipoRecargo === 'porcentaje') {
+                            precioUnit = precioUnit * (1 + numVal / 100);
+                        } else if (tipoRecargo === 'monto_fijo' || tipoRecargo === 'fijo') {
+                            precioUnit = precioUnit + numVal;
+                        } else if (tipoRecargo === 'multiplicador' && numVal > 0) {
+                            precioUnit = precioUnit * numVal;
                         }
                     }
 
-                    const numVal = parseFloat(val) || 0;
-                    if (tipoRecargo === 'porcentaje') {
-                        precioUnit = precioUnit * (1 + numVal / 100);
-                    } else if (tipoRecargo === 'monto_fijo' || tipoRecargo === 'fijo') {
-                        precioUnit = precioUnit + numVal;
-                    } else if (tipoRecargo === 'multiplicador' && numVal > 0) {
-                        precioUnit = precioUnit * numVal;
-                    }
-                }
+                    const precioTotalMin = precioUnit * minCompra;
+                    const simbolo = v.moneda || '$';
+                    const pUnitFmt = typeof formatMoneda === 'function' ? formatMoneda(precioUnit, simbolo) : `${simbolo}${precioUnit.toFixed(2)}`;
+                    const pTotalFmt = typeof formatMoneda === 'function' ? formatMoneda(precioTotalMin, simbolo) : `${simbolo}${precioTotalMin.toFixed(2)}`;
+                    const bgRow = idxRow % 2 === 0 ? '#f8fafc' : '#ffffff';
 
-                const precioTotalMin = precioUnit * minCompra;
-                const simbolo = v.moneda || '$';
-                const pUnitFmt = typeof formatMoneda === 'function' ? formatMoneda(precioUnit, simbolo) : `${simbolo}${precioUnit.toFixed(2)}`;
-                const pTotalFmt = typeof formatMoneda === 'function' ? formatMoneda(precioTotalMin, simbolo) : `${simbolo}${precioTotalMin.toFixed(2)}`;
+                    filasTabla.push([
+                        { text: nombreVar.toUpperCase(), bold: true, fontSize: 8, color: '#002b5c', fillColor: bgRow, margin: [4, 4, 4, 4] },
+                        { text: `${pUnitFmt}`, bold: true, fontSize: 8.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c', alignment: 'right', fillColor: bgRow, margin: [4, 4, 4, 4] },
+                        { text: `${minCompra} un.`, fontSize: 8, color: '#475569', alignment: 'center', fillColor: bgRow, margin: [4, 4, 4, 4] },
+                        { text: `${pTotalFmt}`, bold: true, fontSize: 8.5, color: '#1e293b', alignment: 'right', fillColor: bgRow, margin: [4, 4, 4, 4] }
+                    ]);
+                });
+            }
 
-                return {
-                    text: [
-                        { text: `• ${nombreVar.toUpperCase()}: `, bold: true, fontSize: 8.5, color: '#002b5c' },
-                        { text: `${pUnitFmt} c/u `, bold: true, fontSize: 9.5, color: modoPrecio === 'recargo' ? '#0284c7' : '#002b5c' },
-                        { text: `(Mínimo ${minCompra} un. = `, fontSize: 7.5, color: '#64748b' },
-                        { text: `${pTotalFmt}`, bold: true, fontSize: 8, color: '#334155' },
-                        { text: `)`, fontSize: 7.5, color: '#64748b' }
-                    ],
-                    margin: [0, 2, 0, 2],
-                    alignment: 'left'
-                };
-            });
-
-            return { stack: lineasPrecio, alignment: 'left' };
+            return {
+                table: {
+                    headerRows: 1,
+                    widths: ['40%', '22%', '16%', '22%'],
+                    body: [
+                        [
+                            { text: 'VARIEDAD / TIPO', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'left', margin: [4, 4, 4, 4] },
+                            { text: 'PRECIO UNIT.', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [4, 4, 4, 4] },
+                            { text: 'MÍN.', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'center', margin: [4, 4, 4, 4] },
+                            { text: 'TOTAL MÍN.', bold: true, fontSize: 7.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [4, 4, 4, 4] }
+                        ],
+                        ...filasTabla
+                    ]
+                },
+                layout: {
+                    hLineWidth: function(i, node) { return (i === 0 || i === node.table.body.length || i === 1) ? 1 : 0.5; },
+                    vLineWidth: function() { return 0.5; },
+                    hLineColor: function() { return '#cbd5e1'; },
+                    vLineColor: function() { return '#cbd5e1'; }
+                },
+                margin: [0, 2, 0, 4]
+            };
         }
 
-        function crearCeldaProductoPDF(prod, modoPrecio, tipoRecargo, mapaRecargos) {
+        function crearCeldaProductoPDF(prod, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, isFirstCard) {
             if (!prod) return null;
+            const esPaginaCompleta = (formatoMaquetacion === 'pagina_completa');
 
             let imgObj = { text: 'Sin imagen disponible', fontSize: 8, color: '#999999', alignment: 'center', margin: [0, 40, 0, 40] };
             if (prod._base64Img) {
                 imgObj = {
                     image: prod._base64Img,
-                    width: 140,
+                    width: esPaginaCompleta ? 210 : 140,
                     alignment: 'center',
                     margin: [0, 0, 0, 4]
                 };
@@ -12716,7 +12745,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     link: `https://drive.google.com/drive/folders/${String(prod.carpeta_id).trim()}`,
                     color: '#0d6efd',
                     decoration: 'underline',
-                    fontSize: 8.5,
+                    fontSize: esPaginaCompleta ? 9.5 : 8.5,
                     bold: true,
                     alignment: 'center',
                     margin: [0, 8, 0, 0]
@@ -12727,7 +12756,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             const nombreProd = prod.nombre || prod.codigo || 'Producto';
             const skuProd = prod.codigo ? `Código SKU: [ ${prod.codigo} ]` : '';
 
-            return {
+            const resTabla = {
                 table: {
                     widths: ['100%'],
                     body: [
@@ -12738,49 +12767,37 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                     {
                                         text: nombreProd.toUpperCase(),
                                         style: 'prodTitle',
-                                        margin: [0, 0, 0, 3]
+                                        fontSize: esPaginaCompleta ? 14 : 11,
+                                        margin: [0, 0, 0, 4]
                                     },
                                     skuProd ? {
                                         text: skuProd,
-                                        fontSize: 8,
+                                        fontSize: esPaginaCompleta ? 9 : 8,
                                         bold: true,
                                         color: '#475569',
                                         background: '#f1f5f9',
-                                        margin: [0, 0, 0, 8]
+                                        margin: [0, 0, 0, 10]
                                     } : { text: '', margin: [0,0,0,2] },
-                                    // CUERPO EN 2 COLUMNAS (68% Izq: Specs & Precios, 32% Der: Foto)
+                                    // CUERPO EN 2 COLUMNAS (58% Izq: Specs & Precios, 42% Der: Foto)
                                     {
                                         columns: [
                                             {
-                                                width: '68%',
+                                                width: esPaginaCompleta ? '58%' : '68%',
                                                 stack: [
-                                                    { stack: listaMetadata, margin: [0, 0, 10, 8] },
-                                                    {
-                                                        table: {
-                                                            widths: ['100%'],
-                                                            body: [
-                                                                [{ stack: [preciosObj], fillColor: '#f8fafc', margin: [6, 6, 6, 6] }]
-                                                            ]
-                                                        },
-                                                        layout: {
-                                                            hLineWidth: function() { return 0.5; },
-                                                            vLineWidth: function() { return 0.5; },
-                                                            hLineColor: function() { return '#cbd5e1'; },
-                                                            vLineColor: function() { return '#cbd5e1'; }
-                                                        }
-                                                    }
+                                                    { stack: listaMetadata, margin: [0, 0, 12, 10] },
+                                                    { stack: [preciosObj], margin: [0, 0, 10, 4] }
                                                 ],
                                                 margin: [0, 0, 10, 0]
                                             },
                                             {
-                                                width: '32%',
+                                                width: esPaginaCompleta ? '42%' : '32%',
                                                 stack: [
                                                     {
                                                         table: {
                                                             widths: ['100%'],
                                                             body: [
-                                                                [{ text: 'PORTADA', fontSize: 7, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 2, 0, 2] }],
-                                                                [{ stack: [imgObj], alignment: 'center', margin: [4, 6, 4, 4] }]
+                                                                [{ text: 'PORTADA OFICIAL', fontSize: esPaginaCompleta ? 8 : 7, bold: true, color: '#000000', fillColor: '#ffc107', alignment: 'center', margin: [0, 3, 0, 3] }],
+                                                                [{ stack: [imgObj], alignment: 'center', margin: [4, 8, 4, 6] }]
                                                             ]
                                                         },
                                                         layout: {
@@ -12797,7 +12814,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                         ]
                                     }
                                 ],
-                                margin: [12, 12, 12, 12],
+                                margin: esPaginaCompleta ? [16, 16, 16, 16] : [12, 12, 12, 12],
                                 fillColor: '#ffffff'
                             }
                         ]
@@ -12813,10 +12830,25 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     paddingTop: function() { return 0; },
                     paddingBottom: function() { return 0; }
                 },
-                margin: [0, 0, 0, 14],
+                margin: esPaginaCompleta ? [0, 4, 0, 12] : [0, 0, 0, 14],
                 border: [false, false, false, false],
                 unbreakable: true
             };
+
+            if (esPaginaCompleta && !isFirstCard) {
+                resTabla.pageBreak = 'before';
+            }
+            return resTabla;
+        }
+
+        function optimizarUrlImagenPDF(url) {
+            if (!url || typeof url !== 'string') return "";
+            let clean = url.trim();
+            if (clean.includes('googleusercontent.com') || clean.includes('blogspot.com') || clean.includes('ggpht.com')) {
+                clean = clean.replace(/=[swh]\d+([^/]*)$/i, '=s800$1');
+                clean = clean.replace(/\/[swh]\d+([c-p-a-k-no]*)\//i, '/s800$1/');
+            }
+            return clean;
         }
 
         async function ejecutarGeneracionPDF() {
@@ -12827,6 +12859,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
             const modoPrecio = document.querySelector('input[name="modoPrecioPDF"]:checked')?.value || 'oficial';
             const tipoRecargo = document.getElementById("tipoRecargoPDF")?.value || 'porcentaje';
+            const formatoMaquetacion = document.getElementById('pdfFormatoMaquetacion')?.value || 'pagina_completa';
             const recargoGeneral = parseFloat(document.getElementById("recargo_general")?.value) || 0;
             const mapaRecargos = {
                 general: recargoGeneral,
@@ -12863,7 +12896,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
             Swal.fire({
                 title: 'Generando Catálogo PDF...',
-                text: 'Descargando miniaturas WebP del CDN y maquetando el documento en formato 1 tarjeta por fila para máxima calidad. Por favor espera unos segundos...',
+                text: 'Descargando imágenes en Alta Resolución (HD) y maquetando el documento. Por favor espera unos segundos...',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -12900,7 +12933,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     return;
                 }
 
-                // Descargar imágenes en paralelo via Canvas (Aprovechando CDN Google y CORS)
+                // Descargar imágenes en paralelo via Canvas en Alta Resolución (HD)
                 const productosConImg = [];
                 for (let p of productos) {
                     let urlImg = "";
@@ -12910,15 +12943,16 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                             if (!a.portada && b.portada) return 1;
                             return (parseInt(a.orden) || 999) - (parseInt(b.orden) || 999);
                         });
-                        urlImg = sorted[0].thumbnail_url || sorted[0].url || "";
+                        urlImg = sorted[0].url || sorted[0].thumbnail_url || "";
                     } else if (typeof p.imagen === 'string') {
                         urlImg = p.imagen;
                     } else {
-                        urlImg = p.thumbnail_url || p.url || "";
+                        urlImg = p.url || p.thumbnail_url || "";
                     }
 
                     let base64 = null;
                     if (urlImg) {
+                        urlImg = optimizarUrlImagenPDF(urlImg);
                         base64 = await cargarImagenYConvertirAJpegBase64(urlImg);
                     }
                     productosConImg.push({ ...p, _base64Img: base64 });
@@ -12929,12 +12963,12 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 let indiceElementos = [];
 
                 if (nomCat && nomCat !== "") {
-                    for (let p of productosConImg) {
-                        const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos);
+                    productosConImg.forEach((p, idxP) => {
+                        const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, idxP === 0);
                         if (celda && celda.table) {
                             listaTarjetas.push(celda);
                         }
-                    }
+                    });
                 } else {
                     const botonesIdx = [];
                     let catIdx = 0;
@@ -12968,8 +13002,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                 margin: [0, 0, 0, 15]
                             });
 
-                            prodsCat.forEach(p => {
-                                const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos);
+                            prodsCat.forEach((p, idxP) => {
+                                const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, idxP === 0);
                                 if (celda && celda.table) listaTarjetas.push(celda);
                             });
                             catIdx++;
@@ -12989,12 +13023,36 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
                 const docDefinition = {
                     pageSize: 'A4',
-                    pageMargins: [30, 45, 30, 45],
+                    pageMargins: [34, 48, 34, 48],
+                    background: function(currentPage, pageSize) {
+                        return {
+                            canvas: [
+                                {
+                                    type: 'rect',
+                                    x: 14,
+                                    y: 14,
+                                    w: pageSize.width - 28,
+                                    h: pageSize.height - 28,
+                                    lineWidth: 1.5,
+                                    lineColor: '#002b5c'
+                                },
+                                {
+                                    type: 'rect',
+                                    x: 17,
+                                    y: 17,
+                                    w: pageSize.width - 34,
+                                    h: pageSize.height - 34,
+                                    lineWidth: 0.5,
+                                    lineColor: '#94a3b8'
+                                }
+                            ]
+                        };
+                    },
                     header: function(currentPage, pageCount) {
                         return {
                             text: `${nombreTienda}  |  ${nomCat ? 'Categoría: ' + nomCat : 'Catálogo Completo'}`,
                             alignment: 'right',
-                            margin: [30, 15, 30, 0],
+                            margin: [34, 20, 34, 0],
                             fontSize: 8,
                             color: '#888888'
                         };
@@ -13002,8 +13060,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     footer: function(currentPage, pageCount) {
                         return {
                             columns: [
-                                { text: 'WhatsApp: Consultas y Pedidos', alignment: 'left', margin: [30, 10, 0, 0], fontSize: 9, bold: true, color: '#25D366' },
-                                { text: `Página ${currentPage} de ${pageCount}`, alignment: 'right', margin: [0, 10, 30, 0], fontSize: 9, color: '#666666' }
+                                { text: 'WhatsApp: Consultas y Pedidos', alignment: 'left', margin: [34, 8, 0, 0], fontSize: 9, bold: true, color: '#25D366' },
+                                { text: `Página ${currentPage} de ${pageCount}`, alignment: 'right', margin: [0, 8, 34, 0], fontSize: 9, color: '#666666' }
                             ]
                         };
                     },
