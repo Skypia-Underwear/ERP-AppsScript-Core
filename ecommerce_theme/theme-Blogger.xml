@@ -12747,10 +12747,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             return {
                 table: {
                     headerRows: 1,
-                    widths: ['38%', '26%', '14%', '22%'],
+                    widths: ['25%', '30%', '15%', '30%'],
                     body: [
                         [
-                            { text: 'VARIEDAD / TIPO', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'left', margin: [6, 5, 6, 5] },
+                            { text: 'VARIEDAD', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'left', margin: [6, 5, 6, 5] },
                             { text: 'PRECIO UNIT.', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [6, 5, 6, 5] },
                             { text: 'MÍN.', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'center', margin: [6, 5, 6, 5] },
                             { text: 'TOTAL MÍN.', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'right', margin: [6, 5, 6, 5] }
@@ -12768,7 +12768,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             };
         }
 
-        function crearCeldaProductoPDF(prod, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, isFirstCard) {
+        function crearCeldaProductoPDF(prod, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, isFirstCard, catHeaderText) {
             if (!prod) return null;
             const esPaginaCompleta = (formatoMaquetacion === 'pagina_completa');
 
@@ -12795,7 +12795,21 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             let cuerpoStack = [];
 
             if (esPaginaCompleta) {
-                // MODO 1 PRODUCTO POR PÁGINA: DISEÑO EDITORIAL EN FILAS (VERTICAL)
+                // === MODO 1 PRODUCTO POR PÁGINA: DISEÑO EDITORIAL EN FILAS ===
+
+                // 0. Banner de categoría integrado (solo para primer producto)
+                if (catHeaderText) {
+                    cuerpoStack.push({
+                        table: {
+                            widths: ['100%'],
+                            body: [[ { text: `CATEGORÍA: ${catHeaderText.toUpperCase()}`, fontSize: 14, bold: true, color: '#ffffff', alignment: 'center', margin: [0, 8, 0, 8] } ]]
+                        },
+                        layout: 'noBorders',
+                        fillColor: '#002b5c',
+                        margin: [0, 0, 0, 14]
+                    });
+                }
+
                 // 1. Cabecera centrada
                 cuerpoStack.push({
                     text: nombreProd.toUpperCase(),
@@ -12816,12 +12830,11 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     });
                 }
 
-                // 2. Fila Principal de Imagen (Showcase Visual Inteligente por Relación de Aspecto)
+                // 2. Showcase Visual (imagen centrada)
                 let visualShowcase = { text: 'Sin imagen disponible', fontSize: 9, color: '#999999', alignment: 'center', margin: [0, 40, 0, 40] };
                 const imgs = prod._imagenesPDF || [];
                 if (imgs.length > 0 && imgs[0]) {
                     const img0 = imgs[0];
-                    // Si es relación de aspecto ancha/horizontal (> 1.05) o solo hay 1 imagen disponible
                     if (img0.ratio > 1.05 || imgs.length === 1) {
                         visualShowcase = {
                             table: {
@@ -12831,16 +12844,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                     [{ image: img0.dataUrl, width: img0.ratio > 1.05 ? 360 : 250, alignment: 'center', margin: [0, 10, 0, 10] }]
                                 ]
                             },
-                            layout: {
-                                hLineWidth: function() { return 0.5; },
-                                vLineWidth: function() { return 0.5; },
-                                hLineColor: function() { return '#cbd5e1'; },
-                                vLineColor: function() { return '#cbd5e1'; }
-                            },
+                            layout: { hLineWidth: function() { return 0.5; }, vLineWidth: function() { return 0.5; }, hLineColor: function() { return '#cbd5e1'; }, vLineColor: function() { return '#cbd5e1'; } },
                             margin: [0, 2, 0, 6]
                         };
                     } else {
-                        // Relación 3:4 (o vertical) con al menos 2 imágenes: Mostrar Frente y Espalda lado a lado
                         const img1 = imgs[1] || img0;
                         visualShowcase = {
                             table: {
@@ -12856,12 +12863,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                     ]
                                 ]
                             },
-                            layout: {
-                                hLineWidth: function() { return 0.5; },
-                                vLineWidth: function() { return 0.5; },
-                                hLineColor: function() { return '#cbd5e1'; },
-                                vLineColor: function() { return '#cbd5e1'; }
-                            },
+                            layout: { hLineWidth: function() { return 0.5; }, vLineWidth: function() { return 0.5; }, hLineColor: function() { return '#cbd5e1'; }, vLineColor: function() { return '#cbd5e1'; } },
                             margin: [0, 2, 0, 6]
                         };
                     }
@@ -12874,76 +12876,59 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                 [{ image: prod._base64Img, width: 250, alignment: 'center', margin: [0, 10, 0, 10] }]
                             ]
                         },
-                        layout: {
-                            hLineWidth: function() { return 0.5; },
-                            vLineWidth: function() { return 0.5; },
-                            hLineColor: function() { return '#cbd5e1'; },
-                            vLineColor: function() { return '#cbd5e1'; }
-                        },
+                        layout: { hLineWidth: function() { return 0.5; }, vLineWidth: function() { return 0.5; }, hLineColor: function() { return '#cbd5e1'; }, vLineColor: function() { return '#cbd5e1'; } },
                         margin: [0, 2, 0, 6]
                     };
                 }
 
                 cuerpoStack.push(visualShowcase);
-                if (linkDrive) {
-                    cuerpoStack.push(linkDrive);
-                }
+                if (linkDrive) cuerpoStack.push(linkDrive);
 
-                // 3. Fila Secundaria de Metadatos en 2 Columnas (45% Descripción | 55% Lista de Precios)
+                // 3. Fila: ESPECIFICACIONES (ancho completo)
                 cuerpoStack.push({
-                    columns: [
-                        {
-                            width: '45%',
-                            stack: [
-                                { text: 'ESPECIFICACIONES', fontSize: 11, bold: true, color: '#002b5c', margin: [0, 0, 0, 8] },
-                                ...listaMetadata.map(item => ({
-                                    ...item,
-                                    text: Array.isArray(item.text)
-                                        ? item.text.map(t => ({ ...t, fontSize: (t.fontSize || 8) + 2 }))
-                                        : item.text,
-                                    margin: [0, 2.5, 0, 2.5]
-                                }))
-                            ],
-                            margin: [0, 10, 14, 0]
-                        },
-                        {
-                            width: '55%',
-                            stack: [
-                                { text: 'LISTA DE PRECIOS OFICIAL', fontSize: 11, bold: true, color: '#002b5c', margin: [0, 0, 0, 8] },
-                                preciosObj
-                            ],
-                            margin: [0, 10, 0, 0]
-                        }
-                    ],
-                    margin: [0, 6, 0, 0]
+                    table: {
+                        widths: ['100%'],
+                        body: [[
+                            { text: 'ESPECIFICACIONES', fontSize: 10.5, bold: true, color: '#ffffff', fillColor: '#334155', margin: [8, 5, 8, 5] }
+                        ]]
+                    },
+                    layout: 'noBorders',
+                    margin: [0, 14, 0, 6]
                 });
+                cuerpoStack.push({
+                    stack: listaMetadata.map(item => ({
+                        ...item,
+                        text: Array.isArray(item.text)
+                            ? item.text.map(t => ({ ...t, fontSize: (t.fontSize || 8) + 2 }))
+                            : item.text,
+                        margin: [0, 2.5, 0, 2.5]
+                    })),
+                    margin: [4, 0, 4, 0]
+                });
+
+                // 4. Fila: LISTA DE PRECIOS (ancho completo)
+                cuerpoStack.push({
+                    table: {
+                        widths: ['100%'],
+                        body: [[
+                            { text: 'LISTA DE PRECIOS OFICIAL', fontSize: 10.5, bold: true, color: '#ffffff', fillColor: '#334155', margin: [8, 5, 8, 5] }
+                        ]]
+                    },
+                    layout: 'noBorders',
+                    margin: [0, 14, 0, 6]
+                });
+                cuerpoStack.push(preciosObj);
+
             } else {
-                // MODO COMPACTO: DISEÑO CLÁSICO 2 COLUMNAS (IZQ: SPECS/PRECIOS | DER: FOTO)
+                // === MODO COMPACTO: 2 COLUMNAS (IZQ: SPECS/PRECIOS | DER: FOTO) ===
                 let imgObj = { text: 'Sin imagen disponible', fontSize: 8, color: '#999999', alignment: 'center', margin: [0, 40, 0, 40] };
                 if (prod._base64Img) {
-                    imgObj = {
-                        image: prod._base64Img,
-                        width: 140,
-                        alignment: 'center',
-                        margin: [0, 0, 0, 4]
-                    };
+                    imgObj = { image: prod._base64Img, width: 140, alignment: 'center', margin: [0, 0, 0, 4] };
                 }
 
-                cuerpoStack.push({
-                    text: nombreProd.toUpperCase(),
-                    style: 'prodTitle',
-                    fontSize: 11,
-                    margin: [0, 0, 0, 4]
-                });
+                cuerpoStack.push({ text: nombreProd.toUpperCase(), style: 'prodTitle', fontSize: 11, margin: [0, 0, 0, 4] });
                 if (skuProd) {
-                    cuerpoStack.push({
-                        text: skuProd,
-                        fontSize: 8,
-                        bold: true,
-                        color: '#475569',
-                        background: '#f1f5f9',
-                        margin: [0, 0, 0, 10]
-                    });
+                    cuerpoStack.push({ text: skuProd, fontSize: 8, bold: true, color: '#475569', background: '#f1f5f9', margin: [0, 0, 0, 10] });
                 }
 
                 cuerpoStack.push({
@@ -12967,12 +12952,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                                             [{ stack: [imgObj], alignment: 'center', margin: [4, 8, 4, 6] }]
                                         ]
                                     },
-                                    layout: {
-                                        hLineWidth: function() { return 0.5; },
-                                        vLineWidth: function() { return 0.5; },
-                                        hLineColor: function() { return '#e2e8f0'; },
-                                        vLineColor: function() { return '#e2e8f0'; }
-                                    }
+                                    layout: { hLineWidth: function() { return 0.5; }, vLineWidth: function() { return 0.5; }, hLineColor: function() { return '#e2e8f0'; }, vLineColor: function() { return '#e2e8f0'; } }
                                 },
                                 linkDrive ? linkDrive : { text: '' }
                             ],
@@ -13150,22 +13130,24 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 let indiceElementos = [];
 
                 if (nomCat && nomCat !== "") {
+                    // === CATÁLOGO POR CATEGORÍA: banner integrado en el primer producto ===
                     productosConImg.forEach((p, idxP) => {
-                        const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, idxP === 0);
-                        if (celda && celda.table) {
-                            listaTarjetas.push(celda);
-                        }
+                        const headerCat = (idxP === 0) ? nomCat : null;
+                        const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, idxP === 0, headerCat);
+                        if (celda && celda.table) listaTarjetas.push(celda);
                     });
                 } else {
+                    // === CATÁLOGO COMPLETO: Índice + secciones por categoría ===
                     const botonesIdx = [];
                     let catIdx = 0;
                     const catConProductos = todasCategorias.filter(c => productosConImg.some(p => p._catNombre === c.nombre));
 
-                    catConProductos.forEach((c, idx) => {
+                    catConProductos.forEach((c) => {
                         const prodsCat = productosConImg.filter(p => p._catNombre === c.nombre);
-                        const anchorId = `cat_sec_${idx}`;
+                        // anchorId basado en nombre para que coincida con los botones de la portada
+                        const anchorId = `cat_${c.nombre.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-                        // Botón en el índice con linkToDestination (ancla real)
+                        // Botón del índice
                         botonesIdx.push({
                             text: `  ${c.nombre.toUpperCase()}  `,
                             linkToDestination: anchorId,
@@ -13176,37 +13158,28 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         });
                         botonesIdx.push({ text: '  ' });
 
-                        // Página de categoría: con salto de página y ancla al inicio
-                        const elementosBloqueCat = [];
+                        // Ancla REAL: texto invisible con id (pdfmake 0.1.53 requiere text node)
+                        const anclaReal = { text: '', id: anchorId, fontSize: 0.1, margin: [0, 0, 0, 0] };
 
-                        // Banner de Categoría + ancla real (id en un elemento de texto)
-                        elementosBloqueCat.push({
-                            id: anchorId,
-                            table: {
-                                widths: ['100%'],
-                                body: [
-                                    [ { text: `CATEGORÍA: ${c.nombre.toUpperCase()}`, fontSize: 15, bold: true, color: '#ffffff', alignment: 'center', margin: [0, 10, 0, 10] } ]
-                                ]
-                            },
-                            layout: 'noBorders',
-                            fillColor: '#002b5c',
-                            margin: [0, 0, 0, 18]
-                        });
+                        // Primer producto lleva el banner de categoría integrado + ancla
+                        const primerProd = prodsCat[0];
+                        const celdaPrimera = crearCeldaProductoPDF(primerProd, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, true, c.nombre);
 
-                        prodsCat.forEach((p, idxP) => {
-                            const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, idxP === 0);
-                            if (celda && celda.table) elementosBloqueCat.push(celda);
-                        });
-
-                        // Para modo pagina_completa: ya tiene pageBreak en crearCeldaProductoPDF
-                        // Para modo compacto: agregar pageBreak antes del bloque de cada categoría
                         if (catIdx === 0) {
-                            listaTarjetas.push(...elementosBloqueCat);
+                            listaTarjetas.push(anclaReal);
+                            if (celdaPrimera && celdaPrimera.table) listaTarjetas.push(celdaPrimera);
                         } else {
-                            // Insertar pageBreak al inicio del stack de la categoría
-                            elementosBloqueCat[0] = { ...elementosBloqueCat[0], pageBreak: 'before' };
-                            listaTarjetas.push(...elementosBloqueCat);
+                            // pageBreak antes del ancla para que el salto de página ocurra al principio
+                            listaTarjetas.push({ ...anclaReal, pageBreak: 'before' });
+                            if (celdaPrimera && celdaPrimera.table) listaTarjetas.push(celdaPrimera);
                         }
+
+                        // Resto de productos de la categoría
+                        prodsCat.slice(1).forEach((p) => {
+                            const celda = crearCeldaProductoPDF(p, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, false, null);
+                            if (celda && celda.table) listaTarjetas.push(celda);
+                        });
+
                         catIdx++;
                     });
 
@@ -13233,14 +13206,24 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                     const filasCategorias = [];
                     let filaActual = [];
                     catConProductos2.forEach((c, idx) => {
-                        // Generar color único por categoría para el badge de iniciales
+                        // Mismo anchorId que usa el índice (basado en nombre)
+                        const anchorId = `cat_${c.nombre.replace(/[^a-zA-Z0-9]/g, '_')}`;
                         const coloresBadge = ['#002b5c','#0284c7','#7c3aed','#b45309','#065f46','#9d174d','#1e3a5f','#44403c'];
                         const colorBadge = coloresBadge[idx % coloresBadge.length];
                         const iniciales = c.nombre.trim().substring(0, 3).toUpperCase();
                         const celdaCat = {
                             stack: [
                                 { text: iniciales, fontSize: 14, bold: true, color: '#ffffff', background: colorBadge, alignment: 'center', margin: [0, 10, 0, 8] },
-                                { text: c.nombre.toUpperCase(), fontSize: 8.5, bold: true, color: '#002b5c', alignment: 'center', margin: [2, 0, 2, 4] },
+                                {
+                                    text: c.nombre.toUpperCase(),
+                                    fontSize: 8.5,
+                                    bold: true,
+                                    color: '#0284c7',
+                                    decoration: 'underline',
+                                    alignment: 'center',
+                                    linkToDestination: anchorId,
+                                    margin: [2, 0, 2, 4]
+                                },
                                 { text: `${(c.producto || []).length} productos`, fontSize: 7.5, color: '#64748b', alignment: 'center', margin: [0, 0, 0, 8] }
                             ],
                             fillColor: '#f8fafc',
