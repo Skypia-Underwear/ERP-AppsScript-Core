@@ -12747,7 +12747,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             return {
                 table: {
                     headerRows: 1,
-                    widths: ['25%', '30%', '15%', '30%'],
+                    widths: ['22%', '28%', '14%', '36%'],
                     body: [
                         [
                             { text: 'VARIEDAD', bold: true, fontSize: 8.5, color: '#ffffff', fillColor: '#002b5c', alignment: 'left', margin: [6, 5, 6, 5] },
@@ -12884,40 +12884,56 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                 cuerpoStack.push(visualShowcase);
                 if (linkDrive) cuerpoStack.push(linkDrive);
 
-                // 3. Fila: ESPECIFICACIONES (ancho completo)
+                // 3. Fila Secundaria en 2 Columnas (38% Descripción | 62% Lista de Precios)
+                // Se ordena en columnas para evitar exceder el alto de página y dar amplio espacio a los precios
                 cuerpoStack.push({
-                    table: {
-                        widths: ['100%'],
-                        body: [[
-                            { text: 'ESPECIFICACIONES', fontSize: 10.5, bold: true, color: '#ffffff', fillColor: '#334155', margin: [8, 5, 8, 5] }
-                        ]]
-                    },
-                    layout: 'noBorders',
-                    margin: [0, 14, 0, 6]
+                    columns: [
+                        {
+                            width: '38%',
+                            stack: [
+                                {
+                                    table: {
+                                        widths: ['100%'],
+                                        body: [[
+                                            { text: 'ESPECIFICACIONES', fontSize: 10.5, bold: true, color: '#ffffff', fillColor: '#334155', alignment: 'center', margin: [4, 4, 4, 4] }
+                                        ]]
+                                    },
+                                    layout: 'noBorders',
+                                    margin: [0, 0, 0, 8]
+                                },
+                                {
+                                    stack: listaMetadata.map(item => ({
+                                        ...item,
+                                        text: Array.isArray(item.text)
+                                            ? item.text.map(t => ({ ...t, fontSize: (t.fontSize || 8) + 1.5 }))
+                                            : item.text,
+                                        margin: [0, 2, 0, 2]
+                                    })),
+                                    margin: [0, 0, 8, 0]
+                                }
+                            ],
+                            margin: [0, 10, 10, 0]
+                        },
+                        {
+                            width: '62%',
+                            stack: [
+                                {
+                                    table: {
+                                        widths: ['100%'],
+                                        body: [[
+                                            { text: 'LISTA DE PRECIOS OFICIAL', fontSize: 10.5, bold: true, color: '#ffffff', fillColor: '#334155', alignment: 'center', margin: [4, 4, 4, 4] }
+                                        ]]
+                                    },
+                                    layout: 'noBorders',
+                                    margin: [0, 0, 0, 8]
+                                },
+                                { stack: [preciosObj], margin: [0, 0, 0, 0] }
+                            ],
+                            margin: [0, 10, 0, 0]
+                        }
+                    ],
+                    margin: [0, 8, 0, 0]
                 });
-                cuerpoStack.push({
-                    stack: listaMetadata.map(item => ({
-                        ...item,
-                        text: Array.isArray(item.text)
-                            ? item.text.map(t => ({ ...t, fontSize: (t.fontSize || 8) + 2 }))
-                            : item.text,
-                        margin: [0, 2.5, 0, 2.5]
-                    })),
-                    margin: [4, 0, 4, 0]
-                });
-
-                // 4. Fila: LISTA DE PRECIOS (ancho completo)
-                cuerpoStack.push({
-                    table: {
-                        widths: ['100%'],
-                        body: [[
-                            { text: 'LISTA DE PRECIOS OFICIAL', fontSize: 10.5, bold: true, color: '#ffffff', fillColor: '#334155', margin: [8, 5, 8, 5] }
-                        ]]
-                    },
-                    layout: 'noBorders',
-                    margin: [0, 14, 0, 6]
-                });
-                cuerpoStack.push(preciosObj);
 
             } else {
                 // === MODO COMPACTO: 2 COLUMNAS (IZQ: SPECS/PRECIOS | DER: FOTO) ===
@@ -13165,14 +13181,10 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
                         const primerProd = prodsCat[0];
                         const celdaPrimera = crearCeldaProductoPDF(primerProd, modoPrecio, tipoRecargo, mapaRecargos, formatoMaquetacion, true, c.nombre);
 
-                        if (catIdx === 0) {
-                            listaTarjetas.push(anclaReal);
-                            if (celdaPrimera && celdaPrimera.table) listaTarjetas.push(celdaPrimera);
-                        } else {
-                            // pageBreak antes del ancla para que el salto de página ocurra al principio
-                            listaTarjetas.push({ ...anclaReal, pageBreak: 'before' });
-                            if (celdaPrimera && celdaPrimera.table) listaTarjetas.push(celdaPrimera);
-                        }
+                        // En catálogo completo, SIEMPRE iniciamos la categoría en una nueva página (pageBreak: 'before')
+                        // para que la portada/índice queden limpios en la página 1 y el banner no quede huérfano.
+                        listaTarjetas.push({ ...anclaReal, pageBreak: 'before' });
+                        if (celdaPrimera && celdaPrimera.table) listaTarjetas.push(celdaPrimera);
 
                         // Resto de productos de la categoría
                         prodsCat.slice(1).forEach((p) => {
