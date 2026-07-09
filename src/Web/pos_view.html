@@ -283,7 +283,7 @@
 
   .product-grid-tpv {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 1rem;
   }
 
@@ -293,15 +293,33 @@
     border-radius: 1rem;
     padding: 0.75rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     position: relative;
     overflow: hidden;
+    /* Ancho mínimo garantizado para 2 botones + flechas */
+    min-width: 200px;
   }
 
-  .product-card:hover {
+  /* Tarjetas PRECIO VARIABLE: solo resaltar borde/glow, sin mover la tarjeta */
+  .product-card--variable:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35),
+      0 8px 24px -8px rgba(99, 102, 241, 0.3);
+  }
+
+  /* Tarjetas PRECIO SIMPLE: mantiene el efecto de elevación clásico */
+  .product-card--simple:hover {
+    border-color: var(--primary);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(99, 102, 241, 0.4);
+  }
+
+  /* Fallback si no tiene clase --simple ni --variable */
+  .product-card:not(.product-card--simple):not(.product-card--variable):hover {
     border-color: var(--primary);
     transform: translateY(-4px);
     box-shadow: 0 12px 24px -10px rgba(99, 102, 241, 0.4);
@@ -349,7 +367,7 @@
 
   .variety-mini-btn {
     flex: 1;
-    padding: 8px 4px;
+    padding: 8px 6px;
     border-radius: 8px;
     border: 1.5px solid var(--border-color);
     background: rgba(255, 255, 255, 0.03);
@@ -357,15 +375,22 @@
     font-size: 0.65rem;
     font-weight: 800;
     text-align: center;
-    transition: all 0.2s;
+    /* Transición para scale + glow en hover */
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.18s ease,
+      border-color 0.18s ease,
+      background 0.18s ease;
     line-height: 1.2;
     cursor: pointer;
     min-width: 0;
   }
 
+  /* Efecto hover: !important necesario para sobreescribir inline styles asignados por JS */
   .variety-mini-btn:hover {
-    border-color: var(--primary);
-    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary) !important;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.75) 0%, rgba(139, 92, 246, 0.65) 100%) !important;
+    box-shadow: 0 0 0 2px var(--primary);
+    color: #fff !important;
   }
 
   .variety-carousel-arrow {
@@ -375,20 +400,26 @@
     background: var(--bg-panel);
     border: 1px solid var(--border-color) !important;
     color: var(--text-muted);
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
     display: flex !important;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 10;
     font-size: 0.75rem;
+    transition: background 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease;
   }
 
   .variety-carousel-arrow:hover {
     color: white;
-    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.2);
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
   }
 
   .variety-carousel-arrow.prev {
@@ -1285,6 +1316,14 @@
                 class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Imprimir Código de Barras</label>
             </div>
           </div>
+          <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+            <input type="checkbox" id="tpv-config-print-marketing"
+              onchange="togglePrintFeature('tpv-config-print-marketing', 'tpv_print_marketing')"
+              class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+            <label for="tpv-config-print-marketing"
+              class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Imprimir Mensaje Publicitario/Nota de
+              Cambio</label>
+          </div>
         </div>
         <div>
           <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Formato del Ticket</label>
@@ -1823,13 +1862,14 @@
           let resolvedStoreId = storeId;
 
           const isStoreInvalid = !catalog.stores[resolvedStoreId];
-          const isSingleStore = availableStores.length === 1;
+          const availableStoreKeys = Object.keys(catalog.stores || {});
 
-          if (availableStores.length > 0 && (isStoreInvalid || isSingleStore)) {
-            resolvedStoreId = availableStores[0];
-            if (isStoreInvalid) {
-              console.warn(`[TPV] La tienda asignada '${storeId}' no está registrada en el catálogo. Auto-resolviendo a la tienda disponible: '${resolvedStoreId}'`);
-            }
+          // Fallback SOLO si la tienda asignada al usuario no existe en el catálogo.
+          // La condición anterior incluía (isSingleStore) sin importar si la tienda era válida,
+          // lo que forzaba el fallback aun cuando el asesor tenía una tienda correctamente asignada.
+          if (isStoreInvalid && availableStoreKeys.length > 0) {
+            resolvedStoreId = availableStoreKeys[0];
+            console.warn(`[TPV] La tienda '${storeId}' no existe en el catálogo. Fallback a: '${resolvedStoreId}'`);
             posMetadata.managedStoreId = resolvedStoreId;
             if (catalog.stores[resolvedStoreId] && catalog.stores[resolvedStoreId].config) {
               posMetadata.storeConfig = catalog.stores[resolvedStoreId].config;
@@ -1877,7 +1917,10 @@
             return Object.assign({}, p, { variations: filtered });
           }).filter(p => p.variations.length > 0);
 
-          renderTpvUI();
+          // NOTA: renderTpvUI() ya fue llamado dentro del withSuccessHandler del servidor
+          // (línea ~1849) una vez que el stockMap estuvo disponible.
+          // No llamar aquí para evitar el doble render: primero sin stock y luego con stock
+          // (causa un flash visual y muestra 0 unidades en los botones hasta que responde el servidor).
           initCartDataTable();
 
           // Renderizar métodos de pago e inicializar por defecto en "Efectivo"
@@ -2208,7 +2251,10 @@
 
         products.forEach(function (p) {
           var div = document.createElement('div');
-          div.className = 'product-card animate-fade-in';
+          // Clase diferenciada: --variable no eleva la tarjeta (los botones tienen el scale)
+          // --simple eleva la tarjeta entera porque no hay botones de precio
+          const cardVariantClass = isPrecioVariable ? 'product-card--variable' : 'product-card--simple';
+          div.className = 'product-card animate-fade-in ' + cardVariantClass;
 
           var genderIconMap = {
             'HOMBRE': { icon: 'ph-gender-male', color: '#3b82f6' },
@@ -2835,12 +2881,7 @@
           .manualRefreshStockCache(storeId);
       };
 
-      window.openConfigModal = function () {
-        var el = document.getElementById('tpv-config-hide-surcharge-ticket');
-        if (el) el.checked = localStorage.getItem('tpvHideSurchargeTicket') === 'true';
-
-        document.getElementById('modal-config').style.display = 'flex';
-      };
+      // openConfigModal definida más abajo (versión completa con todas las preferencias)
 
       window.closeConfigModal = function () {
         document.getElementById('modal-config').style.display = 'none';
@@ -2892,7 +2933,11 @@
             sku: product.sku || "",
             gender: product.gender || "",
             model: product.model,
+            image: product.image || "",
             color: variation.color,
+            colorHex: (catalog && catalog.colors && catalog.colors[variation.color])
+              ? (catalog.colors[variation.color].hex.startsWith('#') ? catalog.colors[variation.color].hex : '#' + catalog.colors[variation.color].hex)
+              : null,
             size: variation.size,
             price: itemPrice,
             quantity: initQty,
@@ -2921,13 +2966,30 @@
             priceHtml = "<div style='display:flex; flex-direction:column; align-items:flex-start;'><span style='font-size:0.75rem; font-weight:700; color:#3b82f6;'>" + (item.tipoPrecio || '—') + "</span><span style='font-size:0.8rem; font-weight:600; color:#cbd5e1;'>$" + (item.price || 0).toLocaleString() + "</span></div>";
           }
 
+          // Columna PRODUCTO: miniatura + nombre
+          const thumbHtml = item.image
+            ? `<img src="${item.image}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border-color);flex-shrink:0;" loading="lazy" alt="">`
+            : `<div style="width:32px;height:32px;border-radius:6px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">&#128085;</div>`;
+          const productCellHtml = `<div style="display:flex;align-items:center;gap:6px;">${thumbHtml}<span style="font-weight:600;font-size:0.78rem;">${item.model}</span></div>`;
+
+          // Columna VARIANTE: chip de color + talle en píldora
+          const isSurtido = (item.color || '').toLowerCase() === 'surtido';
+          let chipStyle = isSurtido
+            ? 'background:linear-gradient(135deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#8b5cf6);'
+            : (item.colorHex ? `background:${item.colorHex};` : 'background:#475569;');
+          const chipBorderColor = item.colorHex ? item.colorHex : '#475569';
+          const variantCellHtml = `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">`
+            + `<span title="${item.color}" style="display:inline-block;width:14px;height:14px;border-radius:4px;${chipStyle}border:1px solid rgba(255,255,255,0.2);flex-shrink:0;"></span>`
+            + `<span style="font-size:0.72rem;font-weight:700;background:rgba(255,255,255,0.07);border:1px solid ${chipBorderColor}40;border-radius:5px;padding:1px 6px;color:var(--text-main);white-space:nowrap;">${item.size}</span>`
+            + `</div>`;
+
           dt.row.add([
-            "<div style='font-weight:600'>" + item.model + "</div>",
-            "<div style='font-size:0.85rem;'>" + item.color + " / " + item.size + "</div>",
+            productCellHtml,
+            variantCellHtml,
             priceHtml,
-            "<input type='number' class='qty-input' value='" + item.quantity + "' min='" + (item.min_qty || 1) + "' step='" + (item.min_qty || 1) + "' onchange='updateTpvQty(" + index + ", this.value)'>",
+            `<input type='number' class='qty-input' value='${item.quantity}' min='${item.min_qty || 1}' step='${item.min_qty || 1}' onchange='updateTpvQty(${index}, this.value)'>`,
             "$" + (item.price * item.quantity).toLocaleString(),
-            "<button onclick='removeTpvItem(" + index + ")' style='color:#ef4444;background:none;border:none;cursor:pointer'><i class='ph-bold ph-trash'></i></button>"
+            `<button onclick='removeTpvItem(${index})' style='color:#ef4444;background:none;border:none;cursor:pointer'><i class='ph-bold ph-trash'></i></button>`
           ]);
         });
 
@@ -2939,7 +3001,7 @@
         const item = cart[index];
         let newPrice = parseFloat(val);
         if (isNaN(newPrice) || newPrice < 0) {
-            newPrice = 0;
+          newPrice = 0;
         }
         item.price = newPrice;
         renderTpvCart();
@@ -3087,6 +3149,20 @@
 
         const finalTotalEl = document.getElementById(preModal + 'final-total');
         if (finalTotalEl) finalTotalEl.innerText = '$' + Math.round(totalFinal).toLocaleString();
+
+        // G. Persistencia en memoria de los totales calculados.
+        // CRÍTICO: processCheckoutSale los leerá directamente de aquí,
+        // evitando re-parsear el DOM (que puede tener errores de formato o redondeo).
+        window._tpvLastTotals = {
+          montoProductos:  montoProductos,
+          minorSurcharge:  minorSurcharge,
+          cashAmount:      cashAmount,
+          subtotalNeto:    subtotalNeto,
+          paymentSurcharge: Math.round(paymentSurcharge),
+          totalFinal:      Math.round(totalFinal),
+          method:          method,
+          customerId:      customerId
+        };
       };
 
       window.removeTpvItem = function (index) {
@@ -3108,18 +3184,14 @@
         const cashAmount = parseFloat(document.getElementById(pre + 'tpv-cash-amount')?.value) || 0;
         const transferAccountId = (method === 'Transferencia') ? document.getElementById(pre + 'tpv-transfer-account')?.value : '';
 
-        // Función auxiliar para extraer números de texto con formato (moneda)
-        const parseCurrency = (id) => {
-          const el = document.getElementById(id);
-          if (!el) return 0;
-          const text = el.innerText || "0";
-          return parseFloat(text.replace(/[^-?\d]/g, '')) || 0;
-        };
-
-        const minorSurcharge = parseCurrency(preModal + 'minor-surcharge');
-        const paymentSurcharge = parseCurrency(preModal + 'payment-surcharge');
-        const finalTotal = parseCurrency(preModal + 'final-total');
-        const subtotalNeto = parseCurrency(preModal + 'subtotal');
+        // Leer los totales calculados en memoria por updateTpvTotals.
+        // NUNCA re-parsear del DOM: el formato de moneda varía por locale
+        // y el redondeo puede introducir diferencias de centavos en el ticket.
+        const T = window._tpvLastTotals || {};
+        const minorSurcharge   = T.minorSurcharge   || 0;
+        const paymentSurcharge = T.paymentSurcharge  || 0;
+        const finalTotal       = T.totalFinal        || 0;
+        const subtotalNeto     = T.subtotalNeto       || 0;
 
         // OBJETO DE VENTA
         var saleData = {
@@ -3137,7 +3209,7 @@
           subtotal: subtotalNeto,
           minorSurcharge: minorSurcharge,
           transferSurcharge: paymentSurcharge,
-          totalAmount: Math.round(finalTotal),
+          totalAmount: finalTotal,
           minimumPurchaseAmount: selectedMinPurchase,
           cart: [].concat(cart),
           forceSale: window.isOutsideSchedule || false,
@@ -3307,7 +3379,10 @@
           copias: settings.copias || 1,
           sonido: settings.sonido || "0",
           abrir_caja: (sale.paymentMethod === "Efectivo" || sale.isMixedPayment) ? "1" : "0",
-          marketing: (sale.totalAmount >= (settings.minCupon || 0)) ? (settings.marketing || "Condiciones: Los cambios solo se aceptan con este ticket (7 dias). No aplica Ropa de Oferta") : "",
+          // marketing: se imprime solo si el total supera minCupon Y el usuario habilitó la sección en Preferencias TPV
+          marketing: (localStorage.getItem('tpv_print_marketing') !== 'false' && sale.totalAmount >= (settings.minCupon || 0))
+            ? (settings.marketing || "Condiciones: Los cambios solo se aceptan con este ticket (7 dias). No aplica Ropa de Oferta")
+            : "",
           texto_ticket: t
         };
       }
@@ -3352,6 +3427,8 @@
               localStorage.setItem('tpv_offline_queue', JSON.stringify(newQueue));
 
               if (res.updatesMap) {
+                // Actualización parcial optimista: aplica solo las variaciones de ESTA venta
+                // para que el UI refleje el cambio inmediatamente mientras llega el refresco completo.
                 Object.assign(realStockCache.map, res.updatesMap);
               }
 
@@ -3365,7 +3442,30 @@
               }
 
               updateSyncUI();
-              if (newQueue.length > 0) setTimeout(syncLocalQueue, 1000);
+
+              if (newQueue.length > 0) {
+                // Hay más ventas en cola → procesarlas en cadena
+                setTimeout(syncLocalQueue, 1000);
+              } else {
+                // Cola vacía → Refresco completo del stock desde el servidor.
+                // Esto es clave en escenario multi-caja: otras cajas pueden haber
+                // vendido stock entre la ultima actualización local y ahora.
+                const storeId = posMetadata.managedStoreId;
+                if (storeId) {
+                  google.script.run
+                    .withSuccessHandler(stockRes => {
+                      if (stockRes && stockRes.success && stockRes.stockMap) {
+                        realStockCache.map = stockRes.stockMap; // Reemplaza TODO el mapa
+                        realStockCache.lastUpdate = new Date();
+                        console.log('[Stock] Refresco post-venta completado. Tienda:', storeId, '| Items:', Object.keys(stockRes.stockMap).length);
+                      }
+                    })
+                    .withFailureHandler(() => {
+                      console.warn('[Stock] Refresco post-venta falló (no crítico).');
+                    })
+                    .manualRefreshStockCache(storeId);
+                }
+              }
             } else {
               console.warn("Fallo sincronizacion servidor:", res.message);
             }
@@ -3379,7 +3479,171 @@
 
       function initSyncWorker() {
         updateSyncUI();
-        setInterval(syncLocalQueue, 30000); // Cada 30 seg
+
+        // --- Worker 1: Sincronización de Cola Offline ---
+        // Intenta enviar las ventas pendientes al servidor cada 30 segundos.
+        setInterval(syncLocalQueue, 30000);
+
+        // --- Worker 2: Refresco Periódico de Stock (Multi-Caja) ---
+        // Resuelve el problema de cajas inactivas que no saben del stock
+        // vendido por otras cajas de la misma tienda.
+        // Se ejecuta cada 3 minutos de forma silenciosa en segundo plano.
+        const STOCK_REFRESH_INTERVAL_MS = 3 * 60 * 1000; // 3 minutos
+        setInterval(function () {
+          const storeId = posMetadata && posMetadata.managedStoreId;
+          if (!storeId) return;
+
+          // Solo refrescar si no hay una sincronización de venta en curso
+          // (para no generar llamadas redundantes al servidor)
+          if (isSyncing) return;
+
+          console.log('[Stock Worker] Refresco automático multi-caja. Tienda:', storeId);
+          google.script.run
+            .withSuccessHandler(function (stockRes) {
+              if (stockRes && stockRes.success && stockRes.stockMap) {
+                realStockCache.map = stockRes.stockMap;
+                realStockCache.lastUpdate = new Date();
+                console.log('[Stock Worker] Cache actualizado. Items:', Object.keys(stockRes.stockMap).length);
+              }
+            })
+            .withFailureHandler(function () {
+              console.warn('[Stock Worker] Fallo en refresco automático (no crítico).');
+            })
+            .manualRefreshStockCache(storeId);
+        }, STOCK_REFRESH_INTERVAL_MS);
+
+        // --- Worker 3: Verificación de Versión del Catálogo (CDN) ---
+        // Resuelve el problema de precios/productos desactualizados cuando el cliente
+        // actualiza el catálogo en Google Sheets mientras el TPV está en uso.
+        // Compara el timestamp_ms del catálogo actual con el del CDN.
+        // Si detecta una versión más nueva → recarga silenciosa + toast de notificación.
+        const CATALOG_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
+        setInterval(async function () {
+          if (!CATALOG_URL && !CATALOG_URL_FALLBACK) return;
+          const urlToCheck = CATALOG_URL || CATALOG_URL_FALLBACK;
+          if (!urlToCheck || !urlToCheck.startsWith('http')) return;
+
+          try {
+            // Agregar cache-buster para evitar que el browser devuelva la copia en caché
+            const cacheBuster = '?t=' + Math.floor(Date.now() / (CATALOG_CHECK_INTERVAL_MS));
+            const response = await fetch(urlToCheck + cacheBuster, { cache: 'no-store' });
+            if (!response.ok) return;
+
+            const remoteCatalog = await response.json();
+            const remoteTs = remoteCatalog.timestamp_ms || 0;
+            const localTs  = catalog ? (catalog.timestamp_ms || 0) : 0;
+
+            if (remoteTs > localTs) {
+              console.log('[Catalog Worker] Nueva versión detectada en CDN. Remote:', remoteTs, '| Local:', localTs, '| Recargando...');
+
+              // Actualizar el catálogo global y la variable local del TPV
+              window.cachedCatalogData = remoteCatalog;
+              window.catalogFetchPromise = null; // Limpiar caché de promesa para próxima carga
+
+              // Deep-clone para evitar mutaciones del catálogo global
+              const clonedCat = JSON.parse(JSON.stringify(remoteCatalog));
+              catalog = clonedCat;
+              window.catalog = clonedCat;
+
+              // ─── REHIDRATACIÓN COMPLETA DE posMetadata ───────────────────
+              // CRÍTICO: Tomar variedades/precios/métodos del NUEVO catálogo,
+              // NO del posMetadata viejo. De lo contrario los precios actualizados
+              // en Sheets nunca llegan al cajero hasta que recargue la página.
+              if (posMetadata) {
+                // Variedades de precio (incluye precios actualizados)
+                if (clonedCat.allVarieties) {
+                  posMetadata.allVarieties = clonedCat.allVarieties;
+                }
+                // Tipo de registro (PRECIO VARIABLE / ESTANDAR / etc.)
+                if (clonedCat.priceConfig) {
+                  posMetadata.priceConfig = clonedCat.priceConfig;
+                  priceConfig = clonedCat.priceConfig; // Variable local del scope TPV
+                }
+                // Métodos de pago (podrían haber cambiado recargos)
+                if (clonedCat.paymentMethods) {
+                  posMetadata.paymentMethods = clonedCat.paymentMethods;
+                }
+                // Clientes (por si se agregaron nuevos)
+                if (clonedCat.clients) {
+                  posMetadata.customers = clonedCat.clients;
+                }
+                // Cuentas de transferencia
+                if (clonedCat.transferAccounts) {
+                  posMetadata.transferAccounts = clonedCat.transferAccounts;
+                }
+              }
+
+              // Filtrar productos por tienda y enriquecer con variedades del NUEVO catálogo
+              const resolvedStoreId = posMetadata ? posMetadata.managedStoreId : null;
+              if (resolvedStoreId) {
+                catalog.products = catalog.products.map(function (p) {
+                  // Variedades de precio: usar posMetadata.allVarieties (ya actualizado arriba)
+                  const rawVars = posMetadata.allVarieties && posMetadata.allVarieties[p.id];
+                  if (rawVars) p.varieties = rawVars;
+
+                  // Variaciones de inventario: filtrar solo las de esta tienda
+                  var filtered = (p.variations || []).filter(function (v) {
+                    return String(v.store_id) === String(resolvedStoreId);
+                  });
+                  return Object.assign({}, p, { variations: filtered });
+                }).filter(function (p) { return p.variations.length > 0; });
+              }
+
+              // Re-renderizar catálogo, filtros y métodos de pago
+              renderTpvUI();
+              renderPaymentMethods('payment-methods-grid');
+              renderPaymentMethods('qr-payment-methods-grid');
+
+              // Mostrar notificación visual no intrusiva al cajero
+              showCatalogUpdateToast();
+            } else {
+              console.log('[Catalog Worker] Catálogo vigente (sin cambios).');
+            }
+          } catch (e) {
+            console.warn('[Catalog Worker] Error verificando CDN (no crítico):', e.message);
+          }
+        }, CATALOG_CHECK_INTERVAL_MS);
+      }
+
+      // Muestra un toast suave en la esquina inferior izquierda informando que el catálogo fue actualizado.
+      // No interrumpe el flujo de venta — desaparece sola en 5 segundos.
+      function showCatalogUpdateToast() {
+        const existingToast = document.getElementById('tpv-catalog-update-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'tpv-catalog-update-toast';
+        toast.style.cssText = [
+          'position:fixed', 'bottom:1.5rem', 'left:1.5rem', 'z-index:9999',
+          'background:#1e293b', 'border:1px solid #10b981', 'border-radius:0.75rem',
+          'padding:0.75rem 1.25rem', 'display:flex', 'align-items:center', 'gap:0.75rem',
+          'box-shadow:0 8px 24px rgba(0,0,0,0.4)', 'animation:slideInToast 0.3s ease',
+          'color:#f1f5f9', 'font-size:0.8rem', 'font-weight:600', 'max-width:320px'
+        ].join(';');
+
+        toast.innerHTML = [
+          '<i class="ph-bold ph-arrow-clockwise" style="color:#10b981;font-size:1.2rem;flex-shrink:0;"></i>',
+          '<div>',
+            '<div style="color:#10b981;font-size:0.7rem;font-weight:800;text-transform:uppercase;margin-bottom:2px;">Catálogo Actualizado</div>',
+            'Se detectó una nueva versión de precios y productos.',
+          '</div>'
+        ].join('');
+
+        // Agregar animación si no existe
+        if (!document.getElementById('tpv-toast-style')) {
+          const style = document.createElement('style');
+          style.id = 'tpv-toast-style';
+          style.textContent = '@keyframes slideInToast{from{opacity:0;transform:translateY(1rem)}to{opacity:1;transform:translateY(0)}}';
+          document.head.appendChild(style);
+        }
+
+        document.body.appendChild(toast);
+        setTimeout(function () {
+          toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(1rem)';
+          setTimeout(function () { if (toast.parentNode) toast.remove(); }, 500);
+        }, 5000);
       }
 
       // Se eliminó handleTpvPrinting por redundancia
@@ -3507,6 +3771,11 @@
           const printBarra = localStorage.getItem('tpv_print_barra') !== 'false';
           const cbBarra = document.getElementById('tpv-config-print-barra');
           if (cbBarra) cbBarra.checked = printBarra;
+
+          // Imprimir mensaje publicitario (marketing) — true por defecto
+          const printMarketing = localStorage.getItem('tpv_print_marketing') !== 'false';
+          const cbMarketing = document.getElementById('tpv-config-print-marketing');
+          if (cbMarketing) cbMarketing.checked = printMarketing;
         }
       };
 

@@ -530,14 +530,56 @@ function updateInventoryStock(cart) {
 }
 
 /**
- * Actualiza la caché del servidor de forma selectiva para las tiendas afectadas.
+ * Actualiza el caché de stock del servidor sobrescribiendo SOLO las variaciones
+ * contenidas en el updatesMap, sin releer la hoja de inventario completa.
+ *
+ * Lógica heredada del TG SYSTEM y adaptada al sistema de caché fragmentado por tienda:
+ *   1. Lee el mapa de stock actual desde el caché fragmentado de la tienda afectada.
+ *   2. Hace un merge quirúrgico (Object.assign) con las variaciones de la venta.
+ *   3. Escribe de vuelta solo ese caché de tienda — no toca las otras tiendas.
+ *   4. Si el caché está expirado o vacío, cae al fallback de regeneración completa.
+ *
+ * @param {Object} updatesMap  - { variation_id: newStock } solo de las variaciones vendidas.
+ * @param {string} [storeId]   - ID de la tienda afectada (necesario para la clave fragmentada).
  */
-function updateCacheSelectively(updatesMap) {
+function updateCacheSelectively(updatesMap, storeId) {
     if (!updatesMap || Object.keys(updatesMap).length === 0) return;
 
-    // En el nuevo sistema por tienda, si hay cambios, lo más seguro es forzar la regeneración
-    // o identificar qué tiendas fueron afectadas. Para simplificar y dado que es asíncrono en TPV:
-    generateInventoryCache();
+    const lock = LockService.getScriptLock();
+    try {
+        // Lock breve para evitar race conditions entre cajas simultáneas
+        if (!lock.tryLock(5000)) {
+            debugLog("[Caché Selectiva] Bloqueo fallido — omitiendo actualización. La próxima lectura regenerará.");
+            return;
+        }
+
+        if (storeId) {
+            // ── Modo tienda específica (camino feliz) ──────────────────────────────
+            const cacheKey = `STOCK_MAP_STORE_${storeId}`;
+            const currentMap = _getChunkedCache(cacheKey);
+
+            if (currentMap) {
+                // Merge quirúrgico: solo las variaciones de esta venta
+                Object.assign(currentMap, updatesMap);
+                _saveChunkedCache(cacheKey, currentMap, 600); // 10 min — mismo TTL que generateInventoryCache
+                debugLog(`[Caché Selectiva] ✅ ${Object.keys(updatesMap).length} variaciones actualizadas en caché de tienda '${storeId}'. Sin releer hoja.`);
+            } else {
+                // Caché expirado o nunca generado → regenerar todo
+                debugLog(`[Caché Selectiva] ⚠️ Caché de tienda '${storeId}' no encontrado. Disparando regeneración global.`);
+                generateInventoryCache();
+            }
+        } else {
+            // ── Sin tienda (fallback legacy) ────────────────────────────────────────
+            // No sabemos qué caché de tienda tocar → regenerar todo de forma segura
+            debugLog("[Caché Selectiva] Sin storeId, regenerando inventario completo (fallback).");
+            generateInventoryCache();
+        }
+
+    } catch (e) {
+        debugLog("[Caché Selectiva] ❌ Error crítico: " + e.message);
+    } finally {
+        lock.releaseLock();
+    }
 }
 
 /**
@@ -1117,10 +1159,14 @@ function processSale(saleData) {
         
         if (!activeCashRegisterId && sheetCaja) {
             const cashData = convertirRangoAObjetos(sheetCaja);
-            const hoy = new Date().toLocaleDateString('es-AR');
+            // Usar la misma estrategia de fecha que getStoreDynamicStatus para consistencia.
+            // toLocaleDateString('es-AR') depende del locale del servidor de Google y puede
+            // diferir de la TZ de Argentina en fechas borde (ej: cambio de horario de verano).
+            const tz = Session.getScriptTimeZone();
+            const hoy = Utilities.formatDate(now, tz, "yyyy-MM-dd");
             
             const cajaAbierta = cashData.find(c => 
-                new Date(c.FECHA).toLocaleDateString('es-AR') === hoy &&
+                Utilities.formatDate(new Date(c.FECHA), tz, "yyyy-MM-dd") === hoy &&
                 String(c.ASESOR_ID) === String(saleData.userId) &&
                 String(c.TIENDA_ID) === String(saleData.storeId) &&
                 c.ESTADO === "ABIERTA"
@@ -1224,7 +1270,9 @@ function processSale(saleData) {
         let updatesMap = {};
         try {
             updatesMap = updateInventoryStock(saleData.cart);
-            updateCacheSelectively(updatesMap);
+            // Pasar storeId para activar la actualización quirúrgica de caché por tienda.
+            // Sin él, la función cae al fallback de regeneración completa (más lento).
+            updateCacheSelectively(updatesMap, saleData.storeId);
             debugLog("📊 Stock actualizado con éxito para la venta: " + saleData.saleId);
         } catch (err) {
             debugLog("⚠️ Error actualizando stock (Venta registrada): " + err.message);

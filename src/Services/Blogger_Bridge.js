@@ -57,7 +57,6 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
     const monedaRow = dataBlogger.find(r => (r[mB.PARAMETRO_ID] || "").toString().trim().toUpperCase() === "MONEDA");
     const moneda = monedaRow ? monedaRow[mB.CONFIGURACION] : "$";
 
-    const mapCategoriasHtml = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.HTML]]));
     const mapCategoriasIconos = Object.fromEntries(rowsCategorias.map(r => [r[mC.ID], r[mC.ICONO]]));
 
     // --- MAPEO DE ICONOS A CDN (v16.0) ---
@@ -194,7 +193,6 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
                 const catObjeto = {
                     codigo: contadorCategoria,
                     nombre: categoriaActual,
-                    url_categoria: blogger_getWhatsAppPublicURL(appName, mapCategoriasHtml[categoriaActual], SHEETS.CATEGORIES),
                     icono: asset_getUrlParaIcono(sid),
                     producto: dataArrayCategoria
                 };
@@ -253,7 +251,6 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
             const catObjeto = {
                 codigo: contadorCategoria,
                 nombre: categoriaActual,
-                url_categoria: blogger_getWhatsAppPublicURL(appName, mapCategoriasHtml[categoriaActual], SHEETS.CATEGORIES),
                 icono: asset_getUrlParaIcono(sid),
                 producto: dataArrayCategoria
             };

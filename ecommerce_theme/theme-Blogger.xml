@@ -171,6 +171,7 @@
 
     </style>
 </head>
+<body>
 <style>
     .tiktok-button {
         display: inline-block;
@@ -901,34 +902,129 @@
         z-index: 100;
     }
 
+    /* --- SISTEMA RESPONSIVE WOOCOMMERCE Y ANDROID DOCK (v16.0) --- */
+    @media (min-width: 992px) {
+        #navbarfooter, #mostrarFooterBtn {
+            display: none !important;
+        }
+    }
+    @media (max-width: 991px) {
+        .desktop-only-widget {
+            display: none !important;
+        }
+        #navbarfooter {
+            background: rgba(255, 255, 255, 0.92) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+            border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+            padding: 4px 0 !important;
+        }
+        #navbarfooter .btn-outline-dark {
+            border-radius: 50% !important;
+            width: 44px !important;
+            height: 44px !important;
+            padding: 0 !important;
+            display: inline-flex;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 1px solid #cbd5e1 !important;
+            background: #f8fafc !important;
+            color: #1e293b !important;
+        }
+        #navbarfooter .btn-outline-dark.d-none {
+            display: none !important;
+        }
+        #navbarfooter .btn-outline-dark i {
+            font-size: 1.2rem !important;
+        }
+        #navbarfooter .btn-dark, #navbarfooter .btn-danger {
+            border-radius: 20px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+        }
+    }
+
+    /* Buscador estilo Pill / Cápsula en Header */
+    .search-pill-modern {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50px;
+        padding: 2px 12px;
+        transition: all 0.3s ease;
+    }
+    .search-pill-modern:focus-within {
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+    }
+    .search-pill-modern input {
+        background: transparent !important;
+        border: none !important;
+        color: #fff !important;
+        box-shadow: none !important;
+        font-size: 0.85rem !important;
+    }
+    .search-pill-modern:focus-within input {
+        color: #0f172a !important;
+    }
+    .search-pill-modern button i {
+        font-size: 1.1rem !important;
+        color: #94a3b8;
+    }
+
+    /* Widget WooCommerce en Header (Escritorio) */
+    .desktop-cart-widget {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 6px 10px 6px 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .desktop-cart-widget .cart-label {
+        font-size: 0.85rem;
+        color: #cbd5e1;
+        line-height: 1.1;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    .desktop-cart-widget .cart-val {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #38bdf8;
+        font-family: monospace;
+    }
+
     .total-compra-container {
         flex-direction: column;
         align-items: center;
         display: flex;
-        padding: 2px;
-        background-color: #ffffff;
-        width: 100%;
-        max-width: 466px;
-        border-radius: 10px;
-        box-shadow: 0px 2px 5px #ddd;
+        padding: 4px 12px;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
 
     .total-compra {
-        background-color: #fff;
-        padding: 5px;
-        margin-left: 5px;
-        border-radius: 15px;
+        background-color: transparent;
+        padding: 2px;
+        margin-left: 4px;
     }
 
     .total-compra-titulo {
-        font-weight: bold;
+        font-weight: 700;
+        font-size: 0.7rem;
+        color: #64748b;
+        text-transform: uppercase;
     }
 
     .total-compra-valor {
-        font-size: 17px;
-        font-family: monospace;
-        font-weight: 600;
-        color: #d60939;
+        font-size: 1.1rem;
+        font-family: 'Outfit', monospace, sans-serif;
+        font-weight: 700;
+        color: #0f172a;
     }
 
     .accordion-body {
@@ -1690,7 +1786,14 @@
     .container-sm {
         max-width: 1200px;
         padding: 5px;
-        margin-top: calc(80px + 1vh);
+        /* En desktop el navbar tiene 2 filas (~110px); en móvil 1 fila (~56px) */
+        margin-top: calc(115px + 1vh);
+    }
+
+    @media (max-width: 991.98px) {
+        .container-sm {
+            margin-top: calc(62px + 1vh);
+        }
     }
 
     .input-group&gt;
@@ -2088,6 +2191,11 @@
         pointer-events: auto;
     }
 
+    /* Clase para que JS pueda ocultar botones aunque tengan utilidades Bootstrap d-* con !important */
+    .js-hidden {
+        display: none !important;
+    }
+
     table.dataTable.compact thead th,
     table.dataTable.compact thead td,
     table.dataTable.compact tfoot th,
@@ -2283,10 +2391,9 @@
 
     #carouselCategorias {
         max-width: 180px;
-        /* Define un ancho máximo para el carrusel */
         overflow: hidden;
-        /* Oculta cualquier contenido que exceda los límites del contenedor */
         margin-right: 10px;
+        flex-shrink: 1;
     }
 
     .carousel-categorias-inner {
@@ -2932,6 +3039,45 @@
         background-color: transparent;
     }
 
+    /* ── Barra de acciones de productos (compacta, flex-wrap natural) ── */
+    .acciones-productos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        align-items: center;
+        margin-top: 8px;
+        width: 100%;
+    }
+
+    /* Fila de selects de filtros: flex compacto que envuelve si no cabe */
+    .acciones-fila-filtros {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        align-items: center;
+    }
+    .acciones-fila-filtros .filtro-categoria-padre-dropdown,
+    .acciones-fila-filtros .ordenar-dropdown,
+    .acciones-fila-filtros .modo-busqueda-dropdown {
+        min-width: 90px;
+        max-width: 190px;
+        flex: 1 1 90px;
+    }
+    .acciones-fila-filtros select {
+        width: 100%;
+    }
+
+    /* Fila de botones de vista */
+    .acciones-fila-botones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        align-items: center;
+    }
+
     .titulo-productos {
         font-family: var(--outfit-font);
         font-size: 1.5rem;
@@ -3239,6 +3385,24 @@
     }
 
     /* Reducción de Padding en Modo Compacto */
+    .producto-item.compacto .card-body {
+        padding: 12px;
+    }
+
+    /* Imagen completa sin recortes o recortada para ocupar todo el ancho */
+    @media (max-width: 575.98px) {
+        .producto-item:not(.compacto) .product-carousel-img {
+            object-fit: cover !important;
+            aspect-ratio: 1 / 1;
+            background: #fff;
+        }
+    }
+    .producto-item.compacto.single-product-full .product-carousel-img {
+        object-fit: cover !important;
+        aspect-ratio: 1 / 1;
+        background: #fff;
+    }
+
     .producto-item.compacto {
         padding: 4px !important;
     }
@@ -3253,8 +3417,6 @@
     }
 
 </style>
-
-<body>
     <aside class='sidebar-container container sidebar-invisible' role='complementary'>
         <b:section id='sidebar_bottom'/>
     </aside>
@@ -3304,19 +3466,19 @@
         </div>
     </div>
     <div class='container-sm'>
-        <header class='navbar navbar-expand-lg navbar-dark bg-dark fixed-top'>
-            <div class='container-fluid d-flex justify-content-between align-items-center' style='flex-basis: content;'>
+        <header class='navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm'>
+            <div class='container-fluid d-flex justify-content-between align-items-center flex-wrap gap-1 gap-lg-2' style='flex-basis: content;'>
                 <a class='navbar-brand d-flex align-items-center' href='#pagina_titulo'>
                     <img alt='Logo' class='d-inline-block align-text-top rounded-circle shadow-sm logo-metallic-effect' height='35' src='https://cdn.jsdelivr.net/gh/SystemBlogShop/erp-shared-assets@main/BlogShop.svg' width='35'/>
                     <span class='ms-2 fw-bold' style='letter-spacing: 0.5px;'>BlogShop</span>
                 </a>
-                <!-- Listado de categorías -->
+                <!-- Listado de categorías (Salto por Scroll) -->
                 <div class='carousel slide' data-bs-ride='carousel' id='carouselCategorias' style='width: 190px;'>
                     <div class='carousel-categorias-inner' id='listadoCategoriasCarrusel' style='text-align: center;'>
                         <!-- Contenido dinámico será insertado aquí -->
                     </div>
                     <!-- Controles de navegación -->
-                    <button class='carousel-control-prev d-none d-md-block' data-bs-slide='prev' data-bs-target='#carouselCategorias' type='button'>
+                    <button class='carousel-control-prev' data-bs-slide='prev' data-bs-target='#carouselCategorias' type='button'>
                         <span aria-hidden='true' class='carousel-control-prev-icon'/>
                         <span class='visually-hidden'>Anterior</span>
                     </button>
@@ -3332,48 +3494,64 @@
                 </button>
 
                 <!-- Botón de Carrito SOLO en móvil -->
-                <button aria-label='Ver carrito' class='btn btn-primary d-md-none' onclick='toggleSidebarCarrito()' type='button'>
-                    Mini <i class='fa fa-shopping-cart'/>
+                <button aria-label='Ver carrito' class='btn btn-primary d-lg-none position-relative' onclick='toggleSidebarCarrito()' style='padding: 6px 14px;' type='button'>
+                    <i class='fa fa-shopping-cart fa-lg'/>
+                    <span class='position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger' id='carrito-item-contador-header' style='font-size: 0.70rem;'>0</span>
                 </button>
 
-                <!-- Buscador -->
-                <form class='d-flex align-items-center' onsubmit='buscarYResaltarProducto(); return false;' role='search'>
-                    <input aria-label='Buscar' class='form-control me-2' id='txt_search' placeholder='Buscar..' style='width: 100%; max-width: 90px;' type='search'/>
+                <!-- Buscador estilo Cápsula (Pill) -->
+                <form class='search-pill-modern d-flex align-items-center my-1 my-lg-0' onsubmit='buscarYResaltarProducto(); return false;' role='search' style='max-width: 220px;'>
+                    <input aria-label='Buscar' class='form-control me-1' id='txt_search' placeholder='Buscar..' style='width: 100%; min-width: 80px; max-width: 120px;' type='search'/>
                     <button aria-label='Buscar' class='btn btn-link p-0 border-0' type='submit'>
-                        <i class='fa fa-search fa-2x'/>
+                        <i class='fa fa-search'/>
                     </button>
                 </form>
 
-                <!-- Botón de Filtros SOLO en móvil -->
-                <button aria-label='Ver filtros' class='btn btn-primary d-md-none me-2' onclick='toggleSidebarFiltros()' type='button'>
-                    Filtro <i class='fa fa-bars'/>
+                <!-- Botón Filtros Dinámicos (Metadatos) SOLO EN MÓVIL/ANDROID -->
+                <button aria-label='Filtros de Productos' class='btn btn-info rounded-pill fw-bold text-dark d-inline-flex d-lg-none align-items-center gap-1 me-1 my-1 shadow-sm' id='btn_filtros_movil' onclick='toggleSidebarFiltros();' style='padding: 6px 14px;' title='Filtrar por colores, talles, marcas y atributos' type='button'>
+                    <i class='fa fa-filter fa-lg'/> <span class='d-none d-sm-inline'>Filtros</span>
+                </button>
+
+                <!-- Botón Filtro por Categorías SOLO EN ORDENADORES -->
+                <button aria-label='Modal Filtro Categoría' class='btn btn-info px-3 py-1 fs-6 rounded-3 fw-bold text-dark d-none d-lg-inline-flex align-items-center gap-1 me-1 my-1 my-lg-0 shadow-sm' id='btn_cars_header' onclick='mostrarFiltroYModal();' title='Filtrar catálogo por categoría' type='button'>
+                    <i class='fa fa-filter'/> <span>Filtro Categorías</span>
                 </button>
 
                 <!-- Menú de navegación -->
-                <div class='collapse navbar-collapse text-center' id='navbarNavDropdown' style='text-align: center; align-items: center;'>
-                    <ul class='navbar-nav me-auto mb-2 mb-lg-0' id='navMenu' style='margin-bottom: 10px;'>
+                <div class='collapse navbar-collapse text-center' id='navbarNavDropdown' style='text-align: center; justify-content: flex-end; align-items: center;'>
+                    <ul class='navbar-nav me-auto mb-2 mb-lg-0 align-items-center' id='navMenu' style='margin-bottom: 0 !important; gap: 4px;'>
                         <li class='nav-item'>
-                            <a class='nav-link' href='#productos-container' id='productos-link'>Productos</a>
+                            <a class='nav-link fw-bold' href='#productos-container' id='productos-link' onclick='regresar_principal();'><i class='fa fa-th-large me-1 d-lg-none'/>Productos</a>
                         </li>
                         <li class='nav-item'>
-                            <a class='nav-link' href='javascript:void(0);' onclick='mostrar_pedido();'>Carrito</a>
+                            <a class='nav-link fw-bold' href='javascript:void(0);' id='carrito-link' onclick='mostrar_pedido();'><i class='fa fa-shopping-cart me-1'/>Carrito</a>
                         </li>
-                        <li class='nav-item'>
-                            <a class='nav-link' href='#' id='vista360Link' target='_blank'>Vista 360&#176;</a>
-                        </li>
-                        <li class='nav-item'>
-                            <a class='nav-link' href='#' id='correoLink'>Correo</a>
-                        </li>
-                        <li class='nav-item'>
-                            <a class='nav-link' href='#' id='celularLink'>Celular:</a>
-                        </li>
-                        <li class='nav-item'>
-                            <a class='nav-link' href='#' id='formularioClienteLink' target='_blank'>Formulario Cliente</a>
-                        </li>
-                        <li class='nav-item'>
-                            <a class='nav-link' href='#' id='catalogodriveLink' target='_blank'>Catálogo Drive</a>
+                        <!-- Menú Desplegable Explorar / Atención -->
+                        <li class='nav-item dropdown'>
+                            <a class='nav-link dropdown-toggle' data-bs-toggle='dropdown' href='javascript:void(0);' role='button'>
+                                <i class='fa fa-compass me-1'/>Explorar
+                            </a>
+                            <ul class='dropdown-menu dropdown-menu-dark shadow text-start'>
+                                <li><a class='dropdown-item' href='#' id='vista360Link' target='_blank'><i class='fa fa-street-view me-2 text-info'/>Vista 360&#176;</a></li>
+                                <li><a class='dropdown-item' href='#' id='formularioClienteLink' target='_blank'><i class='fa fa-user-plus me-2 text-warning'/>Formulario Cliente</a></li>
+                                <li><a class='dropdown-item' href='#' id='correoLink'><i class='fa fa-envelope me-2 text-light'/>Correo</a></li>
+                                <li><a class='dropdown-item' href='#' id='celularLink'><i class='fa fa-phone me-2 text-success'/>Celular</a></li>
+                                <li><a class='dropdown-item' href='#' id='catalogodriveLink' target='_blank'><i class='fa fa-cloud-download me-2 text-primary'/>Catálogo Drive</a></li>
+                            </ul>
                         </li>
                     </ul>
+
+                    <!-- WIDGET CARRITO WOOCOMMERCE STYLE (SOLO ESCRITORIO) -->
+                    <div class='desktop-cart-widget d-none d-lg-flex ms-2 cursor-pointer flex-shrink-0' onclick='mostrar_pedido();' title='Ver detalle de compra'>
+                        <div class='text-start'>
+                            <div class='cart-label'>Total Compra</div>
+                            <div class='cart-val'><span class='venta_detalle_total'>0.0</span></div>
+                        </div>
+                        <button class='btn btn-success px-3 py-2 fs-6 rounded-3 fw-bold d-flex align-items-center gap-1 shadow-sm' onclick='event.stopPropagation(); iniciarCheckout();' style='background: linear-gradient(135deg, #10b981, #059669); border: none; white-space: nowrap;' type='button'>
+                            <i class='fa fa-whatsapp fa-lg'/>
+                            <span>Finalizar Pedido</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -3414,36 +3592,37 @@
                     <div class='titulo-productos-container'>
                         <h2 class='titulo-productos'>PRODUCTOS POR CATEGORIA</h2>
 
-                        <div class='acciones-productos d-flex flex-wrap gap-2 mt-2 justify-content-center align-items-baseline'>
+                        <div class='acciones-productos'>
 
-                            <div class='filtro-categoria-padre-dropdown'>
-                                <select class='form-select form-select-sm' id='filtroCategoriaPadre' onchange='filtrarPorCategoriaPadre(this.value)'>
-                                    <option selected='selected' value=''>Todas las Categorías</option>
-                                </select>
-                            </div>
-                            <div class='ordenar-dropdown'>
-                                <select class='form-select form-select-sm' id='ordenProductos' onchange='ordenarProductos(this.value)'>
-                                    <option value='desc'>Ordenar por más recientes</option>
-                                    <option value='asc'>Ordenar por más antiguos</option>
-                                    <option selected='selected' value='upd'>Ordenar por actualización reciente</option>
-                                    <option value='updo'>Ordenar por actualización antigua</option>
-                                </select>
+                            <!-- Fila 1: Filtros (selects) -->
+                            <div class='acciones-fila-filtros'>
+                                <div class='filtro-categoria-padre-dropdown'>
+                                    <select class='form-select form-select-sm' id='filtroCategoriaPadre' onchange='filtrarPorCategoriaPadre(this.value)'>
+                                        <option selected='selected' value=''>Todas las Categorías</option>
+                                    </select>
+                                </div>
+                                <div class='ordenar-dropdown'>
+                                    <select class='form-select form-select-sm' id='ordenProductos' onchange='ordenarProductos(this.value)'>
+                                        <option value='desc'>Más recientes</option>
+                                        <option value='asc'>Más antiguos</option>
+                                        <option selected='selected' value='upd'>Actualización reciente</option>
+                                        <option value='updo'>Actualización antigua</option>
+                                    </select>
+                                </div>
+                                <div class='modo-busqueda-dropdown'>
+                                    <select class='form-select form-select-sm' id='modoBusqueda' onchange='cambiarModoBusqueda(this.value)'>
+                                        <option selected='selected' value='filtrar'>Filtrar productos</option>
+                                        <option value='resaltar'>Resaltar</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <div class='modo-busqueda-dropdown'>
-                                <select class='form-select form-select-sm' id='modoBusqueda' onchange='cambiarModoBusqueda(this.value)'>
-                                    <option selected='selected' value='filtrar'>Filtrar productos</option>
-                                    <option value='resaltar'>Resaltar productos</option>
-                                </select>
-                            </div>
-
-                            <div class='d-flex gap-2'>
-                                <button class='btn btn-sm btn-outline-primary active' id='vista-lista'>🗂 Vista
-                                    Detallada</button>
-                                <button class='btn btn-sm btn-outline-secondary' id='vista-compacta'>🔳 Vista
-                                    Compacta</button>
+                            <!-- Fila 2: Botones de vista -->
+                            <div class='acciones-fila-botones'>
+                                <button class='btn btn-sm btn-outline-primary active' id='vista-lista'>🗂 Vista Detallada</button>
+                                <button class='btn btn-sm btn-outline-secondary' id='vista-compacta'>🔳 Vista Compacta</button>
                                 <button class='btn btn-sm btn-outline-danger shadow-sm' onclick='abrirModalConfigPDF("");' title='Descargar Catálogo PDF Completo o de la Categoría Seleccionada'>
-                                    <i class='fa fa-file-pdf-o me-1'></i> <span>Catálogo PDF</span>
+                                    <i class='fa fa-file-pdf-o me-1'/> <span>Catálogo PDF</span>
                                 </button>
                             </div>
 
@@ -3625,8 +3804,8 @@
             </div>
             <div class='d-flex justify-content-center bd-highlight'>
                 <div class='p-2 bd-highlight'>
-                    <button aria-label='Buscar productos' class='btn btn-outline-dark position-relative' id='btn_cars' onclick='mostrarFiltroYModal();' type='button'>
-                        <i class='fa fa-filter' id='icon_filter'/>
+                    <button aria-label='Buscar productos' class='btn btn-outline-dark position-relative' id='btn_cars' onclick='mostrarFiltroYModal();' style='padding: 10px 15px;' type='button'>
+                        <i class='fa fa-filter fa-2x' id='icon_filter'/>
                         <div class='spinner-border text-primary position-absolute' id='spinner' role='status' style='top: 4%; left: 8%; display: none; width: 2.5rem; height: 2.5rem; border-width: 0.3em;'>
                         </div>
                     </button>
@@ -3636,11 +3815,12 @@
                     </button>
                 </div>
                 <div class='p-2 bd-highlight'>
-                    <button class='btn btn-outline-dark position-relative' id='btn_regresar' onclick='regresar_principal();' type='button'>
+                    <button class='btn btn-outline-dark position-relative d-none' id='btn_regresar' onclick='regresar_principal();' title='Regresar a la Tienda' type='button'>
                         <i class='fa fa-undo fa-2x'/>
                     </button>
-                    <button aria-label='Mostrar pedido' class='btn btn-outline-dark position-relative' id='btn_cars2' onclick='mostrar_pedido();' type='button'>
+                    <button aria-label='Mostrar pedido' class='btn btn-outline-dark position-relative' id='btn_cars2' onclick='mostrar_pedido();' style='padding: 10px 15px;' type='button'>
                         <i class='fa fa-shopping-cart fa-2x'/>
+                        <span class='position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger' id='carrito-item-contador2' style='font-size: 0.75rem;'>0</span>
                     </button>
                 </div>
                 <div class='p-2 bd-highlight total-compra'>
@@ -4402,6 +4582,9 @@
 
 
         function toggleUIForOperation(operacion) {
+            // Inicializar estado del botón de regresar
+            $("#btn_regresar").removeClass("button-active").addClass("button-inactive d-none");
+            
             if (operacion === "" || operacion === "e") {
                 setupPrincipalUI(operacion);
             } else {
@@ -4412,14 +4595,23 @@
         function setupPrincipalUI(operacion) {
             AppState.estaEnVistaDetalle = false; // 👉 Sincronizado con AppState
 
-            $("#navbarfooter").show();
+            $("#navbarfooter").css("display", "");
             $(".detalle_pedido_page").hide();
             $(".principal").show();
             $(".pedido_producto").hide();
+            // Restaurar todos los botones de filtro al volver a la vista principal
             $("#btn_cars").show();
-            $("#btn_regresar").hide();
+            $("#btn_cars, #btn_cars_header, #btn_filtros_movil, #btn-flotante-filtros, #btn_cars2").removeClass('js-hidden').show();
+            $("#btn_regresar").hide().addClass('js-hidden d-none').css("display", "none");
+            $("#productos-link").css({"color": "#0dcaf0", "border-bottom": "2px solid #0dcaf0"});
+            $("#carrito-link").css({"color": "", "border-bottom": "none"});
             $("#filtro_producto").hide();
             $("#mostrarFooterBtn").css("display", "block"); // 👉 Volvemos a mostrar el botón
+            if (typeof toggleCloseAllAccordionsButton === "function") {
+                toggleCloseAllAccordionsButton();
+            } else {
+                $("#closeAllAccordions").fadeOut();
+            }
 
             if (operacion === "e") {
                 $("#btn_edicion").show();
@@ -6240,6 +6432,17 @@
 
                 const fragmento = document.createDocumentFragment();
 
+                // Botón especial para Mostrar Todas / Restaurar con el MISMO estilo que las demás categorías
+                const liRestaurar = document.createElement('li');
+                liRestaurar.className = 'list-group-item categoria-hija-item categoria-restaurar-item';
+                liRestaurar.setAttribute('data-categoria-padre', 'TODAS');
+                liRestaurar.style.display = 'block';
+                liRestaurar.innerHTML = `<button class="btn btn-link text-start w-100 d-flex align-items-center gap-2" onclick="limpiarFiltros(); $('#modalBuscar').modal('hide');" type="button">
+                    <span class="categoria-icono d-flex align-items-center"><i class="fa fa-th-large text-primary" style="font-size: 1.2rem;"></i></span>
+                    <span class="categoria-nombre fw-bold">Mostrar Todas</span>
+                </button>`;
+                fragmento.appendChild(liRestaurar);
+
                 // Ordenar alfabéticamente las categorías hijas ANTES de crear los botones
                 lst_producto.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
@@ -6915,7 +7118,7 @@
                             <div class="modal-body p-0 position-relative">
                                 <button type="button" class="btn-close position-absolute top-0 end-0 m-3 z-3 bg-white rounded-circle p-2 shadow-sm" data-bs-dismiss="modal" aria-label="Close"></button>
                                 <div id="preview-content-container">
-                                    ${crearProductoHTML(categoria, producto)}
+                                    ${crearProductoHTML(categoria, producto, true)}
                                 </div>
                             </div>
                         </div>
@@ -6960,9 +7163,9 @@
             }, 300);
         }
 
-        function crearProductoHTML(categoria, producto, modoCompacto = false) {
+        function crearProductoHTML(categoria, producto, modoCompacto = false, isSingleProduct = false) {
             if (modoCompacto || document.body.dataset.vista === 'compacta') {
-                return crearProductoHTMLCompacto(categoria, producto);
+                return crearProductoHTMLCompacto(categoria, producto, isSingleProduct);
             }
 
             const productoURL = `${location.origin}${location.pathname}?categoria=${categoria.codigo}&producto=${producto.codigo}`;
@@ -7104,7 +7307,7 @@
                         ${img.portada ? `<span class="sticker-portada">⭐ Portada</span>` : ''}
                     </div>`).join('') : `
                     <div class="carousel-item active h-100">
-                        <img src="https://placehold.co/400x500/002b5c/white?text=No+Disponible" class="img-fluid h-100 w-100" style="object-fit: cover;" alt="Imagen no disponible" width="300" height="375">
+                        <img src="https://placehold.co/400x500/002b5c/white?text=No+Disponible" class="img-fluid h-100 w-100 product-carousel-img" style="object-fit: cover;" alt="Imagen no disponible" width="300" height="375">
                     </div>`}
             </div>
             ${imagenesOrdenadas.length > 1 ? `
@@ -7170,15 +7373,16 @@
     </li>`;
         }
 
-        function crearProductoHTMLCompacto(categoria, producto) {
+        // --- 2. Vista Compacta (Tarjeta Premium) ---
+        function crearProductoHTMLCompacto(categoria, producto, isSingleProduct = false) {
             const productoURL = `${location.origin}${location.pathname}?categoria=${categoria.codigo}&producto=${producto.codigo}`;
             const esAndroid = /Android/i.test(navigator.userAgent);
             const isHighlighted = highlightCategoria === categoria.codigo && highlightProducto === producto.codigo;
+            const precioNumerico = producto.precio || (producto.variedad?.[0]?.precio) || 0;
 
             const imagenesOrdenadas = Array.isArray(producto.imagen) && producto.imagen.length > 0
                 ? [...producto.imagen].sort((a, b) => (a.portada ? -1 : 1)) : [];
 
-            const precioBaseComp = producto.precio || (producto.variedad?.[0]?.precio) || 0;
             const preciosHtml = producto.variedad.length > 1 ? `
                 <div class="carousel slide carousel-fade carousel-precios" data-bs-ride="carousel" data-bs-interval="5000" id="prices-comp-${producto.codigo}">
                     <div class="carousel-inner shadow-sm" style="border-radius:10px;">
@@ -7203,7 +7407,7 @@
                     </div>
                 </div>` : `
                 <div class="price-tag-premium-pill" style="min-height: 38px;">
-                    <span style="font-size: 0.9rem; font-weight: 800;">${formatMoneda(precioBaseComp, producto.moneda || "$")}</span>
+                    <span style="font-size: 0.9rem; font-weight: 800;">${formatMoneda(precioNumerico, producto.moneda || "$")}</span>
                 </div>`;
 
             let mensajeWhatsApp = producto.descripcion?.whatsapp?.mensaje || `Hola! Me interesa este producto: ${producto.nombre}`;
@@ -7215,7 +7419,7 @@
                 ? `https://wa.me/549${producto.descripcion.whatsapp.telefono}?text=${encodeURIComponent(mensajeWhatsApp)}` : '';
 
             return `
-<li class="producto-item compacto col-6 col-md-4 col-lg-3 mb-3 ${isHighlighted ? 'highlight' : ''}" 
+<li class="producto-item compacto ${isSingleProduct ? 'col-12 single-product-full' : 'col-6 col-md-4 col-lg-3'} mb-3 ${isHighlighted ? 'highlight' : ''}" 
     id="producto-${categoria.codigo}-${producto.codigo}" 
     data-sku="${producto.codigo}">
     
@@ -7226,11 +7430,11 @@
                     ${imagenesOrdenadas.length ? imagenesOrdenadas.map((img, i) => `
                         <div class="carousel-item h-100 ${i === 0 ? 'active' : ''}">
                             <a href="${img.url}" data-fancybox="gallery-compact-${producto.codigo}" data-thumb="${img.thumbnail_url || img.url}" data-carpeta-id="${producto.carpeta_id || ''}">
-                                <img src="${img.thumbnail_url || img.url}" class="d-block w-100 h-100" style="object-fit: cover;">
+                                <img src="${img.thumbnail_url || img.url}" class="d-block w-100 h-100 product-carousel-img" style="object-fit: cover;">
                             </a>
                             ${img.portada ? `<span class="sticker-portada" style="font-size: 0.6rem; padding: 3px 8px;">⭐ Portada</span>` : ''}
                         </div>`).join('') : `
-                        <div class="carousel-item active h-100"><img src="https://placehold.co/200x240/002b5c/white?text=SF" class="w-100 h-100" style="object-fit: cover;"></div>`}
+                        <div class="carousel-item active h-100"><img src="https://placehold.co/200x240/002b5c/white?text=SF" class="w-100 h-100 product-carousel-img" style="object-fit: cover;"></div>`}
                 </div>
             </div>
         </div>
@@ -7394,7 +7598,8 @@
                 const prod = state.allMatches[i];
                 window.CatalogRegistry[prod.codigo] = prod;
                 const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = crearProductoHTML(state.categoria, prod);
+                const isSingleProduct = state.allMatches.length === 1;
+                tempDiv.innerHTML = crearProductoHTML(state.categoria, prod, false, isSingleProduct);
                 const el = tempDiv.firstElementChild;
                 el.classList.add('fade-in-entry');
                 fragment.appendChild(el);
@@ -7508,7 +7713,7 @@
             // Aplanamos, PERO AÑADIMOS el nombre_padre a cada hija
             let configAplanada = categoriasPadreOriginal.flatMap(padre =>
                 (padre.categorias || []).map(hija => ({
-                    ...hija, // Mantiene codigo, nombre, icono, producto, url_categoria
+                    ...hija, // Mantiene codigo, nombre, icono, producto
                     nombre_padre: padre.nombre_padre // Añade la referencia al padre
                 }))
             );
@@ -7569,12 +7774,6 @@
                   </div>
                 </div>
               </button>
-             ${categoria.url_categoria ? `
-             <a href="${categoria.url_categoria}" class="btn btn-success btn-sm ms-2 me-2 whatsapp-btn"
-               target="_blank" onclick="event.stopPropagation();">
-              <span class="whatsapp-text">📲 Comparte y vende "${categoria.nombre}" por WhatsApp <i class="fa fa-whatsapp me-1"></i></span>
-              <span class="whatsapp-text-small">Vender por <i class="fa fa-whatsapp me-1"></i></span>
-            </a>` : ''}
              <button type="button" class="btn btn-outline-danger btn-sm ms-1 me-3 pdf-btn shadow-sm"
                onclick="event.stopPropagation(); abrirModalConfigPDF('${categoria.nombre.replace(/'/g, "\\'")}');" title="Descargar Catálogo PDF de ${categoria.nombre}">
               <i class="fa fa-file-pdf-o me-1"></i> <span class="d-none d-md-inline">Catálogo PDF</span><span class="d-inline d-md-none">PDF</span>
@@ -7829,12 +8028,27 @@
 
             // Evento para limpiar el resaltado
             $("#btnLimpiarResaltado").on("click", function () {
-                if (!toggleInProgress) {
-                    resetearResaltadoFiltradoVisual();
-                }
+                const activeAccordion = document.querySelector('.accordion-collapse.show');
+                const idCat = activeAccordion ? (activeAccordion.dataset.categoria || activeAccordion.id.replace('flush-collapse-', '')) : null;
 
-                $(".accordion-collapse").collapse('hide');
-                console.log("Resaltado limpiado y acordeones contraídos.");
+                document.querySelectorAll('.filtro-select').forEach(select => select.value = "");
+                document.querySelectorAll('.filtro-checkbox').forEach(cb => cb.checked = false);
+
+                resetearResaltadoFiltradoVisual();
+                closeSidebarFiltros();
+
+                if (activeAccordion) {
+                    $(activeAccordion).collapse('hide');
+                    setTimeout(() => {
+                        $(activeAccordion).collapse('show');
+                        if (idCat && typeof renderizarProductosPorCategoria === 'function') {
+                            renderizarProductosPorCategoria(idCat);
+                        }
+                    }, 250);
+                } else {
+                    $(".accordion-collapse").collapse('hide');
+                }
+                console.log("Resaltado y filtros limpiados, sidebar cerrado y categoría restaurada robustamente.");
             });
 
             // Después de cargar los productos, actualiza las puntuaciones
@@ -7911,6 +8125,21 @@
         function toggleSidebarCarrito() {
             const sidebar = document.getElementById("sidebarCarrito");
             const overlay = document.getElementById("overlayCarrito");
+
+            if (!sidebar.classList.contains("active")) {
+                const hayProductos = AppState && AppState.detallesPedido && Object.keys(AppState.detallesPedido).length > 0;
+                const contenedor = document.getElementById("sidebarCarritoContenido");
+                const numElementos = contenedor ? contenedor.children.length : 0;
+                if (!hayProductos && numElementos === 0) {
+                    Swal.fire({
+                        title: "¡Carrito Vacío!",
+                        text: "Aún no has agregado productos a tu carrito. ¡Explora nuestro catálogo y suma tus favoritos!",
+                        icon: "info",
+                        confirmButtonColor: "#3b82f6"
+                    });
+                    return;
+                }
+            }
 
             sidebar.classList.toggle("active");
             overlay.classList.toggle("active");
@@ -8613,8 +8842,18 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
         function generarOpcionesDeResaltadoFiltrado(listaProductosJSON, categoria) {
             if (!Array.isArray(listaProductosJSON)) {
-                console.error("❌ listaProductosJSON no es un Array válido:", listaProductosJSON);
-                return;
+                if (listaProductosJSON instanceof NodeList || (listaProductosJSON && typeof listaProductosJSON === 'object' && listaProductosJSON.length !== undefined)) {
+                    listaProductosJSON = Array.from(listaProductosJSON).map(el => {
+                        if (el && el.codigo) return el;
+                        const sku = el.dataset ? (el.dataset.sku || el.dataset.id) : null;
+                        return window.CatalogRegistry && sku ? window.CatalogRegistry[sku] : el;
+                    }).filter(Boolean);
+                } else if (window.CatalogRegistry && Object.keys(window.CatalogRegistry).length > 0) {
+                    listaProductosJSON = Object.values(window.CatalogRegistry);
+                } else {
+                    console.error("❌ listaProductosJSON no es un Array válido:", listaProductosJSON);
+                    return;
+                }
             }
 
             const sidebarFiltros = document.querySelector('#sidebarFiltros');
@@ -8794,21 +9033,32 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             btn.id = "btnLimpiarResaltado";
 
             btn.addEventListener("click", () => {
+                const activeAccordion = document.querySelector('.accordion-collapse.show');
+                const idCat = activeAccordion ? (activeAccordion.dataset.categoria || activeAccordion.id.replace('flush-collapse-', '')) : null;
+
                 document.querySelectorAll('.filtro-select').forEach(select => select.value = "");
                 document.querySelectorAll('.filtro-checkbox').forEach(cb => cb.checked = false);
 
-                Object.keys(localStorage).forEach(key => {
-                    if (key.startsWith('filtro_')) localStorage.removeItem(key);
-                });
+                resetearResaltadoFiltradoVisual();
+                closeSidebarFiltros();
 
-                contenedor.innerHTML = "";
+                if (activeAccordion) {
+                    $(activeAccordion).collapse('hide');
+                    setTimeout(() => {
+                        $(activeAccordion).collapse('show');
+                        if (idCat && typeof renderizarProductosPorCategoria === 'function') {
+                            renderizarProductosPorCategoria(idCat);
+                        }
+                    }, 250);
+                } else {
+                    $(".accordion-collapse").collapse('hide');
+                }
 
-                document.querySelectorAll('.collapse.show').forEach(acordeon => {
-                    $(acordeon).collapse('hide');
-                });
-
-                setTimeout(() => actualizarVisibilidadBtnResaltadoFiltrado(), 350);
-                aplicarResaltadoFiltradoPorOpciones();
+                setTimeout(() => {
+                    if (typeof actualizarVisibilidadBtnResaltadoFiltrado === 'function') {
+                        actualizarVisibilidadBtnResaltadoFiltrado();
+                    }
+                }, 350);
             });
 
             return btn;
@@ -9398,16 +9648,13 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
         }
 
         function resetearResaltadoFiltradoVisual() {
-            const filtrosContainer = document.getElementById("filtrosDinamicos");
-            if (filtrosContainer) filtrosContainer.innerHTML = ""; // Limpiar contenido de los filtros
-
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith("filtro_")) localStorage.removeItem(key);
             });
 
             localStorage.removeItem("filtros_disponibles");
 
-            console.log("🧽 Todos los filtros resaltados globales fueron eliminados.");
+            console.log("🧽 Todos los filtros resaltados globales fueron eliminados sin destruir el contenedor visual.");
 
             // 🔵 Ahora también limpiamos los productos, ya sea resaltado o filtrado
             const productos = document.querySelectorAll('.producto-item');
@@ -9458,22 +9705,13 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
         }
 
         function limpiarFiltros() {
-            console.log('Limpiando filtros...');
-            const filtroActivo = document.getElementById('txt_search').value.trim();
-
-            if (filtroActivo) {
-                limpiarInput();
-
-                // Llamar a la función de búsqueda con un filtro vacío
-                realizarBusquedaRestablecer();
-
-                // Actualizar el estado del botón
-                actualizarBotonEstado();
-
-                console.log('Filtros limpiados y productos restablecidos.');
-            } else {
-                console.log('No hay filtros activos para limpiar.');
-            }
+            console.log('Limpiando filtros y restaurando todas las categorías...');
+            window.filtroCategoriaActivo = false;
+            limpiarInput();
+            if (document.getElementById('filtroCategoriaPadre')) document.getElementById('filtroCategoriaPadre').value = '';
+            realizarBusquedaRestablecer();
+            actualizarBotonEstado();
+            console.log('✅ Catálogo y categorías 100% restaurados.');
         }
 
         // Función para realizar la búsqueda y restaurar acordeones
@@ -9486,7 +9724,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
             // Esperar un poco para que los productos se carguen antes de regenerar filtros
             setTimeout(() => {
-                let productos = document.querySelectorAll('.card-producto');
+                let productos = window.CatalogRegistry ? Object.values(window.CatalogRegistry) : document.querySelectorAll('.card-producto');
                 generarOpcionesDeResaltadoFiltrado(productos, 'restablecido');
 
                 // Restaurar detalles guardados (✅ AHORA es el momento correcto)
@@ -9549,56 +9787,65 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             actualizarBotonEstado();
         };
 
-        // Actualiza el estado del botón dependiendo de la entrada de búsqueda
+        // Actualiza el estado del botón dependiendo de la entrada de búsqueda o filtro activo
         window.actualizarBotonEstado = function () {
             const boton = document.getElementById('btn_cars');
+            const botonHeader = document.getElementById('btn_cars_header');
             const inputBuscar = document.getElementById('txt_search');
-            const iconoFiltro = document.getElementById('icon_filter'); // Icono que cambia
-            const spinner = document.getElementById('spinner'); // El spinner
+            const iconoFiltro = document.getElementById('icon_filter');
+            const iconoFiltroHeader = botonHeader ? botonHeader.querySelector('i') : null;
+            const spinner = document.getElementById('spinner');
 
-            // Verifica si el icono y el spinner existen antes de manipularlos
-            if (iconoFiltro && spinner) {
-                // Muestra el spinner cuando se inicia el proceso
-                spinner.style.display = 'block'; // Mostrar el spinner
+            if (spinner) spinner.style.display = 'block';
 
-                // Lógica del botón según el estado de la búsqueda
-                if (inputBuscar.value.trim()) {
-                    boton.setAttribute('title', 'Limpiar Filtros');
-                    iconoFiltro.classList.remove('fa-search'); // Remueve la lupa
-                    iconoFiltro.classList.add('fa-times'); // Añade la "X" de limpiar
-                    boton.classList.add('filtro-activo'); // Activa el color rojo
+            const hayFiltro = (inputBuscar && inputBuscar.value.trim() !== '') || window.filtroCategoriaActivo === true;
 
-                    boton.onclick = function () {
-                        limpiarFiltros();
-                        // Una vez que se completa el proceso de limpiar filtros, ocultamos el spinner
-                        setTimeout(function () {
-                            spinner.style.display = 'none'; // Ocultar el spinner
-                        }, 1000); // Ajusta el tiempo según el proceso real
-                    };
-                } else {
-                    boton.setAttribute('title', 'Abrir Filtro');
-                    iconoFiltro.classList.remove('fa-times'); // Remueve la "X"
-                    iconoFiltro.classList.add('fa-search'); // Añade la lupa
-                    boton.classList.remove('filtro-activo'); // Elimina el color rojo
-
-                    boton.onclick = function () {
-                        mostrarFiltroYModal();
-                        // Si la lógica de abrir filtro tiene un proceso largo, podrías mostrar el spinner aquí también
-                        setTimeout(function () {
-                            spinner.style.display = 'none'; // Ocultar el spinner después de completar la acción
-                        }, 1000); // Ajusta el tiempo según el proceso real
-                    };
+            if (hayFiltro) {
+                // Estado ACTIVO (ROJO / LIMPIAR)
+                if (boton) {
+                    boton.setAttribute('title', 'Restaurar Catálogo / Limpiar Filtros');
+                    boton.classList.add('filtro-activo');
+                    boton.onclick = function () { limpiarFiltros(); };
                 }
-
-                // Simula el proceso de búsqueda (puedes reemplazarlo con la lógica de búsqueda real)
-                setTimeout(function () {
-                    // Aquí iría el código de búsqueda y filtrado
-
-                    // Una vez que el proceso termine, ocultamos el spinner
-                    spinner.style.display = 'none'; // Ocultar el spinner
-                }, 1000); // Ajusta el tiempo según el proceso real
+                if (botonHeader) {
+                    botonHeader.setAttribute('title', 'Restaurar Catálogo / Limpiar Filtros');
+                    botonHeader.classList.add('filtro-activo');
+                    botonHeader.onclick = function () { limpiarFiltros(); };
+                }
+                if (iconoFiltro) {
+                    iconoFiltro.classList.remove('fa-search', 'fa-filter');
+                    iconoFiltro.classList.add('fa-times');
+                }
+                if (iconoFiltroHeader) {
+                    iconoFiltroHeader.classList.remove('fa-search', 'fa-filter');
+                    iconoFiltroHeader.classList.add('fa-times');
+                }
             } else {
-                console.error('El icono con id "icon_filter" o el spinner no existen en el DOM.');
+                // Estado INACTIVO (NORMAL / ABRIR MODAL)
+                if (boton) {
+                    boton.setAttribute('title', 'Abrir Filtro por Categoría');
+                    boton.classList.remove('filtro-activo');
+                    boton.onclick = function () { mostrarFiltroYModal(); };
+                }
+                if (botonHeader) {
+                    botonHeader.setAttribute('title', 'Abrir Filtro por Categoría');
+                    botonHeader.classList.remove('filtro-activo');
+                    botonHeader.onclick = function () { mostrarFiltroYModal(); };
+                }
+                if (iconoFiltro) {
+                    iconoFiltro.classList.remove('fa-times');
+                    iconoFiltro.classList.add('fa-filter');
+                }
+                if (iconoFiltroHeader) {
+                    iconoFiltroHeader.classList.remove('fa-times');
+                    iconoFiltroHeader.classList.add('fa-filter');
+                }
+            }
+
+            if (spinner) {
+                setTimeout(function () {
+                    spinner.style.display = 'none';
+                }, 500);
             }
         };
 
@@ -9615,8 +9862,8 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             itemsCategoriaHija.forEach(item => {
                 const categoriaPadreDelItem = item.getAttribute('data-categoria-padre');
 
-                // Si no hay padre seleccionado O si el padre del item coincide con el seleccionado
-                if (!padreSeleccionado || padreSeleccionado === '' || categoriaPadreDelItem === padreSeleccionado) {
+                // Si es el botón de restaurar, si no hay padre seleccionado O si el padre coincide
+                if (item.classList.contains('categoria-restaurar-item') || !padreSeleccionado || padreSeleccionado === '' || categoriaPadreDelItem === padreSeleccionado) {
                     item.style.display = 'block'; // Mostrar
                 } else {
                     item.style.display = 'none'; // Ocultar
@@ -9671,7 +9918,9 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             }
             // --- FIN: Resetear filtro ---
 
+            window.filtroCategoriaActivo = true;
             realizarBusqueda(); // Esto llama a cargar_productos, que AHORA leerá '' del dropdown padre
+            actualizarBotonEstado();
             $("#modalBuscar").modal('hide'); // Oculta el modal
 
             // --- 👇 INICIO: Lógica para abrir el acordeón correspondiente 👇 ---
@@ -11116,7 +11365,9 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
         $(document).on('click', '.dropdown-toggle', function () {
             const id = $(this).attr('data-id');
-            toggleDropdown(id);
+            if (typeof toggleDropdown === 'function') {
+                toggleDropdown(id);
+            }
         });
 
 
@@ -11181,37 +11432,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             cerrarModalvariableSiEsNecesario();
 
             // Rehabilitar el resaltado y los eventos después de completar el toggleDetalle
-            setTimeout(function () {
-                $(".accordion-collapse").on("shown.bs.collapse hidden.bs.collapse", function (e) {
-                    // Evitar ejecución si se está procesando toggleDetalle
-                    if (toggleInProgress) {
-                        return;
-                    }
-
-                    if (e.type === "shown") {
-                        // Dentro del acordeón expandido, buscá todos los productos visibles
-                        const productosCategoria = this.querySelectorAll(".producto-item");
-
-                        // Solo si hay productos visibles, generamos resaltado
-                        if (productosCategoria.length > 0) {
-                            generarOpcionesDeResaltadoFiltrado(Array.from(productosCategoria), categoria);
-                        }
-                    }
-
-
-                    if (e.type === "hidden") {
-                        // Si hay algún filtrado aplicado, simula el clic en el botón de "Limpiar Resaltado"
-                        if (hayFiltrosAplicados()) {
-                            $("#btnLimpiarResaltado").click();  // Simula el clic en el botón para limpiar el resaltado
-                        }
-
-                        // Limpiar los filtros visualmente
-                        resetearResaltadoFiltradoVisual();
-
-                    }
-                });
-
-            }, 500); // Rehabilitar después de medio segundo
+            // (Eliminado el bloque setTimeout redundante que rompía la lógica de filtros)
         }
 
 
@@ -11598,7 +11819,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             var venta = JSON.parse(localStorage.getItem('venta'));
             if (!venta || !venta.detalle) {
                 // Si no hay venta o detalle, asegurémonos de limpiar todo
-                $('#carrito-item-contador').text('0');
+                $('#carrito-item-contador, #carrito-item-contador2, #carrito-item-contador-header').text('0');
                 $('#sidebarCarritoFooter').hide();
                 $(".venta_detalle_total").html(formatMoneda(0, "$")); // Usa '$' por defecto
                 const recargoInfo = document.getElementById('recargo_info');
@@ -11638,7 +11859,7 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             // --- 3. ACTUALIZAR TODA LA UI ---
 
             // A. Título del mini-carrito
-            $('#carrito-item-contador').text(itemCount);
+            $('#carrito-item-contador, #carrito-item-contador2, #carrito-item-contador-header').text(itemCount);
 
             const carritoFooter = $('#sidebarCarritoFooter');
             const resumenTotalDiv = $('#carrito_resumen_total');
@@ -11707,11 +11928,11 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             if (tieneProductos) {
                 $("#btn_nuevo").removeClass('button-disabled').addClass('button-active');
                 $("#btn_edicion").removeClass('button-disabled').addClass('button-active');
-                $("#btn_cars 2").removeClass('button-disabled').addClass('button-active');
+                $("#btn_cars2").removeClass('button-disabled').addClass('button-active');
             } else {
                 $("#btn_nuevo").removeClass('button-active').addClass('button-disabled');
                 $("#btn_edicion").removeClass('button-active').addClass('button-disabled');
-                $("#btn_cars 2").removeClass('button-active').addClass('button-disabled');
+                $("#btn_cars2").removeClass('button-active').addClass('button-disabled');
             }
         }
 
@@ -11726,11 +11947,19 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
             $("#btn_edicion").show();
             $(".principal").hide();
             $(".pedido_producto").show();
-            $("#btn_cars").hide();
+            // Ocultar filtros usando js-hidden en lugar de d-none para no sobrescribir d-lg-inline-flex al restaurar
+            $("#btn_filtros_movil, #btn_cars_header, #btn_cars, #btn_cars2, #btn-flotante-filtros").addClass('js-hidden');
+            
+            $("#txt_search").prop("disabled", true);
+            $(".search-pill-modern button").prop("disabled", true);
+            // $("#navMenu a").addClass("disabled").css("pointer-events", "none"); // Remove disabled so they can navigate back
+            $(".desktop-cart-widget").removeClass("d-lg-flex").hide();
             $("#closeAllAccordions").fadeOut();
-            $("#btn_regresar").show();
+            // Mostrar botón regresar usando d-none
+            $("#btn_regresar").removeClass('d-none button-inactive js-hidden').css("display", "inline-flex").show().addClass('button-active');
             $("#btn_cars").removeClass("button-active").addClass("button-inactive");
-            $("#btn_regresar").removeClass("button-inactive").addClass("button-active");
+            $("#productos-link").css({"color": "", "border-bottom": "none"});
+            $("#carrito-link").css({"color": "#0dcaf0", "border-bottom": "2px solid #0dcaf0"});
             actualizarBotonProductos();
             var venta = JSON.parse(localStorage.getItem('venta'));
             let detalle_pedido = `
@@ -11833,6 +12062,15 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
             detalle_pedido += ' </tbody>';
             detalle_pedido += ' </table>';
+
+            // Sección de Total y Finalizar Pedido para Ordenadores (visible solo en lg+)
+            detalle_pedido += `
+            <div class="d-none d-lg-flex justify-content-between align-items-center mt-4 p-4 bg-white rounded shadow-sm border border-2">
+                <h4 class="m-0 fw-bold">Total a Pagar: <span class="text-primary">${formatMoneda(venta.total, venta.moneda)}</span></h4>
+                <button class="btn btn-success btn-lg fw-bold px-5" onclick="iniciarCheckout()">
+                    <i class="fa fa-whatsapp me-2"></i>Enviar Pedido por WhatsApp
+                </button>
+            </div>`;
 
             $("#detalle_pedido").html(detalle_pedido);
             var table = $('#tabla_pedido').DataTable({
@@ -12020,17 +12258,29 @@ Imagen: ${producto.imagen?.[0]?.url || '-'}
 
         // Función para regresar a la vista principal
         function regresar_principal() {
-            AppState.estaEnVistaDetalle = false; // 👈 UPDATE STATE
+            AppState.estaEnVistaDetalle = false;
             $(".principal").show();
             $(".pedido_producto").hide();
-            $("#btn_cars").show();
-            $("#btn_regresar").hide();
+            // Restaurar botones de filtro removiendo js-hidden
+            $("#btn_filtros_movil, #btn_cars_header, #btn_cars, #btn_cars2, #btn-flotante-filtros").removeClass('js-hidden');
+            
+            $("#txt_search").prop("disabled", false);
+            $(".search-pill-modern button").prop("disabled", false);
+            $("#navMenu a").removeClass("disabled").css("pointer-events", "auto");
+            $(".desktop-cart-widget").addClass("d-lg-flex").show();
+            // Ocultar botón regresar
+            $("#btn_regresar").removeClass("button-active").addClass("button-inactive d-none").hide();
+            $("#productos-link").css({"color": "#0dcaf0", "border-bottom": "2px solid #0dcaf0"});
+            $("#carrito-link").css({"color": "", "border-bottom": "none"});
             $("#btn_cars2").removeClass("button-inactive").addClass("button-active");
-            $("#btn_regresar").removeClass("button-active").addClass("button-inactive");
             $("#btn_edicion").hide();
             $("#btn_nuevo").show();
-            $("#closeAllAccordions").fadeIn();
-            actualizarBotonProductos(); // Asegurarse de actualizar el botón al regresar a la vista principal
+            if (typeof toggleCloseAllAccordionsButton === "function") {
+                toggleCloseAllAccordionsButton();
+            } else {
+                $("#closeAllAccordions").fadeOut();
+            }
+            actualizarBotonProductos();
         }
 
         // Verifica la vista actual y actualiza el botón "Productos"

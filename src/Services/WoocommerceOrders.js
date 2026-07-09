@@ -94,13 +94,12 @@ function importarOrdenesDesdeWC() {
     const mapaClientes = cargarMapaClientes(ss); // Devuelve Map { email/tel -> ID }
     log(`   -> ${mapaClientes.size} clientes indexados en memoria.`);
 
-    // 3. Llamada API
-    const endpoint = `${siteUrl}wp-json/wc/v3/orders?per_page=20`;
-    const authHeader = 'Basic ' + Utilities.base64Encode(`${key}:${secret}`);
-    const options = { method: 'get', headers: { 'Authorization': authHeader }, muteHttpExceptions: true };
+    // 3. Llamada API (per_page=50, auth por query params más compatible con DonWeb)
+    if (!siteUrl.endsWith('/')) siteUrl += '/';
+    const endpoint = `${siteUrl}wp-json/wc/v3/orders?per_page=50&orderby=date&order=desc&consumer_key=${key}&consumer_secret=${secret}`;
 
-    log(`📡 Consultando API...`);
-    const response = UrlFetchApp.fetch(endpoint, options);
+    log(`📡 Consultando API (últimas 50 órdenes)...`);
+    const response = UrlFetchApp.fetch(endpoint, { muteHttpExceptions: true });
     if (response.getResponseCode() !== 200) throw new Error(`Error API: ${response.getContentText()}`);
 
     const ordenes = JSON.parse(response.getContentText());
@@ -128,6 +127,102 @@ function importarOrdenesDesdeWC() {
     return { success: true, count: ordenes.length, logs: logArray };
   } catch(ex) {
     console.error("❌ Error en importarOrdenesDesdeWC: " + ex.message);
+    return { success: false, error: ex.message, logs: logArray };
+  }
+}
+
+/**
+ * RECUPERACIÓN MASIVA: Importa todas las órdenes faltantes desde una fecha de corte.
+ * ⚠️  Ejecutar manualmente UNA SOLA VEZ desde el editor de Apps Script.
+ *
+ * @param {string} fechaDesde - Fecha ISO 8601. Por defecto: inicio de Junio 2026.
+ *                              Ejemplos: "2026-06-01T00:00:00" | "2026-05-15T00:00:00"
+ */
+function recuperarOrdenesHistoricas(fechaDesde = "2026-06-01T00:00:00") {
+  const logArray = [];
+  const log = (msg) => {
+    const time = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "HH:mm:ss");
+    logArray.push(`[${time}] ${msg}`);
+    console.log(`[RECUPERACION] ${msg}`);
+  };
+
+  log(`🚀 INICIO RECUPERACIÓN MASIVA desde ${fechaDesde}`);
+
+  try {
+    const key = GLOBAL_CONFIG.WORDPRESS.CONSUMER_KEY;
+    const secret = GLOBAL_CONFIG.WORDPRESS.CONSUMER_SECRET;
+    let siteUrl = GLOBAL_CONFIG.WORDPRESS.SITE_URL;
+
+    // Blindaje de seguridad
+    if (!key || !secret || !siteUrl || siteUrl.includes("tudominio.com") || key.includes('XX')) {
+      return { success: false, message: "WooCommerce no configurado", logs: logArray };
+    }
+    if (!siteUrl.endsWith('/')) siteUrl += '/';
+
+    const ss = SpreadsheetApp.openById(GLOBAL_CONFIG.SPREADSHEET_ID);
+    const sheetOrders = prepararHojaVentas(ss, log);
+    const sheetDetails = prepararHojaDetalles(ss, log);
+    const mapaClientes = cargarMapaClientes(ss);
+    log(`📂 ${mapaClientes.size} clientes indexados.`);
+
+    // Cargar IDs ya existentes usando el mapping dinámico (evita duplicados)
+    const dataSheet = sheetOrders.getDataRange().getValues();
+    const mapping = HeaderManager.getMapping("WC_ORDERS");
+    const colId = (mapping && mapping.ID_ORDEN !== undefined) ? mapping.ID_ORDEN : 0;
+    const idsExistentes = new Set();
+    for (let i = 1; i < dataSheet.length; i++) {
+      const id = String(dataSheet[i][colId]).trim();
+      if (id) idsExistentes.add(id);
+    }
+    log(`📋 IDs ya registrados en hoja: ${idsExistentes.size}`);
+
+    const fechaSync = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    let page = 1;
+    let totalInsertadas = 0;
+    let totalActualizadas = 0;
+    let totalPaginas = 0;
+
+    // Paginación completa con filtro de fecha
+    while (true) {
+      const url = `${siteUrl}wp-json/wc/v3/orders?per_page=100&page=${page}&after=${fechaDesde}&orderby=date&order=asc&consumer_key=${key}&consumer_secret=${secret}`;
+      log(`📡 Página ${page}...`);
+
+      const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+
+      if (response.getResponseCode() !== 200) {
+        log(`❌ Error API (página ${page}): ${response.getResponseCode()} - ${response.getContentText()}`);
+        break;
+      }
+
+      const ordenes = JSON.parse(response.getContentText());
+      if (ordenes.length === 0) {
+        log(`✅ No hay más órdenes. Paginación completada en ${page - 1} páginas.`);
+        break;
+      }
+
+      log(`   -> ${ordenes.length} órdenes en página ${page}`);
+      totalPaginas = page;
+
+      for (const order of ordenes) {
+        const result = procesarUnaOrdenWC(
+          order, ss, mapaClientes, log,
+          sheetOrders, sheetDetails, idsExistentes, fechaSync
+        );
+        if (result && result.status === "inserted") totalInsertadas++;
+        if (result && result.status === "updated") totalActualizadas++;
+      }
+
+      page++;
+      Utilities.sleep(1200); // Respetar rate limit de WooCommerce API (~50 req/min)
+    }
+
+    const resumen = `🏁 RECUPERACIÓN COMPLETA: ${totalInsertadas} nuevas, ${totalActualizadas} actualizadas (${totalPaginas} páginas procesadas).`;
+    log(resumen);
+    notificarTelegramSalud(`📦 Recuperación histórica: ${totalInsertadas} órdenes importadas desde ${fechaDesde}`, "EXITO");
+    return { success: true, insertadas: totalInsertadas, actualizadas: totalActualizadas, logs: logArray };
+
+  } catch (ex) {
+    console.error("❌ Error en recuperarOrdenesHistoricas: " + ex.message);
     return { success: false, error: ex.message, logs: logArray };
   }
 }

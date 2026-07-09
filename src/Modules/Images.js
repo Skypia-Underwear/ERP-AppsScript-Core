@@ -1316,38 +1316,34 @@ function subirArchivoGeminiFileAPI(blob, displayName, apiKeyOverride = null) {
  * @param {string} displayName Nombre descriptivo para logs.
  * @param {string} [prioridad='alta']
  *   - 'alta'  → Análisis Forense (cuenta gratuita): siempre thumbnail a 2560px para máximo detalle.
- *   - 'media' → Renderizado (cuenta pago): thumbnail a 1024px solo si el archivo supera 2MB,
- *               para reducir tokens sin sacrificar la referencia visual mínima necesaria.
+ *   - 'media' → Renderizado (cuenta pago): thumbnail a 1024px.
  * @param {string} [apiKeyOverride=null] Llave opcional para asociar la subida al dueño correcto.
  * @param {boolean} [usarBase64=false] Si true, retorna inlineData (Base64) en lugar de fileData (File API).
  * @returns {{ fileData: Object } | { inlineData: Object }}
  */
 function prepararBlobOptimizado(archivoId, displayName, prioridad = 'alta', apiKeyOverride = null, usarBase64 = false) {
-  const file = DriveApp.getFileById(archivoId);
-  let blob = file.getBlob();
-  const originalSize = blob.getBytes().length;
-
-  // --- Resolución Dinámica según prioridad ---
+  let blob = null;
   const esPrioridadAlta = (prioridad === 'alta');
   const sz = esPrioridadAlta ? '2560' : '1024';
-  const umbralBytes = esPrioridadAlta
-    ? (0)                   // 'alta': SIEMPRE usar thumbnail para máxima fidelidad de análisis
-    : (2 * 1024 * 1024);    // 'media': solo si el archivo pesa más de 2MB
 
-  if (originalSize > umbralBytes) {
-    try {
-      const thumbUrl = `https://drive.google.com/thumbnail?id=${archivoId}&sz=w${sz}`;
-      const thumbResp = UrlFetchApp.fetch(thumbUrl, {
-        headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
-        muteHttpExceptions: true
-      });
-      if (thumbResp.getResponseCode() === 200) {
-        blob = thumbResp.getBlob();
-        console.log(`⚡ [Optimize|${prioridad}] ${displayName}: ${(originalSize / 1024 / 1024).toFixed(1)}MB → ${(blob.getBytes().length / 1024).toFixed(0)}KB (sz=w${sz})`);
-      }
-    } catch (e) {
-      console.warn(`⚡ [Optimize] Thumb fallback falló para ${displayName}: ${e.message}`);
+  try {
+    // Estrategia "Direct-to-CDN"
+    const thumbUrl = `https://drive.google.com/thumbnail?id=${archivoId}&sz=w${sz}`;
+    const thumbResp = UrlFetchApp.fetch(thumbUrl, {
+      headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
+      muteHttpExceptions: true
+    });
+    
+    if (thumbResp.getResponseCode() === 200) {
+      blob = thumbResp.getBlob();
+      console.log(`⚡ [Optimize|${prioridad}] ${displayName} → ${(blob.getBytes().length / 1024).toFixed(0)}KB (sz=w${sz}) Direct-to-CDN`);
+    } else {
+      throw new Error(`HTTP ${thumbResp.getResponseCode()}`);
     }
+  } catch (e) {
+    console.warn(`⚡ [Optimize] Fallback de Emergencia activado para ${displayName}: ${e.message}`);
+    const file = DriveApp.getFileById(archivoId);
+    blob = file.getBlob();
   }
 
   // --- OPCIÓN A: BYPASS BASE64 (Ideal para thumbnails / llaves con 403) ---
