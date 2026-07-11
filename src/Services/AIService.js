@@ -165,16 +165,10 @@ const AIService = {
     const logArray = [`🚀 Iniciando análisis para el producto ${sku}...`];
     
     try {
-      // 1. Verificar condiciones en BD_PRODUCTO_IMAGENES
-      logArray.push("🔍 Buscando referencia visual maestra (Portada + Prompt)...");
-      const referenciaMaestra = obtenerReferenciaMaestra(sku);
-      
-      if (!referenciaMaestra) {
-        const errorMsg = "⚠️ No se encontró una imagen marcada como PORTADA con PROMPT generado. Genera primero la imagen de portada en el Gestor de Imágenes.";
-        logArray.push(errorMsg);
-        return { success: false, message: errorMsg, logs: logArray };
-      }
-      logArray.push("✅ Referencia maestra encontrada.");
+      // 1. Referencia visual (Opcional, ya que PROMPT_MAESTRO migró al lab de IA)
+      logArray.push("🔍 Buscando referencia visual (Opcional)...");
+      const referenciaMaestra = obtenerReferenciaMaestra(sku) || {};
+      logArray.push("✅ Referencia procesada.");
 
       // 2. Obtener metadatos del producto
       const ss = SpreadsheetApp.getActiveSpreadsheet();
