@@ -9,8 +9,9 @@ const AIService = {
 
   // Capa Gratuita / Infraestructura (ai_model_standard.md - Capa 1)
   MODELS_FREE: [
-    "gemma-4-26b-a4b-it",  // 🐢 PRECISIÓN: Peritaje forense profundo (110s)
-    "gemini-2.5-flash"     // 🚀 AGILIDAD: Análisis multimodal rápido (5-10s)
+    "gemma-4-26b-a4b-it",  // 🐢 PRECISIÓN: Peritaje forense profundo
+    "gemini-3.5-flash",    // 🚀 AGILIDAD Y PRECISIÓN AVANZADA
+    "gemini-2.5-flash"     // 🛡️ ÚLTIMA OPCIÓN DE RESPALDO
   ],
 
   // Capa de Pago / Generación de Imagen (ai_model_standard.md - Capa 3)
@@ -98,11 +99,12 @@ const AIService = {
     }
     if (apiKeysToTry.length === 0) throw new Error("Falta API Key para IA.");
 
-    // Modelos Gemini con soporte nativo de JSON
+    // Lógica de escalera priorizando modelos avanzados, usando gemini-2.5-flash como última opción antes de Gemma 4
     const modelosGeminiJSON = [
-      "gemini-2.5-flash",
       "gemini-3.5-flash",
-      "gemini-3.1-pro-preview"
+      "gemini-3.1-pro-preview",
+      "gemini-2.5-flash",
+      "gemma-4-26b-a4b-it"
     ];
 
     let ultimoError = "";
@@ -113,16 +115,24 @@ const AIService = {
 
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+          const partsArray = [{ text: prompt }];
+          if (configOverride.extraParts && Array.isArray(configOverride.extraParts)) {
+              partsArray.push(...configOverride.extraParts);
+          }
+          
           const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
+            contents: [{ parts: partsArray }],
             generationConfig: {
               temperature: configOverride.temperature || 0.2,
-              maxOutputTokens: configOverride.maxOutputTokens || 2048,
-              responseMimeType: "application/json"
+              maxOutputTokens: configOverride.maxOutputTokens || 2048
             }
           };
 
-          if (configOverride.responseSchema) {
+          if (!configOverride.forceText && !modelo.includes("gemma")) {
+              payload.generationConfig.responseMimeType = "application/json";
+          }
+
+          if (configOverride.responseSchema && !modelo.includes("gemma")) {
             payload.generationConfig.responseSchema = configOverride.responseSchema;
           }
 
@@ -140,8 +150,10 @@ const AIService = {
             const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
 
             if (rawText) {
-              // Validar que realmente sea un JSON válido antes de retornarlo
-              JSON.parse(rawText);
+              // Validar que realmente sea un JSON válido antes de retornarlo sólo si no es forceText
+              if (!configOverride.forceText) {
+                JSON.parse(rawText);
+              }
               return rawText;
             }
           }
@@ -209,7 +221,10 @@ const AIService = {
         throw new Error("No se pudo parsear la respuesta de la IA.");
       }
 
-      logArray.push("✅ Contenido generado con éxito.");
+      logArray.push("✅ Contenido generado con éxito. Inyectando en base de datos...");
+      const descCombinada = `${dataIA.fichatecnica || ''}\n${dataIA.tabla_talles || ''}`;
+      this.guardarFichaTecnicaIA(sku, dataIA.corta || "", descCombinada);
+      logArray.push("💾 Contenido inyectado en columna DESCRIPCION_IA.");
       
       return { 
         success: true, 
@@ -2852,3 +2867,356 @@ function ejecutarRefinamientoPromptPorVoz(imagenId, currentPrompt, base64Audio, 
 function transcribirAudio(base64Audio, mimeType) {
   return AIService.transcribirAudio(base64Audio, mimeType);
 }
+
+// ==========================================
+// NUEVO FLUJO: ENRIQUECIMIENTO VISUAL (Talles y Copy)
+// ==========================================
+
+function obtenerTallesValidosParaIA(sku) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("BD_PRODUCTOS");
+    if (!sheet) return "";
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const skuIndex = headers.indexOf("SKU");
+    const tallesIndex = headers.indexOf("TALLES");
+    
+    if (skuIndex === -1 || tallesIndex === -1) return "";
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][skuIndex] === sku) {
+        const tallesValue = data[i][tallesIndex];
+        if (!tallesValue) return "";
+        
+        // Filtrar "SURTIDO"
+        const list = tallesValue.toString().split(",").map(t => t.trim()).filter(t => t && t.toUpperCase() !== "SURTIDO");
+        return list.join(", ");
+      }
+    }
+    return "";
+  } catch(e) {
+    console.error("Error en obtenerTallesValidosParaIA", e);
+    return "";
+  }
+}
+
+function generarDescripcionVisualIA(params) {
+    const { sku, imagenes, edad, tipo, talles, forensic } = params;
+    
+    if (!imagenes || imagenes.length === 0) {
+        throw new Error("No hay imágenes de referencia seleccionadas.");
+    }
+
+    // 1. Obtener base64 de las imágenes
+    const base64Images = [];
+    for(let fileId of imagenes) {
+       try {
+           const blob = DriveApp.getFileById(fileId).getBlob();
+           base64Images.push({
+              inlineData: {
+                  data: Utilities.base64Encode(blob.getBytes()),
+                  mimeType: blob.getContentType()
+              }
+           });
+       } catch(e) { console.error("Error al leer imagen:", e); }
+    }
+
+    // 2. Construir el prompt
+    let tallesInfo = "La prenda es de tipo único / surtido, omite los talles.";
+    if (talles && talles !== "Ninguno válido" && !talles.includes("No se encontraron")) {
+        tallesInfo = `Los talles disponibles de la prenda son: ${talles}. Genera la tabla EXCLUSIVAMENTE para estos talles.`;
+    }
+
+    let forensicInfo = "";
+    if (forensic && forensic.trim() !== "") {
+        forensicInfo = `\nAdemás, utiliza como referencia el siguiente ANÁLISIS FORENSE de las imágenes, el cual tiene alta prioridad técnica:\n${forensic}\n`;
+    }
+
+    const prompt = `
+Eres un experto diseñador de indumentaria y copywriter e-commerce de alta gama.
+INSTRUCCIONES CRÍTICAS:
+1. Analiza las imágenes proporcionadas de esta prenda (Tipo: ${tipo}, Público: ${edad}). ${forensicInfo}
+2. Deduce visualmente el corte (fit), estilo, textura y materiales aproximados.
+3. Genera una frase corta (10-15 palabras max) MUY persuasiva orientada a venta impulsiva para WooCommerce (short_desc).
+4. Genera una FICHA TÉCNICA Y TABLA DE TALLES COMPLETA Y ENRIQUECIDA EN HTML PURO con estilos en línea profesionales:
+   - Debe envolverse en un contenedor: <div style="font-family: Arial, sans-serif; color: #333;">
+   - Título principal: <h3 style="font-size: 1.5em; margin-bottom: 15px; color: #222;">Ficha Técnica y Tabla de Talles</h3>
+   - Párrafo descriptivo persuasivo y técnico detallando diseño, material, corte y confección: <p style="margin-bottom: 15px; line-height: 1.6; text-align: justify;">...</p>
+   - Tabla de talles profesional: <table style="width:100%; border-collapse: collapse; margin-top: 25px; border: 1px solid #ddd;"> con cabecera (background #f8f8f8) adaptando las columnas estrictamente a la anatomía/ADN del producto (análisis forense y categoría):
+     * Prendas superiores con mangas (Campera, Buzo, Remera): Talle | Pecho (Sisa a Sisa) | Largo Total | Largo de Manga
+     * Prendas superiores sin mangas (Chaleco, Musculosa): Talle | Ancho (Sisa a Sisa) | Largo Total | Hombros
+     * Prendas inferiores exteriores (Pantalón, Jeans, Short, Jogging): Talle | Cintura | Cadera | Largo Total
+     * Ropa interior o de baño (Boxer, Slip, Bombacha, Malla): Talle | Contorno de Cintura | Contorno de Cadera | Tiro
+     * Calzado: Talle | Largo de Plantilla
+   - Nota al pie: <p style="margin-top: 20px; font-size: 0.9em; color: #666;">*Las medidas son aproximadas y pueden variar ligeramente. Se recomienda comparar con una prenda similar que te quede bien.</p>
+5. Estima matemáticamente las medidas en centímetros de manera lógica, escalonada y proporcional para cada talle, basándote en proporciones estándar de indumentaria y tu análisis visual del fit.
+6. ${tallesInfo}
+
+Tu respuesta será inyectada directamente en una web. Devuelve tu respuesta EXACTAMENTE y ÚNICAMENTE en el siguiente formato, separado por una línea especial "---HTML_SPLIT---":
+
+[FRASE CORTA PERSUASIVA AQUÍ]
+---HTML_SPLIT---
+[TU HTML COMPLETO AQUÍ (DIV, H3, PARRAFO DESCRIPTIVO, TABLA DE TALLES Y NOTA AL PIE)]
+`;
+
+  // Usamos consultarGemma porque es más resiliente y no fuerza JSON mode
+  // Pasamos base64Images en un array. Necesitamos modificar consultarGemma si no soporta array de parts.
+  // Pero para estar seguros, usamos el mismo consultarGeminiJSON PERO sin schema, para que devuelva texto.
+  const rawResponse = AIService.consultarGeminiJSON(prompt, {
+      extraParts: base64Images,
+      temperature: 0.3,
+      maxOutputTokens: 8192,
+      forceText: true
+  });
+  
+  try {
+      const parts = rawResponse.split("---HTML_SPLIT---");
+      if(parts.length >= 2) {
+          const short_desc = parts[0].replace(/```html/g, '').replace(/```/g, '').trim();
+          const html_desc = parts[1].replace(/```html/g, '').replace(/```/g, '').trim();
+          return { success: true, short_desc, html_desc };
+      } else {
+          // Intentar parsear como JSON si el modelo lo hizo de todos modos
+          try {
+              const cleaned = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+              const parsed = JSON.parse(cleaned);
+              return { success: true, short_desc: parsed.short_desc || "", html_desc: parsed.html_desc || "" };
+          } catch(e) {
+              return { success: false, message: "La IA no devolvió el formato esperado." };
+          }
+      }
+  } catch(e) {
+      return { success: false, message: "Error interno procesando respuesta de la IA." };
+  }
+}
+
+function guardarFichaTecnicaIA(sku, corta, html) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("BD_PRODUCTOS");
+    if (!sheet) throw new Error("Hoja BD_PRODUCTOS no encontrada");
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    
+    const skuClean = String(sku || "").trim().toLowerCase();
+    const skuIndex = headers.indexOf("SKU");
+    const codIndex = headers.indexOf("CODIGO_ID");
+    const descIAIndex = headers.indexOf("DESCRIPCION_IA");
+    const descCortaIndex = headers.indexOf("DESCRIPCION_CORTA");
+    const fichaHTMLIndex = headers.indexOf("FICHA_TECNICA_HTML");
+    
+    if (skuIndex === -1 && codIndex === -1) throw new Error("Columnas SKU o CODIGO_ID no encontradas");
+    
+    for (let i = 1; i < data.length; i++) {
+      const valSku = skuIndex !== -1 ? String(data[i][skuIndex] || "").trim().toLowerCase() : "";
+      const valCod = codIndex !== -1 ? String(data[i][codIndex] || "").trim().toLowerCase() : "";
+      if (valSku === skuClean || valCod === skuClean) {
+        const contenidoIA = `${corta ? `<p style="font-size:1.1em; font-weight:bold; color:#222; margin-bottom:15px;">${corta}</p>\n` : ''}${html}`;
+        if (descIAIndex !== -1) {
+          sheet.getRange(i + 1, descIAIndex + 1).setValue(contenidoIA);
+        }
+        if (descCortaIndex !== -1) sheet.getRange(i + 1, descCortaIndex + 1).setValue(corta);
+        if (fichaHTMLIndex !== -1) sheet.getRange(i + 1, fichaHTMLIndex + 1).setValue(html);
+        return { success: true };
+      }
+    }
+    
+    return { success: false, message: "SKU no encontrado en BD_PRODUCTOS" };
+  } catch(e) {
+    return { success: false, message: e.toString() };
+  }
+}
+
+function generarImagenGuiaTallesIA(sku, refFileId) {
+  try {
+    const skuClean = String(sku || "").trim().toLowerCase();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("BD_PRODUCTOS");
+    if (!sheet) throw new Error("Hoja BD_PRODUCTOS no encontrada");
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const skuIndex = headers.indexOf("SKU");
+    const codIndex = headers.indexOf("CODIGO_ID");
+    const descIAIndex = headers.indexOf("DESCRIPCION_IA");
+    const carpetaIndex = headers.indexOf("CARPETA_ID");
+    const modeloIndex = headers.indexOf("MODELO");
+    
+    let prodRow = null;
+    for (let i = 1; i < data.length; i++) {
+      const valSku = skuIndex !== -1 ? String(data[i][skuIndex] || "").trim().toLowerCase() : "";
+      const valCod = codIndex !== -1 ? String(data[i][codIndex] || "").trim().toLowerCase() : "";
+      if (valSku === skuClean || valCod === skuClean) {
+        prodRow = data[i];
+        break;
+      }
+    }
+    
+    if (!prodRow) throw new Error("Producto no encontrado en BD_PRODUCTOS");
+    
+    const descripcionIA = descIAIndex !== -1 ? String(prodRow[descIAIndex] || "") : "";
+    const carpetaId = carpetaIndex !== -1 ? String(prodRow[carpetaIndex] || "").trim() : "";
+    const nombreModelo = modeloIndex !== -1 ? String(prodRow[modeloIndex] || "Prenda") : "Prenda";
+    
+    if (!descripcionIA) throw new Error("El producto aún no tiene DESCRIPCION_IA guardada. Primero guarda la descripción y tabla de talles.");
+    if (!carpetaId) throw new Error("El producto no tiene CARPETA_ID asignada en Drive.");
+    
+    let archivoRef = null;
+    if (refFileId) {
+      try { archivoRef = DriveApp.getFileById(refFileId); } catch (e) {}
+    }
+    if (!archivoRef && carpetaId) {
+      try {
+        const folderRef = DriveApp.getFolderById(carpetaId);
+        const filesRef = folderRef.getFiles();
+        while (filesRef.hasNext()) {
+          const f = filesRef.next();
+          const m = f.getMimeType() || "";
+          if (m.indexOf("image/") === 0) {
+            archivoRef = f;
+            break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    const partsReferencia = [];
+    if (archivoRef) {
+      try {
+        const blob = archivoRef.getBlob();
+        partsReferencia.push({
+          inlineData: {
+            mimeType: blob.getContentType() || "image/jpeg",
+            data: Utilities.base64Encode(blob.getBytes())
+          }
+        });
+      } catch (errDrive) {
+        console.warn("No se pudo cargar la imagen de referencia de Drive: " + errDrive.message);
+      }
+    }
+    
+    // Extraer estrictamente solo la tabla de medidas de descripcionIA (sin párrafos narrativos)
+    let soloTabla = "";
+    let columnasMedicion = [];
+    const matchTabla = descripcionIA.match(/<table[\s\S]*?<\/table>/i);
+    if (matchTabla) {
+      soloTabla = matchTabla[0].replace(/<tr[^>]*>/gi, '\n').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const matchesTh = matchTabla[0].match(/<th[^>]*>([\s\S]*?)<\/th>/gi);
+      if (matchesTh && matchesTh.length > 1) {
+        columnasMedicion = matchesTh
+          .map(th => th.replace(/<[^>]*>/g, '').trim())
+          .filter(txt => txt && !/talle|size/i.test(txt));
+      }
+    } else {
+      soloTabla = descripcionIA.replace(/<p[\s\S]*?<\/p>/gi, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    
+    const letras = ['[A]', '[B]', '[C]', '[D]', '[E]'];
+    let leyendaMedicion = "[A] Pecho: Sisa a sisa  |  [B] Largo Total  |  [C] Largo de Manga";
+    let flechasMedicion = "(A) Pecho / Chest width, (B) Largo Total / Total length, (C) Largo de Manga / Sleeve length";
+    
+    if (columnasMedicion.length > 0) {
+      leyendaMedicion = columnasMedicion.map((col, idx) => `${letras[idx] || ''} ${col}`).join("  |  ");
+      flechasMedicion = columnasMedicion.map((col, idx) => `${letras[idx] || ''} ${col} (draw clean architectural arrow indicating exactly where '${col}' is measured on this specific garment structure)`).join(", ");
+    }
+    
+    const promptInfografia = `STRICT GRAPHIC DESIGN SPECIFICATION for luxury e-commerce size guide infographic of '${nombreModelo}' (SKU: ${sku}):
+1. ZERO ESSAY TEXT OR NARRATIVE PARAGRAPHS. ONLY structured technical infographic elements.
+2. GARMENT FIDELITY & CATEGORY ADAPTATION: Maintain 1:1 exact structural appearance (e.g. sleeveless vest/chaleco, hoodie, pants, shoes), colors, patterns, and features from the attached reference garment photo.
+3. FULL BALANCED COMPOSITION (NO EMPTY OR WASTED SPACE):
+   - TOP HEADER: Elegant title 'GUÍA DE TALLES: ${nombreModelo.toUpperCase()}' with subtle subtitle specifying SKU ${sku}.
+   - LEFT COLUMN: Regardless of input photo style, render the garment as a symmetrical, perfectly frontal clean technical studio presentation (Ghost Mannequin / Flat-Lay e-commerce style) preserving 100% of the exact garment anatomy and features.
+     CRITICAL MEASUREMENT ACCURACY: Overlay clean architectural gold measurement arrows precisely tailored to this garment's table columns:
+     ${flechasMedicion}
+     IMPORTANT: DO NOT draw imaginary parts or sleeve arrows if the garment has no sleeves (like a vest/chaleco or tank top).
+   - RIGHT COLUMN: Sleek dark glassmorphism size guide table displaying exact measurements:
+${soloTabla}
+   - FULL-WIDTH BOTTOM FOOTER SECTION (Filling the lower space beautifully):
+     * Technical Legend matching the table columns exactly: '${leyendaMedicion}'
+     * Measurement Tip: '💡 Recomendación: Compara estas medidas con una prenda similar sobre una superficie plana.'
+     * Luxury Quality Badges: Clean minimal gold icons for Premium Quality & Exact Fit.
+4. Aesthetic & SMART HIGH-CONTRAST STUDIO BACKGROUND:
+   - Masterpiece 4K commercial luxury studio graphic design with glowing amber/gold accents.
+   - CRITICAL CONTRAST RULE: Dynamically adapt the studio backdrop color behind the garment sketch so the garment silhouette pops crisply. If the garment is dark/black/navy, illuminate the studio backdrop behind the garment with a refined light neutral/soft warm silver spotlight gradient so the edges and details are 100% visible and sharp. If the garment is light, use a sleek dark luxury obsidian backdrop.`;
+    
+    const resRender = AIService.ejecutarRenderizadoImagen(promptInfografia, partsReferencia, { aspectRatio: "1:1" });
+    
+    if (!resRender || !resRender.success || !resRender.base64) {
+      throw new Error("No se pudo generar la imagen infográfica con los modelos de IA de Pago.");
+    }
+    
+    const bytes = Utilities.base64Decode(resRender.base64);
+    const blobImg = Utilities.newBlob(bytes, "image/png", `guia_talles_${sku}.png`);
+    
+    const folder = DriveApp.getFolderById(carpetaId);
+    const newFile = folder.createFile(blobImg);
+    
+    // Sincronizar inmediatamente la base de datos de imágenes para que aparezca en la galería sin recargar Drive manual
+    try {
+      if (typeof sincronizarImagenes === "function") {
+        sincronizarImagenes(sku);
+      }
+    } catch (eSync) {
+      console.warn("Aviso al sincronizar galería: " + eSync.message);
+    }
+    
+    return {
+      success: true,
+      fileId: newFile.getId(),
+      url: newFile.getUrl(),
+      message: "Imagen de Guía de Talles generada y sincronizada en tu galería."
+    };
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
+}
+
+function obtenerDescripcionIAProducto(idOsku) {
+  try {
+    const termClean = String(idOsku || "").trim().toLowerCase();
+    if (!termClean) return { success: false, message: "ID o SKU vacío" };
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("BD_PRODUCTOS");
+    if (!sheet) return { success: false, message: "Hoja BD_PRODUCTOS no encontrada" };
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const skuIndex = headers.indexOf("SKU");
+    const codIndex = headers.indexOf("CODIGO_ID");
+    const wooIndex = headers.indexOf("WOO_ID");
+    const descIAIndex = headers.indexOf("DESCRIPCION_IA");
+    
+    if (descIAIndex === -1) return { success: false, message: "Columna DESCRIPCION_IA no existe" };
+    
+    for (let i = 1; i < data.length; i++) {
+      const valSku = skuIndex !== -1 ? String(data[i][skuIndex] || "").trim().toLowerCase() : "";
+      const valCod = codIndex !== -1 ? String(data[i][codIndex] || "").trim().toLowerCase() : "";
+      const valWoo = wooIndex !== -1 ? String(data[i][wooIndex] || "").trim().toLowerCase() : "";
+      
+      if (valSku === termClean || valCod === termClean || valWoo === termClean) {
+        const raw = String(data[i][descIAIndex] || "").trim();
+        if (!raw) return { success: true, exists: false, corta: "", html: "" };
+        
+        let corta = "";
+        let html = raw;
+        const matchP = raw.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+        if (matchP && raw.indexOf(matchP[0]) < 20) {
+          corta = matchP[1].replace(/<[^>]*>/g, '').trim();
+          html = raw.substring(raw.indexOf(matchP[0]) + matchP[0].length).trim();
+        } else {
+          corta = raw.replace(/<[^>]*>/g, '').substring(0, 160) + "...";
+        }
+        return { success: true, exists: true, corta: corta, html: html, raw: raw };
+      }
+    }
+    return { success: true, exists: false, corta: "", html: "" };
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
+}
+
+

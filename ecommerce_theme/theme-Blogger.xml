@@ -1934,23 +1934,32 @@
         }
     }
 
-    /* Vista lista (en celular) &#8594; solo este afecta lo que pedís */
-    @media (max-width: 468px) {
-        body[data-vista=&quot;
-        lista&quot;
-
-        ] .image-parent {
-            max-width: 50%;
+    @media (max-width: 768px) {
+        body[data-vista="lista"] .image-parent {
+            width: 100% !important;
+            max-width: 100% !important;
         }
     }
 
+    .producto-item.single-product-full {
+        flex-direction: column !important;
+    }
+
+    .producto-item.single-product-full .image-parent {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 320px !important;
+        max-height: 440px !important;
+    }
+
     /* Estilo general para imágenes en el carrusel */
-    .carousel-inner img {
-        width: auto;
-        height: auto;
-        border-style: double;
+    .carousel-inner img.product-carousel-img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border: none !important;
         transition: transform 0.5s ease;
-        cursor: url(&#39;data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij4KICAgIDxjaXJjbGUgY3g9IjExIiBjeT0iMTEiIHI9IjcuNSIgc3R5bGU9ImZpbGw6bm9uZTtzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MztzdHJva2UtbWl0ZXJsaW1pdDoyOyIgLz4KICAgIDxsaW5lIHgxPSIxMSIgeTE9IjgiIHgyPSIxMSIgeTI9IjE0IiBzdHlsZT0iZmlsbDpub25lO3N0cm9rZTojMDAwO3N0cm9rZS13aWR0aDozO3N0cm9rZS1saW5lY2FwOnJvdW5kOyIvPgogICAgPGxpbmUgeDE9IjgiIHkxPSIxMSIgeDI9IjE0IiB5Mj0iMTEiIHN0eWxlPSJmaWxsOm5vbmU7c3Ryb2tlOiMwMDA7c3Ryb2tlLXdpZHRoOjM7c3Ryb2tlLWxpbmVjYXA6cm91bmQ7Ii8+CiAgICA8cGF0aCBkPSJtMjEgMjEtNC4zNS00LjM1IiBzdHlsZT0iZmlsbDpub25lO3N0cm9rZTpjdXJyZW50Q29sb3I7c3Ryb2tlLXdpZHRoOjM7Ii8+Cjwvc3ZnPg==&#39;) 12 12, auto;
+        cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij4KICAgIDxjaXJjbGUgY3g9IjExIiBjeT0iMTEiIHI9IjcuNSIgc3R5bGU9ImZpbGw6bm9uZTtzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MztzdHJva2UtbWl0ZXJsaW1pdDoyOyIgLz4KICAgIDxsaW5lIHgxPSIxMSIgeTE9IjgiIHgyPSIxMSIgeTI9IjE0IiBzdHlsZT0iZmlsbDpub25lO3N0cm9rZTojMDAwO3N0cm9rZS13aWR0aDozO3N0cm9rZS1saW5lY2FwOnJvdW5kOyIvPgogICAgPGxpbmUgeDE9IjgiIHkxPSIxMSIgeDI9IjE0IiB5Mj0iMTEiIHN0eWxlPSJmaWxsOm5vbmU7c3Ryb2tlOiMwMDA7c3Ryb2tlLXdpZHRoOjM7c3Ryb2tlLWxpbmVjYXA6cm91bmQ7Ii8+CiAgICA8cGF0aCBkPSJtMjEgMjEtNC4zNS00LjM1IiBzdHlsZT0iZmlsbDpub25lO3N0cm9rZTpjdXJyZW50Q29sb3I7c3Ryb2tlLXdpZHRoOjM7Ii8+Cjwvc3ZnPg==') 12 12, auto;
     }
 
     /* Media query para dispositivos de escritorio (computadoras) */
@@ -7163,11 +7172,29 @@
             }, 300);
         }
 
+        function abrirModalGuiaTalles(urlImagen) {
+            if (!urlImagen) return;
+            const existing = document.getElementById('modal-guia-talles');
+            if (existing) existing.remove();
+            const modal = document.createElement('div');
+            modal.id = 'modal-guia-talles';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:pointer;';
+            modal.innerHTML = `
+              <div style="position:relative; max-width:650px; max-height:90vh;" onclick="event.stopPropagation()">
+                <button type="button" onclick="document.getElementById('modal-guia-talles').remove()" style="position:absolute;top:-35px;right:0;color:#fff;background:transparent;border:none;font-size:24px;font-weight:bold;cursor:pointer;">✕ Cerrar</button>
+                <img src="${urlImagen}" style="max-width:100%;max-height:85vh;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.8);display:block;">
+              </div>
+            `;
+            modal.onclick = () => modal.remove();
+            document.body.appendChild(modal);
+        }
+
         function crearProductoHTML(categoria, producto, modoCompacto = false, isSingleProduct = false) {
             if (modoCompacto || document.body.dataset.vista === 'compacta') {
                 return crearProductoHTMLCompacto(categoria, producto, isSingleProduct);
             }
 
+            const urlGuiaTalles = producto.guia_talles_img || (Array.isArray(producto.imagen) ? producto.imagen.find(img => String(img.rol).toUpperCase() === 'GUIA_TALLES' || String(img.fuente).toUpperCase().includes('GUIA') || String(img.tipo).toUpperCase() === 'GUIA_TALLES')?.url : '') || '';
             const productoURL = `${location.origin}${location.pathname}?categoria=${categoria.codigo}&producto=${producto.codigo}`;
             const isHighlighted = highlightCategoria === categoria.codigo && highlightProducto === producto.codigo;
             const esAndroid = /Android/i.test(navigator.userAgent);
@@ -7290,7 +7317,7 @@
                 ? `https://wa.me/549${producto.descripcion.whatsapp.telefono}?text=${encodeURIComponent(mensajeWhatsApp)}` : '';
 
             return `
-    <li class="list-group-item producto-item d-flex flex-column flex-sm-row-reverse justify-content-between align-items-stretch ${isHighlighted ? 'highlight' : ''}" 
+    <li class="list-group-item producto-item ${isSingleProduct ? 'single-product-full' : ''} d-flex flex-column flex-sm-row-reverse justify-content-between align-items-stretch ${isHighlighted ? 'highlight' : ''}" 
         id="producto-${categoria.codigo}-${producto.codigo}" 
         data-categoria="${categoria.codigo}"
         data-sku="${producto.codigo}">
@@ -7368,6 +7395,9 @@
             ${producto.descripcion?.video?.url ? `<a class="btn btn-sm btn-action-premium btn-action-video flex-grow-1" data-fancybox data-type="iframe" href="${producto.descripcion.video.url}">
                 <i class="fa fa-play-circle"></i> Video
             </a>` : ''}
+            ${urlGuiaTalles ? `<button class="btn btn-sm btn-action-premium flex-grow-1 d-flex align-items-center justify-content-center gap-1" style="color: #334155; border-color: #cbd5e1; background: #f8fafc; font-weight: 600;" onclick="abrirModalGuiaTalles('${urlGuiaTalles}')" title="Ver Guía de Talles">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 1.8 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"></path><path d="m14.5 12.5 2-2"></path><path d="m11.5 9.5 2-2"></path><path d="m8.5 6.5 2-2"></path><path d="m17.5 15.5 2-2"></path></svg> <span>Guía de Talles</span>
+            </button>` : ''}
         </div>
       </div>
     </li>`;
@@ -7375,6 +7405,7 @@
 
         // --- 2. Vista Compacta (Tarjeta Premium) ---
         function crearProductoHTMLCompacto(categoria, producto, isSingleProduct = false) {
+            const urlGuiaTalles = producto.guia_talles_img || (Array.isArray(producto.imagen) ? producto.imagen.find(img => String(img.rol).toUpperCase() === 'GUIA_TALLES' || String(img.fuente).toUpperCase().includes('GUIA') || String(img.tipo).toUpperCase() === 'GUIA_TALLES')?.url : '') || '';
             const productoURL = `${location.origin}${location.pathname}?categoria=${categoria.codigo}&producto=${producto.codigo}`;
             const esAndroid = /Android/i.test(navigator.userAgent);
             const isHighlighted = highlightCategoria === categoria.codigo && highlightProducto === producto.codigo;
@@ -7473,6 +7504,9 @@
                     </button>
                     ${urlWhatsApp ? `<button class="btn btn-sm btn-action-premium btn-action-whatsapp flex-grow-1 p-1" style="font-size: 0.7rem;" onclick="window.open('${urlWhatsApp}', '_blank')">
                         <i class="fa fa-whatsapp"></i>
+                    </button>` : ''}
+                    ${urlGuiaTalles ? `<button class="btn btn-sm btn-action-premium flex-grow-1 p-1 d-flex align-items-center justify-content-center" style="color: #334155; border-color: #cbd5e1; background: #f8fafc; font-size: 0.7rem;" onclick="abrirModalGuiaTalles('${urlGuiaTalles}')" title="Guía de Talles">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 1.8 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"></path><path d="m14.5 12.5 2-2"></path><path d="m11.5 9.5 2-2"></path><path d="m8.5 6.5 2-2"></path><path d="m17.5 15.5 2-2"></path></svg>
                     </button>` : ''}
                 </div>
                 <button class="btn btn-primary btn-sm w-100 fw-bold premium-btn-action" style="border-radius: 8px; font-size: 0.75rem;" onclick="mostrar_popuppedido('${categoria.codigo}', '${producto.codigo}')">

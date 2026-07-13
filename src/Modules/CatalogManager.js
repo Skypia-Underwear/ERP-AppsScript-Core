@@ -86,13 +86,19 @@ function tpv_cargarProductosFinales(ss, varietiesRaw, inventoryRaw) {
 
         return {
             sku: pid,
+            name: row.MODELO || row.NOMBRE || "Sin Nombre",
             nombre: row.MODELO || row.NOMBRE || "Sin Nombre",
             category: row.CATEGORIA || "",
             brand: row.MARCA || "",
             gender: row.GENERO || "",
+            ageGroup: row.GRUPO_EDAD || "",
+            sizes: row.TALLES || "",
             image: row.URL_IMAGEN || row.IMAGEN_PRINCIPAL || "",
             variations: inventoryRaw.mapByProduct[pid] || [],
-            prices: varietiesRaw.mapByProduct[pid] || []
+            prices: varietiesRaw.mapByProduct[pid] || [],
+            // Alias de compatibilidad
+            grupo_edad: row.GRUPO_EDAD || "",
+            talles: row.TALLES || ""
         };
     }).filter(p => p !== null);
 }

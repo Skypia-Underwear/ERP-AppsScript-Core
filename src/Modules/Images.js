@@ -538,7 +538,8 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           if (!file.getMimeType().includes('video') && !file.getName().toLowerCase().includes('_thumb.jpg')) {
             const currentName = file.getName();
             const shortId = file.getId().substring(0, 5);
-            const expectedPrefix = `${prod.sku}-${shortId}`;
+            const esGuia = currentName.toLowerCase().includes('guia_talles') || currentName.toLowerCase().includes('tabla_talles');
+            const expectedPrefix = (esGuia ? `GUIA_TALLES_${prod.sku}-` : `${prod.sku}-`);
             // Solo renombrar a TMP si el nombre va a cambiar (no ya es estable)
             if (!currentName.startsWith(expectedPrefix)) {
               const currentExt = currentName.includes('.') ? '.' + currentName.split('.').pop() : '';
@@ -561,10 +562,11 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
 
           archivosVistosEnDrive.add(fileId);
           const extension = fileName.includes('.') ? fileName.split('.').pop() : (mime.includes('video') ? 'mp4' : 'jpg');
+          const esGuia = originalFileName.toLowerCase().includes('guia_talles') || originalFileName.toLowerCase().includes('tabla_talles') || fileName.toLowerCase().includes('guia_talles');
           if (!mime.includes('folder')) {
             // ESTRATEGIA ESTABLE: SKU + Hash del ID. El nombre NO cambia si cambia el orden en la galería.
             const shortId = fileId.substring(0, 5);
-            const nuevoNombreBase = prod.sku + '-' + shortId + '.' + extension;
+            const nuevoNombreBase = (esGuia ? 'GUIA_TALLES_' : '') + prod.sku + '-' + shortId + '.' + extension;
 
             try {
               if (mime.includes('video')) {
@@ -644,7 +646,7 @@ function sincronizarImagenes(productoIdFiltro = null, logArray = null) {
           setVal('ARCHIVO_ID', fileId);
           setVal('URL', publicUrl);
           setVal('FECHA_CARGA', timestamp);
-          setVal('FUENTE', yaExistePorRuta ? 'AppSheet Sync' : 'Sistema Web');
+          setVal('FUENTE', esGuia ? 'IA - Guía de Talles' : (yaExistePorRuta ? 'AppSheet Sync' : 'Sistema Web'));
 
           // REGLA: Conservar el estado de PORTADA preexistente, 
           // O marcar el primer archivo nuevo (contadorImagenes===1) como portada SOLO si no existía el registro.

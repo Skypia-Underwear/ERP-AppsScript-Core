@@ -119,11 +119,21 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
                 if (thumb && (thumb.includes('=s') || thumb.includes('sz=s'))) {
                     urlAltaResolucion = thumb.replace(/(=|sz=)s\d+.*$/, '$1s1600-rw');
                 }
+                const rutaImg = String((mI.IMAGEN_RUTA !== undefined ? r[mI.IMAGEN_RUTA] : "") || "").toUpperCase();
+                const fuenteImg = String((mI.FUENTE !== undefined ? r[mI.FUENTE] : "") || "").toUpperCase();
+                const forenseImg = String((mI.ANALISIS_FORENSE !== undefined ? r[mI.ANALISIS_FORENSE] : "") || "").toUpperCase();
+                const esGuia = rutaImg.includes("GUIA_TALLES") || rutaImg.includes("TABLA_TALLES") ||
+                               fuenteImg.includes("GUIA") || fuenteImg.includes("TALLES") ||
+                               forenseImg.includes("GUIA_TALLES");
+
                 imagenesPorProducto[pId].push({
                     url: urlAltaResolucion,
                     thumbnail_url: thumb,
                     archivo_id: r[mI.ARCHIVO_ID],
                     portada: blogger_esVerdadero(r[mI.PORTADA]),
+                    tipo: r[mI.TIPO_ARCHIVO] || "imagen",
+                    fuente: esGuia ? "IA - Guía de Talles" : (mI.FUENTE !== undefined ? (r[mI.FUENTE] || "Sistema Web") : "Sistema Web"),
+                    rol: esGuia ? "GUIA_TALLES" : (blogger_esVerdadero(r[mI.PORTADA]) ? "PORTADA" : "GALERIA"),
                     orden: (mI.ORDEN !== undefined) ? (parseInt(r[mI.ORDEN]) || 999) : 999,
                     fecha_carga: r[mI.FECHA_CARGA]
                 });
@@ -228,12 +238,14 @@ function blogger_listar_configuracion_sinCache(forceLocal = false) {
                 celularTienda
             });
 
+            const guiaImgObj = (imagenes || []).find(img => String(img.rol).toUpperCase() === 'GUIA_TALLES' || String(img.fuente).toUpperCase().includes('GUIA') || String(img.tipo).toUpperCase() === 'GUIA_TALLES');
             recordProducto = {
                 codigo: j + 1,
                 categoria: categoriaActual,
                 nombre: productoId,
                 carpeta_id: productosMap[productoId] ? productosMap[productoId][mP.CARPETA_ID] || "" : "",
                 descripcion: desc,
+                guia_talles_img: guiaImgObj ? guiaImgObj.url : "",
                 imagen: imagenes,
                 variedad: [variedad],
                 upd: fechaUpd

@@ -1382,6 +1382,11 @@
                                     </button>
                                 </div>
                                 <!-- Botón Subir Imagen del menú eliminado (trasladado a zona de arrastre y FAB) -->
+                                <button onclick="openAILabModal()" id="btnAILab" disabled
+                                    class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-amber-700/50 text-amber-400 rounded-lg text-[10px] font-bold transition-all duration-300 disabled:opacity-40 hover:bg-amber-900/40 hover:border-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                                    title="Generar Descripción y Talles con IA">
+                                    <span class="material-icons text-sm">auto_awesome</span><span class="btn-text-mobile">IA Lab</span>
+                                </button>
                                 <button onclick="sincronizarProductoActual()" id="btnSyncProd" disabled
                                     class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 rounded-lg text-[10px] font-bold transition-all duration-300 disabled:opacity-40 hover:bg-blue-900/40 hover:text-blue-400 hover:border-blue-500/30">
                                     <span class="material-icons text-sm">sync</span><span class="btn-text-mobile">Sync
@@ -1472,6 +1477,8 @@
         </main>
 
     </div> <!-- /workspace-body -->
+
+
 
     <!-- SIDEBAR BACKDROP (Mobile) -->
     <div id="sidebarBackdrop" onclick="toggleInternalSidebar()"></div>
@@ -1782,9 +1789,100 @@
         </button>
     </div>
     <div id="global-tasks-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-        <!-- Tareas renderizadas aquí -->
     </div>
 </div>
+
+  <!-- Modal AI Lab -->
+  <div id="aiLabModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md opacity-0 transition-opacity duration-300">
+      <div class="bg-slate-900 border border-amber-500/30 w-[95%] max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative">
+          
+          <button onclick="closeAILabModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-lg border border-slate-700 transition z-10">
+              <i class="ph-bold ph-x text-lg"></i>
+          </button>
+  
+          <div class="p-5 border-b border-slate-800 flex flex-col gap-1 bg-gradient-to-r from-amber-900/20 to-slate-900">
+              <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                  <i class="ph-duotone ph-atom text-2xl"></i> Enriquecimiento de Producto con IA
+              </h3>
+              <p class="text-xs text-slate-400">Genera tabla de talles HTML y copywriting persuasivo</p>
+          </div>
+  
+          <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+              <div class="w-full md:w-1/3 border-r border-slate-800 flex flex-col bg-slate-900/50">
+                  <div class="p-4 border-b border-slate-800">
+                      <h4 class="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1.5 uppercase tracking-widest"><i class="ph-duotone ph-images"></i> Imágenes de Referencia</h4>
+                      <p class="text-[10px] text-slate-500">Selecciona las imágenes que mejor muestran la prenda completa. La IA las usará para inferir las medidas.</p>
+                  </div>
+                  <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                      <div id="aiLabImagesContainer" class="grid grid-cols-2 lg:grid-cols-3 gap-2"></div>
+                  </div>
+                  <div class="p-4 border-t border-slate-800 bg-slate-900 flex flex-col gap-3">
+                      <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-widest"><i class="ph-duotone ph-sliders"></i> Parámetros</h4>
+                      <div class="flex flex-col gap-1">
+                          <label class="text-[9px] font-bold text-slate-500 uppercase">Público Objetivo</label>
+                          <select id="aiParamEdad" class="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-md p-2 focus:border-indigo-500 outline-none">
+                              <option value="Adultos">Adultos</option>
+                              <option value="Niños">Niños</option>
+                              <option value="Bebes">Bebés</option>
+                          </select>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                          <label class="text-[9px] font-bold text-slate-500 uppercase">Tipo de Prenda</label>
+                          <input type="text" id="aiParamTipo" class="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-md p-2 focus:border-indigo-500 outline-none" placeholder="Ej: Boxer, Remera, Campera..." value="">
+                      </div>
+                      <div class="mt-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-2.5 flex gap-2">
+                          <i class="ph-fill ph-info text-indigo-400 text-sm mt-0.5"></i>
+                          <div>
+                              <p class="text-[9px] font-bold text-indigo-400 uppercase">Talles Detectados</p>
+                              <p id="aiLabTallesDetectados" class="text-xs text-slate-300 mt-0.5 font-medium">Buscando...</p>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <div class="flex-1 flex flex-col bg-slate-950 relative">
+                  <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                      <h4 class="text-xs font-bold text-amber-500 flex items-center gap-1.5 uppercase tracking-widest"><i class="ph-bold ph-code"></i> Resultado Generado</h4>
+                      <button id="btnExecuteAI" onclick="ejecutarAILab()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-indigo-500/20 disabled:opacity-50">
+                          <i class="ph-bold ph-rocket-launch"></i> Generar Talles y Copy
+                      </button>
+                  </div>
+                  
+                  <div id="aiLabStatus" class="hidden absolute inset-0 z-20 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                      <div class="w-12 h-12 border-4 border-slate-800 border-t-amber-500 rounded-full animate-spin"></div>
+                      <p class="text-amber-400 text-sm font-bold mt-4 animate-pulse">La IA está midiendo y redactando...</p>
+                      <p class="text-slate-500 text-xs mt-1">Esto puede tardar unos 20 segundos</p>
+                  </div>
+
+                  <div id="aiLabResultContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+                      <div class="flex flex-col gap-1.5">
+                          <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Frase Corta (WooCommerce Short Desc)</label>
+                          <textarea id="aiLabTextCopy" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-slate-300 h-24 focus:border-amber-500 outline-none resize-none" placeholder="Esperando generación..."></textarea>
+                      </div>
+                      <div class="flex flex-col gap-1.5 flex-1">
+                          <div class="flex items-center justify-between">
+                              <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">HTML (Ficha Técnica y Talles)</label>
+                              <div class="flex bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
+                                  <button type="button" id="tabCodeHTML" onclick="switchAILabTab('code')" class="px-2.5 py-1 rounded-md font-bold bg-amber-500 text-slate-950 transition">Código HTML</button>
+                                  <button type="button" id="tabPreviewHTML" onclick="switchAILabTab('preview')" class="px-2.5 py-1 rounded-md font-bold text-slate-400 hover:text-white transition">👁️ Vista Previa Visual</button>
+                              </div>
+                          </div>
+                          <textarea id="aiLabTextHTML" class="w-full h-full min-h-[220px] bg-slate-900 font-mono border border-slate-800 rounded-lg p-3 text-xs text-slate-400 focus:border-amber-500 outline-none resize-none whitespace-pre" placeholder="Aquí aparecerá el código HTML generado con la tabla de talles..."></textarea>
+                          <div id="aiLabVisualPreview" contenteditable="true" oninput="syncVisualPreviewToHTML()" class="hidden w-full h-full min-h-[220px] bg-white text-slate-800 border border-slate-700 rounded-lg p-4 overflow-auto text-sm shadow-inner outline-none focus:ring-2 focus:ring-amber-500"></div>
+                      </div>
+                  </div>
+
+                  <div class="p-4 border-t border-slate-800 bg-slate-900 flex justify-end">
+                      <button id="btnSaveAI" onclick="guardarAILab()" disabled class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                          <i class="ph-bold ph-floppy-disk"></i> Guardar en Base de Datos
+                      </button>
+                      <button id="btnGenerateSizeChartImg" onclick="generarImagenGuiaTalles()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-500/20" title="Crear infografía visual de guía de talles con IA en Drive">
+                          <span class="material-icons text-sm">image</span> Generar Imagen Guía
+                      </button>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
 
 <script>
     var CATALOG_URL = "<?!= CATALOG_URL ?>";
@@ -2169,13 +2267,16 @@
 
             if (data && data.products) {
                 PRODUCT_CATALOG = data.products.map(p => ({
-                    sku: p.id,
-                    nombre: p.model || "Sin Nombre",
+                    ...p,
+                    sku: p.id || p.sku,
+                    nombre: p.model || p.nombre || "Sin Nombre",
                     carpeta_id: p.carpeta_id || "",
                     thumbnail: p.image || "",
                     parentCategory: p.parentCategory || "",
                     category: p.categoryName || "",
-                    woo_id: p.woo_id || ""
+                    woo_id: p.woo_id || "",
+                    variations: p.variations || [],
+                    gender: p.gender || ""
                 }));
 
                 // --- NUEVO: Extraer Categor\u00edas y SVGs ---
@@ -2996,7 +3097,7 @@
         // se use la selección de un producto en otro.
         if (Swal.isVisible()) Swal.close();
 
-        currentProduct = { sku: p.sku, carpeta_id: p.carpeta_id, woo_id: p.woo_id };
+        currentProduct = p;
 
         // Mostrar FABs moviles cuando hay producto seleccionado
         const fabs = document.getElementById('mobileFabs');
@@ -3057,6 +3158,13 @@
         }
         const btnSync = document.getElementById('btnSyncProd');
         btnSync.disabled = false; btnSync.style.opacity = '1';
+
+        // --- NUEVO: Habilitar el botón de IA Lab ---
+        const btnAILab = document.getElementById('btnAILab');
+        if(btnAILab) {
+            btnAILab.disabled = false;
+            btnAILab.style.opacity = '1';
+        }
 
         // Resetear modo orden al cambiar de producto
         isReorderMode = false;
@@ -6284,4 +6392,367 @@
             if (searchInput) searchInput.focus();
         }
     });
+
+    // --- AI LAB MODAL LOGIC ---
+    let aiLabImagesSeleccionadas = [];
+    
+    function openAILabModal() {
+        if (!currentProduct || !currentProduct.sku) {
+            Swal.fire('Atención', 'Selecciona un producto primero.', 'info');
+            return;
+        }
+
+        const modal = document.getElementById('aiLabModal');
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        
+        const container = document.getElementById('aiLabImagesContainer');
+        container.innerHTML = '';
+        aiLabImagesSeleccionadas = [];
+        
+        const activeCards = document.querySelectorAll('#imageGridActive .img-card:not(#wp-upload-card):not([id^="prev-"])');
+        
+        if(activeCards.length === 0) {
+            container.innerHTML = '<p class="text-xs text-slate-500 col-span-3 p-4 text-center">No hay imágenes activas en este producto.</p>';
+        } else {
+            activeCards.forEach(card => {
+                const fileId = card.getAttribute('data-id');
+                const imgTag = card.querySelector('img.img-thumb');
+                if(!imgTag) return;
+                
+                // aiLabImagesSeleccionadas.push(fileId); // SE DEJA DESELECCIONADO POR DEFECTO
+                
+                const div = document.createElement('div');
+                div.className = 'relative w-full aspect-square bg-slate-700 rounded-md overflow-hidden cursor-pointer border-2 border-transparent group';
+                div.dataset.id = fileId;
+                div.innerHTML = `
+                    <img src="${imgTag.src}" class="w-full h-full object-cover opacity-50 group-hover:opacity-80 transition">
+                    <div class="absolute top-1 right-1 bg-indigo-500 rounded-full w-4 h-4 items-center justify-center icon-check shadow-lg hidden">
+                        <span class="material-icons text-[10px] text-white">check</span>
+                    </div>
+                `;
+                
+                div.onclick = function() {
+                    const idx = aiLabImagesSeleccionadas.indexOf(fileId);
+                    if(idx > -1) {
+                        aiLabImagesSeleccionadas.splice(idx, 1);
+                        this.classList.remove('border-indigo-500');
+                        this.classList.add('border-transparent');
+                        this.querySelector('.icon-check').classList.add('hidden');
+                        this.querySelector('.icon-check').classList.remove('flex');
+                        this.querySelector('img').classList.remove('opacity-90');
+                        this.querySelector('img').classList.add('opacity-50');
+                    } else {
+                        aiLabImagesSeleccionadas.push(fileId);
+                        this.classList.add('border-indigo-500');
+                        this.classList.remove('border-transparent');
+                        this.querySelector('.icon-check').classList.remove('hidden');
+                        this.querySelector('.icon-check').classList.add('flex');
+                        this.querySelector('img').classList.add('opacity-90');
+                        this.querySelector('img').classList.remove('opacity-50');
+                    }
+                };
+                container.appendChild(div);
+            });
+        }
+        
+        const copyElem = document.getElementById('aiLabTextCopy');
+        const htmlElem = document.getElementById('aiLabTextHTML');
+        copyElem.value = 'Buscando descripción existente en Base de Datos...';
+        htmlElem.value = 'Cargando ficha técnica y tabla de talles si existe en BD_PRODUCTOS...';
+        document.getElementById('btnSaveAI').disabled = true;
+
+        const identifier = currentProduct.sku || currentProduct.id || currentProduct.woo_id;
+        if (identifier) {
+            google.script.run.withSuccessHandler(res => {
+                if (res && res.success && res.exists) {
+                    copyElem.value = res.corta || '';
+                    htmlElem.value = res.html || '';
+                    const visual = document.getElementById('aiLabVisualPreview');
+                    if (visual) visual.innerHTML = res.html || '';
+                    document.getElementById('btnSaveAI').disabled = false;
+                } else {
+                    copyElem.value = '';
+                    htmlElem.value = '';
+                }
+            }).withFailureHandler(err => {
+                copyElem.value = '';
+                htmlElem.value = '';
+            }).obtenerDescripcionIAProducto(identifier);
+        }
+
+        
+        // Auto-completar Público Objetivo usando GRUPO_EDAD, categoría o Análisis Forense
+        const selectEdad = document.getElementById('aiParamEdad');
+        if (selectEdad && currentProduct) {
+            const forenseTxt = (currentProduct.imagenes || []).map(i => i.ANALISIS_FORENSE || '').join(' ').toLowerCase();
+            const ge = String(currentProduct.GRUPO_EDAD || currentProduct.grupo_edad || currentProduct.ageGroup || currentProduct.category || '').toLowerCase() + ' ' + forenseTxt;
+            if (ge.includes('beb') || ge.includes('baby')) {
+                selectEdad.value = 'Bebes';
+            } else if (ge.includes('niñ') || ge.includes('infant') || ge.includes('kid') || ge.includes('child') || ge.includes('talle 4') || ge.includes('talle 6')) {
+                selectEdad.value = 'Niños';
+            } else {
+                selectEdad.value = 'Adultos';
+            }
+        }
+
+        // Auto-completar Tipo de Prenda desde Categoría o Forense
+        let tipoDetectado = "";
+        if (currentProduct && (currentProduct.category || currentProduct.parentCategory)) {
+            tipoDetectado = [currentProduct.parentCategory, currentProduct.category].filter(Boolean).join(" - ");
+        }
+        document.getElementById('aiParamTipo').value = tipoDetectado || "Prenda Superior / Inferior";
+
+        let tallesDetectados = "";
+        const tallesFuente = currentProduct ? (currentProduct.sizes || currentProduct.talles) : null;
+        if (tallesFuente) {
+            const arr = typeof tallesFuente === 'string' 
+                ? tallesFuente.split(',') 
+                : (Array.isArray(tallesFuente) ? tallesFuente : []);
+            const filtrados = arr.map(t => t.trim()).filter(t => t && t.toLowerCase() !== 'surtido');
+            if (filtrados.length > 0) {
+                tallesDetectados = filtrados.join(", ");
+            }
+        }
+
+        if (!tallesDetectados && currentProduct && currentProduct.variations) {
+            let sizesSet = new Set();
+            currentProduct.variations.forEach(v => {
+                if (v.sizes && Array.isArray(v.sizes)) {
+                    v.sizes.forEach(s => sizesSet.add(s));
+                } else if (typeof v.size === 'string') {
+                    sizesSet.add(v.size);
+                } else if (typeof v.talle === 'string') {
+                    sizesSet.add(v.talle);
+                }
+            });
+            let filtrados = Array.from(sizesSet).filter(s => s && s.toLowerCase() !== 'surtido');
+            if (filtrados.length > 0) {
+                const ordenEstandar = ['XXS','XS','S','M','L','XL','2XL','XXL','3XL','XXXL','4XL','5XL'];
+                filtrados.sort((a, b) => {
+                    const idxA = ordenEstandar.indexOf(a.toUpperCase());
+                    const idxB = ordenEstandar.indexOf(b.toUpperCase());
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    const numA = parseFloat(a);
+                    const numB = parseFloat(b);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return a.localeCompare(b);
+                });
+                tallesDetectados = filtrados.join(", ");
+            }
+        }
+        
+        if (!tallesDetectados) {
+            tallesDetectados = 'No se encontraron talles en el catálogo';
+        }
+        
+        document.getElementById('aiLabTallesDetectados').innerText = tallesDetectados;
+        document.getElementById('btnExecuteAI').disabled = false;
+    }
+
+    function closeAILabModal() {
+        const modal = document.getElementById('aiLabModal');
+        modal.classList.add('opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+    
+    function ejecutarAILab() {
+        if(aiLabImagesSeleccionadas.length === 0) {
+            Swal.fire('Ojo', 'Selecciona al menos una imagen de referencia.', 'warning');
+            return;
+        }
+        
+        let analisisForenseCombinado = "";
+        if (currentProduct && currentProduct.imagenes) {
+            aiLabImagesSeleccionadas.forEach(fileId => {
+                const imgObj = currentProduct.imagenes.find(i => String(i.ARCHIVO_ID) === String(fileId));
+                if(imgObj && imgObj.ANALISIS_FORENSE) {
+                    analisisForenseCombinado += `\n- Análisis de Imagen: ${imgObj.ANALISIS_FORENSE}`;
+                }
+            });
+        }
+
+        const tallesTexto = document.getElementById('aiLabTallesDetectados').innerText;
+        const btn = document.getElementById('btnExecuteAI');
+        const loader = document.getElementById('aiLabStatus');
+        
+        btn.disabled = true;
+        loader.classList.remove('hidden');
+        document.getElementById('aiLabResultContainer').classList.add('hidden');
+        
+        const params = {
+            sku: currentProduct.sku,
+            imagenes: aiLabImagesSeleccionadas,
+            edad: document.getElementById('aiParamEdad').value,
+            tipo: document.getElementById('aiParamTipo').value,
+            talles: tallesTexto,
+            forensic: analisisForenseCombinado
+        };
+        
+        google.script.run
+            .withSuccessHandler(res => {
+                loader.classList.add('hidden');
+                btn.disabled = false;
+                
+                if(!res || !res.success) {
+                    Swal.fire('Error de IA', res?.message || 'Error desconocido', 'error');
+                    return;
+                }
+                
+                document.getElementById('aiLabTextCopy').value = res.short_desc || '';
+                document.getElementById('aiLabTextHTML').value = res.html_desc || '';
+                document.getElementById('aiLabResultContainer').classList.remove('hidden');
+                document.getElementById('btnSaveAI').disabled = false;
+                switchAILabTab('code');
+                
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', title: '¡Generación exitosa!',
+                    showConfirmButton: false, timer: 3000
+                });
+            })
+            .withFailureHandler(err => {
+                loader.classList.add('hidden');
+                btn.disabled = false;
+                Swal.fire('Error de IA', err.message, 'error');
+            })
+            .generarDescripcionVisualIA(params);
+    }
+    function switchAILabTab(mode) {
+        const txtHTML = document.getElementById('aiLabTextHTML');
+        const previewHTML = document.getElementById('aiLabVisualPreview');
+        const tabCode = document.getElementById('tabCodeHTML');
+        const tabPreview = document.getElementById('tabPreviewHTML');
+        if (!txtHTML || !previewHTML) return;
+        if (mode === 'preview') {
+            previewHTML.innerHTML = txtHTML.value || '<p class="text-slate-400 text-center py-8">No hay contenido HTML para previsualizar.</p>';
+            txtHTML.classList.add('hidden');
+            previewHTML.classList.remove('hidden');
+            tabPreview.className = "px-2.5 py-1 rounded-md font-bold bg-amber-500 text-slate-950 transition";
+            tabCode.className = "px-2.5 py-1 rounded-md font-bold text-slate-400 hover:text-white transition";
+        } else {
+            previewHTML.classList.add('hidden');
+            txtHTML.classList.remove('hidden');
+            tabCode.className = "px-2.5 py-1 rounded-md font-bold bg-amber-500 text-slate-950 transition";
+            tabPreview.className = "px-2.5 py-1 rounded-md font-bold text-slate-400 hover:text-white transition";
+        }
+    }
+    function syncVisualPreviewToHTML() {
+        const previewHTML = document.getElementById('aiLabVisualPreview');
+        const txtHTML = document.getElementById('aiLabTextHTML');
+        if (previewHTML && txtHTML && !previewHTML.classList.contains('hidden')) {
+            txtHTML.value = previewHTML.innerHTML;
+        }
+    }
+    function guardarAILab() {
+        syncVisualPreviewToHTML();
+        const corta = document.getElementById('aiLabTextCopy').value;
+        const html = document.getElementById('aiLabTextHTML').value;
+        
+        const btn = document.getElementById('btnSaveAI');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons animate-spin text-sm">sync</span> Guardando...';
+        
+        google.script.run
+            .withSuccessHandler(res => {
+                btn.innerHTML = '<span class="material-icons text-sm">save</span> Guardar en Base de Datos';
+                btn.disabled = false;
+                if(!res || !res.success) {
+                    Swal.fire('Error', res?.message || 'Error al guardar', 'error');
+                    return;
+                }
+                // Alerta no destructiva tipo Toast para no cerrar el modal y permitir accionar "Generar Imagen Guía"
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: '¡Ficha Técnica Guardada!',
+                    text: 'Descripción inyectada. Ya puedes generar la imagen guía de talles.',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+            })
+            .withFailureHandler(err => {
+                btn.innerHTML = '<span class="material-icons text-sm">save</span> Guardar en Base de Datos';
+                btn.disabled = false;
+                Swal.fire('Error', err.toString(), 'error');
+            })
+            .guardarFichaTecnicaIA(currentProduct.sku, corta, html);
+    }
+
+    function generarImagenGuiaTalles() {
+        if (!currentProduct || !currentProduct.sku) {
+            Swal.fire('Atención', 'Selecciona un producto primero.', 'info');
+            return;
+        }
+
+        const refFileId = (aiLabImagesSeleccionadas && aiLabImagesSeleccionadas.length > 0) ? aiLabImagesSeleccionadas[0] : null;
+
+        // Cierra el modal de IA Lab para volver a la galería de imágenes del producto
+        closeAILabModal();
+
+        // Agrega la tarjeta visual de carga/segundo plano en la galería de imágenes usando el procedimiento nativo
+        const procesoId = agregarProcesoSegundoPlano(currentProduct.sku, "Guía de Talles IA", refFileId);
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: 'Diseñando Guía de Talles IA...',
+            text: 'Generando infografía en segundo plano en tu galería.',
+            showConfirmButton: false,
+            timer: 3500,
+            background: '#1e293b',
+            color: '#fff'
+        });
+
+        google.script.run
+            .withSuccessHandler(res => {
+                removerProcesoSegundoPlano(procesoId);
+                if (!res || !res.success) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: 'Error de generación',
+                        text: res?.message || 'Error al generar la imagen',
+                        showConfirmButton: false,
+                        timer: 4500,
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                    return;
+                }
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: '¡Guía de Talles Generada!',
+                    text: 'Se añadió la infografía a la galería del producto.',
+                    showConfirmButton: false,
+                    timer: 3500,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+                recargarGaleriaSilenciosa(false);
+            })
+            .withFailureHandler(err => {
+                removerProcesoSegundoPlano(procesoId);
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Error de red',
+                    text: err.toString(),
+                    showConfirmButton: false,
+                    timer: 4000,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+            })
+            .generarImagenGuiaTallesIA(currentProduct.sku, refFileId);
+    }
 </script>

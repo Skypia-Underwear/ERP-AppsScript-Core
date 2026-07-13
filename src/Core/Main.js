@@ -1143,9 +1143,12 @@ function doGet_MainRouter(e) {
 
   // Pasamos la vista solicitada via URL al frontend (solo rutas autorizadas para deep-link)
   var requestedView = (params.view || '').toString().trim();
-  var ALLOWED_DEEP_LINKS = ['pos_manager'];
+  var ALLOWED_DEEP_LINKS = ['pos_manager', 'images_dashboard'];
   var initialView = ALLOWED_DEEP_LINKS.indexOf(requestedView) !== -1 ? requestedView : 'welcome';
-  template.initialParams = JSON.stringify({ view: initialView });
+  template.initialParams = JSON.stringify({ 
+    view: initialView, 
+    sku: params.sku || params.codigo || '' 
+  });
   template.CATALOG_URL = getCatalogJsonUrl();
   template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
 
