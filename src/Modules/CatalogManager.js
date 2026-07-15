@@ -98,7 +98,9 @@ function tpv_cargarProductosFinales(ss, varietiesRaw, inventoryRaw) {
             prices: varietiesRaw.mapByProduct[pid] || [],
             // Alias de compatibilidad
             grupo_edad: row.GRUPO_EDAD || "",
-            talles: row.TALLES || ""
+            talles: row.TALLES || "",
+            GRUPO_EDAD: row.GRUPO_EDAD || "",
+            TALLES: row.TALLES || ""
         };
     }).filter(p => p !== null);
 }

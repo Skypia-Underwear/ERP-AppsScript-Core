@@ -46,6 +46,46 @@
       display: none;
     }
 
+    #main-sidebar.collapsed .sidebar-header {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      justify-content: center !important;
+    }
+
+    #main-sidebar.collapsed .logo-container {
+      display: none !important;
+    }
+
+    #main-sidebar.collapsed .sidebar-footer-actions {
+      border-top: 1px solid rgba(30, 41, 59, 0.6);
+      padding-top: 0.625rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    #main-sidebar.collapsed .sidebar-footer-actions > .flex {
+      flex-direction: column;
+      align-items: center;
+      gap: 0.625rem;
+      width: 100%;
+    }
+
+    #main-sidebar.collapsed .notification-btn-wrapper {
+      flex: none;
+      width: 2rem;
+      height: 2rem;
+    }
+
+    #main-sidebar.collapsed #btn-notifications-sidebar {
+      width: 2rem !important;
+      height: 2rem !important;
+      padding: 0 !important;
+      justify-content: center !important;
+      border-radius: 0.5rem;
+    }
+
     #main-sidebar.collapsed .nav-section-title {
       display: none;
     }
@@ -178,54 +218,52 @@
   <aside id="main-sidebar"
     class="hidden w-56 bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl z-50 flex-shrink-0 transition-all duration-300">
 
-    <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900 transition-all duration-300">
-      <div class="flex items-center gap-3 text-indigo-500 overflow-hidden">
+    <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900 transition-all duration-300 sidebar-header">
+      <div class="flex items-center gap-3 text-indigo-500 overflow-hidden logo-container">
         <i class="ph-fill ph-stack text-2xl flex-shrink-0"></i>
         <span class="font-bold text-lg tracking-tight text-white logo-text transition-all duration-300">Gestión ERP</span>
       </div>
-      <button onclick="toggleSidebar()" id="sidebar-toggle-btn"
+      <button onclick="toggleSidebar()" id="sidebar-toggle-btn" title="Expandir / Colapsar menú"
         class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-300">
         <i class="ph-bold ph-list text-xl"></i>
       </button>
     </div>
 
     <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-      <button onclick="navigate('welcome')" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-r-lg active" id="btn-welcome">
+      <button onclick="navigate('welcome')" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-r-lg active" id="btn-welcome" title="Inicio">
         <i class="ph-duotone ph-house text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">Inicio</span>
       </button>
 
       <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 nav-section-title">Ventas & Datos</p>
-      <button onclick="navigate('auditoria')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-auditoria">
+      <button onclick="navigate('auditoria')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-auditoria" title="Auditoría">
         <i class="ph-duotone ph-chart-line-up text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">Auditoria</span>
       </button>
 
-      <button onclick="loadView('pos_manager', '', '', '')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-pos_manager">
+      <button onclick="loadView('pos_manager', '', '', '')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-pos_manager" title="POS / TPV">
         <i class="ph-duotone ph-calculator text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">POS / TPV</span>
       </button>
 
-      <button onclick="navigate('whatsapp_import')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-whatsapp_import">
+      <button onclick="navigate('whatsapp_import')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-whatsapp_import" title="Importar Catálogo">
         <i class="ph-duotone ph-cloud-arrow-up text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">Importar Catálogo</span>
       </button>
 
       <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 nav-section-title">Inventario</p>
       
-      <!-- Oculto temporalmente por petición del usuario (En desarrollo)
-      <button onclick="navigate('inventory_dashboard')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-inventory_dashboard">
+      <button onclick="navigate('inventory_dashboard')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-inventory_dashboard" title="Inventario">
         <i class="ph-duotone ph-check-circle text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">Inventario</span>
       </button>
-      -->
 
-      <button onclick="loadView('imagenes_manager', '', '', '')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-imagenes_manager">
+      <button onclick="loadView('imagenes_manager', '', '', '')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-imagenes_manager" title="Imágenes">
         <i class="ph-duotone ph-image text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">Imagenes</span>
       </button>
 
-      <button onclick="navigate('ai_lab')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-ai_lab">
+      <button onclick="navigate('ai_lab')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-r-lg hover:text-white" id="btn-ai_lab" title="AI Lab">
         <i class="ph-duotone ph-atom text-xl flex-shrink-0"></i>
         <span class="text-sm font-medium sidebar-text">AI Lab</span>
       </button>
@@ -242,14 +280,14 @@
       </div>
       
       <!-- Fila 2: Botones de Acción (Notificaciones y Limpiar Caché) -->
-      <div class="user-info-text transition-all duration-300 border-t border-slate-800/60 pt-2.5">
+      <div class="sidebar-footer-actions transition-all duration-300 border-t border-slate-800/60 pt-2.5">
         <div class="flex items-center gap-2">
           <!-- Botón de Notificaciones -->
-          <div class="relative flex-1">
-            <button onclick="window.showNotificationsModal()" class="w-full cursor-pointer py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-2 transition shadow-md relative text-xs font-medium" title="Notificaciones de Reventa">
-              <i class="ph-bold ph-bell text-sm"></i>
-              <span>Novedades</span>
-              <span id="notification-badge" class="hidden absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-md border border-slate-900">0</span>
+          <div class="relative flex-1 notification-btn-wrapper">
+            <button id="btn-notifications-sidebar" onclick="window.showNotificationsModal()" class="w-full cursor-pointer py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center gap-2 transition shadow-md relative text-xs font-medium" title="Notificaciones de Reventa">
+              <i class="ph-bold ph-bell text-sm flex-shrink-0"></i>
+              <span class="sidebar-text">Novedades</span>
+              <span id="notification-badge" class="hidden absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-md border border-slate-900 z-10">0</span>
             </button>
           </div>
           
@@ -835,10 +873,7 @@
         Swal.close();
       }
 
-      let targetView = window.currentView || 'inventory_dashboard';
-      if (targetView !== 'inventory_dashboard' && targetView !== 'imagenes_manager') {
-        targetView = 'inventory_dashboard';
-      }
+      let targetView = 'imagenes_manager';
 
       console.log(`[Notification] Dirigiendo a la vista ${targetView} para el SKU ${sku}`);
 

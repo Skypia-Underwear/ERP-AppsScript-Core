@@ -1941,15 +1941,27 @@
         }
     }
 
-    .producto-item.single-product-full {
-        flex-direction: column !important;
+    @media (max-width: 575.98px) {
+        .producto-item.single-product-full {
+            flex-direction: column !important;
+        }
+
+        .producto-item.single-product-full .image-parent {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 320px !important;
+            max-height: 440px !important;
+        }
     }
 
-    .producto-item.single-product-full .image-parent {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-height: 320px !important;
-        max-height: 440px !important;
+    /* Vista de producto individual en Tablet y Ordenador (aprovecha el espacio horizontal para imágenes 4:3 y 3:4 sin verse borroso) */
+    @media (min-width: 576px) {
+        .producto-item.single-product-full .image-parent {
+            width: 100% !important;
+            max-width: 48% !important;
+            min-height: 320px !important;
+            max-height: 450px !important;
+        }
     }
 
     /* Estilo general para imágenes en el carrusel */

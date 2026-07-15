@@ -1323,7 +1323,15 @@ function subirArchivoGeminiFileAPI(blob, displayName, apiKeyOverride = null) {
  * @param {boolean} [usarBase64=false] Si true, retorna inlineData (Base64) en lugar de fileData (File API).
  * @returns {{ fileData: Object } | { inlineData: Object }}
  */
+const _RUNTIME_FILE_API_CACHE = {};
+
 function prepararBlobOptimizado(archivoId, displayName, prioridad = 'alta', apiKeyOverride = null, usarBase64 = false) {
+  const cacheKey = String(archivoId) + '_' + String(apiKeyOverride || 'default') + '_' + String(usarBase64);
+  if (_RUNTIME_FILE_API_CACHE[cacheKey]) {
+    console.log(`⚡ [Optimize|Cache] Reutilizando File API en memoria para ${displayName}`);
+    return _RUNTIME_FILE_API_CACHE[cacheKey];
+  }
+
   let blob = null;
   const esPrioridadAlta = (prioridad === 'alta');
   const sz = esPrioridadAlta ? '2560' : '1024';
@@ -1352,22 +1360,26 @@ function prepararBlobOptimizado(archivoId, displayName, prioridad = 'alta', apiK
   if (usarBase64) {
     const base64 = Utilities.base64Encode(blob.getBytes());
     console.log(`⚡ [Bypass|Base64] ${displayName} embebido directamente (${(base64.length / 1024).toFixed(0)}KB)`);
-    return {
+    const resBase64 = {
       "inlineData": {
         "mimeType": blob.getContentType(),
         "data": base64
       }
     };
+    _RUNTIME_FILE_API_CACHE[cacheKey] = resBase64;
+    return resBase64;
   }
 
   // --- OPCIÓN B: FILE API (Ideal para múltiples imágenes / alta resolución) ---
   const gemFile = subirArchivoGeminiFileAPI(blob, displayName, apiKeyOverride);
-  return {
+  const resFile = {
     "fileData": {
       "mimeType": gemFile.mimeType,
       "fileUri": gemFile.uri
     }
   };
+  _RUNTIME_FILE_API_CACHE[cacheKey] = resFile;
+  return resFile;
 }
 
 // [REMOCIÓN SEGURA] _getAiArtDirectionRules, generarSuperPrompt_LEGACY y generarSuperPromptMasivo_LEGACY 
@@ -1830,9 +1842,17 @@ function generarImagenDesdePrompt(referenciaIds, promptTexto, pin, refineData = 
     }
 
     const firstRefRow = dataImg.find(ri => ids.includes(ri.IMAGEN_ID));
-    const skuDestino = firstRefRow ? firstRefRow.PRODUCTO_ID : null;
-    const targetRow = dataImg.find(r => rowMatchesSku_IMAGENES(r, skuDestino) || ids.includes(r.IMAGEN_ID));
-    if (!targetRow) throw new Error("No se pudo determinar el producto destino.");
+    const skuDestino = (extraSpecs && extraSpecs.sku) ? extraSpecs.sku : (firstRefRow ? firstRefRow.PRODUCTO_ID : null);
+    const targetRow = dataImg.find(r => (skuDestino && rowMatchesSku_IMAGENES(r, skuDestino)) || ids.includes(r.IMAGEN_ID));
+    if (!targetRow && !skuDestino) throw new Error("No se pudo determinar el producto destino.");
+
+    if (ids.length === 0 || !dataImg.some(ri => ids.includes(ri.IMAGEN_ID))) {
+      const fallbackRow = dataImg.find(r => rowMatchesSku_IMAGENES(r, skuDestino) && r.ARCHIVO_ID);
+      if (fallbackRow) {
+        ids = [fallbackRow.IMAGEN_ID];
+        console.log(`${logPrefix} Utilizando imagen de referencia fallback para SKU ${skuDestino}: ID ${fallbackRow.IMAGEN_ID}`);
+      }
+    }
 
     // gemini-3.1-flash-image primero (más efectivo según el feedback al capturar detalles y formas como 'baggy' o femenino).
     // Con max 3 refs + time guard, debería completar dentro del límite.

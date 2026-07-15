@@ -245,7 +245,7 @@ function generarInventarioInicial(logArray = null) {
   masterInventoryIds.forEach(id => {
     if (!inventarioActualIds.has(id)) {
       const [productoId, color, talle, tiendaId] = id.split('-');
-      const stockInicial = (color === "Surtido" && talle === "Surtido") ? 144 : 0;
+      const stockInicial = 0;
       nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, stockInicial, 0, 0, 0, 0, stockInicial, fechaHoy, 0]);
     }
   });
@@ -317,8 +317,9 @@ function generarInventarioInicial(logArray = null) {
  * - Respeta los datos en columnas calculadas (gestionadas por Bots).
  * @param {string} PRODUCTO_ID - El ID del producto a sincronizar.
  * @param {Array} [logArray=null] - Un array opcional para registrar los logs.
+ * @param {Object} [opciones={}] - Opciones adicionales (ej: { esReventa: true, stockInicialReventa: 144 }).
  */
-function generarInventarioPorProducto(PRODUCTO_ID, logArray = null) {
+function generarInventarioPorProducto(PRODUCTO_ID, logArray = null, opciones = {}) {
   const log = logArray ? (msg) => logArray.push(msg) : (msg) => Logger.log(msg);
   const productoIdStr = (PRODUCTO_ID || '').toString().trim();
   log(`🚀 Iniciando AUDITORÍA para el producto: '${productoIdStr}'...`);
@@ -404,7 +405,8 @@ function generarInventarioPorProducto(PRODUCTO_ID, logArray = null) {
   masterProductInventoryIds.forEach(id => {
     if (!inventarioActualDeProducto.has(id)) {
       const [, productoId, color, talle, tiendaId] = id.match(/(.*?)-(.*?)-(.*?)-(.*)/);
-      const stockInicial = (color === "Surtido" && talle === "Surtido") ? 144 : 0;
+      const esReventa = opciones && opciones.esReventa === true;
+      const stockInicial = (esReventa && color === "Surtido" && talle === "Surtido") ? (opciones.stockInicialReventa || 144) : 0;
       nuevasFilasInventario.push([id, fechaHoy, tiendaId, productoId, color, talle, stockInicial, 0, 0, 0, 0, 0, fechaHoy, 0]);
     }
   });

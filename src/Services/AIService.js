@@ -576,7 +576,13 @@ const AIService = {
       newRow[colMap.IMAGEN_ID] = data.imagenId;
       if (data.sku) newRow[colMap.SKU] = data.sku;
       if (data.categoria) newRow[colMap.CATEGORIA] = data.categoria;
-      if (data.estilo && data.estilo !== "FORENSIC_ONLY") newRow[colMap.ESTILO] = data.estilo;
+      if (data.estiloProducto) {
+        newRow[colMap.ESTILO] = data.estiloProducto;
+      } else if (data.estilo && data.estilo !== "FORENSIC_ONLY" && !['lifestyle', 'ecommerce', 'ghost', 'studio'].includes(String(data.estilo).toLowerCase())) {
+        newRow[colMap.ESTILO] = data.estilo;
+      } else if (!newRow[colMap.ESTILO] && data.estilo && data.estilo !== "FORENSIC_ONLY") {
+        newRow[colMap.ESTILO] = data.estilo;
+      }
       if (data.analisisForense) newRow[colMap.ANALISIS_FORENSE] = data.analisisForense;
       if (data.analisisForenseRaw !== undefined && colMap.FORENSE_RAW !== undefined) newRow[colMap.FORENSE_RAW] = data.analisisForenseRaw;
       if (data.promptMaestro) newRow[colMap.PROMPT_MAESTRO] = data.promptMaestro;
@@ -1420,6 +1426,7 @@ ${directiva.exampleBlock}
         this.guardarResultadoLab({
           imagenId: masterId,
           estilo: estilo,
+          estiloProducto: extraSpecs ? (extraSpecs.estiloProducto || extraSpecs.estilo || "") : "",
           promptMaestro: cleanResponse,
           promptMaestroRaw: rawConMarcas,
           modelo: modeloUsado,
@@ -2244,6 +2251,28 @@ ${directiva.exampleBlock}
         if (complementoTexto) {
           extraDirectives.push(complementoTexto);
         }
+
+        // --- Mandato Anatómico Inteligente de ESTILO / TIRO (Jerarquía: 1º Catálogo JSON, 2º Análisis Forense) ---
+        const forensicText = String(extraSpecs.fichaForense || "").toLowerCase();
+        const riseSourceText = (styleName.includes("alto") || styleName.includes("medio") || styleName.includes("bajo") || styleName.includes("high") || styleName.includes("mid") || styleName.includes("low"))
+          ? styleName
+          : forensicText;
+
+        if (clasif === "PRENDA_INFERIOR") {
+          extraDirectives.push("CRITICAL UNIVERSAL CROTCH FIT MANDATE: The crotch seam MUST fit snugly and flush against the pelvic floor without sagging, empty vertical space, or drop-crotch. The front rise and zipper fly length must be strictly proportioned to the waistband height.");
+          if (riseSourceText.includes("alto") || riseSourceText.includes("high")) {
+            extraDirectives.push("CRITICAL ANATOMICAL WAISTLINE MANDATE (HIGH-RISE / TIRO ALTO): Authentic high-waisted fit. The waistband MUST sit distinctly HIGH on the natural waistline ABOVE the belly button, featuring an elongated front fly/zipper placket extending from the snug crotch seam up to the narrowest part of the waist. DO NOT render mid-rise.");
+          } else if (riseSourceText.includes("bajo") || riseSourceText.includes("low")) {
+            extraDirectives.push("CRITICAL ANATOMICAL WAISTLINE MANDATE (LOW-RISE / TIRO BAJO): Authentic true low-rise cut sitting LOW directly on the hip bones well below the belly button. CRITICAL ANATOMICAL PROPORTION: It MUST feature a VERY SHORT front zipper placket and short front rise so the crotch seam sits snugly and flush against the pelvic floor without sagging, empty space, or drop-crotch.");
+          } else if (riseSourceText.includes("medio") || riseSourceText.includes("mid")) {
+            extraDirectives.push("ANATOMICAL WAISTLINE MANDATE (MID-RISE / TIRO MEDIO): Balanced waistline sitting comfortably across the upper hips just below the belly button with a standard front fly and flush crotch seam.");
+          }
+        }
+        if (styleName) {
+          const rawEstilo = prodRow ? (prodRow.ESTILO || "") : "";
+          extraDirectives.push(`STRUCTURAL FIT & SILHOUETTE MANDATE: Use the declared style '${rawEstilo}' strictly to govern the garment's structural cut, fit, and proportions (e.g., rise, drape, silhouette). For surface pattern, texture, and exact color hexes, always prioritize the Forensic Analysis.`);
+        }
+
 
         // Control de encuadre trimodal (Cuerpo Completo vs Enfoque de Prenda vs Auto)
         const cuerpoCompletoVal = extraSpecs.cuerpoCompleto !== undefined ? String(extraSpecs.cuerpoCompleto).toLowerCase() : "";

@@ -1290,6 +1290,34 @@
             <button id="btn-mode-qr-config" onclick="setTpvMode('LECTOR QR')" class="tpv-config-mode-btn"><i
                 class="ph-bold ph-qr-code text-2xl"></i><span>Lector QR</span></button>
           </div>
+        <div class="mb-4">
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Parámetros del Buscador Dinámico</label>
+          <div class="mt-3 flex flex-col gap-2">
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-search-brand"
+                onchange="toggleSearchFeature('tpv-search-brand', 'tpv_search_brand')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-search-brand" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por Marca (Ej: CASTFER, KNUP)</label>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-search-category"
+                onchange="toggleSearchFeature('tpv-search-category', 'tpv_search_category')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-search-category" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por Categoría e Iniciales (Ej: MH, CH, Mochila)</label>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-search-sku"
+                onchange="toggleSearchFeature('tpv-search-sku', 'tpv_search_sku')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-search-sku" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por SKU y Modelo (Ej: CINT7011, K-126, Classic)</label>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-search-prices"
+                onchange="toggleSearchFeature('tpv-search-prices', 'tpv_search_prices')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-search-prices" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por Precios y Variedades (Ej: $22.000, Docena)</label>
+            </div>
+          </div>
         </div>
         <div class="mb-4">
           <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Opciones de Impresión Visual</label>
@@ -1917,6 +1945,10 @@
             return Object.assign({}, p, { variations: filtered });
           }).filter(p => p.variations.length > 0);
 
+          if (catalog && catalog.products) {
+            catalog.products.forEach(p => { p._searchIndex = buildProductSearchIndex(p); });
+          }
+
           // NOTA: renderTpvUI() ya fue llamado dentro del withSuccessHandler del servidor
           // (línea ~1849) una vez que el stockMap estuvo disponible.
           // No llamar aquí para evitar el doble render: primero sin stock y luego con stock
@@ -2130,10 +2162,17 @@
           return group;
         };
 
-        // === JERARQUIA: COMBOS > LINEA (PADRE) > PRODUCTO (CATEGORIA) ===
+        // Obtener productos que coinciden con el texto del buscador
+        const searchInput = document.getElementById('tpv-search');
+        const rawTerm = (searchInput && searchInput.value) ? searchInput.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
+        const tokens = rawTerm.length >= 2 ? rawTerm.split(/\s+/) : [];
+        const baseProducts = tokens.length > 0 ? catalog.products.filter(p => {
+          if (!p._searchIndex) p._searchIndex = buildProductSearchIndex(p);
+          return tokens.every(t => p._searchIndex.includes(t));
+        }) : catalog.products;
 
-        // 0. SECCION DE COMBOS (B\u00e1sico por ahora, filtrando productos con variedad "Combo")
-        var hasCombos = catalog.products.some(p => (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo')));
+        // 0. SECCION DE COMBOS (Básico por ahora, filtrando productos con variedad "Combo")
+        var hasCombos = baseProducts.some(p => (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo')));
         if (hasCombos) {
           var comboGroup = document.createElement('div');
           comboGroup.style.marginBottom = '1.5rem';
@@ -2149,9 +2188,6 @@
             if (currentTpvFilters.isCombo === true) {
               currentTpvFilters.isCombo = false;
             } else {
-              // Limpiar otros filtros para ver solo combos? O combinarlos?
-              // El usuario dijo "filtrado anidado a categorías", pero también "botón destacado".
-              // Por ahora, actuamos como toggle.
               currentTpvFilters.parent = 'ALL';
               currentTpvFilters.cat = 'ALL';
               currentTpvFilters.isCombo = true;
@@ -2164,16 +2200,23 @@
           catCont.appendChild(comboGroup);
         }
 
-        // 1. CATEGORIA PADRE (Linea)
-        var parents = [...new Set(catalog.products.map(p => p.parentCategory))].filter(Boolean).sort();
+        // 1. CATEGORIA PADRE (Linea) - filtrada por el buscador
+        var parents = [...new Set(baseProducts.map(p => p.parentCategory))].filter(Boolean).sort();
+        if (currentTpvFilters.parent !== 'ALL' && !parents.includes(currentTpvFilters.parent)) {
+          currentTpvFilters.parent = 'ALL';
+          currentTpvFilters.cat = 'ALL';
+        }
         catCont.appendChild(createFilterGroup('LINEA', parents, 'parent', { 'DEFAULT': 'ph-tag' }));
 
-        // 2. CATEGORIA HOJA - filtrada por el padre activo
+        // 2. CATEGORIA HOJA - filtrada por el padre activo Y por el buscador
         var parentFilter = currentTpvFilters.parent;
         var catsSource = parentFilter !== 'ALL'
-          ? catalog.products.filter(p => p.parentCategory === parentFilter)
-          : catalog.products;
+          ? baseProducts.filter(p => p.parentCategory === parentFilter)
+          : baseProducts;
         var cats = [...new Set(catsSource.map(p => p.categoryName))].filter(Boolean).sort();
+        if (currentTpvFilters.cat !== 'ALL' && !cats.includes(currentTpvFilters.cat)) {
+          currentTpvFilters.cat = 'ALL';
+        }
         catCont.appendChild(createFilterGroup('Producto', cats, 'cat', categoryIcons, true));
 
         applyTpvFilters();
@@ -2182,12 +2225,26 @@
 
       window.applyTpvFilters = function () {
         if (!catalog) return;
+        const searchInput = document.getElementById('tpv-search');
+        const rawTerm = (searchInput && searchInput.value) ? searchInput.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
+        const tokens = rawTerm.length >= 2 ? rawTerm.split(/\s+/) : [];
+
         const filtered = catalog.products.filter(p => {
+          // 1. Filtros de categoría y línea de los botones
           const matchCombo = !currentTpvFilters.isCombo || (p.varieties || []).some(v => v.nombre.toLowerCase().includes('combo'));
           const matchParent = currentTpvFilters.parent === 'ALL' || p.parentCategory === currentTpvFilters.parent;
           const matchCat = currentTpvFilters.cat === 'ALL' || p.categoryName === currentTpvFilters.cat;
-          return matchCombo && matchParent && matchCat;
+          if (!matchCombo || !matchParent || !matchCat) return false;
+
+          // 2. Filtros de búsqueda por tokens del buscador
+          if (tokens.length > 0) {
+            if (!p._searchIndex) p._searchIndex = buildProductSearchIndex(p);
+            if (!tokens.every(t => p._searchIndex.includes(t))) return false;
+          }
+
+          return true;
         });
+
         renderTpvProducts(filtered);
       };
 
@@ -2204,20 +2261,56 @@
         }
       };
 
+      function buildProductSearchIndex(p) {
+        const parts = [];
+        const searchBrand = localStorage.getItem('tpv_search_brand') !== 'false';
+        const searchCategory = localStorage.getItem('tpv_search_category') !== 'false';
+        const searchSku = localStorage.getItem('tpv_search_sku') !== 'false';
+        const searchPrices = localStorage.getItem('tpv_search_prices') !== 'false';
+
+        // 1. Iniciales de Categoría + Género (Ej: M + H = MH) + Nombres
+        if (searchCategory) {
+          const cat1 = (p.categoryName || p.parentCategory || '').trim().charAt(0).toUpperCase();
+          const gen1 = (p.gender || '').trim().charAt(0).toUpperCase();
+          if (cat1 || gen1) parts.push(cat1 + gen1);
+          if (p.categoryName) parts.push(p.categoryName);
+          if (p.parentCategory) parts.push(p.parentCategory);
+          if (p.gender) parts.push(p.gender);
+        }
+
+        // 2. Marca
+        if (searchBrand && p.brand) {
+          parts.push(p.brand);
+        }
+
+        // 3. SKU, Modelo y Estilo/Material
+        if (searchSku) {
+          if (p.id) parts.push(p.id);
+          if (p.model) parts.push(p.model);
+          if (p.style) parts.push(p.style);
+          if (p.material) parts.push(p.material);
+        }
+
+        // 4. Precios y Variedades (Docena, Menor, $22.000, 22000)
+        if (searchPrices && p.varieties && p.varieties.length > 0) {
+          p.varieties.forEach(v => {
+            if (v.nombre) parts.push(v.nombre);
+            const precio = v.precio_unitario || v.PRECIO_UNITARIO || v.precio || v.PRECIO;
+            if (precio !== undefined && precio !== null && precio !== '') {
+              parts.push(String(precio));
+              parts.push(`$${Number(precio).toLocaleString('es-AR')}`);
+              parts.push(`$${precio}`);
+            }
+          });
+        }
+
+        return parts.join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      }
+
       if (searchInput) {
         searchInput.onkeypress = handleEnter;
         searchInput.oninput = (e) => {
-          if (!catalog) return;
-          const term = e.target.value.toLowerCase();
-          if (term.length > 2) {
-            const filtered = catalog.products.filter(p =>
-              p.model.toLowerCase().includes(term) ||
-              p.id.toLowerCase().includes(term)
-            );
-            renderTpvProducts(filtered);
-          } else if (term.length === 0) {
-            renderTpvProducts(catalog.products);
-          }
+          renderTpvUI();
         };
       }
       if (scanInput) {
@@ -3587,6 +3680,7 @@
                   });
                   return Object.assign({}, p, { variations: filtered });
                 }).filter(function (p) { return p.variations.length > 0; });
+                catalog.products.forEach(function (p) { p._searchIndex = buildProductSearchIndex(p); });
               }
 
               // Re-renderizar catálogo, filtros y métodos de pago
@@ -3776,6 +3870,23 @@
           const printMarketing = localStorage.getItem('tpv_print_marketing') !== 'false';
           const cbMarketing = document.getElementById('tpv-config-print-marketing');
           if (cbMarketing) cbMarketing.checked = printMarketing;
+
+          // Cargar preferencias del buscador dinámico — true por defecto
+          const searchBrand = localStorage.getItem('tpv_search_brand') !== 'false';
+          const cbBrand = document.getElementById('tpv-search-brand');
+          if (cbBrand) cbBrand.checked = searchBrand;
+
+          const searchCategory = localStorage.getItem('tpv_search_category') !== 'false';
+          const cbCategory = document.getElementById('tpv-search-category');
+          if (cbCategory) cbCategory.checked = searchCategory;
+
+          const searchSku = localStorage.getItem('tpv_search_sku') !== 'false';
+          const cbSku = document.getElementById('tpv-search-sku');
+          if (cbSku) cbSku.checked = searchSku;
+
+          const searchPrices = localStorage.getItem('tpv_search_prices') !== 'false';
+          const cbPrices = document.getElementById('tpv-search-prices');
+          if (cbPrices) cbPrices.checked = searchPrices;
         }
       };
 
@@ -3783,6 +3894,19 @@
         const cb = document.getElementById(checkboxId);
         if (cb) {
           localStorage.setItem(storageKey, cb.checked ? 'true' : 'false');
+        }
+      };
+
+      window.toggleSearchFeature = function (checkboxId, storageKey) {
+        const cb = document.getElementById(checkboxId);
+        if (cb) {
+          localStorage.setItem(storageKey, cb.checked ? 'true' : 'false');
+          if (catalog && catalog.products) {
+            catalog.products.forEach(p => {
+              p._searchIndex = buildProductSearchIndex(p);
+            });
+            applyTpvFilters();
+          }
         }
       };
 

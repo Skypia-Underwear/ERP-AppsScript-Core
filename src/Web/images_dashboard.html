@@ -1235,14 +1235,15 @@
                         <!-- Selector de Modelo de IA Comercial -->
                         <div>
                             <label
-                                class="text-[10px] font-bold text-slate-300 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+                                class="text-[10px] font-bold text-slate-300 uppercase tracking-wide flex items-center gap-1.5 mb-1">
                                 <span class="material-icons text-indigo-400 text-sm">psychology</span>
-                                Modelo de Análisis IA
+                                🧠 Motor de Redacción & Análisis Forense
                             </label>
+                            <p class="text-[9px] text-slate-400 mb-2 leading-tight">Analiza la foto real y redacta el Prompt Maestro técnico.</p>
                             <select id="dashboard-analysis-model"
                                 class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-[10px] outline-none font-bold rounded p-1.5 cursor-pointer transition-all duration-300 focus:border-indigo-500 focus:text-white">
-                                <option value="gemini-3.5-flash" selected>🚀 Flash (Agilidad)</option>
-                                <option value="gemini-3.1-pro-preview">👑 Pro (Precisión)</option>
+                                <option value="gemini-3.5-flash" selected>🚀 Flash (Agilidad / Rápido)</option>
+                                <option value="gemini-3.1-pro-preview">👑 Pro (Máxima Precisión Descriptiva)</option>
                                 <option value="gemma-4-26b-a4b-it">🐢 Gemma (Detalle - Gratis)</option>
                             </select>
                         </div>
@@ -2276,7 +2277,11 @@
                     category: p.categoryName || "",
                     woo_id: p.woo_id || "",
                     variations: p.variations || [],
-                    gender: p.gender || ""
+                    gender: p.gender || "",
+                    sizes: p.sizes || p.talles || p.TALLES || "",
+                    talles: p.talles || p.sizes || p.TALLES || "",
+                    ageGroup: p.ageGroup || p.grupo_edad || p.GRUPO_EDAD || "",
+                    grupo_edad: p.grupo_edad || p.ageGroup || p.GRUPO_EDAD || ""
                 }));
 
                 // --- NUEVO: Extraer Categor\u00edas y SVGs ---
@@ -4421,10 +4426,11 @@
                         <!-- MODEL & ASPECT RATIO -->
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="text-[10px] uppercase font-bold text-slate-400">Modelo IA</label>
-                                <select id="swal-input-model" class="w-full text-[11px] bg-slate-800 text-white border-slate-600 rounded p-2 mt-1">
-                                <option value="gemini-3.1-flash-image">Flash 3.1 (Rapido / Banners)</option>
-                                <option value="gemini-3-pro-image">Auto / Pro (Fotografia)</option>
+                                <label class="text-[10px] uppercase font-bold text-slate-300 flex items-center gap-1">🎨 Renderizador Visual IA</label>
+                                <p class="text-[9px] text-slate-400 mt-0.5 mb-1 leading-tight">Genera píxeles en base al prompt maestro.</p>
+                                <select id="swal-input-model" class="w-full text-[11px] bg-slate-800 text-white border border-slate-600 rounded p-2 mt-1">
+                                    <option value="gemini-3.1-flash-image">⚡ Flash 3.1 (Rápido / Banners)</option>
+                                    <option value="gemini-3-pro-image" selected>👑 Auto / Pro (Estudio Fotográfico 4K)</option>
                                 </select>
                             </div>
                             <div>
@@ -5020,7 +5026,7 @@
                             if (formato !== 'video') {
                                 document.getElementById('swalBtnRenderDirect').onclick = () => {
                                     Swal.close();
-                                    renderizarDesdePromptCache(finalContent);
+                                    renderizarDesdePromptCache(finalContent, ids);
                                 };
                             }
                         }
@@ -5214,7 +5220,7 @@
         });
     }
 
-    function renderizarDesdePromptCache(customPrompt = null) {
+    function renderizarDesdePromptCache(customPrompt = null, preservedIds = null) {
         const promptToUse = customPrompt || (currentImgObj ? currentImgObj.PROMPT : null);
         if (!promptToUse) {
             Swal.fire({
@@ -5247,7 +5253,7 @@
                             if (switchEl) switchEl.checked = true;
                             log("PIN Validado. Modo pago activo.", "success");
                             updateAiButtonLabels();
-                            ejecutarRenderizadoDirecto(res.value, promptToUse);
+                            ejecutarRenderizadoDirecto(res.value, promptToUse, preservedIds);
                         } else {
                             Swal.fire('Error', valid ? valid.message : 'PIN Incorrecto', 'error');
                         }
@@ -5255,11 +5261,11 @@
                 }
             });
         } else {
-            ejecutarRenderizadoDirecto(pinToUse, promptToUse);
+            ejecutarRenderizadoDirecto(pinToUse, promptToUse, preservedIds);
         }
     }
 
-    function ejecutarRenderizadoDirecto(pinToUse, customPrompt = null) {
+    function ejecutarRenderizadoDirecto(pinToUse, customPrompt = null, preservedIds = null) {
         const skuActual = (currentProduct) ? currentProduct.sku : null;
         let procesoId = null;
         if(skuActual) {
@@ -5273,7 +5279,11 @@
         });
 
         const _renderStartTime = Date.now();
-        const ids = (selectedImages && selectedImages.size > 0) ? Array.from(selectedImages) : [currentImageId];
+        let ids = (preservedIds && preservedIds.length > 0) ? preservedIds : ((selectedImages && selectedImages.size > 0) ? Array.from(selectedImages) : (currentImageId ? [currentImageId] : []));
+        ids = ids.filter(id => id !== null && id !== undefined && id !== 'null' && id !== 'undefined');
+        if (ids.length === 0 && CURRENT_IMAGES && CURRENT_IMAGES.length > 0) {
+            ids = [CURRENT_IMAGES[0].IMAGEN_ID];
+        }
 
         const style = document.getElementById('swal-input-style') ? document.getElementById('swal-input-style').value : "ecommerce";
         const model = document.getElementById('swal-input-model') ? document.getElementById('swal-input-model').value : "gemini-3-pro-image";
@@ -5282,7 +5292,8 @@
         const extraSpecs = {
             model: model,
             aspectRatio: aspect,
-            style: style
+            style: style,
+            sku: skuActual
         };
         
         const finalPrompt = customPrompt || (currentImgObj ? currentImgObj.PROMPT : "");

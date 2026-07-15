@@ -157,7 +157,7 @@ function reseller_backgroundInventoryJob() {
   pids.forEach(pid => {
     try {
       if (typeof generarInventarioPorProducto === 'function') {
-        generarInventarioPorProducto(pid);
+        generarInventarioPorProducto(pid, null, { esReventa: true, stockInicialReventa: 144 });
         if (typeof recalcularStockDeProducto === 'function') recalcularStockDeProducto(pid);
       }
     } catch (e) {
