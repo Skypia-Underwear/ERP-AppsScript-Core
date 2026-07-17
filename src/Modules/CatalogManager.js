@@ -67,6 +67,13 @@ function generarCatalogoJsonTPV() {
         transferAccounts: transferAccounts,
         generalConfig: generalConfig,
         priceConfig: priceConfig,
+        appSheet: {
+            appName: (typeof GLOBAL_CONFIG !== 'undefined' && GLOBAL_CONFIG.APPSHEET && GLOBAL_CONFIG.APPSHEET.APP_NAME) ? GLOBAL_CONFIG.APPSHEET.APP_NAME : "",
+            appId: (typeof GLOBAL_CONFIG !== 'undefined' && GLOBAL_CONFIG.APPSHEET && GLOBAL_CONFIG.APPSHEET.APP_ID) ? GLOBAL_CONFIG.APPSHEET.APP_ID : "",
+            inventoryListView: "BD_INVENTARIO",
+            inventoryDetailView: "BD_INVENTARIO_Detail",
+            inventoryFormView: "BD_INVENTARIO_Form"
+        },
         // Mapa de búsqueda rápida para el Shell
         categoryMap: categories.reduce((acc, c) => { acc[c.id.toUpperCase()] = c; return acc; }, {})
     };
@@ -130,8 +137,34 @@ function tpv_cargarCategorias(ss) {
  */
 function tpv_cargarTiendas(ss) {
     const sheet = ss.getSheetByName(SHEETS.STORES);
-    if (!sheet) return [];
-    return convertirRangoAObjetos(sheet);
+    if (!sheet) return {};
+    const dict = {};
+    const raw = convertirRangoAObjetos(sheet);
+    raw.forEach(t => {
+        dict[t.TIENDA_ID] = {
+            name: t.TIENDA_ID,
+            address: t.DIRECCION || "",
+            phone: t.CELULAR || t.TELEFONO || "",
+            policies: t.SOBRE_NOSOTROS || "",
+            logoUrl: t.LOGOTIPO || "",
+            qrData: t.QR_DATA || "",
+            config: {
+                minorSurcharge: parseFloat(t.RECARGO_MENOR || 0),
+                minimumPurchase: parseInt(t.COMPRA_MINIMA || 0),
+                saleMode: t.MODO_VENTA || "BOTONES DE FILTRADO",
+                allowNegativeStock: String(t.PERMITIR_VENTA_NEGATIVO || "").toUpperCase().trim() === "SI" || String(t.PERMITIR_VENTA_NEGATIVO || "").toUpperCase().trim() === "TRUE",
+                allowedPaymentMethods: (t.METODOS_PAGO || "").split(',').map(m => m.trim()).filter(Boolean),
+                printerIp: t.IP_IMPRESORA_LOCAL || "127.0.0.1",
+                printSettings: {
+                    copias: t.CANTIDAD_COPIAS || 1,
+                    sonido: t.ACTIVAR_SONIDO ? "1" : "0",
+                    marketing: t.MENSAJE_MARKETING || "",
+                    minCupon: parseFloat(t.MONTO_MINIMO_CUPON || 0)
+                }
+            }
+        };
+    });
+    return dict;
 }
 
 function tpv_cargarClientes(ss) {

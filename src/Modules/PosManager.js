@@ -140,6 +140,7 @@ function generarCatalogoJsonTPV() {
                     minorSurcharge: parseFloat(t.RECARGO_MENOR || 0),
                     minimumPurchase: parseInt(t.COMPRA_MINIMA || 0),
                     saleMode: t.MODO_VENTA || "BOTONES DE FILTRADO",
+                    allowNegativeStock: String(t.PERMITIR_VENTA_NEGATIVO || "").toUpperCase().trim() === "SI" || String(t.PERMITIR_VENTA_NEGATIVO || "").toUpperCase().trim() === "TRUE",
                     allowedPaymentMethods: (t.METODOS_PAGO || "").split(',').map(m => m.trim()).filter(m => m !== ""),
                     printerIp: t.IP_IMPRESORA_LOCAL || "127.0.0.1",
                     printSettings: {
@@ -373,6 +374,13 @@ function generarCatalogoJsonTPV() {
         }
 
         debugLog("✅ Catálogo JSON TPV generado con éxito (incluye imágenes).");
+        catalogo.appSheet = {
+            appName: (typeof GLOBAL_CONFIG !== 'undefined' && GLOBAL_CONFIG.APPSHEET && GLOBAL_CONFIG.APPSHEET.APP_NAME) ? GLOBAL_CONFIG.APPSHEET.APP_NAME : "",
+            appId: (typeof GLOBAL_CONFIG !== 'undefined' && GLOBAL_CONFIG.APPSHEET && GLOBAL_CONFIG.APPSHEET.APP_ID) ? GLOBAL_CONFIG.APPSHEET.APP_ID : "",
+            inventoryListView: "BD_INVENTARIO",
+            inventoryDetailView: "BD_INVENTARIO_Detail",
+            inventoryFormView: "BD_INVENTARIO_Form"
+        };
         return catalogo;
 
     } catch (e) {
@@ -889,8 +897,26 @@ function subirArchivoAGitHub(jsonData, filePath) {
                 headers: headers,
                 muteHttpExceptions: true
             });
-            if (getResponse.getResponseCode() === 200) {
-                sha = JSON.parse(getResponse.getContentText()).sha;
+            const getCode = getResponse.getResponseCode();
+            if (getCode === 200) {
+                try {
+                    sha = JSON.parse(getResponse.getContentText()).sha;
+                } catch (parseErr) {
+                    debugLog(`⚠️ Error al analizar respuesta GET de GitHub: ${parseErr.message}`);
+                }
+            } else if (getCode !== 404) {
+                // Si la consulta previa no es 200 (existe) ni 404 (no existe aún), hay un fallo de red/servidor.
+                lastCode = getCode;
+                lastBody = getResponse.getContentText();
+                debugLog(`⚠️ Consulta previa (GET) a GitHub falló para '${filePath}' [HTTP ${getCode}]. Abortando PUT para evitar error 422.`);
+                if (!RETRYABLE_CODES.includes(getCode)) break;
+                continue; // Reintentar tras espera si es un error temporal (500, 503, etc.)
+            }
+
+            // Si respondió 200 pero no se obtuvo sha, abortar para no provocar un error 422
+            if (getCode === 200 && !sha) {
+                debugLog(`⚠️ GitHub devolvió 200 en GET pero sin 'sha' para '${filePath}'. Abortando PUT.`);
+                break;
             }
 
             const payload = {

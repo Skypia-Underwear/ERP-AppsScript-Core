@@ -478,6 +478,8 @@ const HeaderManager = {
         if (fuzzyH.includes("TELÉFONO") || fuzzyH.includes("TELEFONO") || fuzzyH.includes("PHONE") || fuzzyH.includes("CELULAR")) mapping["TELEFONO"] = index;
         if (fuzzyH.includes("TOTALVENTA") || fuzzyH.includes("TOTAL")) mapping["TOTAL_VENTA"] = index;
         if (fuzzyH.includes("ULTIMAACTUALIZACION") || fuzzyH.includes("ULTACTUALIZACION")) mapping["ULTIMA_ACTUALIZACION"] = index;
+        // Alias para Tiendas / Venta en negativo
+        if (fuzzyH.includes("PERMITIRVENTANEGATIVO") || fuzzyH.includes("VENTANEGATIVO") || fuzzyH.includes("VENTASINSTOCK")) mapping["PERMITIR_VENTA_NEGATIVO"] = index;
       }
     });
 
@@ -1208,6 +1210,8 @@ function getPageContent(view, accion, codigo, fecha, isEmbedded = false) {
     template.isEmbedded = isEmbedded;
     template.CATALOG_URL = getCatalogJsonUrl();
     template.CATALOG_URL_FALLBACK = getCatalogFallbackUrl();
+    template.APPSHEET_APP_ID = GLOBAL_CONFIG.APPSHEET.APP_ID || "";
+    template.APPSHEET_APP_NAME = GLOBAL_CONFIG.APPSHEET.APP_NAME || "";
     return template.evaluate().getContent();
   }
 

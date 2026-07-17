@@ -33,7 +33,7 @@
 
   .tpv-main-layout {
     display: grid;
-    grid-template-columns: auto 1fr 480px;
+    grid-template-columns: auto 1fr 550px;
     /* Mas espacio al carrito */
     flex: 1;
     overflow: hidden;
@@ -326,6 +326,7 @@
   }
 
   .product-card .product-img-container {
+    position: relative;
     height: 140px;
     border-radius: 0.75rem;
     overflow: hidden;
@@ -342,6 +343,56 @@
     font-size: 1.1rem !important;
     font-weight: 900;
     color: var(--primary);
+  }
+
+  /* Estilos para productos SIN STOCK (y venta en negativo / AppSheet) */
+  .product-card--out-of-stock .product-img-container img {
+    filter: grayscale(0.7) opacity(0.75);
+    transition: filter 0.3s ease, opacity 0.3s ease;
+  }
+  .product-card--out-of-stock:hover .product-img-container img {
+    filter: grayscale(0.3) opacity(0.95);
+  }
+  .out-of-stock-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 5;
+    background: rgba(239, 68, 68, 0.9);
+    backdrop-filter: blur(6px);
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+  }
+  .btn-appsheet-deep-link {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-appsheet-deep-link:hover {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.45);
   }
 
   /* Carrusel de variedades optimizado */
@@ -436,6 +487,8 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 10px;
+    min-height: 52px;
+    align-content: flex-start;
   }
 
   .color-btn {
@@ -444,7 +497,8 @@
     border: 2px solid transparent;
     cursor: pointer;
     font-weight: 600;
-    transition: all 0.2s;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+    box-sizing: border-box;
     min-width: 60px;
     text-align: center;
   }
@@ -455,8 +509,8 @@
   }
 
   .color-btn.active {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4), 0 0 12px rgba(99, 102, 241, 0.3) !important;
   }
 
   .size-btn-wrapper {
@@ -472,12 +526,13 @@
     width: 100%;
     padding: 14px 10px;
     border-radius: 12px;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     background: var(--bg-panel);
     color: white;
     cursor: pointer;
     font-weight: 800;
-    transition: all 0.2s;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+    box-sizing: border-box;
     font-size: 0.9rem;
     display: flex;
     align-items: center;
@@ -506,6 +561,14 @@
     background: rgba(0, 0, 0, 0.2);
     padding: 2px 6px;
     border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+  }
+
+  .stock-label:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.25);
+    color: white;
   }
 
   /* Variety Buttons in Modal */
@@ -518,7 +581,8 @@
     background: var(--bg-secondary);
     color: white;
     text-align: left;
-    transition: all 0.2s;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+    box-sizing: border-box;
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -950,15 +1014,18 @@
   }
 
   /* Carrito (DataTable Override) */
+  /* Carrito (DataTable Override) */
   .cart-table-wrapper {
     flex: 1;
     overflow-y: auto;
+    overflow-x: auto;
     padding: 0;
   }
 
   #cart-table {
-    width: 100%;
+    width: 100% !important;
     border-collapse: collapse;
+    table-layout: fixed;
   }
 
   #cart-table thead th {
@@ -967,18 +1034,65 @@
     text-transform: uppercase;
     font-size: 0.65rem;
     font-weight: 800;
-    padding: 0.75rem;
+    padding: 0.75rem 0.4rem;
     border-bottom: 2px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 10;
+    white-space: nowrap;
   }
 
   #cart-table tbody td {
-    padding: 0.75rem;
+    padding: 0.6rem 0.4rem;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-main);
     font-size: 0.8rem;
+    word-break: break-word;
+    vertical-align: middle;
+  }
+
+  #cart-table thead th:nth-child(1),
+  #cart-table tbody td:nth-child(1) {
+    width: 120px;
+    max-width: 120px;
+    overflow: hidden;
+  }
+
+  #cart-table thead th:nth-child(2),
+  #cart-table tbody td:nth-child(2) {
+    width: 75px;
+    max-width: 75px;
+    overflow: hidden;
+  }
+
+  #cart-table thead th:nth-child(3),
+  #cart-table tbody td:nth-child(3) {
+    width: 85px;
+    max-width: 85px;
+    overflow: hidden;
+  }
+
+  #cart-table thead th:nth-child(4),
+  #cart-table tbody td:nth-child(4) {
+    width: 52px;
+    max-width: 52px;
+    overflow: hidden;
+  }
+
+  #cart-table thead th:nth-child(5),
+  #cart-table tbody td:nth-child(5) {
+    width: 66px;
+    max-width: 66px;
+    overflow: hidden;
+  }
+
+  #cart-table thead th:nth-child(6),
+  #cart-table tbody td:nth-child(6) {
+    width: 34px;
+    max-width: 34px;
+    overflow: hidden;
+    text-align: center;
+    padding: 0.6rem 0.2rem;
   }
 
   .dataTables_wrapper .dataTables_scroll {
@@ -1224,8 +1338,14 @@
           <h3 id="modal-product-title" class="text-xl font-bold text-white">Producto</h3>
           <p id="modal-product-subtitle" class="text-sm text-slate-400">Configura las variaciones de venta</p>
         </div>
-        <button onclick="closeTpvModal()" class="text-slate-500 hover:text-white"><i
-            class="ph-bold ph-x text-2xl"></i></button>
+        <div class="flex items-center gap-2">
+          <button id="btn-appsheet-detail-modal" onclick="openAppSheetDetailFromModal()" class="btn-appsheet-deep-link" style="display: none;" title="Abre la vista de Detalle del Producto en AppSheet (BD_PRODUCTOS_Detail)">
+            <i class="ph-bold ph-cube text-base"></i>
+            <span>Producto (AppSheet)</span>
+          </button>
+          <button onclick="closeTpvModal()" class="text-slate-500 hover:text-white ml-1"><i
+              class="ph-bold ph-x text-2xl"></i></button>
+        </div>
       </div>
       <div id="variety-container" style="display: none;" class="mb-4">
         <label class="text-[0.65rem] font-bold text-slate-500 uppercase">Tipo de Precio</label>
@@ -1290,6 +1410,18 @@
             <button id="btn-mode-qr-config" onclick="setTpvMode('LECTOR QR')" class="tpv-config-mode-btn"><i
                 class="ph-bold ph-qr-code text-2xl"></i><span>Lector QR</span></button>
           </div>
+        </div>
+        <div class="mb-4">
+          <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Control de Inventario y Venta</label>
+          <div class="mt-3 flex flex-col gap-2">
+            <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
+              <input type="checkbox" id="tpv-config-allow-negative"
+                onchange="toggleAllowNegativeStock('tpv-config-allow-negative')"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
+              <label for="tpv-config-allow-negative" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Permitir Venta en Negativo / Sin Stock (Sobregiro)</label>
+            </div>
+          </div>
+        </div>
         <div class="mb-4">
           <label class="text-[0.7rem] font-bold text-slate-400 uppercase">Parámetros del Buscador Dinámico</label>
           <div class="mt-3 flex flex-col gap-2">
@@ -1297,25 +1429,29 @@
               <input type="checkbox" id="tpv-search-brand"
                 onchange="toggleSearchFeature('tpv-search-brand', 'tpv_search_brand')"
                 class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
-              <label for="tpv-search-brand" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por Marca (Ej: CASTFER, KNUP)</label>
+              <label for="tpv-search-brand" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por
+                Marca (Ej: CASTFER, KNUP)</label>
             </div>
             <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
               <input type="checkbox" id="tpv-search-category"
                 onchange="toggleSearchFeature('tpv-search-category', 'tpv_search_category')"
                 class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
-              <label for="tpv-search-category" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por Categoría e Iniciales (Ej: MH, CH, Mochila)</label>
+              <label for="tpv-search-category" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por
+                Categoría e Iniciales (Ej: MH, CH, Mochila)</label>
             </div>
             <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
               <input type="checkbox" id="tpv-search-sku"
                 onchange="toggleSearchFeature('tpv-search-sku', 'tpv_search_sku')"
                 class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
-              <label for="tpv-search-sku" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por SKU y Modelo (Ej: CINT7011, K-126, Classic)</label>
+              <label for="tpv-search-sku" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por SKU
+                y Modelo (Ej: CINT7011, K-126, Classic)</label>
             </div>
             <div class="flex items-center gap-2 bg-slate-800/50 py-2.5 px-3 rounded-lg border border-slate-700">
               <input type="checkbox" id="tpv-search-prices"
                 onchange="toggleSearchFeature('tpv-search-prices', 'tpv_search_prices')"
                 class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary focus:ring-primary">
-              <label for="tpv-search-prices" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por Precios y Variedades (Ej: $22.000, Docena)</label>
+              <label for="tpv-search-prices" class="text-[0.75rem] font-bold text-slate-300 cursor-pointer">Buscar por
+                Precios y Variedades (Ej: $22.000, Docena)</label>
             </div>
           </div>
         </div>
@@ -1485,9 +1621,6 @@
     </div>
   </div>
 </div>
-</div>
-</div>
-</div>
 
 <script>
   (function () {
@@ -1503,6 +1636,8 @@
 
       var CATALOG_URL = "<?!= CATALOG_URL ?>";
       var CATALOG_URL_FALLBACK = "<?!= CATALOG_URL_FALLBACK ?>";
+      var FALLBACK_APP_ID = "<?!= typeof APPSHEET_APP_ID !== 'undefined' ? APPSHEET_APP_ID : '' ?>";
+      var FALLBACK_APP_NAME = "<?!= typeof APPSHEET_APP_NAME !== 'undefined' ? APPSHEET_APP_NAME : '' ?>";
 
       const checkIsPrecioVariable = () => (priceConfig && priceConfig.tipoRegistroPrecio === 'PRECIO VARIABLE');
       let currentTpvFilters = {
@@ -1608,7 +1743,11 @@
           return;
         }
 
-        const isQr = (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
+        if (!posMetadata) posMetadata = window.posMetadata || { storeConfig: {}, paymentMethods: [] };
+        if (!posMetadata.storeConfig) posMetadata.storeConfig = {};
+        if (!posMetadata.paymentMethods) posMetadata.paymentMethods = [];
+
+        const isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
 
         // Renderizar metodos de pago
         renderPaymentMethods('payment-methods-grid');
@@ -1618,14 +1757,14 @@
 
         if (isQr) {
           console.log("Modo QR: El panel de checkout ya deber a estar visible.");
-          updateTpvTotals();
+          if (typeof updateTpvTotals === 'function') updateTpvTotals();
           return;
         }
 
         const modal = document.getElementById('checkout-modal');
         if (modal) {
           modal.style.display = 'flex';
-          updateTpvTotals();
+          if (typeof updateTpvTotals === 'function') updateTpvTotals();
         }
       };
 
@@ -1633,19 +1772,18 @@
         const grid = document.getElementById(containerId);
         if (!grid) return;
 
-        // Identificar el select oculto correspondiente
-        const isQr = containerId.includes('qr-');
-        const selectId = isQr ? 'qr-tpv-payment-method' : 'tpv-payment-method';
-        const select = document.getElementById(selectId);
+        if (!posMetadata) posMetadata = window.posMetadata || { storeConfig: {}, paymentMethods: [] };
+        if (!posMetadata.storeConfig) posMetadata.storeConfig = {};
+        const methods = posMetadata.paymentMethods || [];
+        const allowed = posMetadata.storeConfig.allowedPaymentMethods || [];
 
-        const allowed = (posMetadata.storeConfig && posMetadata.storeConfig.allowedPaymentMethods) || [];
         const methodsToRender = allowed.length > 0
-          ? posMetadata.paymentMethods.filter(m => allowed.includes(m.id))
-          : posMetadata.paymentMethods;
+          ? methods.filter(m => allowed.includes(m.id))
+          : methods;
 
         // Poblar el Grid de Botones
         grid.innerHTML = methodsToRender.map(function (m) {
-          const iconData = (catalog.metodosPagoIcons && m.code) ? catalog.metodosPagoIcons[m.code] : null;
+          const iconData = (catalog && catalog.metodosPagoIcons && m.code) ? catalog.metodosPagoIcons[m.code] : null;
           let iconHtml = "";
 
           if (iconData && iconData.iconUrl) {
@@ -1653,7 +1791,7 @@
             iconHtml = `<div class='payment-svg-wrapper'><div style="${bgStyle}"></div></div>`;
           } else {
             var icon = "ph-money";
-            var idLower = m.id.toLowerCase();
+            var idLower = (m.id || "").toLowerCase();
             if (idLower.includes('transf')) icon = "ph-bank";
             if (idLower.includes('qr') || idLower.includes('mercado')) icon = "ph-qr-code";
             if (idLower.includes('tarjeta')) icon = "ph-credit-card";
@@ -1668,7 +1806,10 @@
           );
         }).join('');
 
-        // NUEVO: Sincronizar con el Select Oculto (Vital para que updateTpvTotals lo lea)
+        // Sincronizar con el Select Oculto (Vital para que updateTpvTotals lo lea)
+        const isQr = containerId.includes('qr-');
+        const selectId = isQr ? 'qr-tpv-payment-method' : 'tpv-payment-method';
+        const select = document.getElementById(selectId);
         if (select) {
           select.innerHTML = methodsToRender.map(m => `<option value="${m.id}">${m.id}</option>`).join('');
         }
@@ -1682,19 +1823,23 @@
         document.querySelectorAll('.payment-btn').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.id === id);
         });
-        document.getElementById('tpv-payment-method').value = id;
-        document.getElementById('qr-tpv-payment-method').value = id;
+        const tpvSel = document.getElementById('tpv-payment-method');
+        if (tpvSel) tpvSel.value = id;
+        const qrSel = document.getElementById('qr-tpv-payment-method');
+        if (qrSel) qrSel.value = id;
 
         // Mostrar/Ocultar container de cuentas si es transferencia
-        const m = posMetadata.paymentMethods.find(pm => pm.id === id);
+        if (!posMetadata) posMetadata = window.posMetadata || { paymentMethods: [] };
+        const methods = posMetadata.paymentMethods || [];
+        const m = methods.find(pm => pm.id === id);
         const container = document.getElementById('tpv-transfer-account-container');
         const qrContainer = document.getElementById('qr-tpv-transfer-account-container');
-        const isTransfer = (m && m.id === 'Transferencia');
+        const isTransfer = (m && m.id === 'Transferencia') || (id && id.toLowerCase() === 'transferencia');
 
         if (container) container.style.display = isTransfer ? 'block' : 'none';
         if (qrContainer) qrContainer.style.display = isTransfer ? 'block' : 'none';
 
-        updateTpvTotals();
+        if (typeof updateTpvTotals === 'function') updateTpvTotals();
       };
 
       async function initTPV() {
@@ -2044,6 +2189,7 @@
       function initCartDataTable() {
         if ($.fn.DataTable.isDataTable('#cart-table')) return;
         $('#cart-table').DataTable({
+          autoWidth: false,
           dom: 'Bfrtip',
           buttons: [
             {
@@ -2336,7 +2482,42 @@
         openTpvVariations(product, scan);
       }
 
+      function onStockCacheUpdated() {
+        // 1. Actualizar grilla de productos y banners (SIN STOCK)
+        if (typeof window.applyTpvFilters === 'function') {
+          window.applyTpvFilters();
+        } else if (typeof renderTpvProducts === 'function' && window._lastRenderedProducts) {
+          renderTpvProducts(window._lastRenderedProducts);
+        } else if (typeof renderTpvProducts === 'function' && catalog && catalog.products) {
+          renderTpvProducts(catalog.products);
+        }
+
+        // 2. Si el modal de variaciones está abierto, actualizar colores y talles instantáneamente
+        const modal = document.getElementById('modal-variations');
+        if (modal && modal.style.display !== 'none') {
+          const modalTitleEl = document.getElementById('modal-product-title');
+          if (modalTitleEl && catalog && catalog.products) {
+            const product = catalog.products.find(p => p.model === modalTitleEl.innerText);
+            if (product) {
+              if (curvaState && curvaState.active && typeof window.renderCurvaMatrix === 'function') {
+                window.renderCurvaMatrix();
+              } else {
+                const activeColorBtn = document.querySelector('.color-btn.active');
+                const selectedColorName = activeColorBtn ? activeColorBtn.innerText : null;
+                if (typeof renderTpvColors === 'function') {
+                  renderTpvColors(product, selectedColorName, () => (typeof _selectedVariety !== 'undefined' ? _selectedVariety : null));
+                }
+                if (selectedColorName && typeof renderTpvSizes === 'function') {
+                  renderTpvSizes(product, selectedColorName, () => (typeof _selectedVariety !== 'undefined' ? _selectedVariety : null));
+                }
+              }
+            }
+          }
+        }
+      }
+
       function renderTpvProducts(products) {
+        window._lastRenderedProducts = products;
         var grid = document.getElementById('product-grid');
         if (!grid) return;
         grid.innerHTML = '';
@@ -2344,10 +2525,22 @@
 
         products.forEach(function (p) {
           var div = document.createElement('div');
+          // Calcular stock total de las variaciones para la tienda activa
+          const managedStore = posMetadata ? posMetadata.managedStoreId : '';
+          const storeVariations = (p.variations || []).filter(v => !managedStore || managedStore.trim().toUpperCase() === 'TODAS' || v.store_id === managedStore);
+          let totalStock = 0;
+          storeVariations.forEach(v => {
+            const st = (typeof realStockCache !== 'undefined' && realStockCache.map && realStockCache.map[v.variation_id] !== undefined)
+              ? realStockCache.map[v.variation_id]
+              : 0;
+            totalStock += Number(st);
+          });
+          const isOutOfStock = totalStock <= 0;
+
           // Clase diferenciada: --variable no eleva la tarjeta (los botones tienen el scale)
           // --simple eleva la tarjeta entera porque no hay botones de precio
           const cardVariantClass = isPrecioVariable ? 'product-card--variable' : 'product-card--simple';
-          div.className = 'product-card animate-fade-in ' + cardVariantClass;
+          div.className = 'product-card animate-fade-in ' + cardVariantClass + (isOutOfStock ? ' product-card--out-of-stock' : '');
 
           var genderIconMap = {
             'HOMBRE': { icon: 'ph-gender-male', color: '#3b82f6' },
@@ -2373,6 +2566,9 @@
               "<i class='ph-bold " + sInfo.icon + "' style='color:" + sInfo.color + ";font-size:12px;'></i></span>";
           }
           badgesHtml += "</div>";
+          if (isOutOfStock) {
+            badgesHtml += "<span class='out-of-stock-badge'><i class='ph-bold ph-warning-circle'></i> SIN STOCK</span>";
+          }
 
           var imgHtml = "<div class='product-img-container'>" +
             (p.image
@@ -2490,6 +2686,10 @@
         if (!modal) return;
 
         document.getElementById('modal-product-title').innerText = product.model;
+        const btnAppSheetDetail = document.getElementById('btn-appsheet-detail-modal');
+        if (btnAppSheetDetail) btnAppSheetDetail.style.display = 'inline-flex';
+        const btnAppSheetOld = document.getElementById('btn-appsheet-add-stock-modal');
+        if (btnAppSheetOld) btnAppSheetOld.style.display = 'inline-flex';
 
         // Elementos del DOM
         const varietyOptions = document.getElementById('variety-options');
@@ -2568,9 +2768,27 @@
           curvaState.active = false;
         }
 
-        // Render Colores
+        renderTpvColors(product, null, () => _selectedVariety);
+
+        modal.style.display = 'flex';
+
+        if (scan && scan.color) {
+          const btn = Array.from(colorCont.children).find(b => b.innerText === scan.color);
+          if (btn) btn.click();
+        } else if (colorCont.children.length === 1 && !curvaState.active) {
+          // AUTO-SELECCIÓN: Si hay un solo color, seleccionarlo por defecto
+          const onlyBtn = colorCont.querySelector('.color-btn');
+          if (onlyBtn) onlyBtn.click();
+        }
+      };
+
+      function renderTpvColors(product, activeColorName, getVariety) {
+        const colorCont = document.getElementById('color-options');
+        if (!colorCont || !product || !product.variations) return;
         colorCont.innerHTML = '';
         const colors = [...new Set(product.variations.map(v => v.color))];
+        const managedStore = posMetadata ? posMetadata.managedStoreId : '';
+
         colors.forEach(color => {
           const btn = document.createElement('button');
           btn.className = 'color-btn';
@@ -2586,25 +2804,76 @@
             btn.style.borderColor = 'rgba(0,0,0,0.1)';
           }
 
-          btn.onclick = () => {
-            colorCont.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+          // Calcular stock de todas las variaciones de este color para la tienda activa
+          const colorVariants = product.variations.filter(v => v.color === color && (!managedStore || managedStore.trim().toUpperCase() === 'TODAS' || v.store_id === managedStore));
+          let totalColorStock = 0;
+          let hasPositiveStock = false;
+          colorVariants.forEach(v => {
+            const st = (typeof realStockCache !== 'undefined' && realStockCache.map && realStockCache.map[v.variation_id] !== undefined)
+              ? Number(realStockCache.map[v.variation_id])
+              : 0;
+            totalColorStock += st;
+            if (st > 0) hasPositiveStock = true;
+          });
+
+          // SI NO HAY STOCK POSITIVO PARA NINGÚN TALLE DE ESTE COLOR:
+          if (!hasPositiveStock) {
+            btn.style.border = '2px dashed #ef4444';
+            btn.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.5)';
+            btn.style.opacity = '0.75';
+            btn.title = 'Variación de color SIN STOCK positivo (Total: ' + totalColorStock + ')';
+          } else {
+            // Resaltar lo que sí tiene stock
+            btn.style.border = '2px solid #22c55e';
+            btn.style.boxShadow = '0 0 6px rgba(34, 197, 94, 0.3)';
+            btn.title = 'Stock disponible en este color';
+          }
+
+          if (activeColorName && color === activeColorName) {
             btn.classList.add('active');
-            renderTpvSizes(product, color, () => _selectedVariety);
+            btn.style.borderWidth = '2px';
+            if (!hasPositiveStock) {
+              btn.style.borderStyle = 'dashed';
+              btn.style.borderColor = '#ef4444';
+            } else {
+              btn.style.borderStyle = 'solid';
+              btn.style.borderColor = '#22c55e';
+            }
+          }
+
+          btn.onclick = () => {
+            colorCont.querySelectorAll('.color-btn').forEach(b => {
+              b.classList.remove('active');
+              const cName = b.innerText;
+              const cVariants = product.variations.filter(v => v.color === cName && (!managedStore || managedStore.trim().toUpperCase() === 'TODAS' || v.store_id === managedStore));
+              let cHasPos = false;
+              cVariants.forEach(v => {
+                const s = (typeof realStockCache !== 'undefined' && realStockCache.map && realStockCache.map[v.variation_id] !== undefined) ? Number(realStockCache.map[v.variation_id]) : 0;
+                if (s > 0) cHasPos = true;
+              });
+              b.style.borderWidth = '2px';
+              if (!cHasPos) {
+                b.style.borderStyle = 'dashed';
+                b.style.borderColor = '#ef4444';
+              } else {
+                b.style.borderStyle = 'solid';
+                b.style.borderColor = '#22c55e';
+              }
+            });
+            btn.classList.add('active');
+            btn.style.borderWidth = '2px';
+            if (!hasPositiveStock) {
+              btn.style.borderStyle = 'dashed';
+              btn.style.borderColor = '#ef4444';
+            } else {
+              btn.style.borderStyle = 'solid';
+              btn.style.borderColor = '#22c55e';
+            }
+            renderTpvSizes(product, color, getVariety || (() => _selectedVariety));
           };
           colorCont.appendChild(btn);
         });
-
-        modal.style.display = 'flex';
-
-        if (scan && scan.color) {
-          const btn = Array.from(colorCont.children).find(b => b.innerText === scan.color);
-          if (btn) btn.click();
-        } else if (colors.length === 1 && !curvaState.active) {
-          // AUTO-SELECCI \u201cN: Si hay un solo color, seleccionarlo por defecto
-          const onlyBtn = colorCont.querySelector('.color-btn');
-          if (onlyBtn) onlyBtn.click();
-        }
-      };
+      }
 
       function renderTpvSizes(product, color, getVariety) {
         const sizeCont = document.getElementById('size-options');
@@ -2658,7 +2927,8 @@
             btnPlus.innerHTML = '<i class="ph-bold ph-plus"></i>';
             btnPlus.className = 'qty-btn';
             btnPlus.style.padding = '4px 8px';
-            btnPlus.disabled = currentStock <= qty;
+            const allowNeg = typeof window.checkAllowNegativeStock === 'function' && window.checkAllowNegativeStock();
+            btnPlus.disabled = !allowNeg && (currentStock <= qty);
             btnPlus.onclick = () => {
               curvaState.selection[varId] = (curvaState.selection[varId] || 0) + 1;
               renderTpvSizes(product, color, getVariety);
@@ -2679,15 +2949,23 @@
             wrapper.appendChild(container);
           } else {
             // MODO ESTANDAR: Botón simple
+            const allowNeg = typeof window.checkAllowNegativeStock === 'function' && window.checkAllowNegativeStock();
             const btn = document.createElement('button');
-            btn.className = `size-btn ${currentStock > 0 ? 'in-stock' : 'out-of-stock'}`;
+            btn.className = `size-btn ${(currentStock > 0 || allowNeg) ? 'in-stock' : 'out-of-stock'}`;
             btn.innerText = v.size;
 
-            if (currentStock <= 0) {
+            if (currentStock <= 0 && !allowNeg) {
               btn.disabled = true;
               btn.style.opacity = '0.5';
+              btn.style.border = '2px dashed #ef4444';
               btn.style.cursor = 'not-allowed';
             } else {
+              if (currentStock <= 0 && allowNeg) {
+                btn.style.border = '2px dashed #ef4444';
+                btn.title = 'Venta en Negativo (Sobregiro)';
+              } else if (currentStock > 0) {
+                btn.style.border = '2px solid #22c55e';
+              }
               btn.onclick = () => {
                 const variety = getVariety ? getVariety() : null;
                 addTpvToCart(product, v, variety);
@@ -2700,7 +2978,13 @@
 
           const label = document.createElement('span');
           label.className = 'stock-label';
-          label.innerText = `Stock: ${currentStock}`;
+          label.style.cursor = 'pointer';
+          label.title = `Abre AppSheet directamente en el registro de la variación ${v.variation_id}`;
+          label.innerHTML = `Stock: ${currentStock} <i class="ph-bold ph-arrow-square-out" style="font-size:0.65rem; margin-left:2px; color:#6366f1;"></i>`;
+          label.onclick = (e) => {
+            e.stopPropagation();
+            openAppSheetAddStock(product, v);
+          };
           wrapper.appendChild(label);
 
           sizeCont.appendChild(wrapper);
@@ -2759,7 +3043,8 @@
 
               const bPlus = document.createElement('button');
               bPlus.innerText = '+';
-              bPlus.disabled = stock <= qty;
+              const allowNeg = typeof window.checkAllowNegativeStock === 'function' && window.checkAllowNegativeStock();
+              bPlus.disabled = !allowNeg && (stock <= qty);
               bPlus.onclick = () => updateCurvaMatrixQty(varId, 1);
 
               div.appendChild(bMinus);
@@ -2800,7 +3085,8 @@
         const stock = (realStockCache.map && realStockCache.map[varId] !== undefined) ? realStockCache.map[varId] : 0;
 
         if (next < 0) return;
-        if (next > stock) return;
+        const allowNeg = typeof window.checkAllowNegativeStock === 'function' && window.checkAllowNegativeStock();
+        if (!allowNeg && next > stock) return;
 
         if (next === 0) delete curvaState.selection[varId];
         else curvaState.selection[varId] = next;
@@ -2813,20 +3099,23 @@
         const sizes = curvaState.sizes;
 
         let canFill = true;
-        sizes.forEach(size => {
-          const v = product.variations.find(varItem => varItem.color === color && varItem.size === size);
-          if (v) {
-            const stock = (realStockCache.map && realStockCache.map[v.variation_id] !== undefined) ? realStockCache.map[v.variation_id] : 0;
-            const current = curvaState.selection[v.variation_id] || 0;
-            if (stock <= current) canFill = false;
-          } else {
-            canFill = false;
-          }
-        });
+        const allowNeg = typeof window.checkAllowNegativeStock === 'function' && window.checkAllowNegativeStock();
+        if (!allowNeg) {
+          sizes.forEach(size => {
+            const v = product.variations.find(varItem => varItem.color === color && varItem.size === size);
+            if (v) {
+              const stock = (realStockCache.map && realStockCache.map[v.variation_id] !== undefined) ? realStockCache.map[v.variation_id] : 0;
+              const current = curvaState.selection[v.variation_id] || 0;
+              if (stock <= current) canFill = false;
+            } else {
+              canFill = false;
+            }
+          });
 
-        if (!canFill) {
-          alert('No hay stock suficiente para completar una curva de este color.');
-          return;
+          if (!canFill) {
+            alert('No hay stock suficiente para completar una curva de este color.');
+            return;
+          }
         }
 
         sizes.forEach(size => {
@@ -2954,13 +3243,7 @@
               realStockCache.map = data.stockMap;
               realStockCache.lastUpdate = new Date();
               console.log("  Stock actualizado manualmente.");
-              // Si el modal está abierto, refrescar talle
-              const activeColorBtn = document.querySelector('.color-btn.active');
-              if (activeColorBtn) {
-                const modalTitle = document.getElementById('modal-product-title').innerText;
-                const product = catalog.products.find(p => p.model === modalTitle);
-                if (product) renderTpvSizes(product, activeColorBtn.innerText);
-              }
+              onStockCacheUpdated();
             } else {
               console.error("No se pudo actualizar el stock", data);
             }
@@ -3012,7 +3295,8 @@
         const existing = cart.find(i => i.variation_id === varId && i.tipoPrecio === tipoPrecio);
         const currentInCart = existing ? existing.quantity : 0;
 
-        if (currentInCart + initQty > available) {
+        const allowNeg = typeof window.checkAllowNegativeStock === 'function' && window.checkAllowNegativeStock();
+        if (!allowNeg && (currentInCart + initQty > available)) {
           alert('No hay suficiente stock disponible (' + available + ')');
           return;
         }
@@ -3054,16 +3338,16 @@
         cart.forEach(function (item, index) {
           let priceHtml = "";
           if ((item.categoryName || '').toUpperCase() === 'OFERTA') {
-            priceHtml = "<div style='display:flex; flex-direction:column; align-items:flex-start;'><span style='font-size:0.75rem; font-weight:700; color:#3b82f6;'>" + (item.tipoPrecio || '—') + "</span><input type='number' class='qty-input' style='width: 80px; margin-top:2px;' value='" + (item.price || 0) + "' min='0' onchange='updateTpvPrice(" + index + ", this.value)'></div>";
+            priceHtml = "<div style='display:flex; flex-direction:column; align-items:flex-start; width:100%; max-width:82px; overflow:hidden;'><span style='font-size:0.72rem; font-weight:700; color:#3b82f6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; line-height:1.15;' title='" + (item.tipoPrecio || '') + "'>" + (item.tipoPrecio || '—') + "</span><input type='number' class='qty-input' style='width: 100%; max-width: 68px; box-sizing:border-box; margin-top:3px; padding:2px 4px; font-size:0.78rem;' value='" + (item.price || 0) + "' min='0' onchange='updateTpvPrice(" + index + ", this.value)'></div>";
           } else {
-            priceHtml = "<div style='display:flex; flex-direction:column; align-items:flex-start;'><span style='font-size:0.75rem; font-weight:700; color:#3b82f6;'>" + (item.tipoPrecio || '—') + "</span><span style='font-size:0.8rem; font-weight:600; color:#cbd5e1;'>$" + (item.price || 0).toLocaleString() + "</span></div>";
+            priceHtml = "<div style='display:flex; flex-direction:column; align-items:flex-start; width:100%; max-width:82px; overflow:hidden;'><span style='font-size:0.72rem; font-weight:700; color:#3b82f6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; line-height:1.15;' title='" + (item.tipoPrecio || '') + "'>" + (item.tipoPrecio || '—') + "</span><span style='font-size:0.8rem; font-weight:600; color:#cbd5e1; margin-top:2px;'>$" + (item.price || 0).toLocaleString() + "</span></div>";
           }
 
           // Columna PRODUCTO: miniatura + nombre
           const thumbHtml = item.image
             ? `<img src="${item.image}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border-color);flex-shrink:0;" loading="lazy" alt="">`
             : `<div style="width:32px;height:32px;border-radius:6px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">&#128085;</div>`;
-          const productCellHtml = `<div style="display:flex;align-items:center;gap:6px;">${thumbHtml}<span style="font-weight:600;font-size:0.78rem;">${item.model}</span></div>`;
+          const productCellHtml = `<div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:600;font-size:0.78rem; word-break: break-word; line-height: 1.25; max-width: 120px;">${item.model}</span></div>`;
 
           // Columna VARIANTE: chip de color + talle en píldora
           const isSurtido = (item.color || '').toLowerCase() === 'surtido';
@@ -3071,18 +3355,18 @@
             ? 'background:linear-gradient(135deg,#f43f5e,#f59e0b,#10b981,#3b82f6,#8b5cf6);'
             : (item.colorHex ? `background:${item.colorHex};` : 'background:#475569;');
           const chipBorderColor = item.colorHex ? item.colorHex : '#475569';
-          const variantCellHtml = `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">`
+          const variantCellHtml = `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap; max-width: 76px;">`
             + `<span title="${item.color}" style="display:inline-block;width:14px;height:14px;border-radius:4px;${chipStyle}border:1px solid rgba(255,255,255,0.2);flex-shrink:0;"></span>`
-            + `<span style="font-size:0.72rem;font-weight:700;background:rgba(255,255,255,0.07);border:1px solid ${chipBorderColor}40;border-radius:5px;padding:1px 6px;color:var(--text-main);white-space:nowrap;">${item.size}</span>`
+            + `<span style="font-size:0.72rem;font-weight:700;background:rgba(255,255,255,0.07);border:1px solid ${chipBorderColor}40;border-radius:5px;padding:1px 5px;color:var(--text-main);word-break:break-word;line-height:1.2;">${item.size}</span>`
             + `</div>`;
 
           dt.row.add([
             productCellHtml,
             variantCellHtml,
             priceHtml,
-            `<input type='number' class='qty-input' value='${item.quantity}' min='${item.min_qty || 1}' step='${item.min_qty || 1}' onchange='updateTpvQty(${index}, this.value)'>`,
+            `<input type='number' class='qty-input' style='width: 48px; padding: 2px 4px; font-size: 0.8rem;' value='${item.quantity}' min='${item.min_qty || 1}' step='${item.min_qty || 1}' onchange='updateTpvQty(${index}, this.value)'>`,
             "$" + (item.price * item.quantity).toLocaleString(),
-            `<button onclick='removeTpvItem(${index})' style='color:#ef4444;background:none;border:none;cursor:pointer'><i class='ph-bold ph-trash'></i></button>`
+            `<button onclick='removeTpvItem(${index})' style='color:#ef4444;background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;margin:auto;' title='Eliminar producto'><i class='ph-bold ph-trash text-lg'></i></button>`
           ]);
         });
 
@@ -3112,8 +3396,9 @@
         if (newQty < minQty) newQty = minQty;
 
         const available = (realStockCache.map && realStockCache.map[item.variation_id] !== undefined) ? realStockCache.map[item.variation_id] : 0;
+        const allowNeg = typeof window.checkAllowNegativeStock === 'function' && window.checkAllowNegativeStock();
 
-        if (newQty > available) {
+        if (!allowNeg && newQty > available) {
           alert("Stock insuficiente. Máximo disponible: " + available);
           // Ajustar al máximo múltiplo posible
           item.quantity = Math.floor(available / minQty) * minQty;
@@ -3125,6 +3410,7 @@
 
       window.updateTpvTotals = function () {
         if (!catalog || !posMetadata) return;
+        if (!posMetadata.storeConfig) posMetadata.storeConfig = {};
 
         var isQr = (posMetadata.storeConfig.saleMode || "").toUpperCase().trim() === "LECTOR QR";
         const isPrecioVariable = checkIsPrecioVariable();
@@ -3165,10 +3451,12 @@
             const display = document.getElementById('tpv-min-purchase-display');
             const progress = document.getElementById('tpv-min-purchase-progress');
             const target = selectedMinPurchase || 1;
-            display.innerText = `${totalUnitsSize} / ${target}`;
+            if (display) display.innerText = `${totalUnitsSize} / ${target}`;
             const percent = Math.min(100, (totalUnitsSize / target) * 100);
-            progress.style.width = percent + '%';
-            progress.className = percent >= 100 ? 'bg-emerald-500 h-full transition-all' : 'bg-warning h-full transition-all';
+            if (progress) {
+              progress.style.width = percent + '%';
+              progress.className = percent >= 100 ? 'bg-emerald-500 h-full transition-all' : 'bg-warning h-full transition-all';
+            }
           } else {
             minCont.style.display = 'none';
             if (headerMinWrapper) headerMinWrapper.style.display = 'none';
@@ -3177,12 +3465,14 @@
 
         // D. Pago Mixto y Subtotal Neto
         const cashInputId = isQr ? 'qr-tpv-cash-amount' : 'tpv-cash-amount';
-        const cashAmount = parseFloat(document.getElementById(cashInputId).value) || 0;
+        const cashInputEl = document.getElementById(cashInputId);
+        const cashAmount = parseFloat(cashInputEl ? cashInputEl.value : 0) || 0;
         const subtotalNeto = Math.max(0, montoProductos + minorSurcharge - cashAmount);
 
         // E. Recargo Medio de Pago
         const methodId = isQr ? 'qr-tpv-payment-method' : 'tpv-payment-method';
-        const method = document.getElementById(methodId).value || 'Efectivo';
+        const methodEl = document.getElementById(methodId);
+        const method = methodEl ? methodEl.value : 'Efectivo';
         const noPaymentSurchargeId = isQr ? 'qr-tpv-modal-deactivate-surcharge' : 'tpv-modal-deactivate-surcharge';
         const noPaymentSurcharge = document.getElementById(noPaymentSurchargeId)?.checked || false;
 
@@ -3192,7 +3482,7 @@
         let paymentSurcharge = 0;
 
         // La validación cruzada recae sobre el botón de desactivar operado por el TPV
-        const m = posMetadata.paymentMethods.find(pm => pm.id === method);
+        const m = (posMetadata.paymentMethods || []).find(pm => pm.id === method);
         const percent = m ? m.percent : 0;
 
         // Ocultar/Mostrar checkbox de recargo según proceda
@@ -3247,14 +3537,14 @@
         // CRÍTICO: processCheckoutSale los leerá directamente de aquí,
         // evitando re-parsear el DOM (que puede tener errores de formato o redondeo).
         window._tpvLastTotals = {
-          montoProductos:  montoProductos,
-          minorSurcharge:  minorSurcharge,
-          cashAmount:      cashAmount,
-          subtotalNeto:    subtotalNeto,
+          montoProductos: montoProductos,
+          minorSurcharge: minorSurcharge,
+          cashAmount: cashAmount,
+          subtotalNeto: subtotalNeto,
           paymentSurcharge: Math.round(paymentSurcharge),
-          totalFinal:      Math.round(totalFinal),
-          method:          method,
-          customerId:      customerId
+          totalFinal: Math.round(totalFinal),
+          method: method,
+          customerId: customerId
         };
       };
 
@@ -3281,10 +3571,10 @@
         // NUNCA re-parsear del DOM: el formato de moneda varía por locale
         // y el redondeo puede introducir diferencias de centavos en el ticket.
         const T = window._tpvLastTotals || {};
-        const minorSurcharge   = T.minorSurcharge   || 0;
-        const paymentSurcharge = T.paymentSurcharge  || 0;
-        const finalTotal       = T.totalFinal        || 0;
-        const subtotalNeto     = T.subtotalNeto       || 0;
+        const minorSurcharge = T.minorSurcharge || 0;
+        const paymentSurcharge = T.paymentSurcharge || 0;
+        const finalTotal = T.totalFinal || 0;
+        const subtotalNeto = T.subtotalNeto || 0;
 
         // OBJETO DE VENTA
         var saleData = {
@@ -3523,6 +3813,7 @@
                 // Actualización parcial optimista: aplica solo las variaciones de ESTA venta
                 // para que el UI refleje el cambio inmediatamente mientras llega el refresco completo.
                 Object.assign(realStockCache.map, res.updatesMap);
+                onStockCacheUpdated();
               }
 
               if (res.cashRegisterId) {
@@ -3551,6 +3842,7 @@
                         realStockCache.map = stockRes.stockMap; // Reemplaza TODO el mapa
                         realStockCache.lastUpdate = new Date();
                         console.log('[Stock] Refresco post-venta completado. Tienda:', storeId, '| Items:', Object.keys(stockRes.stockMap).length);
+                        onStockCacheUpdated();
                       }
                     })
                     .withFailureHandler(() => {
@@ -3597,6 +3889,7 @@
                 realStockCache.map = stockRes.stockMap;
                 realStockCache.lastUpdate = new Date();
                 console.log('[Stock Worker] Cache actualizado. Items:', Object.keys(stockRes.stockMap).length);
+                onStockCacheUpdated();
               }
             })
             .withFailureHandler(function () {
@@ -3624,7 +3917,7 @@
 
             const remoteCatalog = await response.json();
             const remoteTs = remoteCatalog.timestamp_ms || 0;
-            const localTs  = catalog ? (catalog.timestamp_ms || 0) : 0;
+            const localTs = catalog ? (catalog.timestamp_ms || 0) : 0;
 
             if (remoteTs > localTs) {
               console.log('[Catalog Worker] Nueva versión detectada en CDN. Remote:', remoteTs, '| Local:', localTs, '| Recargando...');
@@ -3718,8 +4011,8 @@
         toast.innerHTML = [
           '<i class="ph-bold ph-arrow-clockwise" style="color:#10b981;font-size:1.2rem;flex-shrink:0;"></i>',
           '<div>',
-            '<div style="color:#10b981;font-size:0.7rem;font-weight:800;text-transform:uppercase;margin-bottom:2px;">Catálogo Actualizado</div>',
-            'Se detectó una nueva versión de precios y productos.',
+          '<div style="color:#10b981;font-size:0.7rem;font-weight:800;text-transform:uppercase;margin-bottom:2px;">Catálogo Actualizado</div>',
+          'Se detectó una nueva versión de precios y productos.',
           '</div>'
         ].join('');
 
@@ -3839,6 +4132,15 @@
           const rawMode = localStorage.getItem('tpv_sale_mode') || (posMetadata && posMetadata.storeConfig && posMetadata.storeConfig.saleMode) || "BOTONES DE FILTRADO";
           updateConfigModeButtons(rawMode);
 
+          // Cargar preferencia de venta en negativo
+          const storeKey = posMetadata ? (posMetadata.managedStoreId || 'general') : 'general';
+          const allowNegStore = posMetadata && posMetadata.storeConfig ? posMetadata.storeConfig.allowNegativeStock : false;
+          const storedNeg = localStorage.getItem('tpv_allow_negative_stock_' + storeKey);
+          const allowNeg = storedNeg !== null ? storedNeg === 'true' : allowNegStore;
+          if (posMetadata && posMetadata.storeConfig) posMetadata.storeConfig.allowNegativeStock = allowNeg;
+          const cbNeg = document.getElementById('tpv-config-allow-negative');
+          if (cbNeg) cbNeg.checked = allowNeg;
+
           // Cargar preferencia de ocultar recargo en ticket
           const hideSurcharge = localStorage.getItem('tpv_hide_surcharge_ticket') === 'true';
           const cb = document.getElementById('tpv-config-hide-surcharge-ticket');
@@ -3888,6 +4190,89 @@
           const cbPrices = document.getElementById('tpv-search-prices');
           if (cbPrices) cbPrices.checked = searchPrices;
         }
+      };
+
+      window.checkAllowNegativeStock = function () {
+        if (!posMetadata) return false;
+        const storeKey = posMetadata.managedStoreId || 'general';
+        const storedNeg = localStorage.getItem('tpv_allow_negative_stock_' + storeKey);
+        if (storedNeg !== null) return storedNeg === 'true';
+        return posMetadata.storeConfig ? !!posMetadata.storeConfig.allowNegativeStock : false;
+      };
+
+      window.toggleAllowNegativeStock = function (checkboxId) {
+        const cb = document.getElementById(checkboxId);
+        if (cb && posMetadata) {
+          const storeKey = posMetadata.managedStoreId || 'general';
+          if (posMetadata.storeConfig) posMetadata.storeConfig.allowNegativeStock = cb.checked;
+          localStorage.setItem('tpv_allow_negative_stock_' + storeKey, cb.checked ? 'true' : 'false');
+          renderTpvUI();
+        }
+      };
+
+      window.openAppSheetAddStock = function (product, variation = null, forceViewType = null) {
+        const appId = (catalog && catalog.appSheet && catalog.appSheet.appId) ? catalog.appSheet.appId : (typeof FALLBACK_APP_ID !== 'undefined' ? FALLBACK_APP_ID : "");
+        const appName = (catalog && catalog.appSheet && catalog.appSheet.appName) ? catalog.appSheet.appName : (typeof FALLBACK_APP_NAME !== 'undefined' && FALLBACK_APP_NAME ? FALLBACK_APP_NAME : appId);
+        if (!appId) {
+          alert("La configuración de AppSheet (APP_ID) no está disponible. Verifica que la clave APPSHEET_APP_ID exista en la hoja BD_APP_SCRIPT o regenera el catálogo desde el panel.");
+          return;
+        }
+        let url = "";
+        const baseAppSheet = "https:" + "/" + "/www.appsheet.com/start/" + appId;
+
+        const isDetailMode = forceViewType === 'DETAIL' || (forceViewType !== 'LIST' && forceViewType !== 'PRODUCT_DETAIL' && variation && (variation.variation_id || variation.INVENTARIO_ID));
+
+        if (forceViewType === 'PRODUCT_DETAIL') {
+          const pid = product ? (product.id || product.sku || "") : "";
+          const viewName = (catalog && catalog.appSheet && catalog.appSheet.productDetailView) ? catalog.appSheet.productDetailView : 'BD_PRODUCTOS_Detail';
+          url = baseAppSheet + "#appName=" + encodeURIComponent(appName) + "&view=" + encodeURIComponent(viewName) + "&row=" + encodeURIComponent(pid);
+        } else if (isDetailMode && variation && (variation.variation_id || variation.INVENTARIO_ID)) {
+          const varId = variation.variation_id || variation.INVENTARIO_ID;
+          const viewName = (catalog && catalog.appSheet && catalog.appSheet.inventoryDetailView) ? catalog.appSheet.inventoryDetailView : 'BD_INVENTARIO_Detail';
+          url = baseAppSheet + "#appName=" + encodeURIComponent(appName) + "&view=" + encodeURIComponent(viewName) + "&row=" + encodeURIComponent(varId);
+        } else {
+          const pid = product ? (product.id || product.sku || "") : "";
+          const storeId = posMetadata ? (posMetadata.managedStoreId || "") : "";
+          const viewName = (catalog && catalog.appSheet && catalog.appSheet.inventoryListView) ? catalog.appSheet.inventoryListView : 'BD_INVENTARIO';
+          const defObj = JSON.stringify({ PRODUCTO_ID: pid, TIENDA_ID: storeId });
+          
+          const filterParam = pid ? "&table=" + encodeURIComponent(viewName) + "&filter=" + encodeURIComponent("PRODUCTO_ID=" + pid) : "";
+          url = baseAppSheet + "#appName=" + encodeURIComponent(appName) + "&view=" + encodeURIComponent(viewName) + filterParam + "&query=" + encodeURIComponent(pid) + "&defaults=" + encodeURIComponent(defObj);
+        }
+        window.open(url, '_blank');
+      };
+
+      window.openAppSheetDetailFromModal = function () {
+        if (!curvaState || !curvaState.product) return;
+        const product = curvaState.product;
+        openAppSheetAddStock(product, null, 'PRODUCT_DETAIL');
+      };
+
+      window.openAppSheetListFromModal = function () {
+        if (!curvaState || !curvaState.product) return;
+        const product = curvaState.product;
+        const managedStore = posMetadata ? posMetadata.managedStoreId : '';
+        const storeVars = (product.variations || []).filter(v => !managedStore || managedStore.trim().toUpperCase() === 'TODAS' || v.store_id === managedStore);
+        
+        let targetVariation = null;
+        const activeColorBtn = document.querySelector('#color-options .color-btn.active');
+        if (activeColorBtn) {
+          const cName = activeColorBtn.innerText.trim();
+          const colorVars = storeVars.filter(v => v.color === cName);
+          if (colorVars.length > 0) targetVariation = colorVars[0];
+        }
+        if (!targetVariation && storeVars.length > 0) {
+          targetVariation = storeVars[0];
+        }
+        if (targetVariation) {
+          openAppSheetAddStock(product, targetVariation, 'DETAIL');
+        } else {
+          openAppSheetAddStock(product, null, 'LIST');
+        }
+      };
+
+      window.openAppSheetAddStockFromModal = function () {
+        openAppSheetListFromModal();
       };
 
       window.togglePrintFeature = function (checkboxId, storageKey) {
